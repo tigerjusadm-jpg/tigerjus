@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
@@ -11,7 +11,7 @@ const PLANS: Record<string, any> = {
   elite: { name:'Tiger Elite', price:'19,99',amount:19.99,color:'var(--orange)', features:['Tudo ilimitado','IA prioritária','Conteúdos exclusivos','Simulados inéditos'] },
 }
 
-export default function CheckoutPage() {
+function CheckoutContent() {
   const params = useSearchParams()
   const router = useRouter()
   const planId = params.get('plan') || 'pro'
@@ -32,7 +32,6 @@ export default function CheckoutPage() {
     supabase.auth.getUser().then(({ data: { user } }) => setUser(user))
   }, [])
 
-  // Countdown timer for PIX
   useEffect(() => {
     if (!pixData || pixDone) return
     const t = setInterval(() => setPixTimer(p => { if(p<=1){clearInterval(t);return 0;} return p-1 }), 1000)
@@ -50,7 +49,6 @@ export default function CheckoutPage() {
       })
       const data = await res.json()
       if (data.pix) setPixData(data.pix)
-      // Poll for payment confirmation
       const poll = setInterval(async () => {
         const { data: payment } = await supabase.from('payments').select('status').eq('provider_payment_id', String(data.payment_id)).single()
         if (payment?.status === 'approved') { clearInterval(poll); setPixDone(true) }
@@ -79,9 +77,7 @@ export default function CheckoutPage() {
   return (
     <div style={{minHeight:'100vh',background:'var(--deep-black)',display:'flex',alignItems:'center',justifyContent:'center',padding:24,position:'relative'}}>
       <div style={{position:'absolute',inset:0,background:'radial-gradient(ellipse 60% 50% at 50% 50%, rgba(212,168,67,0.05), transparent)',pointerEvents:'none'}} />
-
       <div style={{width:'100%',maxWidth:960,display:'grid',gridTemplateColumns:'1fr 1fr',gap:32,position:'relative'}}>
-        {/* Plan summary */}
         <div>
           <Link href="/" style={{display:'inline-flex',alignItems:'center',gap:8,color:'var(--text-muted)',fontSize:13,textDecoration:'none',marginBottom:32}}>← Voltar</Link>
           <div style={{background:'linear-gradient(135deg,rgba(212,168,67,0.08),rgba(232,98,26,0.04))',border:'1px solid rgba(212,168,67,0.2)',borderRadius:20,padding:32,marginBottom:20}}>
@@ -104,13 +100,11 @@ export default function CheckoutPage() {
           </div>
         </div>
 
-        {/* Payment form */}
         <div style={{background:'var(--gray)',border:'1px solid rgba(212,168,67,0.15)',borderRadius:20,overflow:'hidden'}}>
           <div style={{background:'linear-gradient(135deg,rgba(212,168,67,0.1),rgba(232,98,26,0.06))',padding:'22px 28px',borderBottom:'1px solid rgba(212,168,67,0.12)'}}>
             <div style={{fontFamily:'var(--font-display)',fontSize:22,fontWeight:900}}>Finalizar Assinatura</div>
             <div style={{fontSize:13,color:'var(--text-muted)',marginTop:4}}>TigerJus {plan.name} — R${plan.price}/mês</div>
           </div>
-
           <div style={{padding:28}}>
             <div style={{display:'flex',gap:8,marginBottom:24}}>
               {(['pix','card'] as const).map(t=>(
@@ -195,9 +189,23 @@ export default function CheckoutPage() {
           </div>
         </div>
       </div>
-
       <div className="grain-overlay" />
       <style>{`@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.5;transform:scale(0.9)}}`}</style>
     </div>
+  )
+}
+
+export default function CheckoutPage() {
+  return (
+    <Suspense fallback={
+      <div style={{minHeight:'100vh',background:'var(--deep-black)',display:'flex',alignItems:'center',justifyContent:'center'}}>
+        <div style={{textAlign:'center'}}>
+          <div style={{fontSize:48,marginBottom:16}}>🐯</div>
+          <div style={{fontFamily:'var(--font-display)',fontSize:20,fontWeight:900,color:'var(--gold)'}}>Carregando...</div>
+        </div>
+      </div>
+    }>
+      <CheckoutContent />
+    </Suspense>
   )
 }
