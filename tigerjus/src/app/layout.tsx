@@ -14,7 +14,7 @@ const dmSans = DM_Sans({
   weight: ['400', '500', '600', '700', '800'],
 })
 
-const dmMono = DM_Mono({
+const const dmMono = DM_Mono({   subsets: ['latin'],   variable: '--font-mono',   weight: ['300', '400', '500'], }) = DM_Mono({
   subsets: ['latin'],
   variable: '--font-mono',
   weight: ['400', '500', '700'],
