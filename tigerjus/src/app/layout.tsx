@@ -14,10 +14,10 @@ const dmSans = DM_Sans({
   weight: ['400', '500', '600', '700', '800'],
 })
 
-const const dmMono = DM_Mono({   subsets: ['latin'],   variable: '--font-mono',   weight: ['300', '400', '500'], }) = DM_Mono({
+const dmMono = DM_Mono({
   subsets: ['latin'],
   variable: '--font-mono',
-  weight: ['400', '500', '700'],
+  weight: ['300', '400', '500'],
 })
 
 export const metadata: Metadata = {
