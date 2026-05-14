@@ -11,6 +11,8 @@ interface Profile {
   total_questions_answered: number; total_correct: number
 }
 
+type LevelName = 'Filhote' | 'Caçador' | 'Alpha' | 'Tigre Supremo' | 'Mestre TigerJus'
+
 // ── Data ───────────────────────────────────────────────
 const DISCIPLINES = [
   {id:1,icon:'⚖️',name:'Constitucional',progress:68,q:142,tags:['Quiz','Resumo','Flash','PDF']},
@@ -69,6 +71,22 @@ const SIMULADOS_DATA = [
   {icon:'🏛️',t:'Simulado Geral — Todas as Disciplinas',info:'60 questões · 4h',tags:['Completo','Cronometrado'],lock:true},
 ]
 
+const XP_NEXT: Record<LevelName, number> = {
+  'Filhote': 1000,
+  'Caçador': 5000,
+  'Alpha': 15000,
+  'Tigre Supremo': 40000,
+  'Mestre TigerJus': 999999,
+}
+
+const XP_PREV: Record<LevelName, number> = {
+  'Filhote': 0,
+  'Caçador': 1000,
+  'Alpha': 5000,
+  'Tigre Supremo': 15000,
+  'Mestre TigerJus': 40000,
+}
+
 // ── Notification ───────────────────────────────────────
 function Notification({ msg, onClose }: { msg: string; onClose: () => void }) {
   useEffect(() => { const t = setTimeout(onClose, 4500); return () => clearTimeout(t) }, [])
@@ -110,11 +128,10 @@ function PremiumGate({ onClose, onUpgrade }: { onClose: () => void; onUpgrade: (
 // ── Dashboard Home ─────────────────────────────────────
 function DashHome({ profile, onNav, showPremium }: any) {
   const xp = profile?.xp || 18400
-  const levelName = profile?.level_name || 'Caçador'
+  const levelName: LevelName = (profile?.level_name || 'Caçador') as LevelName
   const streak = profile?.streak || 7
-  const getLevelNext = (name: string) => ({ Filhote:1000, Caçador:5000, Alpha:15000, 'Tigre Supremo':40000, 'Mestre TigerJus':999999 }[name] || 5000)
-  const xpNext = getLevelNext(levelName)
-  const xpPrev = ({ Filhote:0, Caçador:1000, Alpha:5000, 'Tigre Supremo':15000, 'Mestre TigerJus':40000 }[levelName] || 0)
+  const xpNext = XP_NEXT[levelName] || 5000
+  const xpPrev = XP_PREV[levelName] || 0
   const pct = Math.round(((xp - xpPrev) / (xpNext - xpPrev)) * 100)
 
   return (
