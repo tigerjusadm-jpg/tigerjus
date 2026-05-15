@@ -1,49 +1,33 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
-import { supabaseAdmin } from '@/lib/supabase'
+import { createClient } from '@supabase/supabase-js'
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
 })
 
-const SYSTEM_PROMPT = `Você é o TigerJus AI — tutor jurídico de alta performance para estudantes de Direito brasileiros focados na aprovação na OAB (Ordem dos Advogados do Brasil).
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+)
 
-MISSÃO: Ajudar estudantes a aprovarem na OAB com respostas didáticas, precisas e motivadoras.
+const FREE_LIMIT = 5
 
-REGRAS:
-- Responda em português brasileiro
-- Seja direto, didático e objetivo
-- Cite sempre os artigos específicos (ex: "art. 5º, LXIX da CF/88")
-- Use exemplos práticos quando possível
-- Foque em lei seca, jurisprudência do STF/STJ e pegadinhas da OAB
-- Limite sua resposta a 400 palavras
-- Use formatação clara (listas quando necessário)
-- Seja motivador como um coach jurídico
-- Quando o aluno errar uma questão, explique o porquê de forma gentil mas precisa
-- Priorize: CF/88, Código Civil, Código Penal, CPP, CPC, CLT e Estatuto da OAB
-
-DISCIPLINAS: Constitucional, Administrativo, Penal, Processo Penal, Civil, Processo Civil, Trabalhista, Tributário, Empresarial, Ética OAB, Consumidor, Direitos Humanos, Ambiental, Internacional, ECA.
-
-PROIBIDO: Inventar jurisprudência, dar conselhos sobre casos reais, substituir advogado.`
-
-export async function POST(request: NextRequest) {
+export async function POST(req: NextRequest) {
   try {
-    const { messages, userId, plan } = await request.json()
+    const { messages, userId, plan } = await req.json()
 
-    // Check plan limits
-    if (plan === 'free') {
-      const supabase = supabaseAdmin()
+    if (plan === 'gratuito' || plan === 'free') {
       const { data: profile } = await supabase
         .from('profiles')
         .select('free_ia_used')
         .eq('id', userId)
         .single()
 
-      if (profile && profile.free_ia_used >= 5) {
-        return NextResponse.json({ error: 'LIMIT_REACHED', message: 'Limite gratuito atingido' }, { status: 403 })
+      if (profile && (profile.free_ia_used || 0) >= FREE_LIMIT) {
+        return NextResponse.json({ error: 'LIMIT_REACHED' }, { status: 403 })
       }
 
-      // Increment counter
       if (userId) {
         await supabase
           .from('profiles')
@@ -55,31 +39,48 @@ export async function POST(request: NextRequest) {
     const response = await anthropic.messages.create({
       model: 'claude-sonnet-4-20250514',
       max_tokens: 1024,
-      system: SYSTEM_PROMPT,
+      system: `Você é o TigerJus AI — tutor jurídico especializado em Direito brasileiro e aprovação na OAB.
+
+Sua missão é ajudar estudantes de Direito a:
+- Entender conceitos jurídicos de forma clara e didática
+- Revisar conteúdo para a OAB 1ª e 2ª fase
+- Explicar artigos de lei com exemplos práticos
+- Identificar pontos críticos para provas
+- Corrigir erros de raciocínio jurídico
+
+Diretrizes obrigatórias:
+- Use linguagem clara e acessível, evite juridiquês desnecessário
+- Sempre cite o artigo, lei ou código quando relevante
+- Foque em lei seca e entendimento prático
+- Seja objetivo, didático e construtivo
+- Priorize os temas que mais caem na OAB
+
+ATUALIZAÇÃO LEGISLATIVA — MUITO IMPORTANTE:
+- Sempre que abordar um tema, verifique se houve reformas, emendas, novas leis ou alterações jurisprudenciais recentes
+- Alerte o estudante quando um tema for objeto de reforma legislativa recente ou estiver em discussão no Congresso ou STF
+- Exemplos de temas sensíveis a mudanças: reforma tributária, reforma trabalhista, marco civil da internet, LGPD, legislação eleitoral, Código de Processo Civil, alterações no Código Penal
+- Sempre oriente: "Verifique a redação atual vigente no site do Planalto (planalto.gov.br) ou no portal do STF, pois este tema pode ter sofrido alterações recentes."
+- Nunca afirme com certeza absoluta que uma lei está em vigor sem recomendar a conferência na fonte oficial
+- Se não tiver certeza sobre uma alteração legislativa recente, seja transparente e diga: "Recomendo verificar a versão mais atualizada desta norma, pois pode haver alterações que não tenho em meu treinamento."
+
+Você representa a marca TigerJus — performance, foco, atualização constante e aprovação.`,
       messages: messages.map((m: any) => ({
-        role: m.role,
-        content: m.content,
+        role: m.role === 'assistant' ? 'assistant' : 'user',
+        content: m.content || m.text || '',
       })),
     })
 
     const text = response.content
       .filter((b: any) => b.type === 'text')
       .map((b: any) => b.text)
-      .join('')
-
-    // Save conversation to DB
-    if (userId) {
-      const supabase = supabaseAdmin()
-      await supabase.from('ia_conversations').insert({
-        user_id: userId,
-        messages: messages,
-        total_tokens: response.usage.input_tokens + response.usage.output_tokens,
-      })
-    }
+      .join('\n')
 
     return NextResponse.json({ text })
+
   } catch (error: any) {
     console.error('IA Error:', error)
-    return NextResponse.json({ error: 'AI_ERROR', message: error.message }, { status: 500 })
+    return NextResponse.json({ 
+      text: 'Desculpe, ocorreu um erro ao processar sua pergunta. Tente novamente em alguns segundos.' 
+    }, { status: 200 })
   }
 }
