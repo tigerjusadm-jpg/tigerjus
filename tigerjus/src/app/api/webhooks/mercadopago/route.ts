@@ -1,92 +1,60 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { supabaseAdmin } from '@/lib/supabase'
+import { createClient } from '@supabase/supabase-js'
 
-const MP_ACCESS_TOKEN = process.env.MERCADOPAGO_ACCESS_TOKEN!
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+)
 
-const PLAN_BY_AMOUNT: Record<number, string> = {
-  199: 'start',
-  599: 'plus',
-  999: 'pro',
-  1999: 'elite',
-}
-
-export async function POST(request: NextRequest) {
+export async function POST(req: NextRequest) {
   try {
-    const body = await request.json()
+    const body = await req.json()
+    console.log('Webhook MP:', JSON.stringify(body))
+
     const { type, data } = body
 
-    if (type !== 'payment') {
-      return NextResponse.json({ received: true })
-    }
+    if (type === 'payment') {
+      const paymentId = data?.id
+      if (!paymentId) return NextResponse.json({ ok: true })
 
-    const paymentId = data?.id
-    if (!paymentId) return NextResponse.json({ received: true })
-
-    // Fetch payment details from MP
-    const mpRes = await fetch(`https://api.mercadopago.com/v1/payments/${paymentId}`, {
-      headers: { 'Authorization': `Bearer ${MP_ACCESS_TOKEN}` },
-    })
-    const mpPayment = await mpRes.json()
-
-    if (mpPayment.status !== 'approved') {
-      return NextResponse.json({ received: true })
-    }
-
-    const userId = mpPayment.metadata?.user_id
-    const plan = mpPayment.metadata?.plan
-    const amountCents = Math.round(mpPayment.transaction_amount * 100)
-
-    if (!userId || !plan) {
-      console.error('Missing metadata:', mpPayment.metadata)
-      return NextResponse.json({ received: true })
-    }
-
-    const supabase = supabaseAdmin()
-
-    // Update payment status
-    await supabase
-      .from('payments')
-      .update({
-        status: 'approved',
-        paid_at: new Date().toISOString(),
+      const mpResponse = await fetch(`https://api.mercadopago.com/v1/payments/${paymentId}`, {
+        headers: {
+          'Authorization': `Bearer ${process.env.MERCADOPAGO_ACCESS_TOKEN}`,
+        },
       })
-      .eq('provider_payment_id', String(paymentId))
 
-    // Create or update subscription
-    const periodEnd = new Date()
-    periodEnd.setMonth(periodEnd.getMonth() + 1)
+      const payment = await mpResponse.json()
+      console.log('Payment status:', payment.status, 'metadata:', payment.metadata)
 
-    await supabase
-      .from('subscriptions')
-      .upsert({
-        user_id: userId,
-        plan: plan,
-        status: 'active',
-        payment_provider: 'mercadopago',
-        provider_subscription_id: String(paymentId),
-        current_period_start: new Date().toISOString(),
-        current_period_end: periodEnd.toISOString(),
-        amount_cents: amountCents,
-      }, { onConflict: 'user_id' })
+      if (payment.status === 'approved') {
+        const userId = payment.metadata?.user_id
+        const plan = payment.metadata?.plan
 
-    // Update user plan
-    await supabase
-      .from('profiles')
-      .update({ plan: plan })
-      .eq('id', userId)
+        if (userId && plan) {
+          await supabase
+            .from('assinaturas')
+            .update({ status: 'ativo', mp_payment_id: String(paymentId) })
+            .eq('user_id', userId)
+            .eq('status', 'pendente')
 
-    // Award XP for subscribing
-    await supabase.from('xp_history').insert({
-      user_id: userId,
-      amount: 500,
-      reason: `Assinatura ${plan} ativada`,
-    })
-    await supabase.rpc('increment_xp', { user_id: userId, amount: 500 })
+          await supabase
+            .from('profiles')
+            .update({ plano: plan })
+            .eq('id', userId)
 
-    console.log(`✅ Payment approved: user=${userId} plan=${plan}`)
-    return NextResponse.json({ received: true, processed: true })
-  } catch (error: any) {
-    console.error('Webhook error:', error)
-    return NextResponse.json({ error: error.message }, { status: 500 })
+          console.log(`✅ Plano ${plan} ativado para usuário ${userId}`)
+        }
+      }
+    }
+
+    return NextResponse.json({ ok: true })
+
+  } catch (error) {
+    console.error('Webhook Error:', error)
+    return NextResponse.json({ error: 'Webhook error' }, { status: 500 })
   }
+}
+
+export async function GET() {
+  return NextResponse.json({ status: 'Webhook TigerJus ativo' })
 }
