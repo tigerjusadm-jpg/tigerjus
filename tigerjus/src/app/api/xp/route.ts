@@ -1,84 +1,98 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { supabaseAdmin } from '@/lib/supabase'
+import { createClient } from '@supabase/supabase-js'
 
-export async function POST(request: NextRequest) {
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+)
+
+const XP_ACTIONS: Record<string, number> = {
+  question_correct: 100,
+  question_wrong: 10,
+  simulado_complete: 500,
+  daily_login: 50,
+  streak_bonus: 200,
+  quiz_complete: 150,
+}
+
+const LEVELS = [
+  { name: 'Filhote', min: 0, max: 999 },
+  { name: 'Caçador', min: 1000, max: 4999 },
+  { name: 'Alpha', min: 5000, max: 14999 },
+  { name: 'Tigre Supremo', min: 15000, max: 39999 },
+  { name: 'Mestre TigerJus', min: 40000, max: 999999 },
+]
+
+function getLevel(xp: number) {
+  return LEVELS.find(l => xp >= l.min && xp <= l.max) || LEVELS[0]
+}
+
+export async function POST(req: NextRequest) {
   try {
-    const { userId, action, metadata } = await request.json()
-    if (!userId) return NextResponse.json({ error: 'NO_USER' }, { status: 400 })
+    const { userId, action } = await req.json()
+    if (!userId || !action) return NextResponse.json({ error: 'Missing params' }, { status: 400 })
 
-    const supabase = supabaseAdmin()
+    const xpEarned = XP_ACTIONS[action] || 0
 
-    const XP_TABLE: Record<string, number> = {
-      question_correct: 100,
-      question_wrong: 10,
-      simulado_complete: 500,
-      streak_bonus: 150,
-      daily_goal: 200,
-      first_login: 50,
-      subscribe: 500,
-    }
-
-    const xpEarned = XP_TABLE[action] || 0
-    if (xpEarned === 0) return NextResponse.json({ xp: 0 })
-
-    // Get current profile
     const { data: profile } = await supabase
       .from('profiles')
-      .select('xp, level, streak, last_study_date')
+      .select('xp, level_name, streak, ultimo_acesso, questoes_respondidas, questoes_corretas')
       .eq('id', userId)
       .single()
 
-    if (!profile) return NextResponse.json({ error: 'NO_PROFILE' }, { status: 404 })
+    if (!profile) return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
 
-    const newXp = (profile.xp || 0) + xpEarned
-
-    // Calculate new level
-    const getLevelInfo = (xp: number) => {
-      if (xp < 1000) return { level: 1, name: 'Filhote' }
-      if (xp < 5000) return { level: 2, name: 'Caçador' }
-      if (xp < 15000) return { level: 3, name: 'Alpha' }
-      if (xp < 40000) return { level: 4, name: 'Tigre Supremo' }
-      return { level: 5, name: 'Mestre TigerJus' }
+    const today = new Date().toISOString().split('T')[0]
+    const lastAccess = profile.ultimo_acesso
+    
+    let newStreak = profile.streak || 0
+    if (lastAccess !== today) {
+      const yesterday = new Date()
+      yesterday.setDate(yesterday.getDate() - 1)
+      const yesterdayStr = yesterday.toISOString().split('T')[0]
+      newStreak = lastAccess === yesterdayStr ? newStreak + 1 : 1
     }
 
-    const levelInfo = getLevelInfo(newXp)
-    const leveledUp = levelInfo.level > (profile.level || 1)
+    const oldXp = profile.xp || 0
+    const newXp = oldXp + xpEarned
+    const oldLevel = getLevel(oldXp)
+    const newLevel = getLevel(newXp)
+    const leveledUp = newLevel.name !== oldLevel.name
 
-    // Update streak
-    const today = new Date().toISOString().split('T')[0]
-    const lastStudy = profile.last_study_date
-    const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0]
-    const newStreak = lastStudy === yesterday ? (profile.streak || 0) + 1 : lastStudy === today ? profile.streak : 1
+    const updates: any = {
+      xp: newXp,
+      level_name: newLevel.name,
+      streak: newStreak,
+      ultimo_acesso: today,
+    }
 
-    // Update profile
-    await supabase
-      .from('profiles')
-      .update({
-        xp: newXp,
-        level: levelInfo.level,
-        level_name: levelInfo.name,
-        streak: newStreak,
-        last_study_date: today,
+    if (action === 'question_correct') {
+      updates.questoes_respondidas = (profile.questoes_respondidas || 0) + 1
+      updates.questoes_corretas = (profile.questoes_corretas || 0) + 1
+    } else if (action === 'question_wrong') {
+      updates.questoes_respondidas = (profile.questoes_respondidas || 0) + 1
+    }
+
+    await supabase.from('profiles').update(updates).eq('id', userId)
+
+    if (xpEarned > 0) {
+      await supabase.from('xp_historico').insert({
+        user_id: userId,
+        xp: xpEarned,
+        motivo: action,
       })
-      .eq('id', userId)
-
-    // Log XP history
-    await supabase.from('xp_history').insert({
-      user_id: userId,
-      amount: xpEarned,
-      reason: action,
-      metadata: metadata || {},
-    })
+    }
 
     return NextResponse.json({
       xp_earned: xpEarned,
       total_xp: newXp,
-      level: levelInfo,
+      level: newLevel,
       leveled_up: leveledUp,
       streak: newStreak,
     })
-  } catch (error: any) {
-    console.error('XP error:', error)
-    return NextResponse.json({ error: error.message }, { status: 500 })
+
+  } catch (error) {
+    console.error('XP Error:', error)
+    return NextResponse.json({ error: 'Internal error' }, { status: 500 })
   }
 }
