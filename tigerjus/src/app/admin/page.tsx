@@ -3,13 +3,27 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 
+interface SiteConfig {
+  id: string
+  chave: string
+  valor: string
+  tipo: string
+  categoria: string
+  descricao: string
+}
+
 export default function AdminPage() {
   const router = useRouter()
   const [loading, setLoading] = useState(true)
   const [authorized, setAuthorized] = useState(false)
+  const [tab, setTab] = useState('dashboard')
   const [metrics, setMetrics] = useState({ totalUsers:0, premiumUsers:0, totalRevenue:0, questionsAnswered:0, avgAccuracy:0, activeToday:0 })
   const [users, setUsers] = useState<any[]>([])
-  const [tab, setTab] = useState('dashboard')
+  const [configs, setConfigs] = useState<SiteConfig[]>([])
+  const [editValues, setEditValues] = useState<Record<string, string>>({})
+  const [saving, setSaving] = useState<string|null>(null)
+  const [savedMsg, setSavedMsg] = useState<string|null>(null)
+  const [configTab, setConfigTab] = useState('geral')
 
   useEffect(() => { checkAdmin() }, [])
 
@@ -21,11 +35,12 @@ export default function AdminPage() {
     setAuthorized(true)
     loadMetrics()
     loadUsers()
+    loadConfigs()
     setLoading(false)
   }
 
   const loadMetrics = async () => {
-    const { data: profiles } = await supabase.from('profiles').select('plano, xp, questoes_respondidas, questoes_corretas, ultimo_acesso')
+    const { data: profiles } = await supabase.from('profiles').select('plano, questoes_respondidas, questoes_corretas, ultimo_acesso')
     if (!profiles) return
     const today = new Date().toISOString().split('T')[0]
     const totalUsers = profiles.length
@@ -44,10 +59,41 @@ export default function AdminPage() {
     if (data) setUsers(data)
   }
 
+  const loadConfigs = async () => {
+    const { data } = await supabase.from('site_config').select('*').order('categoria')
+    if (data) {
+      setConfigs(data)
+      const vals: Record<string, string> = {}
+      data.forEach(c => { vals[c.chave] = c.valor || '' })
+      setEditValues(vals)
+    }
+  }
+
+  const saveConfig = async (chave: string) => {
+    setSaving(chave)
+    await supabase.from('site_config').update({ valor: editValues[chave], updated_at: new Date().toISOString() }).eq('chave', chave)
+    setSaving(null)
+    setSavedMsg(chave)
+    setTimeout(() => setSavedMsg(null), 2000)
+  }
+
+  const saveAllConfigs = async () => {
+    setSaving('all')
+    for (const [chave, valor] of Object.entries(editValues)) {
+      await supabase.from('site_config').update({ valor, updated_at: new Date().toISOString() }).eq('chave', chave)
+    }
+    setSaving(null)
+    setSavedMsg('all')
+    setTimeout(() => setSavedMsg(null), 3000)
+  }
+
   const updateUserPlan = async (userId: string, plan: string) => {
     await supabase.from('profiles').update({ plano: plan }).eq('id', userId)
     loadUsers()
   }
+
+  const categorias = [...new Set(configs.map(c => c.categoria))]
+  const configsByCategory = configs.filter(c => c.categoria === configTab)
 
   if (loading) return (
     <div style={{minHeight:'100vh',background:'#0a0a0a',display:'flex',alignItems:'center',justifyContent:'center'}}>
@@ -60,30 +106,33 @@ export default function AdminPage() {
 
   if (!authorized) return null
 
-  const TABS = ['dashboard','usuarios','assinaturas','conteudo']
+  const TABS = ['dashboard','usuarios','configuracoes','conteudo']
 
   return (
     <div style={{minHeight:'100vh',background:'#0a0a0a',color:'white',fontFamily:'system-ui'}}>
-      <div style={{background:'#111',borderBottom:'1px solid #222',padding:'16px 32px',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+      {/* Header */}
+      <div style={{background:'#111',borderBottom:'1px solid #222',padding:'16px 32px',display:'flex',alignItems:'center',justifyContent:'space-between',position:'sticky',top:0,zIndex:50}}>
         <div style={{display:'flex',alignItems:'center',gap:12}}>
-          <div style={{width:36,height:36,background:'linear-gradient(135deg,#D4A843,#E8621A)',borderRadius:8,display:'flex',alignItems:'center',justifyContent:'center',fontWeight:900,color:'#000'}}>T</div>
+          <div style={{width:36,height:36,background:'linear-gradient(135deg,#D4A843,#E8621A)',borderRadius:8,display:'flex',alignItems:'center',justifyContent:'center',fontWeight:900,color:'#000',fontSize:18}}>T</div>
           <span style={{fontWeight:700,fontSize:18}}>TigerJus <span style={{color:'#D4A843'}}>Admin</span></span>
         </div>
-        <div style={{display:'flex',gap:16,alignItems:'center'}}>
+        <div style={{display:'flex',gap:8,alignItems:'center'}}>
           {TABS.map(t => (
             <button key={t} onClick={() => setTab(t)}
               style={{background:tab===t?'rgba(212,168,67,0.1)':'transparent',border:tab===t?'1px solid rgba(212,168,67,0.3)':'1px solid transparent',borderRadius:8,padding:'6px 14px',color:tab===t?'#D4A843':'#888',fontSize:13,cursor:'pointer',textTransform:'capitalize'}}>
-              {t}
+              {t === 'configuracoes' ? '⚙️ Configurações' : t === 'dashboard' ? '📊 Dashboard' : t === 'usuarios' ? '👥 Usuários' : '📚 Conteúdo'}
             </button>
           ))}
           <button onClick={() => router.push('/dashboard')}
-            style={{background:'transparent',border:'1px solid #333',borderRadius:8,padding:'6px 14px',color:'#888',fontSize:13,cursor:'pointer'}}>
+            style={{background:'transparent',border:'1px solid #333',borderRadius:8,padding:'6px 14px',color:'#888',fontSize:13,cursor:'pointer',marginLeft:8}}>
             ← Plataforma
           </button>
         </div>
       </div>
 
       <div style={{padding:32}}>
+
+        {/* DASHBOARD */}
         {tab === 'dashboard' && (
           <>
             <h1 style={{fontSize:28,fontWeight:900,marginBottom:8}}>Painel Administrativo</h1>
@@ -107,12 +156,13 @@ export default function AdminPage() {
           </>
         )}
 
+        {/* USUÁRIOS */}
         {tab === 'usuarios' && (
           <>
             <h1 style={{fontSize:28,fontWeight:900,marginBottom:8}}>Usuários</h1>
             <p style={{color:'#888',marginBottom:24}}>Gerenciar usuários e planos.</p>
-            <div style={{background:'#111',border:'1px solid #222',borderRadius:16,overflow:'hidden'}}>
-              <table style={{width:'100%',borderCollapse:'collapse'}}>
+            <div style={{background:'#111',border:'1px solid #222',borderRadius:16,overflow:'auto'}}>
+              <table style={{width:'100%',borderCollapse:'collapse',minWidth:700}}>
                 <thead>
                   <tr style={{background:'#1a1a1a'}}>
                     {['Nome','Email','Plano','XP','Questões','Ações'].map(h => (
@@ -135,7 +185,7 @@ export default function AdminPage() {
                       <td style={{padding:'12px 16px'}}>
                         <select onChange={e => updateUserPlan(u.id, e.target.value)} value={u.plano}
                           style={{background:'#1a1a1a',border:'1px solid #333',borderRadius:6,padding:'4px 8px',color:'white',fontSize:12,cursor:'pointer'}}>
-                          {['gratuito','entrada','premium','elite','admin'].map(p => (
+                          {['gratuito','entrada','premium','elite'].map(p => (
                             <option key={p} value={p}>{p}</option>
                           ))}
                         </select>
@@ -148,31 +198,95 @@ export default function AdminPage() {
           </>
         )}
 
-        {tab === 'assinaturas' && (
+        {/* CONFIGURAÇÕES DO SITE */}
+        {tab === 'configuracoes' && (
           <>
-            <h1 style={{fontSize:28,fontWeight:900,marginBottom:8}}>Assinaturas</h1>
-            <p style={{color:'#888',marginBottom:24}}>Gerenciar assinaturas ativas.</p>
-            <div style={{background:'#111',border:'1px solid #222',borderRadius:16,padding:32,textAlign:'center',color:'#888'}}>
-              <div style={{fontSize:48,marginBottom:16}}>💳</div>
-              <p>Integração com Mercado Pago em configuração.</p>
-              <p style={{fontSize:13,marginTop:8}}>As assinaturas aparecerão aqui após ativar o webhook.</p>
+            <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:8,flexWrap:'wrap',gap:12}}>
+              <div>
+                <h1 style={{fontSize:28,fontWeight:900,marginBottom:4}}>⚙️ Configurações do Site</h1>
+                <p style={{color:'#888'}}>Edite textos, cores, preços e conteúdo da plataforma sem precisar de código.</p>
+              </div>
+              <button onClick={saveAllConfigs} disabled={saving === 'all'}
+                style={{background:'linear-gradient(135deg,#D4A843,#E8621A)',border:'none',borderRadius:10,padding:'12px 24px',color:'#000',fontWeight:700,fontSize:14,cursor:'pointer',opacity:saving==='all'?0.7:1}}>
+                {saving === 'all' ? '⏳ Salvando...' : savedMsg === 'all' ? '✅ Tudo Salvo!' : '💾 SALVAR TUDO'}
+              </button>
+            </div>
+
+            {/* Abas de categorias */}
+            <div style={{display:'flex',gap:8,marginBottom:24,flexWrap:'wrap',marginTop:16}}>
+              {categorias.map(cat => (
+                <button key={cat} onClick={() => setConfigTab(cat)}
+                  style={{padding:'8px 16px',borderRadius:8,border:configTab===cat?'1px solid rgba(212,168,67,0.4)':'1px solid #333',background:configTab===cat?'rgba(212,168,67,0.1)':'transparent',color:configTab===cat?'#D4A843':'#888',fontSize:12,fontWeight:600,cursor:'pointer',textTransform:'capitalize'}}>
+                  {cat === 'geral' ? '🌐 Geral' : cat === 'landing' ? '🏠 Landing Page' : cat === 'visual' ? '🎨 Visual' : cat === 'planos' ? '💎 Planos' : cat === 'depoimentos' ? '⭐ Depoimentos' : cat === 'stats' ? '📊 Estatísticas' : cat === 'contato' ? '📞 Contato' : cat}
+                </button>
+              ))}
+            </div>
+
+            {/* Editor de configs */}
+            <div style={{display:'flex',flexDirection:'column',gap:16}}>
+              {configsByCategory.map(config => (
+                <div key={config.chave} style={{background:'#111',border:'1px solid #222',borderRadius:14,padding:20}}>
+                  <div style={{display:'flex',alignItems:'flex-start',justifyContent:'space-between',gap:16,flexWrap:'wrap'}}>
+                    <div style={{flex:1,minWidth:200}}>
+                      <div style={{fontSize:13,fontWeight:700,marginBottom:4,color:'#fff'}}>{config.descricao}</div>
+                      <div style={{fontSize:11,color:'#555',marginBottom:12,fontFamily:'monospace'}}>{config.chave}</div>
+
+                      {config.tipo === 'cor' ? (
+                        <div style={{display:'flex',alignItems:'center',gap:12}}>
+                          <input type="color" value={editValues[config.chave] || '#000000'}
+                            onChange={e => setEditValues(p => ({...p, [config.chave]: e.target.value}))}
+                            style={{width:48,height:48,border:'none',borderRadius:8,cursor:'pointer',background:'transparent'}} />
+                          <input type="text" value={editValues[config.chave] || ''}
+                            onChange={e => setEditValues(p => ({...p, [config.chave]: e.target.value}))}
+                            style={{background:'#1a1a1a',border:'1px solid #333',borderRadius:8,padding:'10px 14px',color:'white',fontSize:14,fontFamily:'monospace',width:140}} />
+                          <div style={{width:40,height:40,borderRadius:8,background:editValues[config.chave] || '#000'}} />
+                        </div>
+                      ) : config.tipo === 'booleano' ? (
+                        <div style={{display:'flex',gap:12}}>
+                          {['true','false'].map(v => (
+                            <button key={v} onClick={() => setEditValues(p => ({...p, [config.chave]: v}))}
+                              style={{padding:'8px 20px',borderRadius:8,border:editValues[config.chave]===v?'1px solid #D4A843':'1px solid #333',background:editValues[config.chave]===v?'rgba(212,168,67,0.1)':'transparent',color:editValues[config.chave]===v?'#D4A843':'#888',cursor:'pointer',fontSize:13,fontWeight:600}}>
+                              {v === 'true' ? '✓ Ativo' : '✗ Inativo'}
+                            </button>
+                          ))}
+                        </div>
+                      ) : config.chave.includes('texto') || config.descricao.includes('Texto') || config.descricao.includes('Subtítulo') || config.descricao.includes('headline') ? (
+                        <textarea value={editValues[config.chave] || ''}
+                          onChange={e => setEditValues(p => ({...p, [config.chave]: e.target.value}))}
+                          rows={3}
+                          style={{width:'100%',background:'#1a1a1a',border:'1px solid #333',borderRadius:8,padding:'10px 14px',color:'white',fontSize:14,resize:'vertical',fontFamily:'system-ui'}} />
+                      ) : (
+                        <input type="text" value={editValues[config.chave] || ''}
+                          onChange={e => setEditValues(p => ({...p, [config.chave]: e.target.value}))}
+                          style={{width:'100%',background:'#1a1a1a',border:'1px solid #333',borderRadius:8,padding:'10px 14px',color:'white',fontSize:14}} />
+                      )}
+                    </div>
+
+                    <button onClick={() => saveConfig(config.chave)} disabled={saving === config.chave}
+                      style={{background:savedMsg===config.chave?'rgba(16,185,129,0.1)':'rgba(212,168,67,0.1)',border:savedMsg===config.chave?'1px solid #10B981':'1px solid rgba(212,168,67,0.3)',borderRadius:8,padding:'8px 16px',color:savedMsg===config.chave?'#10B981':'#D4A843',fontSize:12,fontWeight:700,cursor:'pointer',whiteSpace:'nowrap',marginTop:28}}>
+                      {saving===config.chave ? '⏳' : savedMsg===config.chave ? '✅ Salvo!' : '💾 Salvar'}
+                    </button>
+                  </div>
+                </div>
+              ))}
             </div>
           </>
         )}
 
+        {/* CONTEÚDO */}
         {tab === 'conteudo' && (
           <>
             <h1 style={{fontSize:28,fontWeight:900,marginBottom:8}}>Conteúdo</h1>
             <p style={{color:'#888',marginBottom:24}}>Gerenciar questões, simulados e resumos.</p>
             <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(200px,1fr))',gap:16}}>
               {[
-                {icon:'📝',label:'Questões',desc:'Adicionar e editar questões'},
-                {icon:'📋',label:'Simulados',desc:'Criar e configurar simulados'},
-                {icon:'📚',label:'Resumos',desc:'Gerenciar resumos por disciplina'},
-                {icon:'🃏',label:'Flashcards',desc:'Criar flashcards interativos'},
+                {icon:'📝',label:'Questões',desc:'Adicionar e editar questões',color:'#3B82F6'},
+                {icon:'📋',label:'Simulados',desc:'Criar e configurar simulados',color:'#D4A843'},
+                {icon:'📚',label:'Resumos',desc:'Gerenciar resumos por disciplina',color:'#10B981'},
+                {icon:'🃏',label:'Flashcards',desc:'Criar flashcards interativos',color:'#E8621A'},
               ].map(c => (
                 <div key={c.label} style={{background:'#111',border:'1px solid #222',borderRadius:16,padding:24,cursor:'pointer',transition:'border-color 0.2s'}}
-                  onMouseEnter={e => e.currentTarget.style.borderColor='rgba(212,168,67,0.3)'}
+                  onMouseEnter={e => e.currentTarget.style.borderColor=c.color}
                   onMouseLeave={e => e.currentTarget.style.borderColor='#222'}>
                   <div style={{fontSize:32,marginBottom:12}}>{c.icon}</div>
                   <div style={{fontSize:16,fontWeight:700,marginBottom:6}}>{c.label}</div>
