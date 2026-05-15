@@ -13,15 +13,14 @@ export async function middleware(req: NextRequest) {
   const publicRoutes = ['/', '/login', '/bem-vindo', '/reset-password', '/api/webhooks']
   const isPublic = publicRoutes.some(r => pathname.startsWith(r))
 
-  // Se não tem sessão e rota é protegida
+  // Se não tem sessão e rota é protegida — redireciona para login
   if (!isPublic && !session) {
     const redirectUrl = new URL('/login', req.url)
     redirectUrl.searchParams.set('redirect', pathname)
     return NextResponse.redirect(redirectUrl)
   }
 
-  // Admin — não bloquear aqui, deixar a própria página verificar
-  // isso evita loop de redirecionamento
+  // Admin e dashboard — deixar a própria página verificar permissões
   return res
 }
 
