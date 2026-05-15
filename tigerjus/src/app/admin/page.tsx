@@ -92,7 +92,7 @@ export default function AdminPage() {
     loadUsers()
   }
 
-  const categorias = [...new Set(configs.map(c => c.categoria))]
+  const categorias = Array.from(new Set(configs.map(c => c.categoria)))
   const configsByCategory = configs.filter(c => c.categoria === configTab)
 
   if (loading) return (
@@ -110,7 +110,6 @@ export default function AdminPage() {
 
   return (
     <div style={{minHeight:'100vh',background:'#0a0a0a',color:'white',fontFamily:'system-ui'}}>
-      {/* Header */}
       <div style={{background:'#111',borderBottom:'1px solid #222',padding:'16px 32px',display:'flex',alignItems:'center',justifyContent:'space-between',position:'sticky',top:0,zIndex:50}}>
         <div style={{display:'flex',alignItems:'center',gap:12}}>
           <div style={{width:36,height:36,background:'linear-gradient(135deg,#D4A843,#E8621A)',borderRadius:8,display:'flex',alignItems:'center',justifyContent:'center',fontWeight:900,color:'#000',fontSize:18}}>T</div>
@@ -132,7 +131,6 @@ export default function AdminPage() {
 
       <div style={{padding:32}}>
 
-        {/* DASHBOARD */}
         {tab === 'dashboard' && (
           <>
             <h1 style={{fontSize:28,fontWeight:900,marginBottom:8}}>Painel Administrativo</h1>
@@ -156,7 +154,6 @@ export default function AdminPage() {
           </>
         )}
 
-        {/* USUÁRIOS */}
         {tab === 'usuarios' && (
           <>
             <h1 style={{fontSize:28,fontWeight:900,marginBottom:8}}>Usuários</h1>
@@ -198,13 +195,12 @@ export default function AdminPage() {
           </>
         )}
 
-        {/* CONFIGURAÇÕES DO SITE */}
         {tab === 'configuracoes' && (
           <>
             <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:8,flexWrap:'wrap',gap:12}}>
               <div>
                 <h1 style={{fontSize:28,fontWeight:900,marginBottom:4}}>⚙️ Configurações do Site</h1>
-                <p style={{color:'#888'}}>Edite textos, cores, preços e conteúdo da plataforma sem precisar de código.</p>
+                <p style={{color:'#888'}}>Edite textos, cores, preços e conteúdo sem precisar de código.</p>
               </div>
               <button onClick={saveAllConfigs} disabled={saving === 'all'}
                 style={{background:'linear-gradient(135deg,#D4A843,#E8621A)',border:'none',borderRadius:10,padding:'12px 24px',color:'#000',fontWeight:700,fontSize:14,cursor:'pointer',opacity:saving==='all'?0.7:1}}>
@@ -212,7 +208,6 @@ export default function AdminPage() {
               </button>
             </div>
 
-            {/* Abas de categorias */}
             <div style={{display:'flex',gap:8,marginBottom:24,flexWrap:'wrap',marginTop:16}}>
               {categorias.map(cat => (
                 <button key={cat} onClick={() => setConfigTab(cat)}
@@ -222,7 +217,6 @@ export default function AdminPage() {
               ))}
             </div>
 
-            {/* Editor de configs */}
             <div style={{display:'flex',flexDirection:'column',gap:16}}>
               {configsByCategory.map(config => (
                 <div key={config.chave} style={{background:'#111',border:'1px solid #222',borderRadius:14,padding:20}}>
@@ -230,7 +224,6 @@ export default function AdminPage() {
                     <div style={{flex:1,minWidth:200}}>
                       <div style={{fontSize:13,fontWeight:700,marginBottom:4,color:'#fff'}}>{config.descricao}</div>
                       <div style={{fontSize:11,color:'#555',marginBottom:12,fontFamily:'monospace'}}>{config.chave}</div>
-
                       {config.tipo === 'cor' ? (
                         <div style={{display:'flex',alignItems:'center',gap:12}}>
                           <input type="color" value={editValues[config.chave] || '#000000'}
@@ -250,7 +243,7 @@ export default function AdminPage() {
                             </button>
                           ))}
                         </div>
-                      ) : config.chave.includes('texto') || config.descricao.includes('Texto') || config.descricao.includes('Subtítulo') || config.descricao.includes('headline') ? (
+                      ) : config.descricao.includes('Subtítulo') || config.descricao.includes('Texto') || config.chave.includes('subheadline') || config.chave.includes('texto') ? (
                         <textarea value={editValues[config.chave] || ''}
                           onChange={e => setEditValues(p => ({...p, [config.chave]: e.target.value}))}
                           rows={3}
@@ -261,7 +254,6 @@ export default function AdminPage() {
                           style={{width:'100%',background:'#1a1a1a',border:'1px solid #333',borderRadius:8,padding:'10px 14px',color:'white',fontSize:14}} />
                       )}
                     </div>
-
                     <button onClick={() => saveConfig(config.chave)} disabled={saving === config.chave}
                       style={{background:savedMsg===config.chave?'rgba(16,185,129,0.1)':'rgba(212,168,67,0.1)',border:savedMsg===config.chave?'1px solid #10B981':'1px solid rgba(212,168,67,0.3)',borderRadius:8,padding:'8px 16px',color:savedMsg===config.chave?'#10B981':'#D4A843',fontSize:12,fontWeight:700,cursor:'pointer',whiteSpace:'nowrap',marginTop:28}}>
                       {saving===config.chave ? '⏳' : savedMsg===config.chave ? '✅ Salvo!' : '💾 Salvar'}
@@ -273,7 +265,6 @@ export default function AdminPage() {
           </>
         )}
 
-        {/* CONTEÚDO */}
         {tab === 'conteudo' && (
           <>
             <h1 style={{fontSize:28,fontWeight:900,marginBottom:8}}>Conteúdo</h1>
