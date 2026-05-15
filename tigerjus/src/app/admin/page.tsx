@@ -92,6 +92,11 @@ export default function AdminPage() {
     loadUsers()
   }
 
+  const acessarPlataforma = () => {
+    // Usar window.location para forçar reload completo da sessão
+    window.location.href = '/dashboard?from=admin'
+  }
+
   const categorias = Array.from(new Set(configs.map(c => c.categoria)))
   const configsByCategory = configs.filter(c => c.categoria === configTab)
 
@@ -122,9 +127,9 @@ export default function AdminPage() {
               {t === 'configuracoes' ? '⚙️ Configurações' : t === 'dashboard' ? '📊 Dashboard' : t === 'usuarios' ? '👥 Usuários' : '📚 Conteúdo'}
             </button>
           ))}
-          <button onClick={() => router.push('/dashboard')}
-            style={{background:'transparent',border:'1px solid #333',borderRadius:8,padding:'6px 14px',color:'#888',fontSize:13,cursor:'pointer',marginLeft:8}}>
-            ← Plataforma
+          <button onClick={acessarPlataforma}
+            style={{background:'linear-gradient(135deg,#D4A843,#E8621A)',border:'none',borderRadius:8,padding:'8px 16px',color:'#000',fontSize:13,cursor:'pointer',marginLeft:8,fontWeight:700}}>
+            🐯 Acessar Plataforma
           </button>
         </div>
       </div>
@@ -202,10 +207,10 @@ export default function AdminPage() {
                 <h1 style={{fontSize:28,fontWeight:900,marginBottom:4}}>⚙️ Configurações do Site</h1>
                 <p style={{color:'#888'}}>Edite textos, cores, preços e conteúdo sem precisar de código.</p>
               </div>
-              <button onClick={() => router.push('/dashboard')}
-  style={{background:'linear-gradient(135deg,#D4A843,#E8621A)',border:'none',borderRadius:8,padding:'6px 14px',color:'#000',fontSize:13,cursor:'pointer',marginLeft:8,fontWeight:700}}>
-  🐯 Acessar Plataforma
-</button>
+              <button onClick={saveAllConfigs} disabled={saving === 'all'}
+                style={{background:'linear-gradient(135deg,#D4A843,#E8621A)',border:'none',borderRadius:10,padding:'12px 24px',color:'#000',fontWeight:700,fontSize:14,cursor:'pointer',opacity:saving==='all'?0.7:1}}>
+                {saving === 'all' ? '⏳ Salvando...' : savedMsg === 'all' ? '✅ Tudo Salvo!' : '💾 SALVAR TUDO'}
+              </button>
             </div>
 
             <div style={{display:'flex',gap:8,marginBottom:24,flexWrap:'wrap',marginTop:16}}>
