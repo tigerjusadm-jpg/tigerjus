@@ -1,9 +1,10 @@
 'use client'
 import Link from 'next/link'
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 
 const PLANS = [
-  { id:'free', name:'Degustação Tiger', price:'0', period:'3 dias grátis', color:'var(--text-muted)', features:[{ok:true,txt:'15 questões'},{ok:true,txt:'5 perguntas IA'},{ok:true,txt:'1 mini simulado'},{ok:false,txt:'Simulados completos'},{ok:false,txt:'IA avançada'},{ok:false,txt:'Ranking'}] },
+  { id:'free', name:'Plano Generosidade', price:'0', period:'3 dias grátis', color:'var(--text-muted)', features:[{ok:true,txt:'15 questões'},{ok:true,txt:'5 perguntas IA'},{ok:true,txt:'1 mini simulado'},{ok:false,txt:'Simulados completos'},{ok:false,txt:'IA avançada'},{ok:false,txt:'Ranking'}] },
   { id:'start', name:'Tiger Start', price:'1,99', period:'/mês', color:'var(--success)', features:[{ok:true,txt:'Questões ilimitadas'},{ok:true,txt:'IA intermediária'},{ok:true,txt:'Mais simulados'},{ok:true,txt:'Streak + ranking'},{ok:false,txt:'Mapas mentais'},{ok:false,txt:'IA avançada'}] },
   { id:'plus', name:'Tiger Plus', price:'5,99', period:'/mês', color:'var(--blue)', features:[{ok:true,txt:'Simulados completos'},{ok:true,txt:'Mapas mentais'},{ok:true,txt:'PDFs premium'},{ok:true,txt:'IA ampliada'},{ok:false,txt:'Radar jurídico'},{ok:false,txt:'Trilhas personalizadas'}] },
   { id:'pro', name:'Tiger Pro', price:'9,99', period:'/mês', badge:'POPULAR', featured:true, color:'var(--gold)', features:[{ok:true,txt:'IA avançada ilimitada'},{ok:true,txt:'Radar jurídico'},{ok:true,txt:'Trilhas personalizadas'},{ok:true,txt:'Previsão de aprovação'},{ok:true,txt:'Revisão inteligente'},{ok:true,txt:'Questões comentadas premium'}] },
@@ -19,11 +20,54 @@ const FEATURES = [
   {icon:'🎯',title:'Radar TigerJus',desc:'Saiba quais temas têm maior probabilidade de cair na próxima prova da OAB.'},
 ]
 
+// Modal de upgrade com todos os planos
+function UpgradeModal({ onClose }: { onClose: () => void }) {
+  return (
+    <div style={{position:'fixed',inset:0,zIndex:300,background:'rgba(0,0,0,0.95)',backdropFilter:'blur(10px)',display:'flex',alignItems:'center',justifyContent:'center',padding:20,overflowY:'auto'}}>
+      <div style={{width:'100%',maxWidth:1100,position:'relative'}}>
+        <button onClick={onClose} style={{position:'absolute',top:-40,right:0,background:'none',border:'none',color:'#888',fontSize:24,cursor:'pointer'}}>✕</button>
+        <div style={{textAlign:'center',marginBottom:32}}>
+          <h2 style={{fontFamily:'var(--font-display)',fontSize:36,fontWeight:900,marginBottom:8}}>Escolha seu <span style={{color:'var(--gold)'}}>plano</span></h2>
+          <p style={{color:'var(--text-muted)'}}>Desbloqueie todo o potencial do TigerJus</p>
+        </div>
+        <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(200px,1fr))',gap:16}}>
+          {PLANS.filter(p => p.id !== 'free').map(plan=>(
+            <div key={plan.id} style={{background:plan.featured?'linear-gradient(160deg,rgba(212,168,67,0.1),var(--gray))':plan.elite?'linear-gradient(160deg,rgba(232,98,26,0.08),var(--gray))':'var(--gray)',border:plan.featured?'1px solid var(--gold)':plan.elite?'1px solid rgba(232,98,26,0.4)':'1px solid rgba(255,255,255,0.08)',borderRadius:16,padding:24,position:'relative'}}>
+              {plan.badge&&<div style={{position:'absolute',top:16,right:16,background:'linear-gradient(135deg,var(--gold),var(--orange))',color:'var(--deep-black)',fontSize:9,fontWeight:900,letterSpacing:'1.5px',padding:'4px 10px',borderRadius:100}}>{plan.badge}</div>}
+              <div style={{fontSize:10,fontWeight:700,letterSpacing:'2.5px',textTransform:'uppercase',color:'var(--text-muted)',marginBottom:8}}>{plan.name}</div>
+              <div style={{fontFamily:'var(--font-display)',fontSize:40,fontWeight:900,color:plan.color,marginBottom:4}}>
+                <sup style={{fontSize:16,color:'var(--text-muted)',verticalAlign:'super'}}>R$</sup>{plan.price}
+              </div>
+              <div style={{fontSize:12,color:'var(--text-muted)',marginBottom:20}}>{plan.period}</div>
+              <ul style={{listStyle:'none',display:'flex',flexDirection:'column',gap:8,marginBottom:20}}>
+                {plan.features.map((f,i)=>(
+                  <li key={i} style={{display:'flex',alignItems:'flex-start',gap:8,fontSize:12,color:f.ok?'var(--white)':'var(--text-muted)'}}>
+                    <span style={{color:f.ok?'var(--success)':'var(--text-dim)',flexShrink:0}}>{f.ok?'✓':'✕'}</span>{f.txt}
+                  </li>
+                ))}
+              </ul>
+              <Link href={`/checkout?plan=${plan.id}`} className={plan.featured?'btn-primary':'btn-secondary'} style={{display:'block',textAlign:'center',textDecoration:'none',padding:'12px',fontSize:13}} onClick={onClose}>
+                {plan.featured?'ASSINAR AGORA':'ASSINAR'}
+              </Link>
+            </div>
+          ))}
+        </div>
+        <div style={{textAlign:'center',marginTop:20,fontSize:13,color:'var(--text-muted)'}}>
+          💳 PIX ou Cartão · 🔒 Pagamento seguro · Cancele quando quiser
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export default function HomePage() {
-  const [activePlan, setActivePlan] = useState<string|null>(null)
+  const router = useRouter()
+  const [showUpgrade, setShowUpgrade] = useState(false)
 
   return (
     <div style={{background:'var(--deep-black)',minHeight:'100vh'}}>
+      {showUpgrade && <UpgradeModal onClose={() => setShowUpgrade(false)} />}
+
       {/* NAVBAR */}
       <nav className="navbar">
         <div style={{display:'flex',alignItems:'center',gap:10}}>
@@ -32,14 +76,20 @@ export default function HomePage() {
         </div>
         <div style={{display:'flex',gap:32,alignItems:'center'}}>
           {['Plataforma','Disciplinas','Simulados','Planos'].map(l=>(
-            <button key={l} style={{color:'var(--text-muted)',fontSize:12,fontWeight:500,letterSpacing:1,textTransform:'uppercase',border:'none',background:'none',cursor:'pointer',fontFamily:'var(--font-body)',transition:'color 0.2s'}}
+            <button key={l} onClick={() => {
+              if (l === 'Planos') { document.getElementById('planos')?.scrollIntoView({behavior:'smooth'}) }
+              else if (l === 'Plataforma') { document.getElementById('plataforma')?.scrollIntoView({behavior:'smooth'}) }
+              else if (l === 'Simulados') { router.push('/login') }
+              else if (l === 'Disciplinas') { router.push('/login') }
+            }}
+              style={{color:'var(--text-muted)',fontSize:12,fontWeight:500,letterSpacing:1,textTransform:'uppercase',border:'none',background:'none',cursor:'pointer',fontFamily:'var(--font-body)',transition:'color 0.2s'}}
               onMouseEnter={e=>(e.currentTarget.style.color='var(--gold)')}
               onMouseLeave={e=>(e.currentTarget.style.color='var(--text-muted)')}>{l}</button>
           ))}
         </div>
         <div style={{display:'flex',gap:10,alignItems:'center'}}>
           <Link href="/login" style={{color:'var(--text-muted)',fontSize:12,fontWeight:500,letterSpacing:1,textTransform:'uppercase',textDecoration:'none'}}>Entrar</Link>
-          <Link href="/dashboard" className="btn-primary" style={{padding:'10px 24px',fontSize:12}}>COMEÇAR GRÁTIS</Link>
+          <Link href="/login?modo=cadastro" className="btn-primary" style={{padding:'10px 24px',fontSize:12}}>COMEÇAR GRÁTIS</Link>
         </div>
       </nav>
 
@@ -64,7 +114,7 @@ export default function HomePage() {
           ✦ "Não basta estudar Direito. É preciso pensar como um Tigre."
         </p>
         <div style={{display:'flex',gap:16,justifyContent:'center',flexWrap:'wrap',marginBottom:60,animation:'fadeInUp 0.8s 0.3s ease both'}}>
-          <Link href="/dashboard" className="btn-primary" style={{fontSize:15,padding:'17px 48px'}}>🐯 COMEÇAR GRÁTIS</Link>
+          <Link href="/login?modo=cadastro" className="btn-primary" style={{fontSize:15,padding:'17px 48px'}}>🐯 COMEÇAR GRÁTIS</Link>
           <Link href="/login" className="btn-secondary">JÁ TENHO CONTA</Link>
         </div>
         <div style={{display:'flex',gap:48,justifyContent:'center',flexWrap:'wrap',animation:'fadeInUp 0.8s 0.4s ease both'}}>
@@ -78,7 +128,7 @@ export default function HomePage() {
       </section>
 
       {/* FEATURES */}
-      <section style={{padding:'100px 24px',background:'var(--black)'}}>
+      <section id="plataforma" style={{padding:'100px 24px',background:'var(--black)'}}>
         <div style={{maxWidth:1200,margin:'0 auto'}}>
           <div className="section-tag">🐯 A PLATAFORMA</div>
           <h2 style={{fontFamily:'var(--font-display)',fontSize:'clamp(32px,5vw,54px)',fontWeight:900,lineHeight:1.1,marginBottom:16}}>Tudo que você precisa para<br/><span style={{color:'var(--gold)'}}>ser aprovado.</span></h2>
@@ -144,8 +194,8 @@ export default function HomePage() {
                   ))}
                 </ul>
                 {plan.id==='free'
-                  ? <Link href="/dashboard" className="btn-secondary" style={{display:'block',textAlign:'center',textDecoration:'none',padding:'14px'}}>Começar Grátis</Link>
-                  : <Link href={`/checkout?plan=${plan.id}`} className={plan.featured?'btn-primary':'btn-secondary'} style={{display:'block',textAlign:'center',textDecoration:'none',padding:'14px',borderColor:plan.elite?'rgba(232,98,26,0.4)':'undefined'}}>
+                  ? <Link href="/login?modo=cadastro" className="btn-secondary" style={{display:'block',textAlign:'center',textDecoration:'none',padding:'14px'}}>🎁 Plano Generosidade</Link>
+                  : <Link href={`/checkout?plan=${plan.id}`} className={plan.featured?'btn-primary':'btn-secondary'} style={{display:'block',textAlign:'center',textDecoration:'none',padding:'14px'}}>
                       {plan.featured?'ASSINAR AGORA':'ASSINAR'}
                     </Link>
                 }
@@ -189,7 +239,7 @@ export default function HomePage() {
           <div style={{fontSize:56,marginBottom:24}}>🐯</div>
           <h2 style={{fontFamily:'var(--font-display)',fontSize:'clamp(32px,5vw,54px)',fontWeight:900,marginBottom:20}}>Pronto para pensar<br/><span style={{color:'var(--gold)'}}>como um Tigre?</span></h2>
           <p style={{color:'var(--text-muted)',fontSize:17,marginBottom:40,lineHeight:1.7}}>Mais de 12.400 estudantes já estão evoluindo. Comece grátis e sinta a diferença.</p>
-          <Link href="/dashboard" className="btn-primary" style={{fontSize:16,padding:'18px 56px'}}>COMEÇAR AGORA</Link>
+          <Link href="/login?modo=cadastro" className="btn-primary" style={{fontSize:16,padding:'18px 56px'}}>COMEÇAR AGORA</Link>
           <div style={{marginTop:20,fontSize:13,color:'var(--text-muted)'}}>Sem cartão de crédito · Acesso imediato · 3 dias grátis</div>
         </div>
       </section>
