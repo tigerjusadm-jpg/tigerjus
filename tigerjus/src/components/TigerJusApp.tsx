@@ -22,6 +22,13 @@ const XP_PREV: Record<LevelName, number> = {
   'Tigre Supremo': 15000, 'Mestre TigerJus': 40000,
 }
 
+const PLANS_UPGRADE = [
+  { id:'start', name:'Tiger Start', price:'1,99', color:'var(--success)', features:['Questões ilimitadas','IA intermediária','Mais simulados','Streak + ranking'] },
+  { id:'plus', name:'Tiger Plus', price:'5,99', color:'var(--blue)', features:['Simulados completos','Mapas mentais','PDFs premium','IA ampliada'] },
+  { id:'pro', name:'Tiger Pro', price:'9,99', color:'var(--gold)', badge:'POPULAR', featured:true, features:['IA avançada ilimitada','Radar jurídico','Trilhas personalizadas','Previsão de aprovação'] },
+  { id:'elite', name:'Tiger Elite', price:'19,99', color:'var(--orange)', badge:'TOP', features:['Tudo ilimitado','IA prioritária','Conteúdos exclusivos','Simulados inéditos'] },
+]
+
 const DISCIPLINES = [
   {id:1,icon:'⚖️',name:'Constitucional',slug:'constitucional',progress:68,q:142,tags:['Quiz','Resumo','Flash','PDF']},
   {id:2,icon:'🏛️',name:'Administrativo',slug:'administrativo',progress:45,q:98,tags:['Quiz','Resumo','Flash']},
@@ -78,19 +85,19 @@ A Constituição Federal de 1988 é rígida, analítica e promulgada. Organiza-s
 
 📌 **Direitos Fundamentais (Art. 5º)**
 São cláusulas pétreas. Principais garantias:
-• Habeas Corpus — liberdade de locomoção
-• Mandado de Segurança — direito líquido e certo
-• Habeas Data — informações pessoais
-• Mandado de Injunção — omissão legislativa
+- Habeas Corpus — liberdade de locomoção
+- Mandado de Segurança — direito líquido e certo
+- Habeas Data — informações pessoais
+- Mandado de Injunção — omissão legislativa
 
 📌 **Princípios Fundamentais**
-• Soberania, Cidadania, Dignidade da pessoa humana
-• Valores sociais do trabalho e da livre iniciativa
-• Pluralismo político
+- Soberania, Cidadania, Dignidade da pessoa humana
+- Valores sociais do trabalho e da livre iniciativa
+- Pluralismo político
 
 📌 **Organização dos Poderes**
-• Executivo, Legislativo e Judiciário — independentes e harmônicos
-• Sistema de freios e contrapesos
+- Executivo, Legislativo e Judiciário — independentes e harmônicos
+- Sistema de freios e contrapesos
 
 📌 **Ação Direta de Inconstitucionalidade (ADI)**
 Controla a constitucionalidade das leis no STF.
@@ -102,48 +109,93 @@ Legitimados: Presidente, Mesa do CN, PGR, OAB, partidos políticos, etc.`,
 Crime = Fato típico + Ilicitude + Culpabilidade
 
 📌 **Fato Típico**
-• Conduta (dolosa ou culposa)
-• Resultado
-• Nexo causal
-• Tipicidade
+- Conduta (dolosa ou culposa)
+- Resultado
+- Nexo causal
+- Tipicidade
 
 📌 **Dolo e Culpa**
-• Dolo direto: quis o resultado
-• Dolo eventual: assumiu o risco
-• Culpa: imprudência, negligência ou imperícia
+- Dolo direto: quis o resultado
+- Dolo eventual: assumiu o risco
+- Culpa: imprudência, negligência ou imperícia
 
 📌 **Excludentes de Ilicitude (Art. 23 CP)**
-• Estado de necessidade
-• Legítima defesa
-• Estrito cumprimento do dever legal
-• Exercício regular de direito
+- Estado de necessidade
+- Legítima defesa
+- Estrito cumprimento do dever legal
+- Exercício regular de direito
 
 📌 **Penas**
-• Privativas de liberdade
-• Restritivas de direitos
-• Multa`,
+- Privativas de liberdade
+- Restritivas de direitos
+- Multa`,
 
   civil: `**DIREITO CIVIL — RESUMO ESSENCIAL**
 
 📌 **Pessoas**
-• Pessoa natural: nasce com vida, personalidade jurídica desde o nascimento
-• Pessoa jurídica: de direito público ou privado
+- Pessoa natural: nasce com vida, personalidade jurídica desde o nascimento
+- Pessoa jurídica: de direito público ou privado
 
 📌 **Capacidade**
-• Plena: maiores de 18 anos não incapazes
-• Absolutamente incapaz: menores de 16 anos (art. 3º CC)
-• Relativamente incapaz: 16-18 anos, ébrios habituais, pródigos
+- Plena: maiores de 18 anos não incapazes
+- Absolutamente incapaz: menores de 16 anos (art. 3º CC)
+- Relativamente incapaz: 16-18 anos, ébrios habituais, pródigos
 
 📌 **Negócio Jurídico**
 Elementos essenciais: agente capaz, objeto lícito e possível, forma prescrita/não proibida
 
 📌 **Responsabilidade Civil**
-• Subjetiva: necessita de culpa
-• Objetiva: independe de culpa (risco da atividade)
+- Subjetiva: necessita de culpa
+- Objetiva: independe de culpa (risco da atividade)
 
 📌 **Prescrição x Decadência**
-• Prescrição: extingue a pretensão
-• Decadência: extingue o direito`,
+- Prescrição: extingue a pretensão
+- Decadência: extingue o direito`,
+}
+
+// ── Upgrade Modal ──────────────────────────────────────
+function UpgradeModal({ onClose, onSelect }: { onClose: () => void; onSelect: (plan: string) => void }) {
+  return (
+    <div style={{position:'fixed',inset:0,zIndex:300,background:'rgba(0,0,0,0.95)',backdropFilter:'blur(10px)',display:'flex',alignItems:'center',justifyContent:'center',padding:20,overflowY:'auto'}}>
+      <div style={{width:'100%',maxWidth:900,position:'relative',padding:'20px 0'}}>
+        <button onClick={onClose} style={{position:'absolute',top:-10,right:0,background:'none',border:'none',color:'#888',fontSize:24,cursor:'pointer',zIndex:10}}>✕</button>
+        <div style={{textAlign:'center',marginBottom:32}}>
+          <div style={{fontSize:48,marginBottom:12}}>🚀</div>
+          <h2 style={{fontFamily:'var(--font-display)',fontSize:36,fontWeight:900,marginBottom:8}}>Escolha seu <span style={{color:'var(--gold)'}}>plano</span></h2>
+          <p style={{color:'var(--text-muted)',fontSize:15}}>Desbloqueie todo o potencial do TigerJus</p>
+        </div>
+        <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(190px,1fr))',gap:16}}>
+          {PLANS_UPGRADE.map(plan => (
+            <div key={plan.id} style={{background:(plan as any).featured?'linear-gradient(160deg,rgba(212,168,67,0.1),rgba(30,30,30,1))':'rgba(20,20,20,0.9)',border:(plan as any).featured?'1px solid var(--gold)':'1px solid rgba(255,255,255,0.1)',borderRadius:16,padding:24,position:'relative',cursor:'pointer',transition:'transform 0.2s'}}
+              onMouseEnter={e => e.currentTarget.style.transform='translateY(-4px)'}
+              onMouseLeave={e => e.currentTarget.style.transform='translateY(0)'}>
+              {(plan as any).badge && <div style={{position:'absolute',top:16,right:16,background:'linear-gradient(135deg,var(--gold),var(--orange))',color:'#000',fontSize:9,fontWeight:900,letterSpacing:'1.5px',padding:'4px 10px',borderRadius:100}}>{(plan as any).badge}</div>}
+              <div style={{fontSize:10,fontWeight:700,letterSpacing:'2.5px',textTransform:'uppercase',color:'var(--text-muted)',marginBottom:8}}>{plan.name}</div>
+              <div style={{fontFamily:'var(--font-display)',fontSize:38,fontWeight:900,color:plan.color,marginBottom:4}}>
+                <sup style={{fontSize:15,color:'var(--text-muted)',verticalAlign:'super'}}>R$</sup>{plan.price}
+              </div>
+              <div style={{fontSize:12,color:'var(--text-muted)',marginBottom:20}}>/mês</div>
+              <ul style={{listStyle:'none',display:'flex',flexDirection:'column',gap:8,marginBottom:20}}>
+                {plan.features.map((f,i) => (
+                  <li key={i} style={{display:'flex',alignItems:'center',gap:8,fontSize:12,color:'var(--white)'}}>
+                    <span style={{color:'var(--success)'}}>✓</span>{f}
+                  </li>
+                ))}
+              </ul>
+              <button onClick={() => onSelect(plan.id)}
+                className={(plan as any).featured ? 'btn-primary' : 'btn-secondary'}
+                style={{width:'100%',fontSize:13,padding:'12px'}}>
+                {(plan as any).featured ? 'ASSINAR AGORA' : 'ASSINAR'}
+              </button>
+            </div>
+          ))}
+        </div>
+        <div style={{textAlign:'center',marginTop:20,fontSize:13,color:'var(--text-muted)'}}>
+          💳 PIX ou Cartão · 🔒 Pagamento seguro · Cancele quando quiser
+        </div>
+      </div>
+    </div>
+  )
 }
 
 // ── Notification ───────────────────────────────────────
@@ -170,7 +222,7 @@ function XPTooltip({ xp, levelName }: { xp: number; levelName: LevelName }) {
         {xp.toLocaleString()} XP ℹ️
       </span>
       {show && (
-        <div style={{position:'absolute',bottom:'calc(100% + 8px)',left:'50%',transform:'translateX(-50%)',background:'#1a1a1a',border:'1px solid rgba(212,168,67,0.25)',borderRadius:12,padding:16,width:280,zIndex:100,boxShadow:'0 8px 32px rgba(0,0,0,0.6)'}}>
+        <div style={{position:'absolute',top:'calc(100% + 8px)',left:'50%',transform:'translateX(-50%)',background:'#1a1a1a',border:'1px solid rgba(212,168,67,0.25)',borderRadius:12,padding:16,width:280,zIndex:100,boxShadow:'0 8px 32px rgba(0,0,0,0.6)'}}>
           <div style={{fontSize:12,fontWeight:700,color:'var(--gold)',marginBottom:8}}>O que é XP?</div>
           <div style={{fontSize:12,color:'var(--text-muted)',lineHeight:1.6,marginBottom:12}}>
             XP representa seus pontos de evolução. Quanto mais você estudar, responder quizzes e concluir simulados, mais XP acumula e sobe de nível.
@@ -210,7 +262,7 @@ function PremiumGate({ onClose, onUpgrade }: { onClose: () => void; onUpgrade: (
             </div>
           ))}
         </div>
-        <button className="btn-primary" style={{width:'100%',marginBottom:12,fontSize:15,padding:16}} onClick={onUpgrade}>🚀 DESBLOQUEAR AGORA</button>
+        <button className="btn-primary" style={{width:'100%',marginBottom:12,fontSize:15,padding:16}} onClick={onUpgrade}>🚀 VER PLANOS</button>
         <button className="btn-secondary" style={{width:'100%',fontSize:12}} onClick={onClose}>Continuar no plano gratuito</button>
         <div style={{marginTop:16,fontSize:11,color:'var(--text-dim)'}}>A partir de R$1,99/mês · Cancele quando quiser</div>
       </div>
@@ -219,7 +271,7 @@ function PremiumGate({ onClose, onUpgrade }: { onClose: () => void; onUpgrade: (
 }
 
 // ── Dashboard Home ─────────────────────────────────────
-function DashHome({ profile, onNav, showPremium }: any) {
+function DashHome({ profile, onNav, showUpgrade }: any) {
   const xp = profile?.xp || 0
   const levelName = (profile?.level_name || 'Filhote') as LevelName
   const streak = profile?.streak || 0
@@ -250,7 +302,6 @@ function DashHome({ profile, onNav, showPremium }: any) {
         )}
       </div>
 
-      {/* Level card */}
       <div style={{background:'linear-gradient(135deg,rgba(212,168,67,0.12),rgba(232,98,26,0.06))',border:'1px solid rgba(212,168,67,0.2)',borderRadius:20,padding:32,marginBottom:24,position:'relative',overflow:'hidden'}}>
         <div style={{position:'absolute',right:-16,top:-16,fontSize:120,opacity:0.04,pointerEvents:'none'}}>🐯</div>
         <div style={{fontSize:10,fontWeight:700,letterSpacing:'2.5px',textTransform:'uppercase',color:'var(--gold)',marginBottom:8}}>NÍVEL — {levelName.toUpperCase()}</div>
@@ -268,7 +319,6 @@ function DashHome({ profile, onNav, showPremium }: any) {
         </div>
       </div>
 
-      {/* Stats */}
       <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(155px,1fr))',gap:14,marginBottom:28}}>
         {[
           {label:'Questões',value:questoes.toLocaleString(),cls:'var(--gold)',sub:'respondidas'},
@@ -284,7 +334,6 @@ function DashHome({ profile, onNav, showPremium }: any) {
         ))}
       </div>
 
-      {/* Questão do dia */}
       <div style={{background:'linear-gradient(135deg,rgba(212,168,67,0.1),rgba(232,98,26,0.06))',border:'1px solid rgba(212,168,67,0.2)',borderRadius:16,padding:20,marginBottom:24,cursor:'pointer'}}
         onClick={() => onNav('quiz')}>
         <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',flexWrap:'wrap',gap:12}}>
@@ -297,9 +346,8 @@ function DashHome({ profile, onNav, showPremium }: any) {
         </div>
       </div>
 
-      {/* Radar (locked) */}
       <div style={{background:'linear-gradient(135deg,rgba(58,143,232,0.08),rgba(212,168,67,0.06))',border:'1px solid rgba(58,143,232,0.2)',borderRadius:16,padding:24,marginBottom:28,cursor:'pointer'}}
-        onClick={() => showPremium()}>
+        onClick={() => showUpgrade()}>
         <div style={{display:'flex',alignItems:'center',gap:12,marginBottom:12}}>
           <span style={{fontSize:20}}>🎯</span>
           <div style={{fontSize:16,fontWeight:700,flex:1}}>Radar TigerJus</div>
@@ -335,7 +383,7 @@ function DashHome({ profile, onNav, showPremium }: any) {
 }
 
 // ── Quiz Page ──────────────────────────────────────────
-function QuizPage({ freeQ, setFreeQ, showPremium, onXp, profile }: any) {
+function QuizPage({ freeQ, setFreeQ, showUpgrade, onXp, profile }: any) {
   const [disciplina, setDisciplina] = useState<string>('')
   const [dificuldade, setDificuldade] = useState<string>('')
   const [quantidade, setQuantidade] = useState<number>(5)
@@ -359,17 +407,13 @@ function QuizPage({ freeQ, setFreeQ, showPremium, onXp, profile }: any) {
     if (disciplina) filtered = filtered.filter(q => q.disc.toLowerCase().includes(disciplina.toLowerCase()))
     if (dificuldade) filtered = filtered.filter(q => q.dificuldade === dificuldade)
     const selected = filtered.slice(0, quantidade)
-    if (selected.length === 0) {
-      setQuestions(QUESTIONS.slice(0, quantidade))
-    } else {
-      setQuestions(selected)
-    }
+    setQuestions(selected.length === 0 ? QUESTIONS.slice(0, quantidade) : selected)
     setStarted(true); setCur(0); setSel(null); setAnswered(false); setScore(0); setDone(false); setTime(90)
   }
 
   const pick = (i: number) => {
     if (answered) return
-    if (freeQ <= 0) { showPremium(); return }
+    if (freeQ <= 0) { showUpgrade(); return }
     setSel(i); setAnswered(true); setFreeQ((p:number) => p-1)
     if (i === questions[cur].correct) { setScore(p=>p+1); onXp('question_correct') }
     else onXp('question_wrong')
@@ -417,9 +461,7 @@ function QuizPage({ freeQ, setFreeQ, showPremium, onXp, profile }: any) {
               <span>1</span><span>15</span>
             </div>
           </div>
-          <button className="btn-primary" style={{width:'100%',fontSize:15,padding:16}} onClick={startQuiz}>
-            INICIAR QUIZ →
-          </button>
+          <button className="btn-primary" style={{width:'100%',fontSize:15,padding:16}} onClick={startQuiz}>INICIAR QUIZ →</button>
           <div style={{marginTop:12,textAlign:'center',fontSize:12,color:'var(--text-muted)'}}>
             {freeQ > 0 ? `${freeQ} questões grátis restantes` : '🔒 Limite gratuito atingido'}
           </div>
@@ -440,11 +482,7 @@ function QuizPage({ freeQ, setFreeQ, showPremium, onXp, profile }: any) {
           <h1 style={{fontFamily:'var(--font-display)',fontSize:32,fontWeight:900,marginBottom:8}}>Quiz Concluído!</h1>
           <p style={{fontSize:15,color:'var(--text-muted)',marginBottom:28}}>{score} de {questions.length} questões corretas</p>
           <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:14,marginBottom:28}}>
-            {[
-              ['Taxa de Acerto',`${rate}%`,rate>=70?'var(--gold)':'var(--orange)'],
-              ['XP Ganho',`+${score*100}`,'var(--gold)'],
-              ['Estimativa',rate>=60?'Aprovado ✓':'Treinar mais',rate>=60?'var(--success)':'var(--orange)']
-            ].map(([l,v,c]) => (
+            {[['Taxa de Acerto',`${rate}%`,rate>=70?'var(--gold)':'var(--orange)'],['XP Ganho',`+${score*100}`,'var(--gold)'],['Estimativa',rate>=60?'Aprovado ✓':'Treinar mais',rate>=60?'var(--success)':'var(--orange)']].map(([l,v,c]) => (
               <div key={l} style={{background:'var(--gray)',borderRadius:14,padding:20,border:'1px solid rgba(255,255,255,0.06)'}}>
                 <div style={{fontSize:10,fontWeight:700,letterSpacing:1.5,textTransform:'uppercase',color:'var(--text-muted)',marginBottom:8}}>{l}</div>
                 <div style={{fontFamily:'var(--font-display)',fontSize:24,fontWeight:900,color:c}}>{v}</div>
@@ -488,24 +526,18 @@ function QuizPage({ freeQ, setFreeQ, showPremium, onXp, profile }: any) {
               return (
                 <button key={i} onClick={() => pick(i)}
                   style={{display:'flex',alignItems:'flex-start',gap:16,background:bg,border:`1px solid ${bc}`,borderRadius:12,padding:'16px 20px',cursor:'pointer',transition:'all 0.2s',textAlign:'left',width:'100%',fontFamily:'var(--font-body)',fontSize:14,color}}>
-                  <span style={{width:28,height:28,borderRadius:'50%',flexShrink:0,display:'flex',alignItems:'center',justifyContent:'center',fontSize:12,fontWeight:800,background:'rgba(255,255,255,0.06)'}}>
-                    {String.fromCharCode(65+i)}
-                  </span>
+                  <span style={{width:28,height:28,borderRadius:'50%',flexShrink:0,display:'flex',alignItems:'center',justifyContent:'center',fontSize:12,fontWeight:800,background:'rgba(255,255,255,0.06)'}}>{String.fromCharCode(65+i)}</span>
                   <span style={{flex:1}}>{opt}</span>
                 </button>
               )
             })}
           </div>
-          {answered && (
-            <div style={{marginTop:24,padding:20,background:'rgba(212,168,67,0.06)',border:'1px solid rgba(212,168,67,0.15)',borderRadius:12,fontSize:14,lineHeight:1.7,color:'var(--text-muted)'}}>
-              {sel===q.correct?'✅ ':'❌ '}<strong style={{color:'var(--gold)'}}>{sel===q.correct?'Correto!':'Incorreto.'}</strong> {q.exp}
-            </div>
-          )}
-          {answered && (
-            <button className="btn-primary" style={{width:'100%',marginTop:22}} onClick={next}>
-              {cur+1>=questions.length?'VER RESULTADO':'PRÓXIMA QUESTÃO →'}
-            </button>
-          )}
+          {answered && <div style={{marginTop:24,padding:20,background:'rgba(212,168,67,0.06)',border:'1px solid rgba(212,168,67,0.15)',borderRadius:12,fontSize:14,lineHeight:1.7,color:'var(--text-muted)'}}>
+            {sel===q.correct?'✅ ':'❌ '}<strong style={{color:'var(--gold)'}}>{sel===q.correct?'Correto!':'Incorreto.'}</strong> {q.exp}
+          </div>}
+          {answered && <button className="btn-primary" style={{width:'100%',marginTop:22}} onClick={next}>
+            {cur+1>=questions.length?'VER RESULTADO':'PRÓXIMA QUESTÃO →'}
+          </button>}
         </div>
         <div style={{textAlign:'center',marginTop:14,fontSize:12,color:'var(--text-muted)'}}>
           {freeQ>0?`${freeQ} questões grátis restantes`:'Limite gratuito atingido'}
@@ -516,7 +548,7 @@ function QuizPage({ freeQ, setFreeQ, showPremium, onXp, profile }: any) {
 }
 
 // ── IA Page ────────────────────────────────────────────
-function IAPage({ freeIA, setFreeIA, showPremium, profile }: any) {
+function IAPage({ freeIA, setFreeIA, showUpgrade, profile }: any) {
   const [msgs, setMsgs] = useState([{role:'assistant',text:'Olá! Sou o TigerJus AI — seu tutor jurídico de alta performance. 🐯⚖️\n\nPosso te ajudar com dúvidas de Direito, explicar artigos, resumir temas e te preparar para a OAB.\n\nO que você quer aprender hoje?'}])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
@@ -527,22 +559,17 @@ function IAPage({ freeIA, setFreeIA, showPremium, profile }: any) {
   const send = async (text?: string) => {
     const msg = text || input.trim()
     if (!msg) return
-    if (freeIA <= 0) { showPremium(); return }
+    if (freeIA <= 0) { showUpgrade(); return }
     setInput(''); setFreeIA((p:number) => p-1)
     const newMsgs = [...msgs, {role:'user',text:msg}]
     setMsgs(newMsgs); setLoading(true)
     try {
       const res = await fetch('/api/ia', {
-        method:'POST',
-        headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({
-          messages: newMsgs.slice(1).map(m => ({role:m.role,content:m.text})),
-          userId: profile?.id,
-          plan: profile?.plano || 'gratuito',
-        }),
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ messages: newMsgs.slice(1).map(m => ({role:m.role,content:m.text})), userId: profile?.id, plan: profile?.plano || 'gratuito' }),
       })
       const data = await res.json()
-      if (data.error === 'LIMIT_REACHED') { showPremium(); return }
+      if (data.error === 'LIMIT_REACHED') { showUpgrade(); return }
       setMsgs(p => [...p, {role:'assistant',text:data.text || 'Erro ao conectar. Tente novamente.'}])
     } catch {
       setMsgs(p => [...p, {role:'assistant',text:'Erro ao conectar com a IA. Verifique sua conexão e tente novamente.'}])
@@ -556,8 +583,7 @@ function IAPage({ freeIA, setFreeIA, showPremium, profile }: any) {
       <h1 style={{fontFamily:'var(--font-display)',fontSize:32,fontWeight:900,marginBottom:8}}>IA Jurídica 🤖</h1>
       <p style={{fontSize:15,color:'var(--text-muted)',marginBottom:16}}>
         Tutor inteligente 24/7 para tirar dúvidas e treinar para a OAB.
-        {freeIA>0
-          ? <span style={{marginLeft:8,color:'var(--gold)',fontWeight:700}}>{freeIA} perguntas grátis restantes</span>
+        {freeIA>0 ? <span style={{marginLeft:8,color:'var(--gold)',fontWeight:700}}>{freeIA} perguntas grátis restantes</span>
           : <span style={{marginLeft:8,color:'var(--danger)'}}>🔒 Limite atingido — faça upgrade</span>}
       </p>
       <div style={{display:'flex',gap:8,flexWrap:'wrap',marginBottom:16}}>
@@ -585,15 +611,13 @@ function IAPage({ freeIA, setFreeIA, showPremium, profile }: any) {
           {loading && (
             <div style={{display:'flex',gap:12,maxWidth:'82%'}}>
               <div style={{width:36,height:36,borderRadius:10,display:'flex',alignItems:'center',justifyContent:'center',background:'linear-gradient(135deg,var(--gold),var(--orange))'}}>🐯</div>
-              <div style={{background:'rgba(255,255,255,0.04)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:14,padding:'14px 18px',fontSize:14,opacity:0.6,fontStyle:'italic'}}>
-                Analisando sua pergunta...
-              </div>
+              <div style={{background:'rgba(255,255,255,0.04)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:14,padding:'14px 18px',fontSize:14,opacity:0.6,fontStyle:'italic'}}>Analisando sua pergunta...</div>
             </div>
           )}
           <div ref={endRef} />
         </div>
         <div style={{display:'flex',gap:12,padding:16,background:'var(--gray-mid)',borderTop:'1px solid rgba(255,255,255,0.06)'}}>
-          <textarea className="form-input" placeholder="Pergunte algo jurídico... Ex: O que é mandado de segurança?"
+          <textarea className="form-input" placeholder="Pergunte algo jurídico..."
             value={input} onChange={e => setInput(e.target.value)}
             onKeyDown={e => { if (e.key==='Enter' && !e.shiftKey) { e.preventDefault(); send() } }}
             style={{flex:1,resize:'none',minHeight:44}} rows={1} />
@@ -608,7 +632,7 @@ function IAPage({ freeIA, setFreeIA, showPremium, profile }: any) {
 }
 
 // ── Disciplines Page ───────────────────────────────────
-function DisciplinesPage({ showPremium, profile }: any) {
+function DisciplinesPage({ showUpgrade, profile }: any) {
   const [selected, setSelected] = useState<any>(null)
   const [subTab, setSubTab] = useState<'resumo'|'quiz'|'flash'|'pdf'>('resumo')
 
@@ -626,13 +650,11 @@ function DisciplinesPage({ showPremium, profile }: any) {
             <p style={{fontSize:13,color:'var(--text-muted)'}}>{selected.q} questões · {selected.progress}% concluído</p>
           </div>
         </div>
-
-        {/* Sub-tabs */}
         <div style={{display:'flex',gap:8,marginBottom:24,flexWrap:'wrap'}}>
           {(['resumo','quiz','flash','pdf'] as const).map(t => {
             const available = selected.tags.map((tag: string) => tag.toLowerCase()).includes(t)
             return (
-              <button key={t} onClick={() => available ? setSubTab(t) : showPremium()}
+              <button key={t} onClick={() => available ? setSubTab(t) : showUpgrade()}
                 style={{padding:'10px 20px',borderRadius:10,border:subTab===t?'1px solid rgba(212,168,67,0.4)':'1px solid rgba(255,255,255,0.08)',background:subTab===t?'rgba(212,168,67,0.1)':'transparent',color:subTab===t?'var(--gold)':'var(--text-muted)',fontSize:13,fontWeight:600,cursor:'pointer',fontFamily:'var(--font-body)',textTransform:'capitalize'}}>
                 {t === 'resumo' ? '📖 Resumo' : t === 'quiz' ? '📝 Quiz' : t === 'flash' ? '🃏 Flashcards' : '📄 PDF'}
                 {!available && ' 🔒'}
@@ -640,36 +662,25 @@ function DisciplinesPage({ showPremium, profile }: any) {
             )
           })}
         </div>
-
         {subTab === 'resumo' && (
           <div style={{background:'var(--gray)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:20,padding:36}}>
             <div style={{fontSize:14,lineHeight:1.9,color:'var(--text-muted)',whiteSpace:'pre-wrap'}}>
               {resumo.split('\n').map((line, i) => {
-                if (line.startsWith('**') && line.endsWith('**')) {
-                  return <div key={i} style={{fontFamily:'var(--font-display)',fontSize:20,fontWeight:900,color:'var(--white)',marginBottom:16,marginTop:i>0?24:0}}>{line.replace(/\*\*/g,'')}</div>
-                }
-                if (line.startsWith('📌 **')) {
-                  return <div key={i} style={{fontWeight:700,color:'var(--gold)',fontSize:15,marginTop:20,marginBottom:8}}>{line.replace(/\*\*/g,'')}</div>
-                }
-                if (line.startsWith('•')) {
-                  return <div key={i} style={{paddingLeft:16,marginBottom:4}}>{line}</div>
-                }
+                if (line.startsWith('**') && line.endsWith('**')) return <div key={i} style={{fontFamily:'var(--font-display)',fontSize:20,fontWeight:900,color:'var(--white)',marginBottom:16,marginTop:i>0?24:0}}>{line.replace(/\*\*/g,'')}</div>
+                if (line.startsWith('📌 **')) return <div key={i} style={{fontWeight:700,color:'var(--gold)',fontSize:15,marginTop:20,marginBottom:8}}>{line.replace(/\*\*/g,'')}</div>
+                if (line.startsWith('•')) return <div key={i} style={{paddingLeft:16,marginBottom:4}}>{line}</div>
                 return <div key={i} style={{marginBottom:4}}>{line}</div>
               })}
             </div>
           </div>
         )}
-
-        {subTab === 'flash' && (
-          <FlashCards disciplina={selected.name} />
-        )}
-
+        {subTab === 'flash' && <FlashCards disciplina={selected.name} />}
         {subTab === 'pdf' && (
           <div style={{background:'var(--gray)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:20,padding:48,textAlign:'center'}}>
             <div style={{fontSize:48,marginBottom:16}}>📄</div>
             <h3 style={{fontFamily:'var(--font-display)',fontSize:22,fontWeight:900,marginBottom:8}}>PDF — {selected.name}</h3>
             <p style={{color:'var(--text-muted)',marginBottom:24}}>Material completo em PDF para download.</p>
-            <button className="btn-primary" onClick={() => showPremium()}>🔒 DESBLOQUEAR PDF</button>
+            <button className="btn-primary" onClick={() => showUpgrade()}>🔒 DESBLOQUEAR PDF</button>
           </div>
         )}
       </div>
@@ -711,15 +722,12 @@ function FlashCards({ disciplina }: { disciplina: string }) {
     {front:'O que é Dolo Eventual?',back:'O agente prevê o resultado como possível e, embora não o queira diretamente, assume o risco de produzi-lo (art. 18, I, segunda parte, CP).'},
     {front:'Qual a diferença entre Prescrição e Decadência?',back:'Prescrição: extingue a pretensão (direito de ação). Decadência: extingue o próprio direito. A prescrição pode ser interrompida ou suspensa; a decadência não.'},
   ]
-
   const [idx, setIdx] = useState(0)
   const [flipped, setFlipped] = useState(false)
 
   return (
     <div style={{maxWidth:600}}>
-      <div style={{marginBottom:16,fontSize:13,color:'var(--text-muted)'}}>
-        Card {idx+1} de {cards.length} · {disciplina}
-      </div>
+      <div style={{marginBottom:16,fontSize:13,color:'var(--text-muted)'}}>Card {idx+1} de {cards.length} · {disciplina}</div>
       <div style={{perspective:1000,marginBottom:24,cursor:'pointer'}} onClick={() => setFlipped(f => !f)}>
         <div style={{position:'relative',height:240,transformStyle:'preserve-3d',transition:'transform 0.6s',transform:flipped?'rotateY(180deg)':'rotateY(0)'}}>
           <div style={{position:'absolute',inset:0,backfaceVisibility:'hidden',background:'var(--gray)',border:'1px solid rgba(212,168,67,0.2)',borderRadius:20,padding:32,display:'flex',alignItems:'center',justifyContent:'center',textAlign:'center'}}>
@@ -747,14 +755,15 @@ function FlashCards({ disciplina }: { disciplina: string }) {
 }
 
 // ── Simulados Page ─────────────────────────────────────
-function SimuladosPage({ showPremium, freeQ, setFreeQ, onXp }: any) {
+function SimuladosPage({ showUpgrade, freeQ, setFreeQ, onXp }: any) {
   const [running, setRunning] = useState(false)
   const [cur, setCur] = useState(0)
   const [sel, setSel] = useState<number|null>(null)
   const [answered, setAnswered] = useState(false)
   const [score, setScore] = useState(0)
   const [done, setDone] = useState(false)
-  const [time, setTime] = useState(900) // 15min
+  const [time, setTime] = useState(900)
+  const [selectedSimulado, setSelectedSimulado] = useState<any>(null)
 
   const SIMULADOS = [
     {icon:'⚡',t:'Mini Simulado — Constitucional',info:'5 questões · 15min · Grátis',tags:['Grátis'],lock:false,questions:QUESTIONS.slice(0,5)},
@@ -765,8 +774,6 @@ function SimuladosPage({ showPremium, freeQ, setFreeQ, onXp }: any) {
     {icon:'🏛️',t:'Simulado Geral',info:'60 questões · 4h',tags:['Completo'],lock:true,questions:[]},
   ]
 
-  const [selectedSimulado, setSelectedSimulado] = useState<any>(null)
-
   useEffect(() => {
     if (!running || answered || done) return
     const t = setInterval(() => setTime(p => { if(p<=1){clearInterval(t);setDone(true);return 0;} return p-1 }), 1000)
@@ -774,13 +781,13 @@ function SimuladosPage({ showPremium, freeQ, setFreeQ, onXp }: any) {
   }, [running, answered, done, cur])
 
   const start = (s: any) => {
-    if (s.lock) { showPremium(); return }
+    if (s.lock) { showUpgrade(); return }
     setSelectedSimulado(s); setRunning(true); setCur(0); setSel(null); setAnswered(false); setScore(0); setDone(false); setTime(900)
   }
 
   const pick = (i: number) => {
     if (answered) return
-    if (freeQ <= 0) { showPremium(); return }
+    if (freeQ <= 0) { showUpgrade(); return }
     setSel(i); setAnswered(true); setFreeQ((p:number) => p-1)
     if (i === selectedSimulado.questions[cur].correct) { setScore(p=>p+1); onXp('question_correct') }
     else onXp('question_wrong')
@@ -795,15 +802,12 @@ function SimuladosPage({ showPremium, freeQ, setFreeQ, onXp }: any) {
     const q = selectedSimulado.questions[cur]
     const pct = Math.round(((cur+(answered?1:0))/selectedSimulado.questions.length)*100)
     const mins = Math.floor(time/60); const secs = time%60
-
     return (
       <div style={{padding:'32px 40px',flex:1}}>
         <div style={{maxWidth:720,margin:'0 auto'}}>
           <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:14}}>
-            <div style={{fontSize:14,color:'var(--text-muted)'}}>{selectedSimulado.t} · Questão {cur+1}/{selectedSimulado.questions.length}</div>
-            <div style={{fontFamily:'var(--font-mono)',fontSize:20,fontWeight:700,color:time<120?'var(--danger)':'var(--gold)'}}>
-              {String(mins).padStart(2,'0')}:{String(secs).padStart(2,'0')}
-            </div>
+            <div style={{fontSize:14,color:'var(--text-muted)'}}>{selectedSimulado.t} · Q{cur+1}/{selectedSimulado.questions.length}</div>
+            <div style={{fontFamily:'var(--font-mono)',fontSize:20,fontWeight:700,color:time<120?'var(--danger)':'var(--gold)'}}>{String(mins).padStart(2,'0')}:{String(secs).padStart(2,'0')}</div>
           </div>
           <div style={{background:'rgba(255,255,255,0.06)',borderRadius:100,height:4,marginBottom:28,overflow:'hidden'}}>
             <div style={{width:`${pct}%`,height:'100%',background:'linear-gradient(90deg,var(--gold),var(--orange))',borderRadius:100,transition:'width 0.4s'}} />
@@ -830,9 +834,7 @@ function SimuladosPage({ showPremium, freeQ, setFreeQ, onXp }: any) {
             {answered && <div style={{marginTop:24,padding:20,background:'rgba(212,168,67,0.06)',border:'1px solid rgba(212,168,67,0.15)',borderRadius:12,fontSize:14,lineHeight:1.7,color:'var(--text-muted)'}}>
               {sel===q.correct?'✅ ':'❌ '}<strong style={{color:'var(--gold)'}}>{sel===q.correct?'Correto!':'Incorreto.'}</strong> {q.exp}
             </div>}
-            {answered && <button className="btn-primary" style={{width:'100%',marginTop:22}} onClick={next}>
-              {cur+1>=selectedSimulado.questions.length?'VER RESULTADO':'PRÓXIMA →'}
-            </button>}
+            {answered && <button className="btn-primary" style={{width:'100%',marginTop:22}} onClick={next}>{cur+1>=selectedSimulado.questions.length?'VER RESULTADO':'PRÓXIMA →'}</button>}
           </div>
         </div>
       </div>
@@ -848,29 +850,16 @@ function SimuladosPage({ showPremium, freeQ, setFreeQ, onXp }: any) {
           <h1 style={{fontFamily:'var(--font-display)',fontSize:32,fontWeight:900,marginBottom:8}}>Simulado Concluído!</h1>
           <p style={{fontSize:15,color:'var(--text-muted)',marginBottom:28}}>{score} de {selectedSimulado.questions.length} questões corretas</p>
           <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:14,marginBottom:28}}>
-            {[['Taxa de Acerto',`${rate}%`,rate>=70?'var(--gold)':'var(--orange)'],['XP Ganho',`+${score*100}`,'var(--gold)'],['Estimativa',rate>=60?'Aprovado ✓':'Treinar mais',rate>=60?'var(--success)':'var(--orange)']].map(([l,v,c]) => (
+            {[['Taxa',`${rate}%`,rate>=70?'var(--gold)':'var(--orange)'],['XP',`+${score*100}`,'var(--gold)'],['Estimativa',rate>=60?'Aprovado ✓':'Treinar mais',rate>=60?'var(--success)':'var(--orange)']].map(([l,v,c]) => (
               <div key={l} style={{background:'var(--gray)',borderRadius:14,padding:20,border:'1px solid rgba(255,255,255,0.06)'}}>
                 <div style={{fontSize:10,fontWeight:700,letterSpacing:1.5,textTransform:'uppercase',color:'var(--text-muted)',marginBottom:8}}>{l}</div>
                 <div style={{fontFamily:'var(--font-display)',fontSize:24,fontWeight:900,color:c}}>{v}</div>
               </div>
             ))}
           </div>
-          <div style={{background:'var(--gray)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:16,padding:20,marginBottom:24,textAlign:'left'}}>
-            <div style={{fontSize:13,fontWeight:700,marginBottom:14,color:'var(--gold)'}}>🎯 Análise de Desempenho</div>
-            {[
-              ['Pontos Fortes', rate>=70?'Excelente domínio do conteúdo':'Questões de nível fácil','var(--success)'],
-              ['Pontos Fracos', rate<70?'Revisar conceitos fundamentais':'Aprofundar em questões difíceis','var(--danger)'],
-              ['Sugestão', rate>=70?'Avance para simulados mais difíceis':'Use a IA para revisar os erros','var(--gold)'],
-            ].map(([l,v,c]) => (
-              <div key={l} style={{display:'flex',justifyContent:'space-between',padding:'9px 0',borderBottom:'1px solid rgba(255,255,255,0.05)'}}>
-                <span style={{color:'var(--text-muted)'}}>{l}</span>
-                <span style={{color:c,fontWeight:700,fontSize:13}}>{v}</span>
-              </div>
-            ))}
-          </div>
           <div style={{display:'flex',gap:12,justifyContent:'center'}}>
             <button className="btn-primary" onClick={() => { setRunning(false); setDone(false) }}>NOVO SIMULADO</button>
-            <button className="btn-secondary" onClick={() => showPremium()}>VER SIMULADOS PREMIUM</button>
+            <button className="btn-secondary" onClick={() => showUpgrade()}>VER PREMIUM</button>
           </div>
         </div>
       </div>
@@ -893,7 +882,7 @@ function SimuladosPage({ showPremium, freeQ, setFreeQ, onXp }: any) {
               {s.tags.map(tag => <span key={tag} style={{fontSize:10,padding:'2px 9px',borderRadius:100,fontWeight:700,background:'rgba(212,168,67,0.1)',color:'var(--gold)',border:'1px solid rgba(212,168,67,0.2)'}}>{tag}</span>)}
             </div>
             {s.lock
-              ? <button className="btn-secondary" style={{width:'100%',fontSize:12,padding:'10px'}} onClick={() => showPremium()}>🔒 DESBLOQUEAR</button>
+              ? <button className="btn-secondary" style={{width:'100%',fontSize:12,padding:'10px'}} onClick={() => showUpgrade()}>🔒 DESBLOQUEAR</button>
               : <button className="btn-gold-sm" style={{width:'100%',fontSize:12}} onClick={() => start(s)}>INICIAR SIMULADO →</button>
             }
           </div>
@@ -906,7 +895,6 @@ function SimuladosPage({ showPremium, freeQ, setFreeQ, onXp }: any) {
 // ── Ranking Page ───────────────────────────────────────
 function RankingPage({ profile }: any) {
   const [tab, setTab] = useState<'geral'|'semanal'|'disciplina'>('semanal')
-
   return (
     <div style={{padding:'32px 40px',flex:1}}>
       <h1 style={{fontFamily:'var(--font-display)',fontSize:32,fontWeight:900,marginBottom:8}}>Ranking Nacional 🏆</h1>
@@ -919,8 +907,6 @@ function RankingPage({ profile }: any) {
           </button>
         ))}
       </div>
-
-      {/* Podium */}
       <div style={{display:'flex',gap:12,marginBottom:28,justifyContent:'center',flexWrap:'wrap'}}>
         {[1,0,2].map(idx => {
           const r = RANKING_DATA[idx]
@@ -938,7 +924,6 @@ function RankingPage({ profile }: any) {
           )
         })}
       </div>
-
       <div style={{display:'flex',flexDirection:'column',gap:10}}>
         {RANKING_DATA.map(r => (
           <div key={r.pos} style={{display:'flex',alignItems:'center',gap:16,background:(r as any).me?'rgba(212,168,67,0.06)':'var(--gray)',border:(r as any).me?'1px solid rgba(212,168,67,0.25)':'1px solid rgba(255,255,255,0.05)',borderRadius:14,padding:'16px 20px'}}>
@@ -967,7 +952,8 @@ export default function TigerJusApp() {
   const router = useRouter()
   const [profile, setProfile] = useState<Profile|null>(null)
   const [page, setPage] = useState('dashboard')
-  const [premium, setPremium] = useState(false)
+  const [showPremiumGate, setShowPremiumGate] = useState(false)
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false)
   const [freeQ, setFreeQ] = useState(15)
   const [freeIA, setFreeIA] = useState(5)
   const [notif, setNotif] = useState<string|null>(null)
@@ -989,7 +975,6 @@ export default function TigerJusApp() {
       setFreeIA(Math.max(0, 5 - (data.free_ia_used || 0)))
     }
     setLoading(false)
-    // Registrar login diário e XP
     if (data) {
       const today = new Date().toISOString().split('T')[0]
       if (data.ultimo_acesso !== today) {
@@ -1013,6 +998,16 @@ export default function TigerJusApp() {
     router.push('/')
   }
 
+  const handleUpgradeSelect = (planId: string) => {
+    setShowUpgradeModal(false)
+    router.push(`/checkout?plan=${planId}`)
+  }
+
+  const showUpgrade = () => {
+    setShowPremiumGate(false)
+    setShowUpgradeModal(true)
+  }
+
   if (loading) return (
     <div style={{minHeight:'100vh',background:'var(--deep-black)',display:'flex',alignItems:'center',justifyContent:'center'}}>
       <div style={{textAlign:'center'}}>
@@ -1034,11 +1029,11 @@ export default function TigerJusApp() {
   return (
     <div style={{background:'var(--deep-black)',minHeight:'100vh'}}>
       {notif && <Notification msg={notif} onClose={() => setNotif(null)} />}
-      {premium && <PremiumGate onClose={() => setPremium(false)} onUpgrade={() => { setPremium(false); router.push('/checkout?plan=pro') }} />}
+      {showPremiumGate && <PremiumGate onClose={() => setShowPremiumGate(false)} onUpgrade={showUpgrade} />}
+      {showUpgradeModal && <UpgradeModal onClose={() => setShowUpgradeModal(false)} onSelect={handleUpgradeSelect} />}
 
-      {/* Navbar */}
       <nav className="navbar">
-        <div style={{display:'flex',alignItems:'center',gap:10,cursor:'pointer'}} onClick={() => router.push('/')}>
+        <div style={{display:'flex',alignItems:'center',gap:10}}>
           <div style={{width:38,height:38,background:'linear-gradient(135deg,var(--gold),var(--orange))',borderRadius:8,display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'var(--font-display)',fontSize:18,fontWeight:900,color:'var(--deep-black)'}}>T</div>
           <span style={{fontFamily:'var(--font-display)',fontSize:22,fontWeight:900,letterSpacing:2,background:'linear-gradient(135deg,var(--gold-light),var(--gold))',WebkitBackgroundClip:'text',WebkitTextFillColor:'transparent'}}>TIGERJUS</span>
         </div>
@@ -1052,14 +1047,12 @@ export default function TigerJusApp() {
         </div>
         <div style={{display:'flex',gap:10,alignItems:'center'}}>
           <span style={{fontSize:13,color:'var(--text-muted)'}}>{profile?.nome?.split(' ')[0] || 'Usuário'}</span>
-          <button className="btn-gold-sm" onClick={() => router.push('/checkout?plan=pro')}>🚀 PREMIUM</button>
+          <button className="btn-gold-sm" onClick={() => setShowUpgradeModal(true)}>🚀 PREMIUM</button>
           <button onClick={handleLogout} style={{color:'var(--text-muted)',fontSize:11,border:'none',background:'none',cursor:'pointer',fontFamily:'var(--font-body)'}}>Sair</button>
         </div>
       </nav>
 
-      {/* Layout */}
       <div style={{display:'flex',paddingTop:70,minHeight:'100vh'}}>
-        {/* Sidebar */}
         <aside className="dash-sidebar">
           {SIDEBAR.map(item => (
             <button key={item.key} className={`sidebar-item${page===item.key?' active':''}`} onClick={() => setPage(item.key)}>
@@ -1075,17 +1068,16 @@ export default function TigerJusApp() {
             <div style={{background:'rgba(212,168,67,0.06)',border:'1px solid rgba(212,168,67,0.14)',borderRadius:12,padding:16}}>
               <div style={{fontSize:9,fontWeight:700,letterSpacing:2,textTransform:'uppercase',color:'var(--gold)',marginBottom:6}}>{profile?.plano?.toUpperCase() || 'PLANO GRATUITO'}</div>
               <div style={{fontSize:12,color:'var(--text-muted)',marginBottom:12}}>{freeQ} questões · {freeIA} perguntas IA</div>
-              <button className="btn-gold-sm" style={{width:'100%',fontSize:11}} onClick={() => router.push('/checkout?plan=pro')}>🚀 FAZER UPGRADE</button>
+              <button className="btn-gold-sm" style={{width:'100%',fontSize:11}} onClick={() => setShowUpgradeModal(true)}>🚀 FAZER UPGRADE</button>
             </div>
           </div>
         </aside>
 
-        {/* Main content */}
-        {page==='dashboard'   && <DashHome profile={profile} onNav={setPage} showPremium={() => setPremium(true)} />}
-        {page==='disciplines' && <DisciplinesPage showPremium={() => setPremium(true)} profile={profile} />}
-        {page==='quiz'        && <QuizPage freeQ={freeQ} setFreeQ={setFreeQ} showPremium={() => setPremium(true)} onXp={handleXp} profile={profile} />}
-        {page==='simulados'   && <SimuladosPage showPremium={() => setPremium(true)} freeQ={freeQ} setFreeQ={setFreeQ} onXp={handleXp} />}
-        {page==='ia'          && <IAPage freeIA={freeIA} setFreeIA={setFreeIA} showPremium={() => setPremium(true)} profile={profile} />}
+        {page==='dashboard'   && <DashHome profile={profile} onNav={setPage} showUpgrade={showUpgrade} />}
+        {page==='disciplines' && <DisciplinesPage showUpgrade={showUpgrade} profile={profile} />}
+        {page==='quiz'        && <QuizPage freeQ={freeQ} setFreeQ={setFreeQ} showUpgrade={showUpgrade} onXp={handleXp} profile={profile} />}
+        {page==='simulados'   && <SimuladosPage showUpgrade={showUpgrade} freeQ={freeQ} setFreeQ={setFreeQ} onXp={handleXp} />}
+        {page==='ia'          && <IAPage freeIA={freeIA} setFreeIA={setFreeIA} showUpgrade={showUpgrade} profile={profile} />}
         {page==='ranking'     && <RankingPage profile={profile} />}
       </div>
 
