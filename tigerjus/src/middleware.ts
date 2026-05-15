@@ -9,18 +9,15 @@ export async function middleware(req: NextRequest) {
   const { data: { session } } = await supabase.auth.getSession()
   const { pathname } = req.nextUrl
 
-  // Rotas públicas
   const publicRoutes = ['/', '/login', '/bem-vindo', '/reset-password', '/api/webhooks']
   const isPublic = publicRoutes.some(r => pathname.startsWith(r))
 
-  // Se não tem sessão e rota é protegida — redireciona para login
   if (!isPublic && !session) {
     const redirectUrl = new URL('/login', req.url)
     redirectUrl.searchParams.set('redirect', pathname)
     return NextResponse.redirect(redirectUrl)
   }
 
-  // Admin e dashboard — deixar a própria página verificar permissões
   return res
 }
 
@@ -29,5 +26,6 @@ export const config = {
     '/dashboard/:path*',
     '/admin/:path*',
     '/checkout/:path*',
+    '/plataforma/:path*',
   ],
 }
