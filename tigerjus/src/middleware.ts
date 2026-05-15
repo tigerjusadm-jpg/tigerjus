@@ -7,32 +7,21 @@ export async function middleware(req: NextRequest) {
   const supabase = createMiddlewareClient({ req, res })
 
   const { data: { session } } = await supabase.auth.getSession()
-
   const { pathname } = req.nextUrl
 
-  const publicRoutes = ['/', '/login', '/cadastro', '/api/webhooks']
+  // Rotas públicas
+  const publicRoutes = ['/', '/login', '/bem-vindo', '/reset-password', '/api/webhooks']
   const isPublic = publicRoutes.some(r => pathname.startsWith(r))
 
-  if (pathname.startsWith('/admin')) {
-    if (!session) {
-      return NextResponse.redirect(new URL('/login', req.url))
-    }
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', session.user.id)
-      .single()
-
-    if (!profile || profile.role !== 'admin') {
-      return NextResponse.redirect(new URL('/dashboard', req.url))
-    }
-    return res
-  }
-
+  // Se não tem sessão e rota é protegida
   if (!isPublic && !session) {
-    return NextResponse.redirect(new URL('/login', req.url))
+    const redirectUrl = new URL('/login', req.url)
+    redirectUrl.searchParams.set('redirect', pathname)
+    return NextResponse.redirect(redirectUrl)
   }
 
+  // Admin — não bloquear aqui, deixar a própria página verificar
+  // isso evita loop de redirecionamento
   return res
 }
 
