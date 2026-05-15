@@ -202,10 +202,10 @@ export default function AdminPage() {
                 <h1 style={{fontSize:28,fontWeight:900,marginBottom:4}}>⚙️ Configurações do Site</h1>
                 <p style={{color:'#888'}}>Edite textos, cores, preços e conteúdo sem precisar de código.</p>
               </div>
-              <button onClick={saveAllConfigs} disabled={saving === 'all'}
-                style={{background:'linear-gradient(135deg,#D4A843,#E8621A)',border:'none',borderRadius:10,padding:'12px 24px',color:'#000',fontWeight:700,fontSize:14,cursor:'pointer',opacity:saving==='all'?0.7:1}}>
-                {saving === 'all' ? '⏳ Salvando...' : savedMsg === 'all' ? '✅ Tudo Salvo!' : '💾 SALVAR TUDO'}
-              </button>
+              <button onClick={() => router.push('/dashboard')}
+  style={{background:'linear-gradient(135deg,#D4A843,#E8621A)',border:'none',borderRadius:8,padding:'6px 14px',color:'#000',fontSize:13,cursor:'pointer',marginLeft:8,fontWeight:700}}>
+  🐯 Acessar Plataforma
+</button>
             </div>
 
             <div style={{display:'flex',gap:8,marginBottom:24,flexWrap:'wrap',marginTop:16}}>
