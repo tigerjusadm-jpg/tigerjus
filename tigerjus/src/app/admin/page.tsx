@@ -93,8 +93,7 @@ export default function AdminPage() {
   }
 
   const acessarPlataforma = () => {
-    // Usar window.location para forçar reload completo da sessão
-    window.location.href = '/dashboard?from=admin'
+    window.location.href = '/plataforma'
   }
 
   const categorias = Array.from(new Set(configs.map(c => c.categoria)))
@@ -135,7 +134,6 @@ export default function AdminPage() {
       </div>
 
       <div style={{padding:32}}>
-
         {tab === 'dashboard' && (
           <>
             <h1 style={{fontSize:28,fontWeight:900,marginBottom:8}}>Painel Administrativo</h1>
@@ -212,7 +210,6 @@ export default function AdminPage() {
                 {saving === 'all' ? '⏳ Salvando...' : savedMsg === 'all' ? '✅ Tudo Salvo!' : '💾 SALVAR TUDO'}
               </button>
             </div>
-
             <div style={{display:'flex',gap:8,marginBottom:24,flexWrap:'wrap',marginTop:16}}>
               {categorias.map(cat => (
                 <button key={cat} onClick={() => setConfigTab(cat)}
@@ -221,7 +218,6 @@ export default function AdminPage() {
                 </button>
               ))}
             </div>
-
             <div style={{display:'flex',flexDirection:'column',gap:16}}>
               {configsByCategory.map(config => (
                 <div key={config.chave} style={{background:'#111',border:'1px solid #222',borderRadius:14,padding:20}}>
