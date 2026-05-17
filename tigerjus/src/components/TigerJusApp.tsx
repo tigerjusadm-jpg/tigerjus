@@ -540,9 +540,10 @@ function DisciplinesPage({ showUpgrade, profile }: any) {
         </div>
         <div style={{display:'flex',gap:8,marginBottom:24,flexWrap:'wrap'}}>
           {(['resumo','quiz','flash','pdf'] as const).map(t => {
-            const available = selected.tags.map((tag: string) => tag.toLowerCase()).includes(t)
-            return (
-              <button key={t} onClick={() => available ? setSubTab(t) : showUpgrade()} style={{padding:'10px 20px',borderRadius:10,border:subTab===t?'1px solid rgba(212,168,67,0.4)':'1px solid rgba(255,255,255,0.08)',background:subTab===t?'rgba(212,168,67,0.1)':'transparent',color:subTab===t?'var(--gold)':'var(--text-muted)',fontSize:13,fontWeight:600,cursor:'pointer',fontFamily:'var(--font-body)',textTransform:'capitalize'}}>
+           const isElite = profile?.role === 'admin' || profile?.plano === 'elite' || profile?.plano === 'premium'
+const available = isElite || selected.tags.map((tag: string) => tag.toLowerCase()).includes(t)
+return (
+  <button key={t} onClick={() => setSubTab(t)} style={{padding:'10px 20px',borderRadius:10,border:subTab===t?'1px solid rgba(212,168,67,0.4)':'1px solid rgba(255,255,255,0.08)',background:subTab===t?'rgba(212,168,67,0.1)':'transparent',color:subTab===t?'var(--gold)':'var(--text-muted)',fontSize:13,fontWeight:600,cursor:'pointer',fontFamily:'var(--font-body)',textTransform:'capitalize'}}>
                 {t === 'resumo' ? '📖 Resumo' : t === 'quiz' ? '📝 Quiz' : t === 'flash' ? '🃏 Flashcards' : '📄 PDF'}{!available && ' 🔒'}
               </button>
             )
@@ -566,7 +567,7 @@ function DisciplinesPage({ showUpgrade, profile }: any) {
             <div style={{fontSize:48,marginBottom:16}}>📄</div>
             <h3 style={{fontFamily:'var(--font-display)',fontSize:22,fontWeight:900,marginBottom:8}}>PDF — {selected.name}</h3>
             <p style={{color:'var(--text-muted)',marginBottom:24}}>Material completo em PDF para download.</p>
-            <button className="btn-primary" onClick={() => showUpgrade()}>🔒 DESBLOQUEAR PDF</button>
+            <button className="btn-primary" onClick={() => window.open('#', '_blank')}>📄 BAIXAR PDF</button>
           </div>
         )}
       </div>
@@ -631,7 +632,7 @@ function FlashCards({ disciplina }: { disciplina: string }) {
   )
 }
 
-function SimuladosPage({ showUpgrade, freeQ, setFreeQ, onXp }: any) {
+function SimuladosPage({ showUpgrade, freeQ, setFreeQ, onXp, profile }: any) {
   const [running, setRunning] = useState(false)
   const [cur, setCur] = useState(0)
   const [sel, setSel] = useState<number|null>(null)
@@ -657,7 +658,8 @@ function SimuladosPage({ showUpgrade, freeQ, setFreeQ, onXp }: any) {
   }, [running, answered, done, cur])
 
   const start = (s: any) => {
-    if (s.lock) { showUpgrade(); return }
+    const isElite = profile?.role === 'admin' || profile?.plano === 'elite' || profile?.plano === 'premium'
+    if (s.lock && !isElite) { showUpgrade(); return }
     setSelectedSimulado(s); setRunning(true); setCur(0); setSel(null); setAnswered(false); setScore(0); setDone(false); setTime(900)
   }
 
@@ -746,7 +748,7 @@ function SimuladosPage({ showUpgrade, freeQ, setFreeQ, onXp }: any) {
             <div style={{display:'flex',gap:6,flexWrap:'wrap',marginBottom:18}}>
               {s.tags.map(tag => <span key={tag} style={{fontSize:10,padding:'2px 9px',borderRadius:100,fontWeight:700,background:'rgba(212,168,67,0.1)',color:'var(--gold)',border:'1px solid rgba(212,168,67,0.2)'}}>{tag}</span>)}
             </div>
-            {s.lock
+          {s.lock && !(profile?.role === 'admin' || profile?.plano === 'elite' || profile?.plano === 'premium')
               ? <button className="btn-secondary" style={{width:'100%',fontSize:12,padding:'10px'}} onClick={() => showUpgrade()}>🔒 DESBLOQUEAR</button>
               : <button className="btn-gold-sm" style={{width:'100%',fontSize:12}} onClick={() => start(s)}>INICIAR SIMULADO →</button>
             }
@@ -956,7 +958,7 @@ export default function TigerJusApp() {
         {page==='dashboard'   && <DashHome profile={profile} onNav={setPage} showUpgrade={showUpgrade} />}
         {page==='disciplines' && <DisciplinesPage showUpgrade={showUpgrade} profile={profile} />}
         {page==='quiz'        && <QuizPage freeQ={freeQ} setFreeQ={setFreeQ} showUpgrade={showUpgrade} onXp={handleXp} profile={profile} />}
-        {page==='simulados'   && <SimuladosPage showUpgrade={showUpgrade} freeQ={freeQ} setFreeQ={setFreeQ} onXp={handleXp} />}
+        {page==='simulados'   && <SimuladosPage showUpgrade={showUpgrade} freeQ={freeQ} setFreeQ={setFreeQ} onXp={handleXp} profile={profile} />}
         {page==='ia'          && <IAPage freeIA={freeIA} setFreeIA={setFreeIA} showUpgrade={showUpgrade} profile={profile} />}
         {page==='ranking'     && <RankingPage profile={profile} />}
       </div>
