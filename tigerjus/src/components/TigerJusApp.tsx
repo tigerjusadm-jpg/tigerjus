@@ -968,7 +968,19 @@ export default function TigerJusApp() {
     const data = await res.json()
     if (data.leveled_up) setNotif(`🎉 Você subiu para ${data.level.name}! +${data.xp_earned} XP`)
     else if (data.xp_earned > 0) setNotif(`+${data.xp_earned} XP ganho!`)
-    if (profile) setProfile({...profile, xp:data.total_xp, level_name:data.level.name, streak:data.streak})
+    setProfile(prev => {
+      if (!prev) return prev
+      const incRespondidas = action === 'question_correct' || action === 'question_wrong'
+      const incCorretas = action === 'question_correct'
+      return {
+        ...prev,
+        xp: data.total_xp ?? prev.xp,
+        level_name: data.level?.name ?? prev.level_name,
+        streak: data.streak ?? prev.streak,
+        questoes_respondidas: (prev.questoes_respondidas || 0) + (incRespondidas ? 1 : 0),
+        questoes_corretas: (prev.questoes_corretas || 0) + (incCorretas ? 1 : 0),
+      }
+    })
   }
 
   const handleLogout = async () => { await supabase.auth.signOut(); router.push('/') }
