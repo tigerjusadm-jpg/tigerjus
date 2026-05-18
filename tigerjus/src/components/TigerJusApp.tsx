@@ -2,6 +2,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
+import RadarOAB from '@/components/RadarOAB'
 
 interface Profile {
   id: string; nome: string; email: string; plano: string
@@ -1042,6 +1043,7 @@ export default function TigerJusApp() {
               <div style={{fontSize:12,color:'var(--text-muted)',marginBottom:12}}>{freeQ > 9000 ? 'Ilimitado' : `${freeQ} questões`} · {freeIA > 9000 ? 'IA Ilimitada' : `${freeIA} perguntas IA`}</div>
               <button className="btn-gold-sm" style={{width:'100%',fontSize:11}} onClick={() => setShowUpgradeModal(true)}>🚀 FAZER UPGRADE</button>
             </div>
+            <RadarOAB />
           </div>
         </aside>
 
