@@ -32,41 +32,32 @@ const PLANS_UPGRADE = [
 
 const DISCIPLINES = [
   {id:1,icon:'⚖️',name:'Constitucional',slug:'constitucional',progress:68,q:142,tags:['Quiz','Resumo','Flash','PDF']},
-  {id:2,icon:'🏛️',name:'Administrativo',slug:'administrativo',progress:45,q:98,tags:['Quiz','Resumo','Flash']},
+  {id:2,icon:'🏛️',name:'Administrativo',slug:'administrativo',progress:45,q:98,tags:['Quiz','Resumo','Flash','PDF']},
   {id:3,icon:'🔒',name:'Penal',slug:'penal',progress:72,q:210,tags:['Quiz','Resumo','Flash','PDF']},
-  {id:4,icon:'🔍',name:'Processo Penal',slug:'processo-penal',progress:38,q:156,tags:['Quiz','Resumo']},
+  {id:4,icon:'🔍',name:'Processo Penal',slug:'processo-penal',progress:38,q:156,tags:['Quiz','Resumo','Flash','PDF']},
   {id:5,icon:'📋',name:'Civil',slug:'civil',progress:55,q:187,tags:['Quiz','Resumo','Flash','PDF']},
-  {id:6,icon:'⚡',name:'Processo Civil',slug:'processo-civil',progress:30,q:134,tags:['Quiz','Resumo']},
-  {id:7,icon:'🦺',name:'Trabalho',slug:'trabalho',progress:60,q:112,tags:['Quiz','Flash','PDF']},
-  {id:8,icon:'👷',name:'Proc. Trabalho',slug:'proc-trabalho',progress:25,q:89,tags:['Quiz','Resumo']},
-  {id:9,icon:'💰',name:'Tributário',slug:'tributario',progress:42,q:76,tags:['Quiz','Resumo','Flash']},
-  {id:10,icon:'🏢',name:'Empresarial',slug:'empresarial',progress:35,q:93,tags:['Quiz','Resumo']},
-  {id:11,icon:'📜',name:'Ética OAB',slug:'etica',progress:80,q:64,tags:['Quiz','Resumo','PDF']},
-  {id:12,icon:'🛒',name:'Consumidor',slug:'consumidor',progress:50,q:55,tags:['Quiz','Flash']},
-  {id:13,icon:'🌍',name:'Direitos Humanos',slug:'direitos-humanos',progress:28,q:48,tags:['Quiz','Resumo']},
-  {id:14,icon:'🌿',name:'Ambiental',slug:'ambiental',progress:20,q:42,tags:['Quiz']},
-  {id:15,icon:'📖',name:'Filosofia',slug:'filosofia',progress:15,q:30,tags:['Resumo','Flash']},
-  {id:16,icon:'🌐',name:'Internacional',slug:'internacional',progress:22,q:38,tags:['Quiz','Resumo']},
-  {id:17,icon:'👶',name:'ECA',slug:'eca',progress:32,q:44,tags:['Quiz','Flash']},
+  {id:6,icon:'⚡',name:'Processo Civil',slug:'processo-civil',progress:30,q:134,tags:['Quiz','Resumo','Flash','PDF']},
+  {id:7,icon:'🦺',name:'Trabalho',slug:'trabalho',progress:60,q:112,tags:['Quiz','Resumo','Flash','PDF']},
+  {id:8,icon:'👷',name:'Proc. Trabalho',slug:'proc-trabalho',progress:25,q:89,tags:['Quiz','Resumo','Flash','PDF']},
+  {id:9,icon:'💰',name:'Tributário',slug:'tributario',progress:42,q:76,tags:['Quiz','Resumo','Flash','PDF']},
+  {id:10,icon:'🏢',name:'Empresarial',slug:'empresarial',progress:35,q:93,tags:['Quiz','Resumo','Flash','PDF']},
+  {id:11,icon:'📜',name:'Ética OAB',slug:'etica',progress:80,q:64,tags:['Quiz','Resumo','Flash','PDF']},
+  {id:12,icon:'🛒',name:'Consumidor',slug:'consumidor',progress:50,q:55,tags:['Quiz','Resumo','Flash','PDF']},
+  {id:13,icon:'🌍',name:'Direitos Humanos',slug:'direitos-humanos',progress:28,q:48,tags:['Quiz','Resumo','Flash','PDF']},
+  {id:14,icon:'🌿',name:'Ambiental',slug:'ambiental',progress:20,q:42,tags:['Quiz','Resumo','Flash','PDF']},
+  {id:15,icon:'📖',name:'Filosofia',slug:'filosofia',progress:15,q:30,tags:['Quiz','Resumo','Flash','PDF']},
+  {id:16,icon:'🌐',name:'Internacional',slug:'internacional',progress:22,q:38,tags:['Quiz','Resumo','Flash','PDF']},
+  {id:17,icon:'👶',name:'ECA',slug:'eca',progress:32,q:44,tags:['Quiz','Resumo','Flash','PDF']},
 ]
 
-const QUESTIONS = [
-  {id:1,disc:'Constitucional',dificuldade:'Médio',q:'Segundo a CF/88, o mandado de segurança pode ser impetrado por:',
-    opts:['Qualquer pessoa natural ou jurídica','Apenas pessoas naturais','Apenas partidos políticos','Apenas o Ministério Público'],correct:0,
-    exp:'O MS pode ser impetrado por qualquer pessoa natural ou jurídica para proteger direito líquido e certo não amparado por HC ou HD (art. 5º, LXIX, CF/88).'},
-  {id:2,disc:'Direito Penal',dificuldade:'Fácil',q:'De acordo com o Código Penal, o crime é culposo quando o agente:',
-    opts:['Quis o resultado','Assumiu o risco de produzi-lo','Deu causa ao resultado por imprudência, negligência ou imperícia','Agiu com dolo eventual'],correct:2,
-    exp:'Crime culposo: agente dá causa ao resultado por imprudência, negligência ou imperícia (art. 18, II, CP).'},
-  {id:3,disc:'Direito Civil',dificuldade:'Fácil',q:'Segundo o Código Civil, são absolutamente incapazes:',
-    opts:['Os menores de 16 anos','Os ébrios habituais','Os pródigos','Os maiores de 70 anos'],correct:0,
-    exp:'Após a Lei 13.146/2015, apenas os menores de 16 anos são absolutamente incapazes (art. 3º, CC).'},
-  {id:4,disc:'Ética OAB',dificuldade:'Médio',q:'O advogado tem dever de guardar sigilo das informações do cliente:',
-    opts:['Apenas durante o mandato','Apenas se houver cláusula contratual','Mesmo após o encerramento do mandato','Somente perante terceiros'],correct:2,
-    exp:'O sigilo profissional é permanente, mesmo após encerramento do mandato (art. 34, VII, Estatuto OAB).'},
-  {id:5,disc:'Processo Civil',dificuldade:'Difícil',q:'O prazo para contestação no CPC/2015 é de:',
-    opts:['10 dias úteis','15 dias úteis','20 dias úteis','30 dias corridos'],correct:1,
-    exp:'Conforme art. 335 do CPC/2015, o réu pode oferecer contestação em 15 dias úteis (art. 219 CPC).'},
-]
+const DISC_MAP: Record<string, string> = {
+  'Constitucional':'Constitucional','Administrativo':'Administrativo','Penal':'Penal',
+  'Processo Penal':'Processo Penal','Civil':'Civil','Processo Civil':'Processo Civil',
+  'Trabalho':'Trabalho','Processo do Trabalho':'Proc. Trabalho','Tributário':'Tributário',
+  'Empresarial':'Empresarial','Ética':'Ética OAB','Consumidor':'Consumidor',
+  'Direitos Humanos':'Direitos Humanos','Ambiental':'Ambiental','Filosofia':'Filosofia',
+  'Internacional':'Internacional','ECA':'ECA',
+}
 
 const RANKING_DATA = [
   {pos:1,name:'Rafael M.',level:'Tigre Supremo',xp:48200,streak:45,av:'🦁'},
@@ -79,54 +70,86 @@ const RANKING_DATA = [
 ]
 
 const RESUMOS: Record<string, string> = {
-  constitucional: `**DIREITO CONSTITUCIONAL — RESUMO ESSENCIAL**
-
-📌 **Estrutura da CF/88**
-A Constituição Federal de 1988 é rígida, analítica e promulgada. Organiza-se em 9 títulos.
-
-📌 **Direitos Fundamentais (Art. 5º)**
-São cláusulas pétreas. Principais garantias:
-- Habeas Corpus — liberdade de locomoção
-- Mandado de Segurança — direito líquido e certo
-- Habeas Data — informações pessoais
-- Mandado de Injunção — omissão legislativa
-
-📌 **Princípios Fundamentais**
-- Soberania, Cidadania, Dignidade da pessoa humana
-- Valores sociais do trabalho e da livre iniciativa
-- Pluralismo político
-
-📌 **Organização dos Poderes**
-- Executivo, Legislativo e Judiciário — independentes e harmônicos
-- Sistema de freios e contrapesos`,
-
-  penal: `**DIREITO PENAL — RESUMO ESSENCIAL**
-
-📌 **Teoria do Crime**
-Crime = Fato típico + Ilicitude + Culpabilidade
-
-📌 **Dolo e Culpa**
-- Dolo direto: quis o resultado
-- Dolo eventual: assumiu o risco
-- Culpa: imprudência, negligência ou imperícia
-
-📌 **Excludentes de Ilicitude (Art. 23 CP)**
-- Estado de necessidade
-- Legítima defesa
-- Estrito cumprimento do dever legal`,
-
-  civil: `**DIREITO CIVIL — RESUMO ESSENCIAL**
-
-📌 **Capacidade**
-- Plena: maiores de 18 anos não incapazes
-- Absolutamente incapaz: menores de 16 anos (art. 3º CC)
-- Relativamente incapaz: 16-18 anos, ébrios habituais, pródigos
-
-📌 **Responsabilidade Civil**
-- Subjetiva: necessita de culpa
-- Objetiva: independe de culpa (risco da atividade)`,
+  constitucional:`**DIREITO CONSTITUCIONAL — RESUMO ESSENCIAL**\n\n📌 **Estrutura da CF/88**\nA Constituição Federal de 1988 é rígida, analítica e promulgada. Organiza-se em 9 títulos.\n\n📌 **Direitos Fundamentais (Art. 5º)**\nSão cláusulas pétreas. Principais garantias:\n- Habeas Corpus — liberdade de locomoção\n- Mandado de Segurança — direito líquido e certo\n- Habeas Data — informações pessoais\n- Mandado de Injunção — omissão legislativa\n\n📌 **Princípios Fundamentais**\n- Soberania, Cidadania, Dignidade da pessoa humana\n- Valores sociais do trabalho e da livre iniciativa\n- Pluralismo político\n\n📌 **Organização dos Poderes**\n- Executivo, Legislativo e Judiciário — independentes e harmônicos\n- Sistema de freios e contrapesos`,
+  penal:`**DIREITO PENAL — RESUMO ESSENCIAL**\n\n📌 **Teoria do Crime**\nCrime = Fato típico + Ilicitude + Culpabilidade\n\n📌 **Dolo e Culpa**\n- Dolo direto: quis o resultado\n- Dolo eventual: assumiu o risco\n- Culpa: imprudência, negligência ou imperícia\n\n📌 **Excludentes de Ilicitude (Art. 23 CP)**\n- Estado de necessidade\n- Legítima defesa\n- Estrito cumprimento do dever legal`,
+  civil:`**DIREITO CIVIL — RESUMO ESSENCIAL**\n\n📌 **Capacidade**\n- Plena: maiores de 18 anos não incapazes\n- Absolutamente incapaz: menores de 16 anos (art. 3º CC)\n- Relativamente incapaz: 16-18 anos, ébrios habituais, pródigos\n\n📌 **Responsabilidade Civil**\n- Subjetiva: necessita de culpa\n- Objetiva: independe de culpa (risco da atividade)`,
 }
 
+// ─── ANÚNCIOS ───────────────────────────────────────────────────────────────
+const ADS_DATA = [
+  { id:1, slot:'banner_top', titulo:'Faculdade Damásio — OAB 1ª e 2ª Fase', subtitulo:'Aprovação garantida ou devolução do investimento', cta:'Conhecer', url:'https://damasio.com.br', cor:'rgba(58,143,232,0.12)', borda:'rgba(58,143,232,0.25)', emoji:'🎓' },
+  { id:2, slot:'card_feed', titulo:'CERS — Cursos Jurídicos', subtitulo:'Mais de 1 milhão de aprovados. Seja o próximo.', cta:'Ver cursos', url:'https://cers.com.br', cor:'rgba(212,168,67,0.08)', borda:'rgba(212,168,67,0.2)', emoji:'⚖️' },
+  { id:3, slot:'sidebar', titulo:'Editora Saraiva', subtitulo:'Livros jurídicos com 30% de desconto', cta:'Ver ofertas', url:'https://saraivajur.com.br', cor:'rgba(76,175,125,0.08)', borda:'rgba(76,175,125,0.2)', emoji:'📚' },
+  { id:4, slot:'pos_quiz', titulo:'Gran Cursos Online — Direito', subtitulo:'Simulados ilimitados para OAB. Comece grátis.', cta:'Começar grátis', url:'https://grancursosonline.com.br', cor:'rgba(232,98,26,0.08)', borda:'rgba(232,98,26,0.2)', emoji:'🏆' },
+]
+
+function AdBanner({ slot, isPremium }: { slot: string; isPremium: boolean }) {
+  // Premium/Elite vê apenas 1 anúncio por sessão; gratuito vê todos
+  const ad = ADS_DATA.find(a => a.slot === slot)
+  if (!ad) return null
+  if (isPremium && slot !== 'banner_top') return null // premium vê só top banner
+  return (
+    <div style={{background:ad.cor,border:`1px solid ${ad.borda}`,borderRadius:14,padding:'14px 18px',marginBottom:16,cursor:'pointer',transition:'opacity 0.2s'}}
+      onClick={() => window.open(ad.url,'_blank')}
+      title="Publicidade">
+      <div style={{display:'flex',alignItems:'center',gap:10,flexWrap:'wrap'}}>
+        <span style={{fontSize:20}}>{ad.emoji}</span>
+        <div style={{flex:1,minWidth:0}}>
+          <div style={{fontSize:11,fontWeight:800,letterSpacing:'1.5px',textTransform:'uppercase',color:'var(--text-muted)',marginBottom:2}}>PUBLICIDADE</div>
+          <div style={{fontSize:13,fontWeight:700,color:'var(--white)',marginBottom:2}}>{ad.titulo}</div>
+          <div style={{fontSize:11,color:'var(--text-muted)'}}>{ad.subtitulo}</div>
+        </div>
+        <button style={{background:ad.borda,border:'none',borderRadius:8,padding:'6px 14px',fontSize:11,fontWeight:700,color:'var(--white)',cursor:'pointer',whiteSpace:'nowrap'}}>{ad.cta} →</button>
+      </div>
+    </div>
+  )
+}
+
+// ─── PDF GERADO PELO SISTEMA ─────────────────────────────────────────────────
+async function gerarPDF(disciplina: any, resumo: string, questoes: any[]) {
+  const conteudo = `TIGERJUS — MATERIAL DE ESTUDO
+${'='.repeat(60)}
+Disciplina: ${disciplina.name.toUpperCase()}
+Gerado em: ${new Date().toLocaleDateString('pt-BR')} às ${new Date().toLocaleTimeString('pt-BR')}
+${'='.repeat(60)}
+
+RESUMO ESSENCIAL
+${'-'.repeat(60)}
+${resumo.replace(/\*\*/g,'').replace(/📌/g,'\n►')}
+
+${'='.repeat(60)}
+QUESTÕES OAB — ${disciplina.name.toUpperCase()}
+${'='.repeat(60)}
+${questoes.slice(0,20).map((q,i) => `
+[${i+1}] ${q.disciplina || disciplina.name}
+${q.enunciado}
+
+A) ${q.opcao_a}
+B) ${q.opcao_b}
+C) ${q.opcao_c}
+D) ${q.opcao_d}
+
+✅ Gabarito: ${q.resposta_correta}
+${q.comentario ? `📖 Comentário: ${q.comentario}` : ''}
+${'─'.repeat(50)}`).join('\n')}
+
+${'='.repeat(60)}
+Gerado por TIGERJUS — tigerjus.com.br
+"Não basta estudar Direito. É preciso pensar como um Tigre."
+${'='.repeat(60)}`
+
+  const blob = new Blob([conteudo], { type: 'text/plain;charset=utf-8' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `TigerJus_${disciplina.slug}_${new Date().toISOString().split('T')[0]}.txt`
+  document.body.appendChild(a)
+  a.click()
+  document.body.removeChild(a)
+  URL.revokeObjectURL(url)
+}
+
+// ─── UPGRADE MODAL ───────────────────────────────────────────────────────────
 function UpgradeModal({ onClose, onSelect }: { onClose: () => void; onSelect: (plan: string) => void }) {
   return (
     <div style={{position:'fixed',inset:0,zIndex:300,background:'rgba(0,0,0,0.95)',backdropFilter:'blur(10px)',display:'flex',alignItems:'center',justifyContent:'center',padding:20,overflowY:'auto'}}>
@@ -192,8 +215,7 @@ function XPTooltip({ xp, levelName }: { xp: number; levelName: LevelName }) {
       {show && (
         <div style={{position:'absolute',top:'calc(100% + 8px)',left:'50%',transform:'translateX(-50%)',background:'#1a1a1a',border:'1px solid rgba(212,168,67,0.25)',borderRadius:12,padding:16,width:280,zIndex:100,boxShadow:'0 8px 32px rgba(0,0,0,0.6)'}}>
           <div style={{fontSize:12,fontWeight:700,color:'var(--gold)',marginBottom:8}}>O que é XP?</div>
-          <div style={{fontSize:12,color:'var(--text-muted)',lineHeight:1.6,marginBottom:12}}>XP representa seus pontos de evolução. Quanto mais você estudar, mais XP acumula e sobe de nível.</div>
-          <div style={{fontSize:11,color:'var(--text-muted)',marginBottom:6}}>Progresso atual: <strong style={{color:'var(--gold)'}}>{pct}%</strong></div>
+          <div style={{fontSize:12,color:'var(--text-muted)',lineHeight:1.6,marginBottom:12}}>XP representa seus pontos de evolução.</div>
           <div style={{background:'rgba(255,255,255,0.08)',borderRadius:100,height:6,overflow:'hidden'}}>
             <div style={{width:`${pct}%`,height:'100%',background:'linear-gradient(90deg,var(--gold),var(--orange))',borderRadius:100}} />
           </div>
@@ -227,7 +249,7 @@ function PremiumGate({ onClose, onUpgrade }: { onClose: () => void; onUpgrade: (
   )
 }
 
-function DashHome({ profile, onNav, showUpgrade }: any) {
+function DashHome({ profile, onNav, showUpgrade, isPremium }: any) {
   const xp = profile?.xp || 0
   const levelName = (profile?.level_name || 'Filhote') as LevelName
   const streak = profile?.streak || 0
@@ -237,81 +259,104 @@ function DashHome({ profile, onNav, showUpgrade }: any) {
   const questoes = profile?.questoes_respondidas || 0
   const corretas = profile?.questoes_corretas || 0
   const taxa = questoes > 0 ? Math.round((corretas / questoes) * 100) : 0
+
   return (
-    <div style={{padding:'32px 40px',flex:1,overflowY:'auto'}}>
+    <div style={{padding:'24px 20px',flex:1,overflowY:'auto',maxWidth:'100%'}}>
+      {/* Anúncio Top */}
+      <AdBanner slot="banner_top" isPremium={isPremium} />
+
       <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',flexWrap:'wrap',gap:12,marginBottom:24}}>
         <div>
-          <h1 style={{fontFamily:'var(--font-display)',fontSize:32,fontWeight:900,marginBottom:8}}>Olá, {profile?.nome?.split(' ')[0] || levelName}! 🔥</h1>
-          <p style={{fontSize:15,color:'var(--text-muted)'}}>
-            {streak > 0 ? `Você está em uma sequência de ` : 'Comece seus estudos hoje. '}
-            {streak > 0 && <span style={{color:'var(--gold)'}}>{streak} dias</span>}
-            {streak > 0 && ' de estudo. Continue!'}
+          <h1 style={{fontFamily:'var(--font-display)',fontSize:'clamp(22px,5vw,32px)',fontWeight:900,marginBottom:8}}>Olá, {profile?.nome?.split(' ')[0] || levelName}! 🔥</h1>
+          <p style={{fontSize:14,color:'var(--text-muted)'}}>
+            {streak > 0 ? <>Sequência de <span style={{color:'var(--gold)'}}>{streak} dias</span>. Continue!</> : 'Comece seus estudos hoje.'}
           </p>
         </div>
-        {streak > 0 && <div style={{display:'inline-flex',alignItems:'center',gap:6,background:'rgba(232,98,26,0.1)',border:'1px solid rgba(232,98,26,0.25)',borderRadius:100,padding:'8px 16px',fontSize:13,fontWeight:700,color:'var(--orange)'}}>🔥 {streak} dias seguidos</div>}
+        {streak > 0 && <div style={{display:'inline-flex',alignItems:'center',gap:6,background:'rgba(232,98,26,0.1)',border:'1px solid rgba(232,98,26,0.25)',borderRadius:100,padding:'8px 16px',fontSize:13,fontWeight:700,color:'var(--orange)'}}>🔥 {streak} dias</div>}
       </div>
-      <div style={{background:'linear-gradient(135deg,rgba(212,168,67,0.12),rgba(232,98,26,0.06))',border:'1px solid rgba(212,168,67,0.2)',borderRadius:20,padding:32,marginBottom:24,position:'relative',overflow:'hidden'}}>
-        <div style={{position:'absolute',right:-16,top:-16,fontSize:120,opacity:0.04,pointerEvents:'none'}}>🐯</div>
-        <div style={{fontSize:10,fontWeight:700,letterSpacing:'2.5px',textTransform:'uppercase',color:'var(--gold)',marginBottom:8}}>NÍVEL — {levelName.toUpperCase()}</div>
-        <div style={{fontFamily:'var(--font-display)',fontSize:32,fontWeight:900,marginBottom:4}}><XPTooltip xp={xp} levelName={levelName} /></div>
-        <div style={{fontSize:14,color:'var(--text-muted)',marginBottom:20}}>{xp < xpNext ? `${(xpNext - xp).toLocaleString()} XP para o próximo nível 🏆` : 'Nível máximo atingido! 👑'}</div>
+
+      <div style={{background:'linear-gradient(135deg,rgba(212,168,67,0.12),rgba(232,98,26,0.06))',border:'1px solid rgba(212,168,67,0.2)',borderRadius:20,padding:'24px',marginBottom:20,position:'relative',overflow:'hidden'}}>
+        <div style={{position:'absolute',right:-16,top:-16,fontSize:100,opacity:0.04,pointerEvents:'none'}}>🐯</div>
+        <div style={{fontSize:10,fontWeight:700,letterSpacing:'2.5px',textTransform:'uppercase',color:'var(--gold)',marginBottom:6}}>NÍVEL — {levelName.toUpperCase()}</div>
+        <div style={{fontFamily:'var(--font-display)',fontSize:'clamp(20px,5vw,32px)',fontWeight:900,marginBottom:4}}><XPTooltip xp={xp} levelName={levelName} /></div>
+        <div style={{fontSize:13,color:'var(--text-muted)',marginBottom:16}}>{xp < xpNext ? `${(xpNext - xp).toLocaleString()} XP para o próximo nível 🏆` : 'Nível máximo! 👑'}</div>
         <div style={{background:'rgba(255,255,255,0.08)',borderRadius:100,height:8,overflow:'hidden'}}>
           <div style={{width:`${pct}%`,height:'100%',background:'linear-gradient(90deg,var(--gold),var(--orange))',borderRadius:100,transition:'width 1s ease'}} />
         </div>
-        <div style={{display:'flex',justifyContent:'space-between',marginTop:8,fontSize:11,color:'var(--text-muted)'}}>
-          <span>{levelName}</span><span>{pct}%</span><span>Próximo nível</span>
+        <div style={{display:'flex',justifyContent:'space-between',marginTop:6,fontSize:11,color:'var(--text-muted)'}}>
+          <span>{levelName}</span><span>{pct}%</span><span>Próximo</span>
         </div>
       </div>
-      <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(155px,1fr))',gap:14,marginBottom:28}}>
+
+      <div style={{display:'grid',gridTemplateColumns:'repeat(2,1fr)',gap:12,marginBottom:20}}>
         {[
           {label:'Questões',value:questoes.toLocaleString(),cls:'var(--gold)',sub:'respondidas'},
-          {label:'Taxa Acerto',value:`${taxa}%`,cls:'var(--success)',sub:'de aproveitamento'},
+          {label:'Taxa Acerto',value:`${taxa}%`,cls:'var(--success)',sub:'aproveitamento'},
           {label:'Streak',value:`${streak} 🔥`,cls:'var(--orange)',sub:'dias seguidos'},
           {label:'XP Total',value:xp.toLocaleString(),cls:'var(--gold)',sub:'pontos ganhos'},
         ].map(s=>(
-          <div key={s.label} style={{background:'var(--gray)',border:'1px solid rgba(255,255,255,0.05)',borderRadius:14,padding:20}}>
-            <div style={{fontSize:11,fontWeight:600,letterSpacing:'1.5px',textTransform:'uppercase',color:'var(--text-muted)',marginBottom:10}}>{s.label}</div>
-            <div style={{fontFamily:'var(--font-display)',fontSize:28,fontWeight:900,color:s.cls}}>{s.value}</div>
-            <div style={{fontSize:12,color:'var(--text-muted)',marginTop:4}}>{s.sub}</div>
+          <div key={s.label} style={{background:'var(--gray)',border:'1px solid rgba(255,255,255,0.05)',borderRadius:14,padding:16}}>
+            <div style={{fontSize:10,fontWeight:600,letterSpacing:'1.5px',textTransform:'uppercase',color:'var(--text-muted)',marginBottom:8}}>{s.label}</div>
+            <div style={{fontFamily:'var(--font-display)',fontSize:'clamp(20px,5vw,28px)',fontWeight:900,color:s.cls}}>{s.value}</div>
+            <div style={{fontSize:11,color:'var(--text-muted)',marginTop:4}}>{s.sub}</div>
           </div>
         ))}
       </div>
-      <div style={{background:'linear-gradient(135deg,rgba(212,168,67,0.1),rgba(232,98,26,0.06))',border:'1px solid rgba(212,168,67,0.2)',borderRadius:16,padding:20,marginBottom:24,cursor:'pointer'}} onClick={() => onNav('quiz')}>
-        <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',flexWrap:'wrap',gap:12}}>
+
+      {/* Anúncio Feed */}
+      <AdBanner slot="card_feed" isPremium={isPremium} />
+
+      <div style={{background:'linear-gradient(135deg,rgba(212,168,67,0.1),rgba(232,98,26,0.06))',border:'1px solid rgba(212,168,67,0.2)',borderRadius:16,padding:18,marginBottom:20,cursor:'pointer'}} onClick={() => onNav('quiz')}>
+        <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',flexWrap:'wrap',gap:10}}>
           <div>
             <div style={{fontSize:10,fontWeight:700,letterSpacing:2,textTransform:'uppercase',color:'var(--gold)',marginBottom:4}}>⚡ QUESTÃO DO DIA</div>
-            <div style={{fontWeight:700,fontSize:16}}>Penal — Teoria do Crime: Tipicidade</div>
-            <div style={{fontSize:13,color:'var(--text-muted)',marginTop:4}}>+150 XP bônus ao responder hoje</div>
+            <div style={{fontWeight:700,fontSize:15}}>Penal — Teoria do Crime: Tipicidade</div>
+            <div style={{fontSize:12,color:'var(--text-muted)',marginTop:4}}>+150 XP bônus ao responder hoje</div>
           </div>
-          <button className="btn-gold-sm">RESPONDER +150 XP</button>
+          <button className="btn-gold-sm">+150 XP</button>
         </div>
       </div>
-      <div style={{background:'linear-gradient(135deg,rgba(58,143,232,0.08),rgba(212,168,67,0.06))',border:'1px solid rgba(58,143,232,0.2)',borderRadius:16,padding:24,marginBottom:28,cursor:'pointer'}} onClick={() => showUpgrade()}>
-        <div style={{display:'flex',alignItems:'center',gap:12,marginBottom:12}}>
-          <span style={{fontSize:20}}>🎯</span>
-          <div style={{fontSize:16,fontWeight:700,flex:1}}>Radar TigerJus</div>
-          <div style={{fontSize:9,fontWeight:800,letterSpacing:'1.5px',textTransform:'uppercase',background:'rgba(212,168,67,0.1)',border:'1px solid rgba(212,168,67,0.2)',color:'var(--gold)',padding:'4px 10px',borderRadius:100}}>🔒 Premium</div>
+
+      {/* Radar TigerJus — liberado para Elite/Admin, bloqueado para outros */}
+      {isPremium ? (
+        <div style={{background:'linear-gradient(135deg,rgba(58,143,232,0.1),rgba(212,168,67,0.06))',border:'1px solid rgba(58,143,232,0.25)',borderRadius:16,padding:20,marginBottom:20}}>
+          <div style={{display:'flex',alignItems:'center',gap:12,marginBottom:8}}>
+            <span style={{fontSize:20}}>🎯</span>
+            <div style={{fontSize:16,fontWeight:700,flex:1}}>Radar TigerJus</div>
+            <div style={{fontSize:9,fontWeight:800,letterSpacing:'1.5px',textTransform:'uppercase',background:'rgba(76,175,125,0.15)',border:'1px solid rgba(76,175,125,0.3)',color:'var(--success)',padding:'4px 10px',borderRadius:100}}>✓ ATIVO</div>
+          </div>
+          <div style={{fontSize:13,color:'var(--text-muted)'}}>Temas com maior probabilidade de cair na próxima OAB.</div>
         </div>
-        <div style={{fontSize:13,color:'var(--text-muted)'}}>Temas com maior probabilidade de cair na próxima OAB.</div>
-      </div>
-      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:16}}>
-        <h2 style={{fontFamily:'var(--font-display)',fontSize:22,fontWeight:900}}>Disciplinas em destaque</h2>
+      ) : (
+        <div style={{background:'linear-gradient(135deg,rgba(58,143,232,0.08),rgba(212,168,67,0.06))',border:'1px solid rgba(58,143,232,0.2)',borderRadius:16,padding:20,marginBottom:20,cursor:'pointer'}} onClick={() => showUpgrade()}>
+          <div style={{display:'flex',alignItems:'center',gap:12,marginBottom:8}}>
+            <span style={{fontSize:20}}>🎯</span>
+            <div style={{fontSize:16,fontWeight:700,flex:1}}>Radar TigerJus</div>
+            <div style={{fontSize:9,fontWeight:800,letterSpacing:'1.5px',textTransform:'uppercase',background:'rgba(212,168,67,0.1)',border:'1px solid rgba(212,168,67,0.2)',color:'var(--gold)',padding:'4px 10px',borderRadius:100}}>🔒 Premium</div>
+          </div>
+          <div style={{fontSize:13,color:'var(--text-muted)'}}>Temas com maior probabilidade de cair na próxima OAB.</div>
+        </div>
+      )}
+
+      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:14}}>
+        <h2 style={{fontFamily:'var(--font-display)',fontSize:'clamp(18px,4vw,22px)',fontWeight:900}}>Disciplinas em destaque</h2>
         <button style={{color:'var(--gold)',fontSize:13,border:'none',background:'none',cursor:'pointer'}} onClick={() => onNav('disciplines')}>Ver todas →</button>
       </div>
-      <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(190px,1fr))',gap:14}}>
+      <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(160px,1fr))',gap:12}}>
         {DISCIPLINES.slice(0,6).map(d=>(
-          <div key={d.id} style={{background:'var(--gray)',border:'1px solid rgba(255,255,255,0.05)',borderRadius:14,padding:20,cursor:'pointer',transition:'all 0.2s'}}
+          <div key={d.id} style={{background:'var(--gray)',border:'1px solid rgba(255,255,255,0.05)',borderRadius:14,padding:16,cursor:'pointer',transition:'all 0.2s'}}
             onClick={() => onNav('disciplines')}
             onMouseEnter={e=>{e.currentTarget.style.borderColor='rgba(212,168,67,0.2)';e.currentTarget.style.transform='translateY(-2px)'}}
             onMouseLeave={e=>{e.currentTarget.style.borderColor='rgba(255,255,255,0.05)';e.currentTarget.style.transform='translateY(0)'}}>
-            <div style={{fontSize:24,marginBottom:12}}>{d.icon}</div>
-            <div style={{fontSize:14,fontWeight:700,marginBottom:6}}>{d.name}</div>
-            <div style={{fontSize:12,color:'var(--text-muted)',marginBottom:10}}>{d.progress}% · {d.q} questões</div>
-            <div style={{background:'rgba(255,255,255,0.06)',borderRadius:100,height:4,overflow:'hidden',marginBottom:10}}>
+            <div style={{fontSize:22,marginBottom:10}}>{d.icon}</div>
+            <div style={{fontSize:13,fontWeight:700,marginBottom:5}}>{d.name}</div>
+            <div style={{fontSize:11,color:'var(--text-muted)',marginBottom:8}}>{d.progress}% · {d.q}q</div>
+            <div style={{background:'rgba(255,255,255,0.06)',borderRadius:100,height:4,overflow:'hidden',marginBottom:8}}>
               <div style={{width:`${d.progress}%`,height:'100%',background:'linear-gradient(90deg,var(--gold),var(--orange))',borderRadius:100}} />
             </div>
-            <div style={{display:'flex',gap:5,flexWrap:'wrap'}}>
-              {d.tags.slice(0,3).map(t=><span key={t} style={{fontSize:9,padding:'2px 7px',background:'rgba(212,168,67,0.07)',border:'1px solid rgba(212,168,67,0.15)',borderRadius:4,color:'var(--gold-dark)',fontWeight:600}}>{t}</span>)}
+            {/* ✅ Sempre mostra todas as tags */}
+            <div style={{display:'flex',gap:4,flexWrap:'wrap'}}>
+              {d.tags.map(t=><span key={t} style={{fontSize:9,padding:'2px 6px',background:'rgba(212,168,67,0.07)',border:'1px solid rgba(212,168,67,0.15)',borderRadius:4,color:'var(--gold-dark)',fontWeight:600}}>{t}</span>)}
             </div>
           </div>
         ))}
@@ -320,144 +365,139 @@ function DashHome({ profile, onNav, showUpgrade }: any) {
   )
 }
 
-function QuizPage({ freeQ, setFreeQ, showUpgrade, onXp, profile }: any) {
+function QuizPage({ freeQ, setFreeQ, showUpgrade, onXp, profile, isPremium }: any) {
   const [disciplina, setDisciplina] = useState<string>('')
-  const [dificuldade, setDificuldade] = useState<string>('')
-  const [quantidade, setQuantidade] = useState<number>(5)
+  const [modo, setModo] = useState<'Fácil'|'Médio'|'Difícil'>('Fácil')
   const [started, setStarted] = useState(false)
   const [questions, setQuestions] = useState<any[]>([])
+  const [loadingQ, setLoadingQ] = useState(false)
   const [cur, setCur] = useState(0)
   const [sel, setSel] = useState<number|null>(null)
   const [answered, setAnswered] = useState(false)
   const [score, setScore] = useState(0)
   const [done, setDone] = useState(false)
   const [time, setTime] = useState(90)
+  const MODO_QTD: Record<string,number> = {'Fácil':20,'Médio':40,'Difícil':60}
 
   useEffect(() => {
     if (!started || answered || done) return
-    const t = setInterval(() => setTime(p => { if (p<=1) { clearInterval(t); setAnswered(true); return 0; } return p-1 }), 1000)
+    const t = setInterval(() => setTime(p => { if(p<=1){clearInterval(t);setAnswered(true);return 0;} return p-1 }),1000)
     return () => clearInterval(t)
-  }, [started, answered, done, cur])
+  },[started,answered,done,cur])
 
-  const startQuiz = () => {
-    let filtered = QUESTIONS
-    if (disciplina) filtered = filtered.filter(q => q.disc.toLowerCase().includes(disciplina.toLowerCase()))
-    if (dificuldade) filtered = filtered.filter(q => q.dificuldade === dificuldade)
-    const selected = filtered.slice(0, quantidade)
-    setQuestions(selected.length === 0 ? QUESTIONS.slice(0, quantidade) : selected)
-    setStarted(true); setCur(0); setSel(null); setAnswered(false); setScore(0); setDone(false); setTime(90)
+  const startQuiz = async () => {
+    setLoadingQ(true)
+    let query = supabase.from('questoes_oab').select('id,disciplina,enunciado,opcao_a,opcao_b,opcao_c,opcao_d,resposta_correta,comentario').neq('resposta_correta','*')
+    if (disciplina) query = query.ilike('disciplina',`%${disciplina}%`)
+    const {data,error} = await query
+    if (error||!data||data.length===0){setLoadingQ(false);alert('Nenhuma questão encontrada.');return}
+    const shuffled=[...data].sort(()=>Math.random()-0.5).slice(0,MODO_QTD[modo])
+    setQuestions(shuffled.map((q:any)=>({id:q.id,disc:q.disciplina,q:q.enunciado,opts:[q.opcao_a,q.opcao_b,q.opcao_c,q.opcao_d],correct:['A','B','C','D'].indexOf(q.resposta_correta),exp:q.comentario||''})))
+    setLoadingQ(false);setStarted(true);setCur(0);setSel(null);setAnswered(false);setScore(0);setDone(false);setTime(90)
   }
 
-  const pick = (i: number) => {
-    if (answered) return
-    if (freeQ <= 0) { showUpgrade(); return }
-    setSel(i); setAnswered(true); setFreeQ((p:number) => p-1)
-    if (i === questions[cur].correct) { setScore(p=>p+1); onXp('question_correct') }
-    else onXp('question_wrong')
+  const pick=(i:number)=>{
+    if(answered)return
+    if(freeQ<=0){showUpgrade();return}
+    setSel(i);setAnswered(true);setFreeQ((p:number)=>p-1)
+    if(i===questions[cur].correct){setScore(p=>p+1);onXp('question_correct')}else onXp('question_wrong')
   }
+  const next=()=>{if(cur+1>=questions.length){setDone(true);return}setCur(p=>p+1);setSel(null);setAnswered(false);setTime(90)}
+  const restart=()=>{setStarted(false);setDone(false);setScore(0);setCur(0)}
 
-  const next = () => {
-    if (cur+1 >= questions.length) { setDone(true); return }
-    setCur(p=>p+1); setSel(null); setAnswered(false); setTime(90)
-  }
-
-  const restart = () => { setStarted(false); setDone(false); setScore(0); setCur(0) }
-
-  if (!started) return (
-    <div style={{padding:'32px 40px',flex:1}}>
-      <h1 style={{fontFamily:'var(--font-display)',fontSize:32,fontWeight:900,marginBottom:8}}>Quiz 📝</h1>
-      <p style={{fontSize:15,color:'var(--text-muted)',marginBottom:32}}>Configure seu quiz e comece a treinar.</p>
-      <div style={{maxWidth:600,background:'var(--gray)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:20,padding:36}}>
+  if(!started) return (
+    <div style={{padding:'24px 20px',flex:1}}>
+      <h1 style={{fontFamily:'var(--font-display)',fontSize:'clamp(22px,5vw,32px)',fontWeight:900,marginBottom:8}}>Quiz OAB 📝</h1>
+      <p style={{fontSize:14,color:'var(--text-muted)',marginBottom:6}}>Questões reais dos exames 42º ao 46º da OAB.</p>
+      <div style={{display:'inline-flex',alignItems:'center',gap:6,background:'rgba(212,168,67,0.08)',border:'1px solid rgba(212,168,67,0.2)',borderRadius:100,padding:'5px 12px',fontSize:11,color:'var(--gold)',marginBottom:24}}>📋 400 questões reais no banco</div>
+      <div style={{maxWidth:560,background:'var(--gray)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:20,padding:'24px'}}>
         <div style={{marginBottom:20}}>
-          <label style={{fontSize:11,fontWeight:700,letterSpacing:'1.5px',textTransform:'uppercase',color:'var(--text-muted)',display:'block',marginBottom:10}}>Disciplina</label>
-          <select value={disciplina} onChange={e => setDisciplina(e.target.value)} style={{width:'100%',background:'var(--gray-mid)',border:'1px solid rgba(255,255,255,0.08)',borderRadius:10,padding:'12px 16px',color:'var(--white)',fontSize:14,fontFamily:'var(--font-body)'}}>
+          <label style={{fontSize:11,fontWeight:700,letterSpacing:'1.5px',textTransform:'uppercase',color:'var(--text-muted)',display:'block',marginBottom:10}}>Disciplina (opcional)</label>
+          <select value={disciplina} onChange={e=>setDisciplina(e.target.value)} style={{width:'100%',background:'var(--gray-mid)',border:'1px solid rgba(255,255,255,0.08)',borderRadius:10,padding:'12px 16px',color:'var(--white)',fontSize:14,fontFamily:'var(--font-body)'}}>
             <option value="">Todas as disciplinas</option>
-            {DISCIPLINES.map(d => <option key={d.id} value={d.name}>{d.icon} {d.name}</option>)}
+            {Object.keys(DISC_MAP).map(d=><option key={d} value={d}>{d}</option>)}
           </select>
         </div>
-        <div style={{marginBottom:20}}>
-          <label style={{fontSize:11,fontWeight:700,letterSpacing:'1.5px',textTransform:'uppercase',color:'var(--text-muted)',display:'block',marginBottom:10}}>Dificuldade</label>
-          <div style={{display:'flex',gap:10}}>
-            {['','Fácil','Médio','Difícil'].map(d => (
-              <button key={d} onClick={() => setDificuldade(d)} style={{flex:1,padding:'10px',borderRadius:10,border:dificuldade===d?'1px solid rgba(212,168,67,0.4)':'1px solid rgba(255,255,255,0.08)',background:dificuldade===d?'rgba(212,168,67,0.1)':'transparent',color:dificuldade===d?'var(--gold)':'var(--text-muted)',fontSize:13,cursor:'pointer',fontFamily:'var(--font-body)'}}>
-                {d || 'Todas'}
+        <div style={{marginBottom:28}}>
+          <label style={{fontSize:11,fontWeight:700,letterSpacing:'1.5px',textTransform:'uppercase',color:'var(--text-muted)',display:'block',marginBottom:10}}>Modo — <span style={{color:'var(--gold)'}}>{modo} ({MODO_QTD[modo]} questões)</span></label>
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:8}}>
+            {(['Fácil','Médio','Difícil'] as const).map(m=>(
+              <button key={m} onClick={()=>setModo(m)} style={{padding:'12px 8px',borderRadius:10,border:modo===m?'1px solid rgba(212,168,67,0.5)':'1px solid rgba(255,255,255,0.08)',background:modo===m?'rgba(212,168,67,0.1)':'transparent',color:modo===m?'var(--gold)':'var(--text-muted)',fontSize:12,fontWeight:700,cursor:'pointer',fontFamily:'var(--font-body)',textAlign:'center'}}>
+                <div>{m}</div><div style={{fontSize:10,marginTop:3,opacity:0.7}}>{MODO_QTD[m]}q</div>
               </button>
             ))}
           </div>
         </div>
-        <div style={{marginBottom:32}}>
-          <label style={{fontSize:11,fontWeight:700,letterSpacing:'1.5px',textTransform:'uppercase',color:'var(--text-muted)',display:'block',marginBottom:10}}>Quantidade: <span style={{color:'var(--gold)'}}>{quantidade} questões</span></label>
-          <input type="range" min={1} max={15} value={quantidade} onChange={e => setQuantidade(Number(e.target.value))} style={{width:'100%',accentColor:'var(--gold)'}} />
-        </div>
-        <button className="btn-primary" style={{width:'100%',fontSize:15,padding:16}} onClick={startQuiz}>INICIAR QUIZ →</button>
-        <div style={{marginTop:12,textAlign:'center',fontSize:12,color:'var(--text-muted)'}}>
-          {freeQ > 0 ? `${freeQ} questões grátis restantes` : '🔒 Limite gratuito atingido'}
+        <button className="btn-primary" style={{width:'100%',fontSize:15,padding:16}} onClick={startQuiz} disabled={loadingQ}>
+          {loadingQ?'⏳ Carregando...':'INICIAR QUIZ →'}
+        </button>
+        <div style={{marginTop:10,textAlign:'center',fontSize:12,color:'var(--text-muted)'}}>
+          {freeQ>9000?'✓ Ilimitado':freeQ>0?`${freeQ} grátis restantes`:'🔒 Limite atingido'}
         </div>
       </div>
     </div>
   )
 
-  const q = questions[cur]
-  const pct = Math.round(((cur + (answered?1:0)) / questions.length) * 100)
+  const q=questions[cur]
+  const pct=Math.round(((cur+(answered?1:0))/questions.length)*100)
 
-  if (done) {
-    const rate = Math.round((score / questions.length) * 100)
-    return (
-      <div style={{padding:'32px 40px',flex:1}}>
-        <div style={{maxWidth:720,margin:'0 auto',textAlign:'center'}}>
-          <div style={{fontSize:68,marginBottom:22}}>{rate>=70?'🏆':rate>=50?'📝':'💪'}</div>
-          <h1 style={{fontFamily:'var(--font-display)',fontSize:32,fontWeight:900,marginBottom:8}}>Quiz Concluído!</h1>
-          <p style={{fontSize:15,color:'var(--text-muted)',marginBottom:28}}>{score} de {questions.length} questões corretas</p>
-          <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:14,marginBottom:28}}>
-            {[['Taxa de Acerto',`${rate}%`,rate>=70?'var(--gold)':'var(--orange)'],['XP Ganho',`+${score*100}`,'var(--gold)'],['Estimativa',rate>=60?'Aprovado ✓':'Treinar mais',rate>=60?'var(--success)':'var(--orange)']].map(([l,v,c]) => (
-              <div key={l} style={{background:'var(--gray)',borderRadius:14,padding:20,border:'1px solid rgba(255,255,255,0.06)'}}>
-                <div style={{fontSize:10,fontWeight:700,letterSpacing:1.5,textTransform:'uppercase',color:'var(--text-muted)',marginBottom:8}}>{l}</div>
-                <div style={{fontFamily:'var(--font-display)',fontSize:24,fontWeight:900,color:c}}>{v}</div>
-              </div>
-            ))}
+  if(done){
+    const rate=Math.round((score/questions.length)*100)
+    const aprovado=score>=Math.ceil(questions.length*0.625)
+    return(
+      <div style={{padding:'24px 20px',flex:1}}>
+        <div style={{maxWidth:600,margin:'0 auto',textAlign:'center'}}>
+          <div style={{fontSize:60,marginBottom:18}}>{aprovado?'🏆':rate>=50?'📝':'💪'}</div>
+          <h1 style={{fontFamily:'var(--font-display)',fontSize:'clamp(22px,5vw,32px)',fontWeight:900,marginBottom:8}}>Quiz Concluído!</h1>
+          <p style={{fontSize:14,color:'var(--text-muted)',marginBottom:24}}>{score} de {questions.length} corretas · Modo {modo}</p>
+          <div style={{background:aprovado?'rgba(76,175,125,0.1)':'rgba(232,98,26,0.1)',border:`1px solid ${aprovado?'var(--success)':'var(--orange)'}`,borderRadius:16,padding:18,marginBottom:20}}>
+            <div style={{fontSize:18,fontWeight:900,color:aprovado?'var(--success)':'var(--orange)',marginBottom:6}}>{aprovado?'✅ Na média OAB!':'❌ Abaixo da média OAB'}</div>
+            <div style={{fontSize:13,color:'var(--text-muted)'}}>{aprovado?`${rate}% — acima dos 62,5% exigidos.`:`Precisa de ${Math.ceil(questions.length*0.625)} acertos.`}</div>
           </div>
+          {/* Anúncio pós-quiz */}
+          <AdBanner slot="pos_quiz" isPremium={isPremium} />
           <div style={{display:'flex',gap:12,justifyContent:'center'}}>
             <button className="btn-primary" onClick={restart}>NOVO QUIZ</button>
-            <button className="btn-secondary" onClick={restart}>VER GABARITO</button>
+            <button className="btn-secondary" onClick={restart}>MUDAR MODO</button>
           </div>
         </div>
       </div>
     )
   }
 
-  return (
-    <div style={{padding:'32px 40px',flex:1}}>
-      <div style={{maxWidth:720,margin:'0 auto'}}>
-        <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:14}}>
-          <div style={{fontSize:14,color:'var(--text-muted)'}}>Questão {cur+1} de {questions.length}</div>
-          <div style={{fontFamily:'var(--font-mono)',fontSize:20,fontWeight:700,color:time<20?'var(--danger)':'var(--gold)'}}>{String(Math.floor(time/60)).padStart(2,'0')}:{String(time%60).padStart(2,'0')}</div>
+  return(
+    <div style={{padding:'24px 20px',flex:1}}>
+      <div style={{maxWidth:680,margin:'0 auto'}}>
+        <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:12}}>
+          <div style={{fontSize:13,color:'var(--text-muted)'}}>Q{cur+1}/{questions.length} · {modo}</div>
+          <div style={{fontFamily:'var(--font-mono)',fontSize:18,fontWeight:700,color:time<20?'var(--danger)':'var(--gold)'}}>{String(Math.floor(time/60)).padStart(2,'0')}:{String(time%60).padStart(2,'0')}</div>
         </div>
-        <div style={{background:'rgba(255,255,255,0.06)',borderRadius:100,height:4,marginBottom:28,overflow:'hidden'}}>
+        <div style={{background:'rgba(255,255,255,0.06)',borderRadius:100,height:4,marginBottom:24,overflow:'hidden'}}>
           <div style={{width:`${pct}%`,height:'100%',background:'linear-gradient(90deg,var(--gold),var(--orange))',borderRadius:100,transition:'width 0.4s'}} />
         </div>
-        <div style={{background:'var(--gray)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:20,padding:36}}>
-          <div style={{display:'flex',gap:10,marginBottom:18}}>
+        <div style={{background:'var(--gray)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:20,padding:'24px'}}>
+          <div style={{display:'flex',gap:8,marginBottom:14,flexWrap:'wrap'}}>
             <span style={{fontSize:10,fontWeight:700,letterSpacing:2,textTransform:'uppercase',color:'var(--gold)'}}>{q.disc}</span>
-            <span style={{fontSize:10,fontWeight:700,letterSpacing:1,textTransform:'uppercase',color:'var(--text-muted)'}}>· {q.dificuldade}</span>
+            <span style={{fontSize:10,color:'var(--text-muted)'}}>· OAB Oficial</span>
           </div>
-          <div style={{fontSize:18,fontWeight:600,lineHeight:1.6,marginBottom:32}}>{q.q}</div>
-          <div style={{display:'flex',flexDirection:'column',gap:12}}>
-            {q.opts.map((opt: string, i: number) => {
-              let bg='rgba(255,255,255,0.03)', bc='rgba(255,255,255,0.08)', color='var(--white)'
-              if (answered) {
-                if (i===q.correct) { bg='rgba(76,175,125,0.1)'; bc='var(--success)'; color='var(--success)' }
-                else if (i===sel) { bg='rgba(232,66,26,0.1)'; bc='var(--danger)'; color='var(--danger)' }
-              } else if (sel===i) { bg='rgba(212,168,67,0.08)'; bc='rgba(212,168,67,0.5)' }
-              return (
-                <button key={i} onClick={() => pick(i)} style={{display:'flex',alignItems:'flex-start',gap:16,background:bg,border:`1px solid ${bc}`,borderRadius:12,padding:'16px 20px',cursor:'pointer',transition:'all 0.2s',textAlign:'left',width:'100%',fontFamily:'var(--font-body)',fontSize:14,color}}>
-                  <span style={{width:28,height:28,borderRadius:'50%',flexShrink:0,display:'flex',alignItems:'center',justifyContent:'center',fontSize:12,fontWeight:800,background:'rgba(255,255,255,0.06)'}}>{String.fromCharCode(65+i)}</span>
+          <div style={{fontSize:'clamp(14px,3vw,18px)',fontWeight:600,lineHeight:1.6,marginBottom:24}}>{q.q}</div>
+          <div style={{display:'flex',flexDirection:'column',gap:10}}>
+            {q.opts.map((opt:string,i:number)=>{
+              let bg='rgba(255,255,255,0.03)',bc='rgba(255,255,255,0.08)',color='var(--white)'
+              if(answered){
+                if(i===q.correct){bg='rgba(76,175,125,0.1)';bc='var(--success)';color='var(--success)'}
+                else if(i===sel){bg='rgba(232,66,26,0.1)';bc='var(--danger)';color='var(--danger)'}
+              }
+              return(
+                <button key={i} onClick={()=>pick(i)} style={{display:'flex',alignItems:'flex-start',gap:12,background:bg,border:`1px solid ${bc}`,borderRadius:12,padding:'14px 16px',cursor:'pointer',transition:'all 0.2s',textAlign:'left',width:'100%',fontFamily:'var(--font-body)',fontSize:'clamp(13px,2.5vw,14px)',color}}>
+                  <span style={{width:26,height:26,borderRadius:'50%',flexShrink:0,display:'flex',alignItems:'center',justifyContent:'center',fontSize:11,fontWeight:800,background:'rgba(255,255,255,0.06)'}}>{String.fromCharCode(65+i)}</span>
                   <span style={{flex:1}}>{opt}</span>
                 </button>
               )
             })}
           </div>
-          {answered && <div style={{marginTop:24,padding:20,background:'rgba(212,168,67,0.06)',border:'1px solid rgba(212,168,67,0.15)',borderRadius:12,fontSize:14,lineHeight:1.7,color:'var(--text-muted)'}}>{sel===q.correct?'✅ ':'❌ '}<strong style={{color:'var(--gold)'}}>{sel===q.correct?'Correto!':'Incorreto.'}</strong> {q.exp}</div>}
-          {answered && <button className="btn-primary" style={{width:'100%',marginTop:22}} onClick={next}>{cur+1>=questions.length?'VER RESULTADO':'PRÓXIMA QUESTÃO →'}</button>}
+          {answered&&q.exp&&<div style={{marginTop:20,padding:16,background:'rgba(212,168,67,0.06)',border:'1px solid rgba(212,168,67,0.15)',borderRadius:12,fontSize:13,lineHeight:1.7,color:'var(--text-muted)'}}>{sel===q.correct?'✅ ':'❌ '}<strong style={{color:'var(--gold)'}}>{sel===q.correct?'Correto!':'Incorreto.'}</strong> {q.exp}</div>}
+          {answered&&<button className="btn-primary" style={{width:'100%',marginTop:18}} onClick={next}>{cur+1>=questions.length?'VER RESULTADO':'PRÓXIMA →'}</button>}
         </div>
       </div>
     </div>
@@ -469,105 +509,109 @@ function IAPage({ freeIA, setFreeIA, showUpgrade, profile }: any) {
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
   const endRef = useRef<HTMLDivElement>(null)
-  useEffect(() => { endRef.current?.scrollIntoView({behavior:'smooth'}) }, [msgs])
+  useEffect(()=>{endRef.current?.scrollIntoView({behavior:'smooth'})},[msgs])
 
-  const send = async (text?: string) => {
-    const msg = text || input.trim()
-    if (!msg) return
-    if (freeIA <= 0) { showUpgrade(); return }
-    setInput(''); setFreeIA((p:number) => p-1)
-    const newMsgs = [...msgs, {role:'user',text:msg}]
-    setMsgs(newMsgs); setLoading(true)
-    try {
-      const res = await fetch('/api/ia', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ messages: newMsgs.slice(1).map(m => ({role:m.role,content:m.text})), userId: profile?.id, plan: profile?.plano || 'gratuito' }) })
-      const data = await res.json()
-      if (data.error === 'LIMIT_REACHED') { showUpgrade(); return }
-      setMsgs(p => [...p, {role:'assistant',text:data.text || 'Erro ao conectar. Tente novamente.'}])
-    } catch {
-      setMsgs(p => [...p, {role:'assistant',text:'Erro ao conectar com a IA. Verifique sua conexão e tente novamente.'}])
-    } finally { setLoading(false) }
+  const send=async(text?:string)=>{
+    const msg=text||input.trim()
+    if(!msg)return
+    if(freeIA<=0){showUpgrade();return}
+    setInput('');setFreeIA((p:number)=>p-1)
+    const newMsgs=[...msgs,{role:'user',text:msg}]
+    setMsgs(newMsgs);setLoading(true)
+    try{
+      const res=await fetch('/api/ia',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({messages:newMsgs.slice(1).map(m=>({role:m.role,content:m.text})),userId:profile?.id,plan:profile?.plano||'gratuito'})})
+      const data=await res.json()
+      if(data.error==='LIMIT_REACHED'){showUpgrade();return}
+      setMsgs(p=>[...p,{role:'assistant',text:data.text||'Erro ao conectar.'}])
+    }catch{setMsgs(p=>[...p,{role:'assistant',text:'Erro ao conectar com a IA.'}])}
+    finally{setLoading(false)}
   }
 
-  const chips = ['Explique habeas corpus','O que é dolo eventual?','Resumir Constitucional','Cláusula pétrea','Princípio da legalidade penal','O que é mandado de injunção?']
+  const chips=['Explique habeas corpus','O que é dolo eventual?','Resumir Constitucional','Cláusula pétrea','Princípio da legalidade penal']
 
-  return (
-    <div style={{padding:'32px 40px',flex:1,display:'flex',flexDirection:'column'}}>
-      <h1 style={{fontFamily:'var(--font-display)',fontSize:32,fontWeight:900,marginBottom:8}}>IA Jurídica 🤖</h1>
-      <p style={{fontSize:15,color:'var(--text-muted)',marginBottom:16}}>
-        Tutor inteligente 24/7.
-        {freeIA>0 ? <span style={{marginLeft:8,color:'var(--gold)',fontWeight:700}}>{freeIA} perguntas grátis restantes</span> : <span style={{marginLeft:8,color:'var(--danger)'}}>🔒 Limite atingido</span>}
+  return(
+    <div style={{padding:'24px 20px',flex:1,display:'flex',flexDirection:'column'}}>
+      <h1 style={{fontFamily:'var(--font-display)',fontSize:'clamp(22px,5vw,32px)',fontWeight:900,marginBottom:6}}>IA Jurídica 🤖</h1>
+      <p style={{fontSize:14,color:'var(--text-muted)',marginBottom:12}}>
+        Tutor inteligente 24/7. {freeIA>0?<span style={{color:'var(--gold)',fontWeight:700}}>{freeIA} perguntas grátis</span>:<span style={{color:'var(--danger)'}}>🔒 Limite atingido</span>}
       </p>
-      <div style={{display:'flex',gap:8,flexWrap:'wrap',marginBottom:16}}>
-        {chips.map(c => (
-          <button key={c} onClick={() => send(c)} style={{background:'rgba(212,168,67,0.06)',border:'1px solid rgba(212,168,67,0.14)',borderRadius:100,padding:'6px 14px',fontSize:12,color:'var(--text-muted)',cursor:'pointer',fontFamily:'var(--font-body)'}}>{c}</button>
-        ))}
+      <div style={{display:'flex',gap:6,flexWrap:'wrap',marginBottom:14}}>
+        {chips.map(c=><button key={c} onClick={()=>send(c)} style={{background:'rgba(212,168,67,0.06)',border:'1px solid rgba(212,168,67,0.14)',borderRadius:100,padding:'5px 12px',fontSize:11,color:'var(--text-muted)',cursor:'pointer',fontFamily:'var(--font-body)'}}>{c}</button>)}
       </div>
-      <div style={{flex:1,background:'var(--gray)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:20,overflow:'hidden',display:'flex',flexDirection:'column',minHeight:400}}>
-        <div style={{flex:1,overflowY:'auto',display:'flex',flexDirection:'column',gap:16,padding:24}}>
-          {msgs.map((m,i) => (
-            <div key={i} style={{display:'flex',gap:12,maxWidth:'82%',alignSelf:m.role==='user'?'flex-end':'flex-start',flexDirection:m.role==='user'?'row-reverse':'row'}}>
-              <div style={{width:36,height:36,borderRadius:10,flexShrink:0,display:'flex',alignItems:'center',justifyContent:'center',fontSize:16,background:m.role==='user'?'var(--gray-light)':'linear-gradient(135deg,var(--gold),var(--orange))'}}>{m.role==='user'?'👤':'🐯'}</div>
-              <div style={{background:m.role==='user'?'rgba(212,168,67,0.1)':'rgba(255,255,255,0.04)',border:m.role==='user'?'1px solid rgba(212,168,67,0.2)':'1px solid rgba(255,255,255,0.06)',borderRadius:14,padding:'14px 18px',fontSize:14,lineHeight:1.7,color:'var(--white)',whiteSpace:'pre-wrap'}}>{m.text}</div>
+      <div style={{flex:1,background:'var(--gray)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:20,overflow:'hidden',display:'flex',flexDirection:'column',minHeight:350}}>
+        <div style={{flex:1,overflowY:'auto',display:'flex',flexDirection:'column',gap:14,padding:20}}>
+          {msgs.map((m,i)=>(
+            <div key={i} style={{display:'flex',gap:10,maxWidth:'85%',alignSelf:m.role==='user'?'flex-end':'flex-start',flexDirection:m.role==='user'?'row-reverse':'row'}}>
+              <div style={{width:34,height:34,borderRadius:10,flexShrink:0,display:'flex',alignItems:'center',justifyContent:'center',fontSize:15,background:m.role==='user'?'var(--gray-light)':'linear-gradient(135deg,var(--gold),var(--orange))'}}>{m.role==='user'?'👤':'🐯'}</div>
+              <div style={{background:m.role==='user'?'rgba(212,168,67,0.1)':'rgba(255,255,255,0.04)',border:m.role==='user'?'1px solid rgba(212,168,67,0.2)':'1px solid rgba(255,255,255,0.06)',borderRadius:14,padding:'12px 16px',fontSize:13,lineHeight:1.7,color:'var(--white)',whiteSpace:'pre-wrap'}}>{m.text}</div>
             </div>
           ))}
-          {loading && <div style={{display:'flex',gap:12,maxWidth:'82%'}}><div style={{width:36,height:36,borderRadius:10,display:'flex',alignItems:'center',justifyContent:'center',background:'linear-gradient(135deg,var(--gold),var(--orange))'}}>🐯</div><div style={{background:'rgba(255,255,255,0.04)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:14,padding:'14px 18px',fontSize:14,opacity:0.6,fontStyle:'italic'}}>Analisando sua pergunta...</div></div>}
-          <div ref={endRef} />
+          {loading&&<div style={{display:'flex',gap:10}}><div style={{width:34,height:34,borderRadius:10,display:'flex',alignItems:'center',justifyContent:'center',background:'linear-gradient(135deg,var(--gold),var(--orange))'}}>🐯</div><div style={{background:'rgba(255,255,255,0.04)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:14,padding:'12px 16px',fontSize:13,opacity:0.6,fontStyle:'italic'}}>Analisando...</div></div>}
+          <div ref={endRef}/>
         </div>
-        <div style={{display:'flex',gap:12,padding:16,background:'var(--gray-mid)',borderTop:'1px solid rgba(255,255,255,0.06)'}}>
-          <textarea className="form-input" placeholder="Pergunte algo jurídico..." value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => { if (e.key==='Enter' && !e.shiftKey) { e.preventDefault(); send() } }} style={{flex:1,resize:'none',minHeight:44}} rows={1} />
-          <button onClick={() => send()} style={{background:'linear-gradient(135deg,var(--gold),var(--orange))',border:'none',borderRadius:10,width:44,height:44,display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',fontSize:18,color:'var(--deep-black)'}}>➤</button>
+        <div style={{display:'flex',gap:10,padding:14,background:'var(--gray-mid)',borderTop:'1px solid rgba(255,255,255,0.06)'}}>
+          <textarea className="form-input" placeholder="Pergunte algo jurídico..." value={input} onChange={e=>setInput(e.target.value)} onKeyDown={e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send()}}} style={{flex:1,resize:'none',minHeight:42}} rows={1}/>
+          <button onClick={()=>send()} style={{background:'linear-gradient(135deg,var(--gold),var(--orange))',border:'none',borderRadius:10,width:42,height:42,display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',fontSize:17,color:'var(--deep-black)'}}>➤</button>
         </div>
       </div>
     </div>
   )
 }
 
-function DisciplinesPage({ showUpgrade, profile }: any) {
+function DisciplinesPage({ showUpgrade, profile, isPremium }: any) {
   const [selected, setSelected] = useState<any>(null)
   const [subTab, setSubTab] = useState<'resumo'|'quiz'|'flash'|'pdf'>('resumo')
+  const [gerandoPDF, setGerandoPDF] = useState(false)
+
+  const handlePDF = async (disc: any) => {
+    setGerandoPDF(true)
+    try {
+      const resumo = RESUMOS[disc.slug] || `${disc.name} — Resumo em elaboração.`
+      const { data } = await supabase.from('questoes_oab').select('*').ilike('disciplina', `%${disc.name.split(' ')[0]}%`).neq('resposta_correta','*').limit(20)
+      await gerarPDF(disc, resumo, data || [])
+    } finally { setGerandoPDF(false) }
+  }
 
   if (selected) {
-    const resumo = RESUMOS[selected.slug] || `**${selected.name.toUpperCase()}**\n\nResumo completo em breve. Use a IA Jurídica para tirar dúvidas sobre esta disciplina!`
+    const resumo = RESUMOS[selected.slug] || `**${selected.name.toUpperCase()}**\n\nResumo completo em breve. Use a IA Jurídica para tirar dúvidas!`
     return (
-      <div style={{padding:'32px 40px',flex:1}}>
-        <button onClick={() => setSelected(null)} style={{display:'flex',alignItems:'center',gap:8,color:'var(--text-muted)',fontSize:13,border:'none',background:'none',cursor:'pointer',marginBottom:24,fontFamily:'var(--font-body)'}}>← Voltar às disciplinas</button>
-        <div style={{display:'flex',alignItems:'center',gap:16,marginBottom:24}}>
-          <span style={{fontSize:40}}>{selected.icon}</span>
+      <div style={{padding:'24px 20px',flex:1}}>
+        <button onClick={()=>setSelected(null)} style={{display:'flex',alignItems:'center',gap:8,color:'var(--text-muted)',fontSize:13,border:'none',background:'none',cursor:'pointer',marginBottom:20,fontFamily:'var(--font-body)'}}>← Voltar</button>
+        <div style={{display:'flex',alignItems:'center',gap:14,marginBottom:20}}>
+          <span style={{fontSize:36}}>{selected.icon}</span>
           <div>
-            <h1 style={{fontFamily:'var(--font-display)',fontSize:28,fontWeight:900}}>{selected.name}</h1>
-            <p style={{fontSize:13,color:'var(--text-muted)'}}>{selected.q} questões · {selected.progress}% concluído</p>
+            <h1 style={{fontFamily:'var(--font-display)',fontSize:'clamp(20px,5vw,28px)',fontWeight:900}}>{selected.name}</h1>
+            <p style={{fontSize:12,color:'var(--text-muted)'}}>{selected.q} questões · {selected.progress}% concluído</p>
           </div>
         </div>
-        <div style={{display:'flex',gap:8,marginBottom:24,flexWrap:'wrap'}}>
-          {(['resumo','quiz','flash','pdf'] as const).map(t => {
-            const isElite = profile?.role === 'admin' || profile?.plano === 'elite' || profile?.plano === 'premium'
-            const available = isElite || selected.tags.map((tag: string) => tag.toLowerCase()).includes(t)
-            return (
-              <button key={t} onClick={() => setSubTab(t)} style={{padding:'10px 20px',borderRadius:10,border:subTab===t?'1px solid rgba(212,168,67,0.4)':'1px solid rgba(255,255,255,0.08)',background:subTab===t?'rgba(212,168,67,0.1)':'transparent',color:subTab===t?'var(--gold)':'var(--text-muted)',fontSize:13,fontWeight:600,cursor:'pointer',fontFamily:'var(--font-body)',textTransform:'capitalize'}}>
-                {t === 'resumo' ? '📖 Resumo' : t === 'quiz' ? '📝 Quiz' : t === 'flash' ? '🃏 Flashcards' : '📄 PDF'}{!available && ' 🔒'}
-              </button>
-            )
-          })}
+        <div style={{display:'flex',gap:8,marginBottom:20,flexWrap:'wrap'}}>
+          {(['resumo','quiz','flash','pdf'] as const).map(t=>(
+            <button key={t} onClick={()=>setSubTab(t)} style={{padding:'9px 18px',borderRadius:10,border:subTab===t?'1px solid rgba(212,168,67,0.4)':'1px solid rgba(255,255,255,0.08)',background:subTab===t?'rgba(212,168,67,0.1)':'transparent',color:subTab===t?'var(--gold)':'var(--text-muted)',fontSize:12,fontWeight:600,cursor:'pointer',fontFamily:'var(--font-body)',textTransform:'capitalize'}}>
+              {t==='resumo'?'📖 Resumo':t==='quiz'?'📝 Quiz':t==='flash'?'🃏 Flashcards':'📄 PDF'}
+            </button>
+          ))}
         </div>
-        {subTab === 'resumo' && (
-          <div style={{background:'var(--gray)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:20,padding:36}}>
+        {subTab==='resumo'&&(
+          <div style={{background:'var(--gray)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:20,padding:'24px'}}>
             <div style={{fontSize:14,lineHeight:1.9,color:'var(--text-muted)',whiteSpace:'pre-wrap'}}>
-              {resumo.split('\n').map((line, i) => {
-                if (line.startsWith('**') && line.endsWith('**')) return <div key={i} style={{fontFamily:'var(--font-display)',fontSize:20,fontWeight:900,color:'var(--white)',marginBottom:16,marginTop:i>0?24:0}}>{line.replace(/\*\*/g,'')}</div>
-                if (line.startsWith('📌 **')) return <div key={i} style={{fontWeight:700,color:'var(--gold)',fontSize:15,marginTop:20,marginBottom:8}}>{line.replace(/\*\*/g,'')}</div>
-                if (line.startsWith('•')) return <div key={i} style={{paddingLeft:16,marginBottom:4}}>{line}</div>
-                return <div key={i} style={{marginBottom:4}}>{line}</div>
+              {resumo.split('\n').map((line,i)=>{
+                if(line.startsWith('**')&&line.endsWith('**'))return<div key={i} style={{fontFamily:'var(--font-display)',fontSize:18,fontWeight:900,color:'var(--white)',marginBottom:14,marginTop:i>0?20:0}}>{line.replace(/\*\*/g,'')}</div>
+                if(line.startsWith('📌 **'))return<div key={i} style={{fontWeight:700,color:'var(--gold)',fontSize:14,marginTop:18,marginBottom:6}}>{line.replace(/\*\*/g,'')}</div>
+                return<div key={i} style={{marginBottom:4}}>{line}</div>
               })}
             </div>
           </div>
         )}
-        {subTab === 'flash' && <FlashCards disciplina={selected.name} />}
-        {subTab === 'pdf' && (
-          <div style={{background:'var(--gray)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:20,padding:48,textAlign:'center'}}>
-            <div style={{fontSize:48,marginBottom:16}}>📄</div>
-            <h3 style={{fontFamily:'var(--font-display)',fontSize:22,fontWeight:900,marginBottom:8}}>PDF — {selected.name}</h3>
-            <p style={{color:'var(--text-muted)',marginBottom:24}}>Material completo em PDF para download.</p>
-            <button className="btn-primary" onClick={() => window.open('#', '_blank')}>📄 BAIXAR PDF</button>
+        {subTab==='flash'&&<FlashCards disciplina={selected.name}/>}
+        {subTab==='pdf'&&(
+          <div style={{background:'var(--gray)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:20,padding:40,textAlign:'center'}}>
+            <div style={{fontSize:44,marginBottom:14}}>📄</div>
+            <h3 style={{fontFamily:'var(--font-display)',fontSize:20,fontWeight:900,marginBottom:8}}>PDF — {selected.name}</h3>
+            <p style={{color:'var(--text-muted)',marginBottom:8,fontSize:14}}>Gerado automaticamente com resumo + questões OAB reais do banco de dados.</p>
+            <p style={{color:'var(--text-muted)',marginBottom:24,fontSize:12}}>Inclui até 20 questões comentadas da disciplina.</p>
+            <button className="btn-primary" onClick={()=>handlePDF(selected)} disabled={gerandoPDF} style={{minWidth:200}}>
+              {gerandoPDF?'⏳ Gerando PDF...':'📄 BAIXAR PDF AGORA'}
+            </button>
           </div>
         )}
       </div>
@@ -575,23 +619,23 @@ function DisciplinesPage({ showUpgrade, profile }: any) {
   }
 
   return (
-    <div style={{padding:'32px 40px',flex:1}}>
-      <h1 style={{fontFamily:'var(--font-display)',fontSize:32,fontWeight:900,marginBottom:8}}>Disciplinas 📚</h1>
-      <p style={{fontSize:15,color:'var(--text-muted)',marginBottom:28}}>17 disciplinas com resumos, quizzes, flashcards e PDFs exclusivos.</p>
-      <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(190px,1fr))',gap:14}}>
-        {DISCIPLINES.map(d => (
-          <div key={d.id} style={{background:'var(--gray)',border:'1px solid rgba(255,255,255,0.05)',borderRadius:14,padding:20,cursor:'pointer',transition:'all 0.2s'}}
-            onClick={() => setSelected(d)}
-            onMouseEnter={e => { e.currentTarget.style.borderColor='rgba(212,168,67,0.2)'; e.currentTarget.style.transform='translateY(-2px)' }}
-            onMouseLeave={e => { e.currentTarget.style.borderColor='rgba(255,255,255,0.05)'; e.currentTarget.style.transform='translateY(0)' }}>
-            <div style={{fontSize:24,marginBottom:12}}>{d.icon}</div>
-            <div style={{fontSize:14,fontWeight:700,marginBottom:6}}>{d.name}</div>
-            <div style={{fontSize:12,color:'var(--text-muted)',marginBottom:10}}>{d.progress}% · {d.q} questões</div>
-            <div style={{background:'rgba(255,255,255,0.06)',borderRadius:100,height:4,overflow:'hidden',marginBottom:10}}>
-              <div style={{width:`${d.progress}%`,height:'100%',background:'linear-gradient(90deg,var(--gold),var(--orange))',borderRadius:100}} />
+    <div style={{padding:'24px 20px',flex:1}}>
+      <h1 style={{fontFamily:'var(--font-display)',fontSize:'clamp(22px,5vw,32px)',fontWeight:900,marginBottom:6}}>Disciplinas 📚</h1>
+      <p style={{fontSize:14,color:'var(--text-muted)',marginBottom:24}}>17 disciplinas com resumos, quizzes, flashcards e PDFs.</p>
+      <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(160px,1fr))',gap:12}}>
+        {DISCIPLINES.map(d=>(
+          <div key={d.id} style={{background:'var(--gray)',border:'1px solid rgba(255,255,255,0.05)',borderRadius:14,padding:16,cursor:'pointer',transition:'all 0.2s'}}
+            onClick={()=>setSelected(d)}
+            onMouseEnter={e=>{e.currentTarget.style.borderColor='rgba(212,168,67,0.2)';e.currentTarget.style.transform='translateY(-2px)'}}
+            onMouseLeave={e=>{e.currentTarget.style.borderColor='rgba(255,255,255,0.05)';e.currentTarget.style.transform='translateY(0)'}}>
+            <div style={{fontSize:22,marginBottom:10}}>{d.icon}</div>
+            <div style={{fontSize:13,fontWeight:700,marginBottom:5}}>{d.name}</div>
+            <div style={{fontSize:11,color:'var(--text-muted)',marginBottom:8}}>{d.progress}% · {d.q}q</div>
+            <div style={{background:'rgba(255,255,255,0.06)',borderRadius:100,height:4,overflow:'hidden',marginBottom:8}}>
+              <div style={{width:`${d.progress}%`,height:'100%',background:'linear-gradient(90deg,var(--gold),var(--orange))',borderRadius:100}}/>
             </div>
-            <div style={{display:'flex',gap:5,flexWrap:'wrap'}}>
-              {d.tags.slice(0,3).map(t => <span key={t} style={{fontSize:9,padding:'2px 7px',background:'rgba(212,168,67,0.07)',border:'1px solid rgba(212,168,67,0.15)',borderRadius:4,color:'var(--gold-dark)',fontWeight:600}}>{t}</span>)}
+            <div style={{display:'flex',gap:4,flexWrap:'wrap'}}>
+              {d.tags.map(t=><span key={t} style={{fontSize:9,padding:'2px 6px',background:'rgba(212,168,67,0.07)',border:'1px solid rgba(212,168,67,0.15)',borderRadius:4,color:'var(--gold-dark)',fontWeight:600}}>{t}</span>)}
             </div>
           </div>
         ))}
@@ -600,266 +644,246 @@ function DisciplinesPage({ showUpgrade, profile }: any) {
   )
 }
 
-function FlashCards({ disciplina }: { disciplina: string }) {
-  const cards = [
+function FlashCards({disciplina}:{disciplina:string}) {
+  const cards=[
     {front:'O que é Habeas Corpus?',back:'Remédio constitucional que protege a liberdade de locomoção (art. 5º, LXVIII, CF/88).'},
     {front:'O que é Mandado de Segurança?',back:'Protege direito líquido e certo não amparado por HC ou HD (art. 5º, LXIX, CF/88).'},
     {front:'O que são Cláusulas Pétreas?',back:'Limitações materiais ao poder de reforma. Não podem ser abolidas: forma federativa, voto, separação dos poderes e direitos fundamentais (art. 60, §4º, CF/88).'},
     {front:'O que é Dolo Eventual?',back:'O agente prevê o resultado como possível e assume o risco de produzi-lo (art. 18, I, CP).'},
-    {front:'Prescrição x Decadência?',back:'Prescrição: extingue a pretensão. Decadência: extingue o direito. Prescrição pode ser interrompida; decadência não.'},
+    {front:'Prescrição x Decadência?',back:'Prescrição: extingue a pretensão. Decadência: extingue o direito.'},
   ]
-  const [idx, setIdx] = useState(0)
-  const [flipped, setFlipped] = useState(false)
-  return (
-    <div style={{maxWidth:600}}>
-      <div style={{marginBottom:16,fontSize:13,color:'var(--text-muted)'}}>Card {idx+1} de {cards.length} · {disciplina}</div>
-      <div style={{perspective:1000,marginBottom:24,cursor:'pointer'}} onClick={() => setFlipped(f => !f)}>
-        <div style={{position:'relative',height:240,transformStyle:'preserve-3d',transition:'transform 0.6s',transform:flipped?'rotateY(180deg)':'rotateY(0)'}}>
-          <div style={{position:'absolute',inset:0,backfaceVisibility:'hidden',background:'var(--gray)',border:'1px solid rgba(212,168,67,0.2)',borderRadius:20,padding:32,display:'flex',alignItems:'center',justifyContent:'center',textAlign:'center'}}>
-            <div><div style={{fontSize:11,fontWeight:700,letterSpacing:2,textTransform:'uppercase',color:'var(--gold)',marginBottom:16}}>PERGUNTA</div><div style={{fontSize:18,fontWeight:600,lineHeight:1.5}}>{cards[idx].front}</div><div style={{marginTop:20,fontSize:12,color:'var(--text-muted)'}}>Clique para ver a resposta</div></div>
+  const [idx,setIdx]=useState(0)
+  const [flipped,setFlipped]=useState(false)
+  return(
+    <div style={{maxWidth:560}}>
+      <div style={{marginBottom:14,fontSize:13,color:'var(--text-muted)'}}>Card {idx+1} de {cards.length} · {disciplina}</div>
+      <div style={{perspective:1000,marginBottom:20,cursor:'pointer'}} onClick={()=>setFlipped(f=>!f)}>
+        <div style={{position:'relative',height:220,transformStyle:'preserve-3d',transition:'transform 0.6s',transform:flipped?'rotateY(180deg)':'rotateY(0)'}}>
+          <div style={{position:'absolute',inset:0,backfaceVisibility:'hidden',background:'var(--gray)',border:'1px solid rgba(212,168,67,0.2)',borderRadius:20,padding:28,display:'flex',alignItems:'center',justifyContent:'center',textAlign:'center'}}>
+            <div><div style={{fontSize:10,fontWeight:700,letterSpacing:2,textTransform:'uppercase',color:'var(--gold)',marginBottom:14}}>PERGUNTA</div><div style={{fontSize:16,fontWeight:600,lineHeight:1.5}}>{cards[idx].front}</div><div style={{marginTop:16,fontSize:11,color:'var(--text-muted)'}}>Toque para ver a resposta</div></div>
           </div>
-          <div style={{position:'absolute',inset:0,backfaceVisibility:'hidden',transform:'rotateY(180deg)',background:'linear-gradient(135deg,rgba(212,168,67,0.1),rgba(232,98,26,0.06))',border:'1px solid rgba(212,168,67,0.3)',borderRadius:20,padding:32,display:'flex',alignItems:'center',justifyContent:'center',textAlign:'center'}}>
-            <div><div style={{fontSize:11,fontWeight:700,letterSpacing:2,textTransform:'uppercase',color:'var(--gold)',marginBottom:16}}>RESPOSTA</div><div style={{fontSize:15,lineHeight:1.7,color:'var(--text-muted)'}}>{cards[idx].back}</div></div>
+          <div style={{position:'absolute',inset:0,backfaceVisibility:'hidden',transform:'rotateY(180deg)',background:'linear-gradient(135deg,rgba(212,168,67,0.1),rgba(232,98,26,0.06))',border:'1px solid rgba(212,168,67,0.3)',borderRadius:20,padding:28,display:'flex',alignItems:'center',justifyContent:'center',textAlign:'center'}}>
+            <div><div style={{fontSize:10,fontWeight:700,letterSpacing:2,textTransform:'uppercase',color:'var(--gold)',marginBottom:14}}>RESPOSTA</div><div style={{fontSize:14,lineHeight:1.7,color:'var(--text-muted)'}}>{cards[idx].back}</div></div>
           </div>
         </div>
       </div>
-      <div style={{display:'flex',gap:12,justifyContent:'center'}}>
-        <button className="btn-secondary" onClick={() => { setIdx(i => Math.max(0,i-1)); setFlipped(false) }} disabled={idx===0}>← Anterior</button>
-        <button className="btn-secondary" onClick={() => setFlipped(f => !f)}>Virar</button>
-        <button className="btn-primary" onClick={() => { setIdx(i => Math.min(cards.length-1,i+1)); setFlipped(false) }} disabled={idx===cards.length-1}>Próximo →</button>
+      <div style={{display:'flex',gap:10,justifyContent:'center'}}>
+        <button className="btn-secondary" onClick={()=>{setIdx(i=>Math.max(0,i-1));setFlipped(false)}} disabled={idx===0}>← Anterior</button>
+        <button className="btn-secondary" onClick={()=>setFlipped(f=>!f)}>Virar</button>
+        <button className="btn-primary" onClick={()=>{setIdx(i=>Math.min(cards.length-1,i+1));setFlipped(false)}} disabled={idx===cards.length-1}>Próximo →</button>
       </div>
     </div>
   )
 }
 
-function SimuladosPage({ showUpgrade, freeQ, setFreeQ, onXp, profile }: any) {
-  const [running, setRunning] = useState(false)
-  const [cur, setCur] = useState(0)
-  const [sel, setSel] = useState<number|null>(null)
-  const [answered, setAnswered] = useState(false)
-  const [score, setScore] = useState(0)
-  const [done, setDone] = useState(false)
-  const [time, setTime] = useState(18000)
-  const [selectedSimulado, setSelectedSimulado] = useState<any>(null)
-  const [provasOAB, setProvasOAB] = useState<any[]>([])
-  const [loadingProva, setLoadingProva] = useState(false)
-  const [tab, setTab] = useState<'oficiais'|'pratica'>('oficiais')
-  const isElite = profile?.role === 'admin' || profile?.plano === 'elite' || profile?.plano === 'premium'
+function SimuladosPage({ showUpgrade, freeQ, setFreeQ, onXp, profile, isPremium }: any) {
+  const [running,setRunning]=useState(false)
+  const [cur,setCur]=useState(0)
+  const [sel,setSel]=useState<number|null>(null)
+  const [answered,setAnswered]=useState(false)
+  const [score,setScore]=useState(0)
+  const [done,setDone]=useState(false)
+  const [time,setTime]=useState(18000)
+  const [selectedSimulado,setSelectedSimulado]=useState<any>(null)
+  const [provasOAB,setProvasOAB]=useState<any[]>([])
+  const [loadingProva,setLoadingProva]=useState(false)
+  const [tab,setTab]=useState<'oficiais'|'pratica'>('oficiais')
+  const isElite=profile?.role==='admin'||profile?.plano==='elite'||profile?.plano==='premium'
 
-  const SIMULADOS_PRATICA = [
-    {icon:'⚡',t:'Mini Simulado — Constitucional',info:'5 questões · 15min · Grátis',tags:['Grátis'],lock:false,questions:QUESTIONS.slice(0,5)},
-    {icon:'🔥',t:'Simulado Intensivo — Penal',info:'30 questões · 45min',tags:['Intensivo'],lock:true,questions:[]},
-    {icon:'📝',t:'Simulado OAB 2ª Fase',info:'Peça jurídica · 5h',tags:['OAB'],lock:true,questions:[]},
-    {icon:'📜',t:'Ética e Estatuto OAB',info:'20 questões · 30min',tags:['OAB'],lock:true,questions:[]},
-    {icon:'🏛️',t:'Simulado Geral',info:'60 questões · 4h',tags:['Completo'],lock:true,questions:[]},
+  const SIMULADOS_PRATICA=[
+    {icon:'⚡',t:'Mini Simulado — Constitucional',info:'5 questões · 15min · Grátis',tags:['Grátis'],lock:false},
+    {icon:'🔥',t:'Simulado Intensivo — Penal',info:'30 questões · 45min',tags:['Intensivo'],lock:true},
+    {icon:'📝',t:'Simulado OAB 2ª Fase',info:'Peça jurídica · 5h',tags:['OAB'],lock:true},
+    {icon:'📜',t:'Ética e Estatuto OAB',info:'20 questões · 30min',tags:['OAB'],lock:true},
+    {icon:'🏛️',t:'Simulado Geral',info:'60 questões · 4h',tags:['Completo'],lock:true},
   ]
 
-  useEffect(() => { loadProvas() }, [])
-
-  const loadProvas = async () => {
-    const { data } = await supabase.from('provas_oab').select('*').eq('status', 'ativo').order('numero_exame', { ascending: false })
-    if (data) setProvasOAB(data)
+  useEffect(()=>{loadProvas()},[])
+  const loadProvas=async()=>{
+    const{data}=await supabase.from('provas_oab').select('*').eq('status','ativo').order('numero_exame',{ascending:false})
+    if(data)setProvasOAB(data)
   }
 
-  const iniciarProvaOficial = async (prova: any) => {
-    if (!isElite) { showUpgrade(); return }
+  const iniciarProvaOficial=async(prova:any)=>{
+    if(!isElite){showUpgrade();return}
     setLoadingProva(true)
-    const { data } = await supabase.from('questoes_oab').select('*').eq('prova_id', prova.id).order('numero_questao')
-    if (data && data.length > 0) {
-      const questoesFormatadas = data.map(q => ({
-        id: q.id, disc: q.disciplina, dificuldade: 'OAB Oficial',
-        q: q.enunciado, opts: [q.opcao_a, q.opcao_b, q.opcao_c, q.opcao_d],
-        correct: ['A','B','C','D'].indexOf(q.resposta_correta), exp: q.comentario || '',
-      }))
-      setSelectedSimulado({ ...prova, questions: questoesFormatadas, oficial: true })
-      setRunning(true); setCur(0); setSel(null); setAnswered(false)
-      setScore(0); setDone(false); setTime(18000)
+    const{data}=await supabase.from('questoes_oab').select('*').eq('prova_id',prova.id).order('numero_questao')
+    if(data&&data.length>0){
+      const q=data.map((q:any)=>({id:q.id,disc:q.disciplina,dificuldade:'OAB Oficial',q:q.enunciado,opts:[q.opcao_a,q.opcao_b,q.opcao_c,q.opcao_d],correct:['A','B','C','D'].indexOf(q.resposta_correta),exp:q.comentario||''}))
+      setSelectedSimulado({...prova,questions:q,oficial:true})
+      setRunning(true);setCur(0);setSel(null);setAnswered(false);setScore(0);setDone(false);setTime(18000)
     }
     setLoadingProva(false)
   }
 
-  const start = (s: any) => {
-    if (s.lock && !isElite) { showUpgrade(); return }
-    if (!s.questions || s.questions.length === 0) { showUpgrade(); return }
-    setSelectedSimulado(s); setRunning(true); setCur(0); setSel(null)
-    setAnswered(false); setScore(0); setDone(false); setTime(900)
+  const iniciarSimuladoPratica=async(s:any)=>{
+    if(s.lock&&!isElite){showUpgrade();return}
+    setLoadingProva(true)
+    const discMap:Record<string,string>={'Mini Simulado — Constitucional':'Constitucional','Simulado Intensivo — Penal':'Penal','Ética e Estatuto OAB':'Ética'}
+    const qtdMap:Record<string,number>={'Mini Simulado — Constitucional':5,'Simulado Intensivo — Penal':30,'Ética e Estatuto OAB':20,'Simulado OAB 2ª Fase':40,'Simulado Geral':60}
+    const disc=discMap[s.t];const qtd=qtdMap[s.t]||20
+    let query=supabase.from('questoes_oab').select('*').neq('resposta_correta','*')
+    if(disc)query=query.ilike('disciplina',`%${disc}%`)
+    const{data}=await query
+    if(!data||data.length===0){setLoadingProva(false);showUpgrade();return}
+    const shuffled=[...data].sort(()=>Math.random()-0.5).slice(0,qtd)
+    const formatted=shuffled.map((q:any)=>({id:q.id,disc:q.disciplina,dificuldade:'OAB Oficial',q:q.enunciado,opts:[q.opcao_a,q.opcao_b,q.opcao_c,q.opcao_d],correct:['A','B','C','D'].indexOf(q.resposta_correta),exp:q.comentario||''}))
+    setSelectedSimulado({...s,questions:formatted})
+    setRunning(true);setCur(0);setSel(null);setAnswered(false);setScore(0);setDone(false);setTime(s.t.includes('Mini')?900:18000)
+    setLoadingProva(false)
   }
 
-  useEffect(() => {
-    if (!running || answered || done) return
-    const t = setInterval(() => setTime(p => { if(p<=1){clearInterval(t);setDone(true);return 0;} return p-1 }), 1000)
-    return () => clearInterval(t)
-  }, [running, answered, done, cur])
+  useEffect(()=>{
+    if(!running||answered||done)return
+    const t=setInterval(()=>setTime(p=>{if(p<=1){clearInterval(t);setDone(true);return 0;}return p-1}),1000)
+    return()=>clearInterval(t)
+  },[running,answered,done,cur])
 
-  const pick = (i: number) => {
-    if (answered) return
-    if (freeQ <= 0) { showUpgrade(); return }
-    setSel(i); setAnswered(true); setFreeQ((p:number) => p-1)
-    if (i === selectedSimulado.questions[cur].correct) { setScore(p=>p+1); onXp('question_correct') }
-    else onXp('question_wrong')
+  const pick=(i:number)=>{
+    if(answered)return
+    if(freeQ<=0){showUpgrade();return}
+    setSel(i);setAnswered(true);setFreeQ((p:number)=>p-1)
+    if(i===selectedSimulado.questions[cur].correct){setScore(p=>p+1);onXp('question_correct')}else onXp('question_wrong')
   }
+  const next=()=>{if(cur+1>=selectedSimulado.questions.length){setDone(true);return}setCur(p=>p+1);setSel(null);setAnswered(false)}
 
-  const next = () => {
-    if (cur+1 >= selectedSimulado.questions.length) { setDone(true); return }
-    setCur(p=>p+1); setSel(null); setAnswered(false)
-  }
-
-  if (running && !done && selectedSimulado) {
-    const q = selectedSimulado.questions[cur]
-    const pct = Math.round(((cur+(answered?1:0))/selectedSimulado.questions.length)*100)
-    const totalSecs = time
-    const horas = Math.floor(totalSecs/3600)
-    const mins = Math.floor((totalSecs%3600)/60)
-    const secs = totalSecs%60
-    return (
-      <div style={{padding:'32px 40px',flex:1}}>
-        <div style={{maxWidth:720,margin:'0 auto'}}>
-          <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:14}}>
-            <div style={{fontSize:13,color:'var(--text-muted)'}}>{selectedSimulado.edicao || selectedSimulado.t} · Q{cur+1}/{selectedSimulado.questions.length}</div>
-            <div style={{fontFamily:'var(--font-mono)',fontSize:18,fontWeight:700,color:time<600?'var(--danger)':'var(--gold)'}}>
-              {horas>0?`${String(horas).padStart(2,'0')}:`:''}
-              {String(mins).padStart(2,'0')}:{String(secs).padStart(2,'0')}
-            </div>
+  if(running&&!done&&selectedSimulado){
+    const q=selectedSimulado.questions[cur]
+    const pct=Math.round(((cur+(answered?1:0))/selectedSimulado.questions.length)*100)
+    const h=Math.floor(time/3600),m=Math.floor((time%3600)/60),s=time%60
+    return(
+      <div style={{padding:'24px 20px',flex:1}}>
+        <div style={{maxWidth:680,margin:'0 auto'}}>
+          <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:12}}>
+            <div style={{fontSize:12,color:'var(--text-muted)'}}>{selectedSimulado.edicao||selectedSimulado.t} · Q{cur+1}/{selectedSimulado.questions.length}</div>
+            <div style={{fontFamily:'var(--font-mono)',fontSize:16,fontWeight:700,color:time<600?'var(--danger)':'var(--gold)'}}>{h>0?`${String(h).padStart(2,'0')}:`:''}${String(m).padStart(2,'0')}:{String(s).padStart(2,'0')}</div>
           </div>
-          <div style={{background:'rgba(255,255,255,0.06)',borderRadius:100,height:4,marginBottom:28,overflow:'hidden'}}>
-            <div style={{width:`${pct}%`,height:'100%',background:'linear-gradient(90deg,var(--gold),var(--orange))',borderRadius:100,transition:'width 0.4s'}} />
+          <div style={{background:'rgba(255,255,255,0.06)',borderRadius:100,height:4,marginBottom:22,overflow:'hidden'}}>
+            <div style={{width:`${pct}%`,height:'100%',background:'linear-gradient(90deg,var(--gold),var(--orange))',borderRadius:100,transition:'width 0.4s'}}/>
           </div>
-          <div style={{background:'var(--gray)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:20,padding:36}}>
-            <div style={{display:'flex',gap:10,marginBottom:18,flexWrap:'wrap'}}>
+          <div style={{background:'var(--gray)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:20,padding:'22px'}}>
+            <div style={{display:'flex',gap:8,marginBottom:14,flexWrap:'wrap'}}>
               <span style={{fontSize:10,fontWeight:700,letterSpacing:2,textTransform:'uppercase',color:'var(--gold)'}}>{q.disc}</span>
-              <span style={{fontSize:10,fontWeight:700,letterSpacing:1,textTransform:'uppercase',color:'var(--text-muted)'}}>· {q.dificuldade}</span>
+              <span style={{fontSize:10,color:'var(--text-muted)'}}>· OAB Oficial</span>
             </div>
-            <div style={{fontSize:17,fontWeight:600,lineHeight:1.7,marginBottom:32}}>{q.q}</div>
-            <div style={{display:'flex',flexDirection:'column',gap:12}}>
-              {q.opts.map((opt: string, i: number) => {
-                let bg='rgba(255,255,255,0.03)', bc='rgba(255,255,255,0.08)', color='var(--white)'
-                if (answered) {
-                  if (i===q.correct) { bg='rgba(76,175,125,0.1)'; bc='var(--success)'; color='var(--success)' }
-                  else if (i===sel) { bg='rgba(232,66,26,0.1)'; bc='var(--danger)'; color='var(--danger)' }
-                }
-                return (
-                  <button key={i} onClick={() => pick(i)} style={{display:'flex',alignItems:'flex-start',gap:16,background:bg,border:`1px solid ${bc}`,borderRadius:12,padding:'16px 20px',cursor:'pointer',transition:'all 0.2s',textAlign:'left',width:'100%',fontFamily:'var(--font-body)',fontSize:14,color}}>
-                    <span style={{width:28,height:28,borderRadius:'50%',flexShrink:0,display:'flex',alignItems:'center',justifyContent:'center',fontSize:12,fontWeight:800,background:'rgba(255,255,255,0.06)',color:'var(--white)'}}>{String.fromCharCode(65+i)}</span>
+            <div style={{fontSize:'clamp(14px,3vw,17px)',fontWeight:600,lineHeight:1.7,marginBottom:22}}>{q.q}</div>
+            <div style={{display:'flex',flexDirection:'column',gap:10}}>
+              {q.opts.map((opt:string,i:number)=>{
+                let bg='rgba(255,255,255,0.03)',bc='rgba(255,255,255,0.08)',color='var(--white)'
+                if(answered){if(i===q.correct){bg='rgba(76,175,125,0.1)';bc='var(--success)';color='var(--success)'}else if(i===sel){bg='rgba(232,66,26,0.1)';bc='var(--danger)';color='var(--danger)'}}
+                return(
+                  <button key={i} onClick={()=>pick(i)} style={{display:'flex',alignItems:'flex-start',gap:12,background:bg,border:`1px solid ${bc}`,borderRadius:12,padding:'13px 15px',cursor:'pointer',transition:'all 0.2s',textAlign:'left',width:'100%',fontFamily:'var(--font-body)',fontSize:'clamp(13px,2.5vw,14px)',color}}>
+                    <span style={{width:26,height:26,borderRadius:'50%',flexShrink:0,display:'flex',alignItems:'center',justifyContent:'center',fontSize:11,fontWeight:800,background:'rgba(255,255,255,0.06)',color:'var(--white)'}}>{String.fromCharCode(65+i)}</span>
                     <span style={{flex:1}}>{opt}</span>
                   </button>
                 )
               })}
             </div>
-            {answered && q.exp && <div style={{marginTop:24,padding:20,background:'rgba(212,168,67,0.06)',border:'1px solid rgba(212,168,67,0.15)',borderRadius:12,fontSize:14,lineHeight:1.7,color:'var(--text-muted)'}}>{sel===q.correct?'✅ ':'❌ '}<strong style={{color:'var(--gold)'}}>{sel===q.correct?'Correto!':'Incorreto.'}</strong> {q.exp}</div>}
-            {answered && <button className="btn-primary" style={{width:'100%',marginTop:22}} onClick={next}>{cur+1>=selectedSimulado.questions.length?'VER RESULTADO':'PRÓXIMA →'}</button>}
+            {answered&&q.exp&&<div style={{marginTop:20,padding:16,background:'rgba(212,168,67,0.06)',border:'1px solid rgba(212,168,67,0.15)',borderRadius:12,fontSize:13,lineHeight:1.7,color:'var(--text-muted)'}}>{sel===q.correct?'✅ ':'❌ '}<strong style={{color:'var(--gold)'}}>{sel===q.correct?'Correto!':'Incorreto.'}</strong> {q.exp}</div>}
+            {answered&&<button className="btn-primary" style={{width:'100%',marginTop:18}} onClick={next}>{cur+1>=selectedSimulado.questions.length?'VER RESULTADO':'PRÓXIMA →'}</button>}
           </div>
         </div>
       </div>
     )
   }
 
-  if (done && selectedSimulado) {
-    const total = selectedSimulado.questions.length
-    const rate = Math.round((score/total)*100)
-    const aprovado = score >= Math.ceil(total * 0.625)
-    return (
-      <div style={{padding:'32px 40px',flex:1}}>
-        <div style={{maxWidth:720,margin:'0 auto',textAlign:'center'}}>
-          <div style={{fontSize:68,marginBottom:22}}>{aprovado?'🏆':rate>=50?'📝':'💪'}</div>
-          <h1 style={{fontFamily:'var(--font-display)',fontSize:32,fontWeight:900,marginBottom:8}}>Simulado Concluído!</h1>
-          <p style={{fontSize:15,color:'var(--text-muted)',marginBottom:8}}>{selectedSimulado.edicao || selectedSimulado.t}</p>
-          <p style={{fontSize:15,color:'var(--text-muted)',marginBottom:28}}>{score} de {total} questões corretas</p>
-          <div style={{background:aprovado?'rgba(76,175,125,0.1)':'rgba(232,98,26,0.1)',border:`1px solid ${aprovado?'var(--success)':'var(--orange)'}`,borderRadius:16,padding:20,marginBottom:24}}>
-            <div style={{fontSize:20,fontWeight:900,color:aprovado?'var(--success)':'var(--orange)',marginBottom:8}}>{aprovado?'✅ APROVADO!':'❌ Não aprovado'}</div>
-            <div style={{fontSize:14,color:'var(--text-muted)'}}>{aprovado?`Parabéns! Você atingiu ${rate}% de acerto.`:`Você precisaria de ${Math.ceil(total*0.625)} acertos. Continue praticando!`}</div>
+  if(done&&selectedSimulado){
+    const total=selectedSimulado.questions.length
+    const rate=Math.round((score/total)*100)
+    const aprovado=score>=Math.ceil(total*0.625)
+    return(
+      <div style={{padding:'24px 20px',flex:1}}>
+        <div style={{maxWidth:600,margin:'0 auto',textAlign:'center'}}>
+          <div style={{fontSize:60,marginBottom:18}}>{aprovado?'🏆':rate>=50?'📝':'💪'}</div>
+          <h1 style={{fontFamily:'var(--font-display)',fontSize:'clamp(22px,5vw,30px)',fontWeight:900,marginBottom:8}}>Simulado Concluído!</h1>
+          <p style={{fontSize:14,color:'var(--text-muted)',marginBottom:6}}>{selectedSimulado.edicao||selectedSimulado.t}</p>
+          <p style={{fontSize:14,color:'var(--text-muted)',marginBottom:20}}>{score} de {total} questões corretas</p>
+          <div style={{background:aprovado?'rgba(76,175,125,0.1)':'rgba(232,98,26,0.1)',border:`1px solid ${aprovado?'var(--success)':'var(--orange)'}`,borderRadius:16,padding:16,marginBottom:18}}>
+            <div style={{fontSize:18,fontWeight:900,color:aprovado?'var(--success)':'var(--orange)',marginBottom:6}}>{aprovado?'✅ APROVADO!':'❌ Não aprovado'}</div>
+            <div style={{fontSize:13,color:'var(--text-muted)'}}>{aprovado?`${rate}% de acerto.`:`Precisava de ${Math.ceil(total*0.625)} acertos.`}</div>
           </div>
-          <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:14,marginBottom:28}}>
-            {[['Acertos',`${score}/${total}`,'var(--gold)'],['Taxa',`${rate}%`,rate>=62?'var(--success)':'var(--orange)'],['Aprovação',aprovado?'✅ Sim':'❌ Não',aprovado?'var(--success)':'var(--danger)']].map(([l,v,c]) => (
-              <div key={l} style={{background:'var(--gray)',borderRadius:14,padding:20,border:'1px solid rgba(255,255,255,0.06)'}}>
-                <div style={{fontSize:10,fontWeight:700,letterSpacing:1.5,textTransform:'uppercase',color:'var(--text-muted)',marginBottom:8}}>{l}</div>
-                <div style={{fontFamily:'var(--font-display)',fontSize:22,fontWeight:900,color:c}}>{v}</div>
+          <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:12,marginBottom:20}}>
+            {[['Acertos',`${score}/${total}`,'var(--gold)'],['Taxa',`${rate}%`,rate>=62?'var(--success)':'var(--orange)'],['Aprovação',aprovado?'✅':'❌',aprovado?'var(--success)':'var(--danger)']].map(([l,v,c])=>(
+              <div key={l} style={{background:'var(--gray)',borderRadius:14,padding:16,border:'1px solid rgba(255,255,255,0.06)'}}>
+                <div style={{fontSize:10,fontWeight:700,letterSpacing:1.5,textTransform:'uppercase',color:'var(--text-muted)',marginBottom:6}}>{l}</div>
+                <div style={{fontFamily:'var(--font-display)',fontSize:20,fontWeight:900,color:c}}>{v}</div>
               </div>
             ))}
           </div>
-          <div style={{display:'flex',gap:12,justifyContent:'center'}}>
-            <button className="btn-primary" onClick={() => { setRunning(false); setDone(false) }}>NOVO SIMULADO</button>
-            <button className="btn-secondary" onClick={() => { setRunning(false); setDone(false); setTab('oficiais') }}>VER PROVAS OAB</button>
+          <div style={{display:'flex',gap:10,justifyContent:'center'}}>
+            <button className="btn-primary" onClick={()=>{setRunning(false);setDone(false)}}>NOVO SIMULADO</button>
+            <button className="btn-secondary" onClick={()=>{setRunning(false);setDone(false);setTab('oficiais')}}>PROVAS OAB</button>
           </div>
         </div>
       </div>
     )
   }
 
-  return (
-    <div style={{padding:'32px 40px',flex:1}}>
-      <h1 style={{fontFamily:'var(--font-display)',fontSize:32,fontWeight:900,marginBottom:8}}>Simulados 📋</h1>
-      <p style={{fontSize:15,color:'var(--text-muted)',marginBottom:24}}>Treine com provas reais da OAB e simulados temáticos.</p>
-      <div style={{display:'flex',gap:10,marginBottom:28}}>
-        {([['oficiais','🏛️ Provas OAB Reais'],['pratica','⚡ Simulados Temáticos']] as const).map(([key,label]) => (
-          <button key={key} onClick={() => setTab(key)} style={{padding:'10px 20px',borderRadius:10,border:tab===key?'1px solid rgba(212,168,67,0.4)':'1px solid rgba(255,255,255,0.08)',background:tab===key?'rgba(212,168,67,0.1)':'transparent',color:tab===key?'var(--gold)':'var(--text-muted)',fontSize:13,fontWeight:700,cursor:'pointer',fontFamily:'var(--font-body)'}}>
+  return(
+    <div style={{padding:'24px 20px',flex:1}}>
+      <h1 style={{fontFamily:'var(--font-display)',fontSize:'clamp(22px,5vw,32px)',fontWeight:900,marginBottom:6}}>Simulados 📋</h1>
+      <p style={{fontSize:14,color:'var(--text-muted)',marginBottom:20}}>Treine com provas reais da OAB e simulados temáticos.</p>
+      <div style={{display:'flex',gap:8,marginBottom:24,flexWrap:'wrap'}}>
+        {([['oficiais','🏛️ Provas OAB'],['pratica','⚡ Temáticos']] as const).map(([key,label])=>(
+          <button key={key} onClick={()=>setTab(key)} style={{padding:'10px 18px',borderRadius:10,border:tab===key?'1px solid rgba(212,168,67,0.4)':'1px solid rgba(255,255,255,0.08)',background:tab===key?'rgba(212,168,67,0.1)':'transparent',color:tab===key?'var(--gold)':'var(--text-muted)',fontSize:13,fontWeight:700,cursor:'pointer',fontFamily:'var(--font-body)'}}>
             {label}
           </button>
         ))}
       </div>
-
-      {tab === 'oficiais' && (
+      {tab==='oficiais'&&(
         <div>
-          <div style={{background:'linear-gradient(135deg,rgba(212,168,67,0.08),rgba(232,98,26,0.04))',border:'1px solid rgba(212,168,67,0.2)',borderRadius:16,padding:20,marginBottom:24}}>
-            <div style={{display:'flex',alignItems:'center',gap:12,marginBottom:8}}>
-              <span style={{fontSize:20}}>📋</span>
-              <div style={{fontSize:15,fontWeight:700}}>Últimas 5 Provas Oficiais da OAB</div>
-              {!isElite && <span style={{fontSize:10,fontWeight:800,background:'rgba(212,168,67,0.1)',border:'1px solid rgba(212,168,67,0.2)',color:'var(--gold)',padding:'3px 10px',borderRadius:100}}>🔒 ELITE</span>}
+          <div style={{background:'linear-gradient(135deg,rgba(212,168,67,0.08),rgba(232,98,26,0.04))',border:'1px solid rgba(212,168,67,0.2)',borderRadius:16,padding:18,marginBottom:20}}>
+            <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:6,flexWrap:'wrap'}}>
+              <span style={{fontSize:18}}>📋</span>
+              <div style={{fontSize:14,fontWeight:700}}>Últimas 5 Provas Oficiais da OAB</div>
+              {!isElite&&<span style={{fontSize:10,fontWeight:800,background:'rgba(212,168,67,0.1)',border:'1px solid rgba(212,168,67,0.2)',color:'var(--gold)',padding:'3px 10px',borderRadius:100}}>🔒 ELITE</span>}
             </div>
-            <div style={{fontSize:13,color:'var(--text-muted)'}}>Questões reais com gabarito oficial. Descubra se você seria aprovado!</div>
+            <div style={{fontSize:13,color:'var(--text-muted)'}}>Questões reais com gabarito oficial.</div>
           </div>
-          {loadingProva && <div style={{textAlign:'center',padding:40,color:'var(--gold)'}}>⏳ Carregando questões...</div>}
-          <div style={{display:'flex',flexDirection:'column',gap:16}}>
-            {provasOAB.map((prova, i) => (
-              <div key={prova.id} style={{background:'var(--gray)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:16,padding:24,display:'flex',alignItems:'center',justifyContent:'space-between',flexWrap:'wrap',gap:16,transition:'border-color 0.2s'}}
-                onMouseEnter={e => e.currentTarget.style.borderColor='rgba(212,168,67,0.2)'}
-                onMouseLeave={e => e.currentTarget.style.borderColor='rgba(255,255,255,0.06)'}>
-                <div style={{display:'flex',alignItems:'center',gap:16}}>
-                  <div style={{width:48,height:48,borderRadius:12,background:i===0?'linear-gradient(135deg,var(--gold),var(--orange))':'rgba(255,255,255,0.06)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:i===0?20:14,fontWeight:900,color:i===0?'#000':'var(--text-muted)',fontFamily:'var(--font-display)'}}>
+          {loadingProva&&<div style={{textAlign:'center',padding:40,color:'var(--gold)'}}>⏳ Carregando...</div>}
+          <div style={{display:'flex',flexDirection:'column',gap:14}}>
+            {provasOAB.map((prova,i)=>(
+              <div key={prova.id} style={{background:'var(--gray)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:16,padding:'18px',display:'flex',alignItems:'center',justifyContent:'space-between',flexWrap:'wrap',gap:14,transition:'border-color 0.2s'}}
+                onMouseEnter={e=>e.currentTarget.style.borderColor='rgba(212,168,67,0.2)'}
+                onMouseLeave={e=>e.currentTarget.style.borderColor='rgba(255,255,255,0.06)'}>
+                <div style={{display:'flex',alignItems:'center',gap:14}}>
+                  <div style={{width:44,height:44,borderRadius:12,background:i===0?'linear-gradient(135deg,var(--gold),var(--orange))':'rgba(255,255,255,0.06)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:i===0?18:13,fontWeight:900,color:i===0?'#000':'var(--text-muted)',fontFamily:'var(--font-display)',flexShrink:0}}>
                     {i===0?'🆕':`${prova.numero_exame}º`}
                   </div>
                   <div>
-                    <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:4}}>
-                      <span style={{fontSize:15,fontWeight:700}}>{prova.edicao}</span>
-                      {i===0 && <span style={{fontSize:9,fontWeight:900,background:'linear-gradient(135deg,var(--gold),var(--orange))',color:'#000',padding:'2px 8px',borderRadius:100}}>MAIS RECENTE</span>}
+                    <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:4,flexWrap:'wrap'}}>
+                      <span style={{fontSize:14,fontWeight:700}}>{prova.edicao}</span>
+                      {i===0&&<span style={{fontSize:9,fontWeight:900,background:'linear-gradient(135deg,var(--gold),var(--orange))',color:'#000',padding:'2px 8px',borderRadius:100}}>RECENTE</span>}
                     </div>
-                    <div style={{display:'flex',gap:16,fontSize:12,color:'var(--text-muted)'}}>
-                      <span>📝 {prova.total_questoes} questões</span>
-                      <span>📊 Aprovação histórica: {prova.taxa_aprovacao_oficial}%</span>
-                      <span>⏱️ 5 horas</span>
+                    <div style={{display:'flex',gap:12,fontSize:11,color:'var(--text-muted)',flexWrap:'wrap'}}>
+                      <span>📝 {prova.total_questoes}q</span>
+                      <span>📊 {prova.taxa_aprovacao_oficial}% aprovação</span>
                     </div>
                   </div>
                 </div>
-                <button onClick={() => iniciarProvaOficial(prova)} className={isElite?'btn-primary':'btn-secondary'} style={{fontSize:13,padding:'10px 24px',minWidth:160}} disabled={loadingProva}>
-                  {isElite?'▶ INICIAR PROVA':'🔒 ELITE'}
+                <button onClick={()=>iniciarProvaOficial(prova)} className={isElite?'btn-primary':'btn-secondary'} style={{fontSize:12,padding:'10px 20px'}} disabled={loadingProva}>
+                  {isElite?'▶ INICIAR':'🔒 ELITE'}
                 </button>
               </div>
             ))}
           </div>
-          {provasOAB.length === 0 && !loadingProva && (
-            <div style={{textAlign:'center',padding:48,color:'var(--text-muted)'}}>
-              <div style={{fontSize:48,marginBottom:16}}>📋</div>
-              <div style={{fontSize:16,fontWeight:700,marginBottom:8}}>Provas sendo carregadas</div>
-              <div style={{fontSize:14}}>As provas oficiais estarão disponíveis em breve.</div>
-            </div>
-          )}
         </div>
       )}
-
-      {tab === 'pratica' && (
-        <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(270px,1fr))',gap:16}}>
-          {SIMULADOS_PRATICA.map(s => (
-            <div key={s.t} style={{background:'var(--gray)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:16,padding:24,transition:'all 0.2s',cursor:'pointer'}}
-              onMouseEnter={e => { e.currentTarget.style.borderColor='rgba(212,168,67,0.18)'; e.currentTarget.style.transform='translateY(-2px)' }}
-              onMouseLeave={e => { e.currentTarget.style.borderColor='rgba(255,255,255,0.06)'; e.currentTarget.style.transform='translateY(0)' }}>
-              <div style={{fontSize:28,marginBottom:14}}>{s.icon}</div>
-              <div style={{fontSize:15,fontWeight:700,marginBottom:6}}>{s.t}</div>
-              <div style={{fontSize:12,color:'var(--text-muted)',marginBottom:14}}>{s.info}</div>
-              <div style={{display:'flex',gap:6,flexWrap:'wrap',marginBottom:18}}>
-                {s.tags.map(tag => <span key={tag} style={{fontSize:10,padding:'2px 9px',borderRadius:100,fontWeight:700,background:'rgba(212,168,67,0.1)',color:'var(--gold)',border:'1px solid rgba(212,168,67,0.2)'}}>{tag}</span>)}
+      {tab==='pratica'&&(
+        <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(240px,1fr))',gap:14}}>
+          {SIMULADOS_PRATICA.map(s=>(
+            <div key={s.t} style={{background:'var(--gray)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:16,padding:20,transition:'all 0.2s',cursor:'pointer'}}
+              onMouseEnter={e=>{e.currentTarget.style.borderColor='rgba(212,168,67,0.18)';e.currentTarget.style.transform='translateY(-2px)'}}
+              onMouseLeave={e=>{e.currentTarget.style.borderColor='rgba(255,255,255,0.06)';e.currentTarget.style.transform='translateY(0)'}}>
+              <div style={{fontSize:26,marginBottom:12}}>{s.icon}</div>
+              <div style={{fontSize:14,fontWeight:700,marginBottom:5}}>{s.t}</div>
+              <div style={{fontSize:12,color:'var(--text-muted)',marginBottom:12}}>{s.info}</div>
+              <div style={{display:'flex',gap:5,flexWrap:'wrap',marginBottom:16}}>
+                {s.tags.map(tag=><span key={tag} style={{fontSize:10,padding:'2px 9px',borderRadius:100,fontWeight:700,background:'rgba(212,168,67,0.1)',color:'var(--gold)',border:'1px solid rgba(212,168,67,0.2)'}}>{tag}</span>)}
               </div>
-              {s.lock && !isElite
-                ? <button className="btn-secondary" style={{width:'100%',fontSize:12,padding:'10px'}} onClick={() => showUpgrade()}>🔒 DESBLOQUEAR</button>
-                : <button className="btn-gold-sm" style={{width:'100%',fontSize:12}} onClick={() => start(s)}>INICIAR SIMULADO →</button>
+              {s.lock&&!isElite
+                ?<button className="btn-secondary" style={{width:'100%',fontSize:12,padding:'10px'}} onClick={()=>showUpgrade()}>🔒 DESBLOQUEAR</button>
+                :<button className="btn-gold-sm" style={{width:'100%',fontSize:12}} onClick={()=>iniciarSimuladoPratica(s)} disabled={loadingProva}>{loadingProva?'⏳':'INICIAR →'}</button>
               }
             </div>
           ))}
@@ -869,47 +893,47 @@ function SimuladosPage({ showUpgrade, freeQ, setFreeQ, onXp, profile }: any) {
   )
 }
 
-function RankingPage({ profile }: any) {
-  const [tab, setTab] = useState<'geral'|'semanal'|'disciplina'>('semanal')
-  return (
-    <div style={{padding:'32px 40px',flex:1}}>
-      <h1 style={{fontFamily:'var(--font-display)',fontSize:32,fontWeight:900,marginBottom:8}}>Ranking Nacional 🏆</h1>
-      <p style={{fontSize:15,color:'var(--text-muted)',marginBottom:24}}>Top estudantes. Compita, evolua, seja aprovado.</p>
-      <div style={{display:'flex',gap:10,marginBottom:24,flexWrap:'wrap'}}>
-        {(['geral','semanal','disciplina'] as const).map(t => (
-          <button key={t} onClick={() => setTab(t)} style={{background:tab===t?'rgba(212,168,67,0.1)':'var(--gray)',border:tab===t?'1px solid rgba(212,168,67,0.3)':'1px solid rgba(255,255,255,0.06)',borderRadius:8,padding:'8px 16px',color:tab===t?'var(--gold)':'var(--text-muted)',fontSize:12,fontWeight:700,cursor:'pointer',fontFamily:'var(--font-body)',textTransform:'capitalize'}}>
-            {t === 'disciplina' ? 'Por Disciplina' : t.charAt(0).toUpperCase() + t.slice(1)}
+function RankingPage({profile}:any) {
+  const [tab,setTab]=useState<'geral'|'semanal'|'disciplina'>('semanal')
+  return(
+    <div style={{padding:'24px 20px',flex:1}}>
+      <h1 style={{fontFamily:'var(--font-display)',fontSize:'clamp(22px,5vw,32px)',fontWeight:900,marginBottom:6}}>Ranking Nacional 🏆</h1>
+      <p style={{fontSize:14,color:'var(--text-muted)',marginBottom:20}}>Top estudantes. Compita, evolua, seja aprovado.</p>
+      <div style={{display:'flex',gap:8,marginBottom:20,flexWrap:'wrap'}}>
+        {(['geral','semanal','disciplina'] as const).map(t=>(
+          <button key={t} onClick={()=>setTab(t)} style={{background:tab===t?'rgba(212,168,67,0.1)':'var(--gray)',border:tab===t?'1px solid rgba(212,168,67,0.3)':'1px solid rgba(255,255,255,0.06)',borderRadius:8,padding:'8px 14px',color:tab===t?'var(--gold)':'var(--text-muted)',fontSize:12,fontWeight:700,cursor:'pointer',fontFamily:'var(--font-body)',textTransform:'capitalize'}}>
+            {t==='disciplina'?'Por Disciplina':t.charAt(0).toUpperCase()+t.slice(1)}
           </button>
         ))}
       </div>
-      <div style={{display:'flex',gap:12,marginBottom:28,justifyContent:'center',flexWrap:'wrap'}}>
-        {[1,0,2].map(idx => {
-          const r = RANKING_DATA[idx]
-          const heights = [110,138,90]
-          const h = heights[idx===0?1:idx===1?0:2]
-          return (
-            <div key={r.pos} style={{textAlign:'center',width:110}}>
-              <div style={{fontSize:28,marginBottom:6}}>{r.av}</div>
-              <div style={{fontWeight:700,fontSize:12,marginBottom:3}}>{r.name}</div>
-              <div style={{fontSize:10,color:'var(--text-muted)',marginBottom:8}}>{r.level}</div>
+      <div style={{display:'flex',gap:10,marginBottom:24,justifyContent:'center',flexWrap:'wrap'}}>
+        {[1,0,2].map(idx=>{
+          const r=RANKING_DATA[idx]
+          const heights=[110,138,90]
+          const h=heights[idx===0?1:idx===1?0:2]
+          return(
+            <div key={r.pos} style={{textAlign:'center',width:100}}>
+              <div style={{fontSize:26,marginBottom:5}}>{r.av}</div>
+              <div style={{fontWeight:700,fontSize:11,marginBottom:2}}>{r.name}</div>
+              <div style={{fontSize:10,color:'var(--text-muted)',marginBottom:6}}>{r.level}</div>
               <div style={{height:h,background:idx===0?'linear-gradient(135deg,var(--gold),var(--orange))':idx===1?'linear-gradient(135deg,#C0C0C0,#A0A0A0)':'linear-gradient(135deg,#CD7F32,#A0522D)',borderRadius:'8px 8px 0 0',display:'flex',alignItems:'flex-start',justifyContent:'center',paddingTop:8}}>
-                <div style={{fontFamily:'var(--font-display)',fontWeight:900,fontSize:20,color:idx===0?'var(--deep-black)':'#fff'}}>{['🥇','🥈','🥉'][idx===0?1:idx===1?0:2]}</div>
+                <div style={{fontFamily:'var(--font-display)',fontWeight:900,fontSize:18,color:idx===0?'var(--deep-black)':'#fff'}}>{['🥇','🥈','🥉'][idx===0?1:idx===1?0:2]}</div>
               </div>
             </div>
           )
         })}
       </div>
       <div style={{display:'flex',flexDirection:'column',gap:10}}>
-        {RANKING_DATA.map(r => (
-          <div key={r.pos} style={{display:'flex',alignItems:'center',gap:16,background:(r as any).me?'rgba(212,168,67,0.06)':'var(--gray)',border:(r as any).me?'1px solid rgba(212,168,67,0.25)':'1px solid rgba(255,255,255,0.05)',borderRadius:14,padding:'16px 20px'}}>
-            <div style={{fontFamily:'var(--font-mono)',fontSize:14,fontWeight:700,width:32,textAlign:'center',color:r.pos===1?'#FFD700':r.pos===2?'#C0C0C0':r.pos===3?'#CD7F32':'var(--text-muted)'}}>{r.pos<=3?['🥇','🥈','🥉'][r.pos-1]:`#${r.pos}`}</div>
-            <div style={{width:40,height:40,borderRadius:'50%',background:'linear-gradient(135deg,var(--gold-dark),var(--orange))',display:'flex',alignItems:'center',justifyContent:'center',fontSize:20,flexShrink:0}}>{r.av}</div>
-            <div style={{flex:1}}>
-              <div style={{fontSize:14,fontWeight:600}}>{r.name}{(r as any).me && <span style={{marginLeft:8,fontSize:10,background:'rgba(212,168,67,0.15)',color:'var(--gold)',padding:'2px 8px',borderRadius:4}}>VOCÊ</span>}</div>
-              <div style={{fontSize:12,color:'var(--text-muted)'}}>{r.level}</div>
+        {RANKING_DATA.map(r=>(
+          <div key={r.pos} style={{display:'flex',alignItems:'center',gap:12,background:(r as any).me?'rgba(212,168,67,0.06)':'var(--gray)',border:(r as any).me?'1px solid rgba(212,168,67,0.25)':'1px solid rgba(255,255,255,0.05)',borderRadius:14,padding:'14px 16px'}}>
+            <div style={{fontFamily:'var(--font-mono)',fontSize:13,fontWeight:700,width:28,textAlign:'center',color:r.pos===1?'#FFD700':r.pos===2?'#C0C0C0':r.pos===3?'#CD7F32':'var(--text-muted)'}}>{r.pos<=3?['🥇','🥈','🥉'][r.pos-1]:`#${r.pos}`}</div>
+            <div style={{width:36,height:36,borderRadius:'50%',background:'linear-gradient(135deg,var(--gold-dark),var(--orange))',display:'flex',alignItems:'center',justifyContent:'center',fontSize:18,flexShrink:0}}>{r.av}</div>
+            <div style={{flex:1,minWidth:0}}>
+              <div style={{fontSize:13,fontWeight:600}}>{r.name}{(r as any).me&&<span style={{marginLeft:8,fontSize:10,background:'rgba(212,168,67,0.15)',color:'var(--gold)',padding:'2px 8px',borderRadius:4}}>VOCÊ</span>}</div>
+              <div style={{fontSize:11,color:'var(--text-muted)'}}>{r.level}</div>
             </div>
-            <div style={{fontSize:13,color:'var(--orange)'}}>🔥 {r.streak}d</div>
-            <div style={{fontFamily:'var(--font-mono)',fontSize:14,fontWeight:700,color:'var(--gold)'}}>{r.xp.toLocaleString()} XP</div>
+            <div style={{fontSize:12,color:'var(--orange)'}}>🔥{r.streak}d</div>
+            <div style={{fontFamily:'var(--font-mono)',fontSize:12,fontWeight:700,color:'var(--gold)'}}>{r.xp.toLocaleString()}</div>
           </div>
         ))}
       </div>
@@ -917,6 +941,7 @@ function RankingPage({ profile }: any) {
   )
 }
 
+// ─── MAIN APP ────────────────────────────────────────────────────────────────
 export default function TigerJusApp() {
   const router = useRouter()
   const [profile, setProfile] = useState<Profile|null>(null)
@@ -927,6 +952,9 @@ export default function TigerJusApp() {
   const [freeIA, setFreeIA] = useState(5)
   const [notif, setNotif] = useState<string|null>(null)
   const [loading, setLoading] = useState(true)
+  const [menuOpen, setMenuOpen] = useState(false)
+
+  const isPremium = !!(profile?.role === 'admin' || profile?.plano === 'elite' || profile?.plano === 'premium' || profile?.plano === 'pro' || profile?.plano === 'plus' || profile?.plano === 'start')
 
   useEffect(() => {
     const init = async () => {
@@ -970,26 +998,16 @@ export default function TigerJusApp() {
     else if (data.xp_earned > 0) setNotif(`+${data.xp_earned} XP ganho!`)
     setProfile(prev => {
       if (!prev) return prev
-      const incRespondidas = action === 'question_correct' || action === 'question_wrong'
-      const incCorretas = action === 'question_correct'
-      return {
-        ...prev,
-        xp: data.total_xp ?? prev.xp,
-        level_name: data.level?.name ?? prev.level_name,
-        streak: data.streak ?? prev.streak,
-        questoes_respondidas: (prev.questoes_respondidas || 0) + (incRespondidas ? 1 : 0),
-        questoes_corretas: (prev.questoes_corretas || 0) + (incCorretas ? 1 : 0),
-      }
+      const incR = action==='question_correct'||action==='question_wrong'
+      const incC = action==='question_correct'
+      return { ...prev, xp:data.total_xp??prev.xp, level_name:data.level?.name??prev.level_name, streak:data.streak??prev.streak,
+        questoes_respondidas:(prev.questoes_respondidas||0)+(incR?1:0),
+        questoes_corretas:(prev.questoes_corretas||0)+(incC?1:0) }
     })
   }
 
   const handleLogout = async () => { await supabase.auth.signOut(); router.push('/') }
-
-  const handleUpgradeSelect = (planId: string) => {
-    setShowUpgradeModal(false)
-    router.push(`/checkout?plan=${planId}`)
-  }
-
+  const handleUpgradeSelect = (planId: string) => { setShowUpgradeModal(false); router.push(`/checkout?plan=${planId}`) }
   const showUpgrade = () => { setShowPremiumGate(false); setShowUpgradeModal(true) }
 
   if (loading) return (
@@ -1010,37 +1028,65 @@ export default function TigerJusApp() {
     {icon:'🏆',label:'Ranking',key:'ranking'},
   ]
 
+  const navTo = (key: string) => { setPage(key); setMenuOpen(false) }
+
   return (
     <div style={{background:'var(--deep-black)',minHeight:'100vh'}}>
       {notif && <Notification msg={notif} onClose={() => setNotif(null)} />}
       {showPremiumGate && <PremiumGate onClose={() => setShowPremiumGate(false)} onUpgrade={showUpgrade} />}
       {showUpgradeModal && <UpgradeModal onClose={() => setShowUpgradeModal(false)} onSelect={handleUpgradeSelect} />}
 
-      <nav className="navbar">
-        <div style={{display:'flex',alignItems:'center',gap:10}}>
-          <div style={{width:38,height:38,background:'linear-gradient(135deg,var(--gold),var(--orange))',borderRadius:8,display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'var(--font-display)',fontSize:18,fontWeight:900,color:'var(--deep-black)'}}>T</div>
-          <span style={{fontFamily:'var(--font-display)',fontSize:22,fontWeight:900,letterSpacing:2,background:'linear-gradient(135deg,var(--gold-light),var(--gold))',WebkitBackgroundClip:'text',WebkitTextFillColor:'transparent'}}>TIGERJUS</span>
+      {/* NAVBAR com menu hamburguer mobile */}
+      <nav className="navbar" style={{position:'fixed',top:0,left:0,right:0,zIndex:100,display:'flex',alignItems:'center',justifyContent:'space-between',padding:'0 16px',height:60,background:'rgba(8,8,8,0.95)',backdropFilter:'blur(12px)',borderBottom:'1px solid rgba(255,255,255,0.06)'}}>
+        <div style={{display:'flex',alignItems:'center',gap:8}}>
+          <div style={{width:34,height:34,background:'linear-gradient(135deg,var(--gold),var(--orange))',borderRadius:8,display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'var(--font-display)',fontSize:16,fontWeight:900,color:'var(--deep-black)',flexShrink:0}}>T</div>
+          <span style={{fontFamily:'var(--font-display)',fontSize:18,fontWeight:900,letterSpacing:2,background:'linear-gradient(135deg,var(--gold-light),var(--gold))',WebkitBackgroundClip:'text',WebkitTextFillColor:'transparent'}}>TIGERJUS</span>
         </div>
-        <div style={{display:'flex',gap:20,alignItems:'center'}}>
+
+        {/* Menu desktop */}
+        <div className="nav-desktop" style={{display:'flex',gap:16,alignItems:'center'}}>
           {SIDEBAR.map(i => (
-            <button key={i.key} onClick={() => setPage(i.key)} style={{color:page===i.key?'var(--gold)':'var(--text-muted)',fontSize:12,fontWeight:500,letterSpacing:1,textTransform:'uppercase',border:'none',background:'none',cursor:'pointer',fontFamily:'var(--font-body)',transition:'color 0.2s',borderBottom:page===i.key?'2px solid var(--gold)':'2px solid transparent',paddingBottom:2}}>
+            <button key={i.key} onClick={() => navTo(i.key)} style={{color:page===i.key?'var(--gold)':'var(--text-muted)',fontSize:11,fontWeight:600,letterSpacing:1,textTransform:'uppercase',border:'none',background:'none',cursor:'pointer',fontFamily:'var(--font-body)',borderBottom:page===i.key?'2px solid var(--gold)':'2px solid transparent',paddingBottom:2}}>
               {i.label}
             </button>
           ))}
         </div>
-        <div style={{display:'flex',gap:10,alignItems:'center'}}>
-          <span style={{fontSize:13,color:'var(--text-muted)'}}>{profile?.nome?.split(' ')[0] || 'Usuário'}</span>
-          <button className="btn-gold-sm" onClick={() => setShowUpgradeModal(true)}>
-            🚀 {profile?.plano?.toUpperCase() || 'PREMIUM'}
+
+        <div style={{display:'flex',gap:8,alignItems:'center'}}>
+          <span className="nav-desktop" style={{fontSize:12,color:'var(--text-muted)'}}>{profile?.nome?.split(' ')[0]||'Usuário'}</span>
+          <button className="btn-gold-sm nav-desktop" onClick={() => setShowUpgradeModal(true)} style={{fontSize:11}}>
+            🚀 {profile?.plano?.toUpperCase()||'UPGRADE'}
           </button>
-          <button onClick={handleLogout} style={{color:'var(--text-muted)',fontSize:11,border:'none',background:'none',cursor:'pointer',fontFamily:'var(--font-body)'}}>Sair</button>
+          <button onClick={handleLogout} className="nav-desktop" style={{color:'var(--text-muted)',fontSize:11,border:'none',background:'none',cursor:'pointer',fontFamily:'var(--font-body)'}}>Sair</button>
+          {/* Hamburguer mobile */}
+          <button className="nav-mobile" onClick={() => setMenuOpen(o => !o)} style={{background:'none',border:'1px solid rgba(255,255,255,0.1)',borderRadius:8,width:36,height:36,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:5,cursor:'pointer',padding:8}}>
+            <span style={{display:'block',width:18,height:2,background:'var(--white)',borderRadius:2,transition:'all 0.2s',transform:menuOpen?'rotate(45deg) translate(5px,5px)':'none'}}/>
+            <span style={{display:'block',width:18,height:2,background:'var(--white)',borderRadius:2,transition:'all 0.2s',opacity:menuOpen?0:1}}/>
+            <span style={{display:'block',width:18,height:2,background:'var(--white)',borderRadius:2,transition:'all 0.2s',transform:menuOpen?'rotate(-45deg) translate(5px,-5px)':'none'}}/>
+          </button>
         </div>
       </nav>
 
-      <div style={{display:'flex',paddingTop:70,minHeight:'100vh'}}>
-        <aside className="dash-sidebar">
+      {/* Menu mobile dropdown */}
+      {menuOpen && (
+        <div style={{position:'fixed',top:60,left:0,right:0,zIndex:99,background:'rgba(10,10,10,0.98)',backdropFilter:'blur(12px)',borderBottom:'1px solid rgba(255,255,255,0.08)',padding:'12px 0',display:'flex',flexDirection:'column'}}>
           {SIDEBAR.map(item => (
-            <button key={item.key} className={`sidebar-item${page===item.key?' active':''}`} onClick={() => setPage(item.key)}>
+            <button key={item.key} onClick={() => navTo(item.key)} style={{display:'flex',alignItems:'center',gap:14,padding:'14px 20px',background:page===item.key?'rgba(212,168,67,0.08)':'none',border:'none',cursor:'pointer',fontFamily:'var(--font-body)',fontSize:15,color:page===item.key?'var(--gold)':'var(--white)',textAlign:'left',borderLeft:page===item.key?'3px solid var(--gold)':'3px solid transparent'}}>
+              <span style={{fontSize:18,width:24,textAlign:'center'}}>{item.icon}</span>{item.label}
+            </button>
+          ))}
+          <div style={{borderTop:'1px solid rgba(255,255,255,0.06)',margin:'8px 0',padding:'8px 20px',display:'flex',gap:10}}>
+            <button className="btn-gold-sm" style={{flex:1,fontSize:12}} onClick={() => { setShowUpgradeModal(true); setMenuOpen(false) }}>🚀 {profile?.plano?.toUpperCase()||'UPGRADE'}</button>
+            <button onClick={() => { handleLogout(); setMenuOpen(false) }} style={{color:'var(--text-muted)',fontSize:12,border:'1px solid rgba(255,255,255,0.08)',borderRadius:8,padding:'8px 14px',background:'none',cursor:'pointer',fontFamily:'var(--font-body)'}}>Sair</button>
+          </div>
+        </div>
+      )}
+
+      <div style={{display:'flex',paddingTop:60,minHeight:'100vh'}}>
+        {/* Sidebar desktop */}
+        <aside className="dash-sidebar nav-desktop">
+          {SIDEBAR.map(item => (
+            <button key={item.key} className={`sidebar-item${page===item.key?' active':''}`} onClick={() => navTo(item.key)}>
               <span style={{fontSize:17,width:24,textAlign:'center'}}>{item.icon}</span> {item.label}
             </button>
           ))}
@@ -1050,19 +1096,21 @@ export default function TigerJusApp() {
           )}
           <button className="sidebar-item" onClick={handleLogout}>🚪 Sair</button>
           <div style={{marginTop:'auto',padding:'20px 12px 0'}}>
-            <div style={{background:'rgba(212,168,67,0.06)',border:'1px solid rgba(212,168,67,0.14)',borderRadius:12,padding:16}}>
-              <div style={{fontSize:9,fontWeight:700,letterSpacing:2,textTransform:'uppercase',color:'var(--gold)',marginBottom:6}}>{profile?.plano?.toUpperCase() || 'PLANO GRATUITO'}</div>
-              <div style={{fontSize:12,color:'var(--text-muted)',marginBottom:12}}>{freeQ > 9000 ? 'Ilimitado' : `${freeQ} questões`} · {freeIA > 9000 ? 'IA Ilimitada' : `${freeIA} perguntas IA`}</div>
+            <div style={{background:'rgba(212,168,67,0.06)',border:'1px solid rgba(212,168,67,0.14)',borderRadius:12,padding:14}}>
+              <div style={{fontSize:9,fontWeight:700,letterSpacing:2,textTransform:'uppercase',color:'var(--gold)',marginBottom:5}}>{profile?.plano?.toUpperCase()||'PLANO GRATUITO'}</div>
+              <div style={{fontSize:11,color:'var(--text-muted)',marginBottom:10}}>{freeQ>9000?'Ilimitado':`${freeQ} questões`} · {freeIA>9000?'IA Ilimitada':`${freeIA} perguntas IA`}</div>
               <button className="btn-gold-sm" style={{width:'100%',fontSize:11}} onClick={() => setShowUpgradeModal(true)}>🚀 FAZER UPGRADE</button>
             </div>
+            {/* Anúncio sidebar */}
+            <AdBanner slot="sidebar" isPremium={isPremium} />
             <RadarOAB />
           </div>
         </aside>
 
-        {page==='dashboard'   && <DashHome profile={profile} onNav={setPage} showUpgrade={showUpgrade} />}
-        {page==='disciplines' && <DisciplinesPage showUpgrade={showUpgrade} profile={profile} />}
-        {page==='quiz'        && <QuizPage freeQ={freeQ} setFreeQ={setFreeQ} showUpgrade={showUpgrade} onXp={handleXp} profile={profile} />}
-        {page==='simulados'   && <SimuladosPage showUpgrade={showUpgrade} freeQ={freeQ} setFreeQ={setFreeQ} onXp={handleXp} profile={profile} />}
+        {page==='dashboard'   && <DashHome profile={profile} onNav={navTo} showUpgrade={showUpgrade} isPremium={isPremium} />}
+        {page==='disciplines' && <DisciplinesPage showUpgrade={showUpgrade} profile={profile} isPremium={isPremium} />}
+        {page==='quiz'        && <QuizPage freeQ={freeQ} setFreeQ={setFreeQ} showUpgrade={showUpgrade} onXp={handleXp} profile={profile} isPremium={isPremium} />}
+        {page==='simulados'   && <SimuladosPage showUpgrade={showUpgrade} freeQ={freeQ} setFreeQ={setFreeQ} onXp={handleXp} profile={profile} isPremium={isPremium} />}
         {page==='ia'          && <IAPage freeIA={freeIA} setFreeIA={setFreeIA} showUpgrade={showUpgrade} profile={profile} />}
         {page==='ranking'     && <RankingPage profile={profile} />}
       </div>
@@ -1072,6 +1120,13 @@ export default function TigerJusApp() {
         @keyframes fadeInDown { from{opacity:0;transform:translateY(-16px)} to{opacity:1;transform:translateY(0)} }
         @keyframes fadeInUp { from{opacity:0;transform:translateY(24px)} to{opacity:1;transform:translateY(0)} }
         @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.5;transform:scale(0.9)} }
+        .nav-desktop { display: flex !important; }
+        .nav-mobile { display: none !important; }
+        @media (max-width: 768px) {
+          .nav-desktop { display: none !important; }
+          .nav-mobile { display: flex !important; }
+          .dash-sidebar { display: none !important; }
+        }
       `}</style>
     </div>
   )
