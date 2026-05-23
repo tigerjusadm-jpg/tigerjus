@@ -1,12 +1,11 @@
 import { NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
-import type { CookieOptions } from '@supabase/ssr'
 
 type CookieToSet = {
   name: string
   value: string
-  options: CookieOptions
+  options?: Parameters<ReturnType<typeof cookies>['set']>[2]
 }
 
 export async function GET(request: Request) {
