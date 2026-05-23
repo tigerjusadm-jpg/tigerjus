@@ -17,7 +17,6 @@ export default function LoginPage() {
   const [erro, setErro] = useState('')
   const [sucesso, setSucesso] = useState('')
 
-  // ✅ Preenche email salvo se "lembrar" estava ativo
   useEffect(() => {
     const emailSalvo = localStorage.getItem('tigerjus_email')
     const lembrarSalvo = localStorage.getItem('tigerjus_lembrar')
@@ -51,7 +50,6 @@ export default function LoginPage() {
       email, password: senha,
       options: {
         data: { nome },
-        // ✅ Callback passa pelo domínio tigerjus.com.br
         emailRedirectTo: `https://tigerjus.com.br/auth/callback`
       }
     })
@@ -64,7 +62,6 @@ export default function LoginPage() {
     if (!email) { setErro('Digite seu email.'); return }
     setLoading(true); setErro('')
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      // ✅ Callback passa pelo domínio tigerjus.com.br
       redirectTo: `https://tigerjus.com.br/auth/callback?next=/reset-password`,
     })
     if (error) { setErro('Erro ao enviar email. Tente novamente.') }
@@ -77,7 +74,7 @@ export default function LoginPage() {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: `${window.location.origin}/auth/callback`
+        redirectTo: `https://tigerjus.com.br/dashboard`
       }
     })
     if (error) setErro('Erro ao entrar com Google.')
@@ -131,7 +128,6 @@ export default function LoginPage() {
             </div>
           )}
 
-          {/* Lembrar-me */}
           {mode === 'login' && (
             <div style={{marginBottom:24}}>
               <label style={{display:'flex',alignItems:'center',gap:10,cursor:'pointer',userSelect:'none'}}
