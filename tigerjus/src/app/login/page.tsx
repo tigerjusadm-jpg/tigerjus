@@ -71,14 +71,21 @@ export default function LoginPage() {
 
   const handleGoogle = async () => {
     setLoading(true)
+    setErro('')
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: `https://tigerjus.com.br/dashboard`
+        redirectTo: `${window.location.origin}/auth/callback`,
+        queryParams: {
+          access_type: 'offline',
+          prompt: 'consent',
+        },
       }
     })
-    if (error) setErro('Erro ao entrar com Google.')
-    setLoading(false)
+    if (error) {
+      setErro('Erro ao entrar com Google.')
+      setLoading(false)
+    }
   }
 
   const handleSubmit = () => {
