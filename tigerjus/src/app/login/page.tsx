@@ -17,7 +17,7 @@ export default function LoginPage() {
   const [erro, setErro] = useState('')
   const [sucesso, setSucesso] = useState('')
 
-  // ✅ Ao carregar, preenche email salvo se "lembrar" estava ativo
+  // ✅ Preenche email salvo se "lembrar" estava ativo
   useEffect(() => {
     const emailSalvo = localStorage.getItem('tigerjus_email')
     const lembrarSalvo = localStorage.getItem('tigerjus_lembrar')
@@ -30,8 +30,6 @@ export default function LoginPage() {
   const handleLogin = async () => {
     if (!email || !senha) { setErro('Preencha email e senha.'); return }
     setLoading(true); setErro('')
-
-    // ✅ Salva ou remove email conforme preferência
     if (lembrar) {
       localStorage.setItem('tigerjus_email', email)
       localStorage.setItem('tigerjus_lembrar', 'true')
@@ -39,22 +37,9 @@ export default function LoginPage() {
       localStorage.removeItem('tigerjus_email')
       localStorage.removeItem('tigerjus_lembrar')
     }
-
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password: senha,
-      // ✅ Sessão persistente de 30 dias se "lembrar" ativo
-      options: { captchaToken: undefined } as any,
-    })
-
+    const { error } = await supabase.auth.signInWithPassword({ email, password: senha })
     if (error) { setErro('Email ou senha incorretos.') }
-    else {
-      // Mantém sessão ativa por 30 dias no Supabase
-      if (lembrar) {
-        await supabase.auth.refreshSession()
-      }
-      router.push('/dashboard')
-    }
+    else { router.push('/dashboard') }
     setLoading(false)
   }
 
@@ -64,7 +49,11 @@ export default function LoginPage() {
     setLoading(true); setErro('')
     const { error } = await supabase.auth.signUp({
       email, password: senha,
-      options: { data: { nome }, emailRedirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard` }
+      options: {
+        data: { nome },
+        // ✅ Callback passa pelo domínio tigerjus.com.br
+        emailRedirectTo: `https://tigerjus.com.br/auth/callback`
+      }
     })
     if (error) { setErro('Erro ao criar conta. Tente novamente.') }
     else { setSucesso('Conta criada! Verifique seu email para confirmar o cadastro.') }
@@ -75,7 +64,8 @@ export default function LoginPage() {
     if (!email) { setErro('Digite seu email.'); return }
     setLoading(true); setErro('')
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/reset-password`,
+      // ✅ Callback passa pelo domínio tigerjus.com.br
+      redirectTo: `https://tigerjus.com.br/auth/callback?next=/reset-password`,
     })
     if (error) { setErro('Erro ao enviar email. Tente novamente.') }
     else { setSucesso('Email enviado! Verifique sua caixa de entrada.') }
@@ -86,7 +76,10 @@ export default function LoginPage() {
     setLoading(true)
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
-      options: { redirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard` }
+      options: {
+        // ✅ Callback passa pelo tigerjus.com.br — aparece no Google
+        redirectTo: `https://tigerjus.com.br/auth/callback`
+      }
     })
     if (error) setErro('Erro ao entrar com Google.')
     setLoading(false)
@@ -133,26 +126,18 @@ export default function LoginPage() {
           </div>
 
           {mode !== 'reset' && (
-            <div style={{marginBottom:mode === 'login' ? 16 : 24}}>
+            <div style={{marginBottom: mode === 'login' ? 16 : 24}}>
               <label style={{fontSize:11,fontWeight:700,letterSpacing:'1.5px',textTransform:'uppercase',color:'var(--text-muted)',display:'block',marginBottom:8}}>Senha</label>
               <input className="form-input" type="password" placeholder="••••••••" value={senha} onChange={e => setSenha(e.target.value)} onKeyDown={e => e.key==='Enter'&&handleSubmit()} />
             </div>
           )}
 
-          {/* ✅ LEMBRAR-ME — só aparece no login */}
+          {/* Lembrar-me */}
           {mode === 'login' && (
             <div style={{marginBottom:24}}>
               <label style={{display:'flex',alignItems:'center',gap:10,cursor:'pointer',userSelect:'none'}}
                 onClick={() => setLembrar(l => !l)}>
-                {/* Checkbox customizado */}
-                <div style={{
-                  width:20, height:20,
-                  borderRadius:6,
-                  border: lembrar ? '2px solid var(--gold)' : '2px solid rgba(255,255,255,0.2)',
-                  background: lembrar ? 'rgba(212,168,67,0.15)' : 'transparent',
-                  display:'flex', alignItems:'center', justifyContent:'center',
-                  flexShrink:0, transition:'all 0.2s',
-                }}>
+                <div style={{width:20,height:20,borderRadius:6,border:lembrar?'2px solid var(--gold)':'2px solid rgba(255,255,255,0.2)',background:lembrar?'rgba(212,168,67,0.15)':'transparent',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,transition:'all 0.2s'}}>
                   {lembrar && (
                     <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
                       <path d="M2 6l3 3 5-5" stroke="#D4A843" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
