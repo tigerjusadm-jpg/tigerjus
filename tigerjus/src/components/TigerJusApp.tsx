@@ -88,7 +88,7 @@ const RADAR_TEMAS = [
 function RadarModal({ onClose }: { onClose: () => void }) {
   return (
     <div style={{position:'fixed',inset:0,zIndex:400,background:'rgba(0,0,0,0.95)',backdropFilter:'blur(10px)',display:'flex',alignItems:'center',justifyContent:'center',padding:20,overflowY:'auto'}}>
-      <div style={{width:'100%',maxWidth:700,background:'var(--gray)',border:'1px solid rgba(212,168,67,0.25)',borderRadius:24,padding:'32px 28px',position:'relative'}}>
+      <div style={{width:'100%',maxWidth:700,background:'var(--gray)',border:'1px solid rgba(212,168,67,0.25)',borderRadius:24,padding:'32px 28px',position:'relative',maxHeight:'90vh',overflowY:'auto'}}>
         <button onClick={onClose} style={{position:'absolute',top:16,right:16,background:'none',border:'none',color:'#888',fontSize:22,cursor:'pointer'}}>✕</button>
         <div style={{display:'flex',alignItems:'center',gap:12,marginBottom:8}}>
           <span style={{fontSize:28}}>🎯</span>
@@ -793,12 +793,7 @@ function DisciplinesPage({ showUpgrade, profile, isPremium }: any) {
           <div style={{background:'var(--gray)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:20,padding:40,textAlign:'center'}}>
             <div style={{fontSize:44,marginBottom:14}}>📄</div>
             <h3 style={{fontFamily:'var(--font-display)',fontSize:20,fontWeight:900,marginBottom:8}}>PDF — {selected.name}</h3>
-            <p style={{color:'var(--text-muted)',marginBottom:6,fontSize:14}}>Gerado automaticamente com:</p>
-            <div style={{display:'flex',flexDirection:'column',gap:6,marginBottom:24,maxWidth:300,margin:'0 auto 24px'}}>
-              {['✅ Logo TigerJus no cabeçalho','✅ Resumo essencial da disciplina','✅ Até 20 questões OAB reais','✅ Gabarito e comentários','✅ Gabarito rápido ao final'].map((item,i)=>(
-                <div key={i} style={{fontSize:13,color:'var(--text-muted)',textAlign:'left'}}>{item}</div>
-              ))}
-            </div>
+            <p style={{color:'var(--text-muted)',marginBottom:24,fontSize:14}}>Resumo essencial + questões OAB reais com gabarito comentado.</p>
             <button className="btn-primary" onClick={()=>handlePDF(selected)} disabled={gerandoPDF} style={{minWidth:220,fontSize:14}}>
               {gerandoPDF?'⏳ Gerando PDF...':'📄 GERAR E BAIXAR PDF'}
             </button>
@@ -1144,12 +1139,24 @@ export default function TigerJusApp() {
 
   useEffect(()=>{
     const init=async()=>{
+      // ✅ Aguarda sessão OAuth ser estabelecida (PKCE pode demorar um pouco)
       const{data:{session}}=await supabase.auth.getSession()
       if(session){await loadProfile(session.user.id);return}
-      const timeout=setTimeout(()=>{router.push('/login')},3000)
+
+      // ✅ Escuta mudanças de auth — captura sessão do Google OAuth
       const{data:{subscription}}=supabase.auth.onAuthStateChange(async(event,session)=>{
-        if(session){clearTimeout(timeout);await loadProfile(session.user.id);subscription.unsubscribe()}
+        if(event==='SIGNED_IN'&&session){
+          await loadProfile(session.user.id)
+          subscription.unsubscribe()
+        }
+        if(event==='SIGNED_OUT'){
+          router.push('/login')
+        }
       })
+
+      // ✅ Aumenta timeout para 8 segundos (Google OAuth pode demorar)
+      const timeout=setTimeout(()=>{router.push('/login')},8000)
+
       return()=>{clearTimeout(timeout);subscription.unsubscribe()}
     }
     init()
