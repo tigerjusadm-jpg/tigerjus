@@ -13,7 +13,7 @@
     "react": "^19.2.1",
     "react-dom": "^19.2.1",
     "@supabase/supabase-js": "^2.43.4",
-    "@supabase/auth-helpers-nextjs": "^0.10.0",
+    "@supabase/ssr": "^0.5.0",
     "@anthropic-ai/sdk": "^0.24.0",
     "framer-motion": "^11.2.10",
     "recharts": "^2.12.7",
