@@ -77,8 +77,7 @@ export default function LoginPage() {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        // ✅ Callback passa pelo tigerjus.com.br — aparece no Google
-        redirectTo: `https://tigerjus.com.br/auth/callback`
+        redirectTo: `${window.location.origin}/auth/callback`
       }
     })
     if (error) setErro('Erro ao entrar com Google.')
