@@ -38,7 +38,7 @@ export default function LoginPage() {
     }
     const { error } = await supabase.auth.signInWithPassword({ email, password: senha })
     if (error) { setErro('Email ou senha incorretos.') }
-    else { router.push('/dashboard') }
+    else { router.push('/plataforma') }
     setLoading(false)
   }
 
@@ -50,7 +50,7 @@ export default function LoginPage() {
       email, password: senha,
       options: {
         data: { nome },
-        emailRedirectTo: `https://tigerjus.com.br/auth/callback`
+        emailRedirectTo: `${window.location.origin}/auth/callback`
       }
     })
     if (error) { setErro('Erro ao criar conta. Tente novamente.') }
@@ -62,7 +62,7 @@ export default function LoginPage() {
     if (!email) { setErro('Digite seu email.'); return }
     setLoading(true); setErro('')
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `https://tigerjus.com.br/auth/callback?next=/reset-password`,
+      redirectTo: `${window.location.origin}/auth/callback?next=/reset-password`,
     })
     if (error) { setErro('Erro ao enviar email. Tente novamente.') }
     else { setSucesso('Email enviado! Verifique sua caixa de entrada.') }
