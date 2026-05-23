@@ -3,23 +3,20 @@ import { createClient } from '@supabase/supabase-js'
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 
-// ✅ flowType: 'pkce' faz o OAuth passar pelo /auth/callback do seu domínio
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
-    flowType: 'pkce',
+    flowType: 'implicit',
     autoRefreshToken: true,
     persistSession: true,
     detectSessionInUrl: true,
   }
 })
 
-// Server-side client with service role (only for API routes)
 export const supabaseAdmin = () =>
   createClient(supabaseUrl, process.env.SUPABASE_SERVICE_ROLE_KEY!, {
     auth: { autoRefreshToken: false, persistSession: false }
   })
 
-// Level calculation
 export function getLevelInfo(xp: number) {
   if (xp < 1000) return { level: 1, name: 'Filhote', next: 1000, emoji: '🐱' }
   if (xp < 5000) return { level: 2, name: 'Caçador', next: 5000, emoji: '🎯' }
