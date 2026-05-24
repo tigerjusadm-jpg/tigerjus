@@ -664,6 +664,66 @@ function DisciplinesPage({ showUpgrade, profile, isPago, canAccessPremium }: any
   )
 }
 
+// ─── FLASHCARDS PAGE — tela geral do menu lateral ────────────────────────────
+function FlashCardsPage() {
+  const [disciplinaAtiva, setDisciplinaAtiva] = useState<string|null>(null)
+
+  // Grid de disciplinas
+  if (!disciplinaAtiva) return (
+    <div style={{padding:'24px 20px', flex:1}}>
+      <h1 style={{fontFamily:'var(--font-display)', fontSize:'clamp(22px,5vw,32px)', fontWeight:900, marginBottom:6}}>
+        Flashcards 🃏
+      </h1>
+      <p style={{fontSize:14, color:'var(--text-muted)', marginBottom:24}}>
+        Escolha uma disciplina para revisar com flashcards gerados das questões reais da OAB.
+      </p>
+      <div style={{display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(160px,1fr))', gap:12}}>
+        {DISCIPLINES.map(d => (
+          <div
+            key={d.id}
+            style={{background:'var(--gray)', border:'1px solid rgba(255,255,255,0.05)', borderRadius:14, padding:16, cursor:'pointer', transition:'all 0.2s'}}
+            onClick={() => setDisciplinaAtiva(d.name)}
+            onMouseEnter={e => { e.currentTarget.style.borderColor='rgba(212,168,67,0.2)'; e.currentTarget.style.transform='translateY(-2px)' }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor='rgba(255,255,255,0.05)'; e.currentTarget.style.transform='translateY(0)' }}
+          >
+            <div style={{fontSize:28, marginBottom:10}}>{d.icon}</div>
+            <div style={{fontSize:13, fontWeight:700, marginBottom:4}}>{d.name}</div>
+            <div style={{fontSize:11, color:'var(--text-muted)', marginBottom:10}}>{d.q} questões</div>
+            <div style={{display:'inline-flex', alignItems:'center', gap:5, fontSize:11, color:'var(--gold)', fontWeight:600}}>
+              🃏 Ver flashcards →
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+
+  // Tela de flashcards da disciplina selecionada
+  return (
+    <div style={{padding:'24px 20px', flex:1}}>
+      <button
+        onClick={() => setDisciplinaAtiva(null)}
+        style={{display:'flex', alignItems:'center', gap:8, color:'var(--text-muted)', fontSize:13, border:'none', background:'none', cursor:'pointer', marginBottom:20, fontFamily:'var(--font-body)'}}
+      >
+        ← Voltar às disciplinas
+      </button>
+      <div style={{display:'flex', alignItems:'center', gap:14, marginBottom:24}}>
+        <span style={{fontSize:36}}>
+          {DISCIPLINES.find(d => d.name === disciplinaAtiva)?.icon || '🃏'}
+        </span>
+        <div>
+          <h1 style={{fontFamily:'var(--font-display)', fontSize:'clamp(20px,5vw,28px)', fontWeight:900}}>
+            {disciplinaAtiva}
+          </h1>
+          <p style={{fontSize:12, color:'var(--text-muted)'}}>Flashcards gerados das questões OAB</p>
+        </div>
+      </div>
+      {/* Reaproveitamento direto do componente FlashCards existente */}
+      <FlashCards disciplina={disciplinaAtiva}/>
+    </div>
+  )
+}
+
 // ─── QUIZ POR DISCIPLINA — busca real do banco filtrada por disciplina ────────
 function QuizDisciplina({disciplina}:{disciplina:string}) {
   const [questions, setQuestions] = useState<any[]>([])
@@ -1454,6 +1514,7 @@ export default function TigerJusApp() {
     {icon:'🏠',label:'Dashboard',key:'dashboard'},
     {icon:'📚',label:'Disciplinas',key:'disciplines'},
     {icon:'📝',label:'Quiz',key:'quiz'},
+    {icon:'🃏',label:'Flashcards',key:'flashcards'},
     {icon:'📋',label:'Simulados',key:'simulados'},
     {icon:'🤖',label:'IA Jurídica',key:'ia'},
     {icon:'🏆',label:'Ranking',key:'ranking'},
@@ -1531,6 +1592,7 @@ export default function TigerJusApp() {
         {page==='dashboard'&&<DashHome profile={profile} onNav={navTo} showUpgrade={showUpgrade} isPago={userIsPago} canAccessPremium={canAccessPremium} onOpenRadar={()=>setShowRadar(true)}/>}
         {page==='disciplines'&&<DisciplinesPage showUpgrade={showUpgrade} profile={profile} isPago={userIsPago} canAccessPremium={canAccessPremium}/>}
         {page==='quiz'&&<QuizPage freeQ={freeQ} setFreeQ={setFreeQ} showUpgrade={showUpgrade} onXp={handleXp} profile={profile} isPago={userIsPago}/>}
+        {page==='flashcards'&&<FlashCardsPage/>}
         {page==='simulados'&&<SimuladosPage showUpgrade={showUpgrade} freeQ={freeQ} setFreeQ={setFreeQ} onXp={handleXp} profile={profile} isPago={userIsPago} canAccessElite={canAccessElite}/>}
         {page==='ia'&&<IAPage freeIA={freeIA} setFreeIA={setFreeIA} showUpgrade={showUpgrade} profile={profile} isPago={userIsPago}/>}
         {page==='ranking'&&<RankingPage profile={profile}/>}
