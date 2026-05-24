@@ -3,10 +3,11 @@ import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import RadarOAB from '@/components/RadarOAB'
+import { canAccess, isAdmin, getLimites, isPago, PLANOS_DISPLAY, type Plano } from '@/lib/planos'
 
 interface Profile {
   id: string; nome: string; email: string; plano: string
-  xp: number; level: number; level_name: string; streak: number
+  xp: number; nivel: number; level_name: string; streak: number
   free_questions_used: number; free_ia_used: number
   questoes_respondidas: number; questoes_corretas: number
   role?: string
@@ -24,9 +25,8 @@ const XP_PREV: Record<LevelName, number> = {
 }
 
 const PLANS_UPGRADE = [
-  { id:'start', name:'Tiger Start', price:'1,99', color:'var(--success)', features:['Questões ilimitadas','IA intermediária','Mais simulados','Streak + ranking'] },
-  { id:'plus', name:'Tiger Plus', price:'5,99', color:'var(--blue)', features:['Simulados completos','Mapas mentais','PDFs premium','IA ampliada'] },
-  { id:'pro', name:'Tiger Pro', price:'9,99', color:'var(--gold)', badge:'POPULAR', featured:true, features:['IA avançada ilimitada','Radar jurídico','Trilhas personalizadas','Previsão de aprovação'] },
+  { id:'entrada', name:'Tiger Entrada', price:'1,99', color:'var(--success)', features:['Questões ilimitadas','IA intermediária','Mais simulados','Streak + ranking'] },
+  { id:'premium', name:'Tiger Premium', price:'9,99', color:'var(--gold)', badge:'POPULAR', featured:true, features:['IA avançada ilimitada','Radar jurídico','Trilhas personalizadas','Previsão de aprovação'] },
   { id:'elite', name:'Tiger Elite', price:'19,99', color:'var(--orange)', badge:'TOP', features:['Tudo ilimitado','IA prioritária','Conteúdos exclusivos','Simulados inéditos'] },
 ]
 
@@ -75,7 +75,6 @@ const RESUMOS: Record<string, string> = {
   civil:`DIREITO CIVIL — RESUMO ESSENCIAL\n\nCAPACIDADE\n- Plena: maiores de 18 anos não incapazes\n- Absolutamente incapaz: menores de 16 anos (art. 3º CC)\n- Relativamente incapaz: 16-18 anos, ébrios habituais, pródigos\n\nRESPONSABILIDADE CIVIL\n- Subjetiva: necessita de culpa\n- Objetiva: independe de culpa (risco da atividade)`,
 }
 
-// ─── RADAR TIGERJUS — temas quentes ──────────────────────────────────────────
 const RADAR_TEMAS = [
   { disc:'Direito Constitucional', tema:'Direitos Fundamentais — Art. 5º', prob:94, tipo:'Lei seca', dica:'Foco em HC, MS, HD e MI. Caem todo exame.' },
   { disc:'Direito Penal', tema:'Teoria do Crime — Dolo e Culpa', prob:91, tipo:'Jurisprudência', dica:'STJ e STF consolidaram entendimento sobre dolo eventual.' },
@@ -123,103 +122,33 @@ function RadarModal({ onClose }: { onClose: () => void }) {
             </div>
           ))}
         </div>
-        <div style={{marginTop:20,textAlign:'center',fontSize:11,color:'var(--text-muted)'}}>
-          🔄 Atualizado após cada exame oficial · Próxima atualização: 47º EOU (30/08/2026)
-        </div>
       </div>
     </div>
   )
 }
 
-// ─── BANNER PUBLICITÁRIO ROTATIVO ─────────────────────────────────────────────
 const ADS_BANNER = [
-  {
-    id:1,
-    url:'https://damasio.com.br',
-    bg:'linear-gradient(135deg,#1a237e,#283593)',
-    logo:'🎓',
-    logoColor:'#fff',
-    titulo:'Faculdade Damásio',
-    subtitulo:'OAB 1ª e 2ª Fase — Aprovação garantida ou devolução do investimento',
-    cta:'Conhecer agora',
-    ctaBg:'#fff',
-    ctaColor:'#1a237e',
-    badge:'PARCEIRO OFICIAL',
-    badgeBg:'rgba(255,255,255,0.15)',
-  },
-  {
-    id:2,
-    url:'https://cers.com.br',
-    bg:'linear-gradient(135deg,#b71c1c,#c62828)',
-    logo:'⚖️',
-    logoColor:'#fff',
-    titulo:'CERS Cursos Jurídicos',
-    subtitulo:'Mais de 1 milhão de aprovados. A maior plataforma jurídica do Brasil.',
-    cta:'Ver cursos',
-    ctaBg:'#fff',
-    ctaColor:'#b71c1c',
-    badge:'TOP PARCEIRO',
-    badgeBg:'rgba(255,255,255,0.15)',
-  },
-  {
-    id:3,
-    url:'https://grancursosonline.com.br',
-    bg:'linear-gradient(135deg,#1b5e20,#2e7d32)',
-    logo:'🏆',
-    logoColor:'#fff',
-    titulo:'Gran Cursos Online',
-    subtitulo:'Simulados ilimitados para OAB. Comece grátis e seja aprovado.',
-    cta:'Começar grátis',
-    ctaBg:'#fff',
-    ctaColor:'#1b5e20',
-    badge:'RECOMENDADO',
-    badgeBg:'rgba(255,255,255,0.15)',
-  },
+  {id:1,url:'https://damasio.com.br',bg:'linear-gradient(135deg,#1a237e,#283593)',logo:'🎓',titulo:'Faculdade Damásio',subtitulo:'OAB 1ª e 2ª Fase — Aprovação garantida ou devolução do investimento',cta:'Conhecer agora',ctaBg:'#fff',ctaColor:'#1a237e',badge:'PARCEIRO OFICIAL',badgeBg:'rgba(255,255,255,0.15)'},
+  {id:2,url:'https://cers.com.br',bg:'linear-gradient(135deg,#b71c1c,#c62828)',logo:'⚖️',titulo:'CERS Cursos Jurídicos',subtitulo:'Mais de 1 milhão de aprovados. A maior plataforma jurídica do Brasil.',cta:'Ver cursos',ctaBg:'#fff',ctaColor:'#b71c1c',badge:'TOP PARCEIRO',badgeBg:'rgba(255,255,255,0.15)'},
+  {id:3,url:'https://grancursosonline.com.br',bg:'linear-gradient(135deg,#1b5e20,#2e7d32)',logo:'🏆',titulo:'Gran Cursos Online',subtitulo:'Simulados ilimitados para OAB. Comece grátis e seja aprovado.',cta:'Começar grátis',ctaBg:'#fff',ctaColor:'#1b5e20',badge:'RECOMENDADO',badgeBg:'rgba(255,255,255,0.15)'},
 ]
 
-function AdBannerRotativo({ isPremium }: { isPremium: boolean }) {
+function AdBannerRotativo({ }: { isPremium: boolean }) {
   const [idx, setIdx] = useState(0)
   const [fade, setFade] = useState(true)
-
   useEffect(() => {
     const interval = setInterval(() => {
       setFade(false)
-      setTimeout(() => {
-        setIdx(i => (i + 1) % ADS_BANNER.length)
-        setFade(true)
-      }, 400)
+      setTimeout(() => { setIdx(i => (i + 1) % ADS_BANNER.length); setFade(true) }, 400)
     }, 10000)
     return () => clearInterval(interval)
   }, [])
-
   const ad = ADS_BANNER[idx]
-
   return (
     <div style={{marginBottom:20}}>
       <div style={{fontSize:9,fontWeight:700,letterSpacing:'2px',textTransform:'uppercase',color:'var(--text-dim)',marginBottom:6,textAlign:'right'}}>PUBLICIDADE</div>
-      <div
-        onClick={() => window.open(ad.url,'_blank')}
-        style={{
-          background: ad.bg,
-          borderRadius:14,
-          padding:'16px 20px',
-          cursor:'pointer',
-          transition:'opacity 0.4s ease, transform 0.2s',
-          opacity: fade ? 1 : 0,
-          display:'flex',
-          alignItems:'center',
-          gap:16,
-          flexWrap:'wrap',
-          boxShadow:'0 4px 20px rgba(0,0,0,0.3)',
-        }}
-        onMouseEnter={e => e.currentTarget.style.transform='scale(1.01)'}
-        onMouseLeave={e => e.currentTarget.style.transform='scale(1)'}
-      >
-        {/* Logo / ícone */}
-        <div style={{width:48,height:48,borderRadius:12,background:'rgba(255,255,255,0.15)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:24,flexShrink:0}}>
-          {ad.logo}
-        </div>
-        {/* Texto */}
+      <div onClick={() => window.open(ad.url,'_blank')} style={{background:ad.bg,borderRadius:14,padding:'16px 20px',cursor:'pointer',transition:'opacity 0.4s ease, transform 0.2s',opacity:fade?1:0,display:'flex',alignItems:'center',gap:16,flexWrap:'wrap',boxShadow:'0 4px 20px rgba(0,0,0,0.3)'}} onMouseEnter={e=>e.currentTarget.style.transform='scale(1.01)'} onMouseLeave={e=>e.currentTarget.style.transform='scale(1)'}>
+        <div style={{width:48,height:48,borderRadius:12,background:'rgba(255,255,255,0.15)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:24,flexShrink:0}}>{ad.logo}</div>
         <div style={{flex:1,minWidth:0}}>
           <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:4,flexWrap:'wrap'}}>
             <span style={{fontSize:14,fontWeight:800,color:'#fff'}}>{ad.titulo}</span>
@@ -227,16 +156,9 @@ function AdBannerRotativo({ isPremium }: { isPremium: boolean }) {
           </div>
           <div style={{fontSize:12,color:'rgba(255,255,255,0.8)',lineHeight:1.5}}>{ad.subtitulo}</div>
         </div>
-        {/* CTA */}
-        <button style={{background:ad.ctaBg,color:ad.ctaColor,border:'none',borderRadius:10,padding:'10px 18px',fontSize:12,fontWeight:800,cursor:'pointer',whiteSpace:'nowrap',flexShrink:0}}>
-          {ad.cta} →
-        </button>
-        {/* Indicadores de slide */}
+        <button style={{background:ad.ctaBg,color:ad.ctaColor,border:'none',borderRadius:10,padding:'10px 18px',fontSize:12,fontWeight:800,cursor:'pointer',whiteSpace:'nowrap',flexShrink:0}}>{ad.cta} →</button>
         <div style={{width:'100%',display:'flex',gap:5,justifyContent:'center',marginTop:4}}>
-          {ADS_BANNER.map((_,i) => (
-            <button key={i} onClick={e=>{e.stopPropagation();setFade(false);setTimeout(()=>{setIdx(i);setFade(true)},300)}}
-              style={{width:i===idx?20:6,height:6,borderRadius:3,background:i===idx?'rgba(255,255,255,0.9)':'rgba(255,255,255,0.3)',border:'none',cursor:'pointer',transition:'all 0.3s',padding:0}}/>
-          ))}
+          {ADS_BANNER.map((_,i) => (<button key={i} onClick={e=>{e.stopPropagation();setFade(false);setTimeout(()=>{setIdx(i);setFade(true)},300)}} style={{width:i===idx?20:6,height:6,borderRadius:3,background:i===idx?'rgba(255,255,255,0.9)':'rgba(255,255,255,0.3)',border:'none',cursor:'pointer',transition:'all 0.3s',padding:0}}/>))}
         </div>
       </div>
     </div>
@@ -258,110 +180,17 @@ function AdCardFeed() {
   )
 }
 
-// ─── PDF REAL com HTML → impressão do navegador ───────────────────────────────
 async function gerarPDF(disciplina: any, resumo: string, questoes: any[]) {
   const data = new Date().toLocaleDateString('pt-BR')
-  const html = `<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-<meta charset="UTF-8">
-<title>TigerJus — ${disciplina.name}</title>
-<style>
-  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap');
-  * { margin:0; padding:0; box-sizing:border-box; }
-  body { font-family:'Inter',sans-serif; background:#fff; color:#1a1a1a; font-size:12px; line-height:1.6; }
-  .header { background:linear-gradient(135deg,#D4A843,#E8621A); padding:28px 40px; color:#000; display:flex; align-items:center; justify-content:space-between; }
-  .logo { font-size:28px; font-weight:900; letter-spacing:3px; }
-  .logo span { font-size:13px; display:block; letter-spacing:1px; opacity:0.8; font-weight:600; margin-top:2px; }
-  .header-right { text-align:right; font-size:11px; opacity:0.8; }
-  .disc-badge { background:rgba(0,0,0,0.15); border-radius:8px; padding:6px 14px; display:inline-block; margin-top:8px; font-weight:700; font-size:13px; }
-  .container { padding:32px 40px; }
-  .section-title { font-size:15px; font-weight:900; text-transform:uppercase; letter-spacing:2px; color:#D4A843; border-bottom:2px solid #D4A843; padding-bottom:8px; margin:28px 0 16px; }
-  .resumo-box { background:#fafafa; border:1px solid #eee; border-left:4px solid #D4A843; border-radius:8px; padding:20px 24px; white-space:pre-wrap; font-size:12px; line-height:1.8; }
-  .questao { border:1px solid #e0e0e0; border-radius:10px; padding:18px 20px; margin-bottom:16px; page-break-inside:avoid; }
-  .questao-num { font-size:10px; font-weight:700; letter-spacing:2px; text-transform:uppercase; color:#888; margin-bottom:6px; }
-  .questao-texto { font-size:13px; font-weight:600; margin-bottom:12px; line-height:1.6; }
-  .opcao { display:flex; gap:10px; padding:8px 10px; border-radius:6px; margin-bottom:4px; font-size:12px; }
-  .opcao.correta { background:#e8f5e9; border:1px solid #4caf50; color:#1b5e20; font-weight:600; }
-  .opcao.normal { background:#fafafa; border:1px solid #eee; }
-  .letra { font-weight:800; min-width:20px; }
-  .comentario { margin-top:10px; padding:10px 14px; background:#fff8e1; border:1px solid #ffe082; border-radius:6px; font-size:11px; color:#555; line-height:1.6; }
-  .footer { margin-top:40px; padding:20px 40px; background:#f5f5f5; border-top:2px solid #D4A843; display:flex; justify-content:space-between; align-items:center; font-size:10px; color:#888; }
-  .footer-logo { font-weight:900; font-size:14px; color:#D4A843; letter-spacing:2px; }
-  .gabarito-box { background:#fff8e1; border:1px solid #ffe082; border-radius:10px; padding:16px 20px; margin:20px 0; }
-  .gabarito-grid { display:grid; grid-template-columns:repeat(10,1fr); gap:6px; margin-top:10px; }
-  .gab-item { text-align:center; font-size:11px; font-weight:700; background:#fff; border:1px solid #eee; border-radius:4px; padding:4px 2px; }
-  .gab-num { font-size:9px; color:#888; display:block; }
-  @media print { body{-webkit-print-color-adjust:exact;print-color-adjust:exact;} }
-</style>
-</head>
-<body>
-<div class="header">
-  <div>
-    <div class="logo">🐯 TIGERJUS<span>Sistema de Evolução Jurídica</span></div>
-    <div class="disc-badge">${disciplina.icon} ${disciplina.name.toUpperCase()}</div>
-  </div>
-  <div class="header-right">
-    <div>Material de Estudo Premium</div>
-    <div>Gerado em: ${data}</div>
-    <div>tigerjus.com.br</div>
-  </div>
-</div>
-
-<div class="container">
-  <div class="section-title">📖 Resumo Essencial</div>
-  <div class="resumo-box">${resumo}</div>
-
-  ${questoes.length > 0 ? `
-  <div class="section-title">📝 Questões OAB Reais — ${disciplina.name}</div>
-  <p style="font-size:11px;color:#888;margin-bottom:16px;">Questões dos exames 42º ao 46º da OAB com gabarito e comentários.</p>
-
-  ${questoes.slice(0,20).map((q:any, i:number) => `
-  <div class="questao">
-    <div class="questao-num">Questão ${i+1} · ${q.disciplina||disciplina.name} · OAB Oficial</div>
-    <div class="questao-texto">${q.enunciado}</div>
-    ${['A','B','C','D'].map((l,li) => `
-    <div class="opcao ${q.resposta_correta===l?'correta':'normal'}">
-      <span class="letra">${l})</span>
-      <span>${[q.opcao_a,q.opcao_b,q.opcao_c,q.opcao_d][li]}</span>
-      ${q.resposta_correta===l?'<span style="margin-left:auto;font-size:10px;">✅ GABARITO</span>':''}
-    </div>`).join('')}
-    ${q.comentario?`<div class="comentario">📖 <strong>Comentário:</strong> ${q.comentario}</div>`:''}
-  </div>`).join('')}
-
-  <div class="gabarito-box">
-    <div style="font-weight:800;font-size:12px;margin-bottom:4px;">🗂️ GABARITO RÁPIDO</div>
-    <div class="gabarito-grid">
-      ${questoes.slice(0,20).map((q:any,i:number)=>`<div class="gab-item"><span class="gab-num">${i+1}</span>${q.resposta_correta}</div>`).join('')}
-    </div>
-  </div>
-  ` : ''}
-</div>
-
-<div class="footer">
-  <div class="footer-logo">🐯 TIGERJUS</div>
-  <div>"Não basta estudar Direito. É preciso pensar como um Tigre."</div>
-  <div>tigerjus.com.br · ${data}</div>
-</div>
-
-<script>window.onload=()=>{window.print();window.onafterprint=()=>window.close()}</script>
-</body>
-</html>`
-
+  const html = `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><title>TigerJus — ${disciplina.name}</title><style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:sans-serif;background:#fff;color:#1a1a1a;font-size:12px;line-height:1.6}.header{background:linear-gradient(135deg,#D4A843,#E8621A);padding:28px 40px;color:#000;display:flex;align-items:center;justify-content:space-between}.logo{font-size:28px;font-weight:900;letter-spacing:3px}.container{padding:32px 40px}.section-title{font-size:15px;font-weight:900;text-transform:uppercase;letter-spacing:2px;color:#D4A843;border-bottom:2px solid #D4A843;padding-bottom:8px;margin:28px 0 16px}.resumo-box{background:#fafafa;border:1px solid #eee;border-left:4px solid #D4A843;border-radius:8px;padding:20px 24px;white-space:pre-wrap;font-size:12px;line-height:1.8}.questao{border:1px solid #e0e0e0;border-radius:10px;padding:18px 20px;margin-bottom:16px}.opcao{display:flex;gap:10px;padding:8px 10px;border-radius:6px;margin-bottom:4px;font-size:12px}.opcao.correta{background:#e8f5e9;border:1px solid #4caf50;color:#1b5e20;font-weight:600}.opcao.normal{background:#fafafa;border:1px solid #eee}.footer{margin-top:40px;padding:20px 40px;background:#f5f5f5;border-top:2px solid #D4A843;display:flex;justify-content:space-between;font-size:10px;color:#888}@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}</style></head><body><div class="header"><div><div class="logo">🐯 TIGERJUS</div><div>${disciplina.icon} ${disciplina.name.toUpperCase()}</div></div><div><div>Material Premium</div><div>${data}</div></div></div><div class="container"><div class="section-title">📖 Resumo Essencial</div><div class="resumo-box">${resumo}</div>${questoes.length>0?`<div class="section-title">📝 Questões OAB</div>${questoes.slice(0,20).map((q:any,i:number)=>`<div class="questao"><div style="font-size:10px;color:#888;margin-bottom:6px">Questão ${i+1} · ${q.disciplina||disciplina.name}</div><div style="font-size:13px;font-weight:600;margin-bottom:12px">${q.enunciado}</div>${['A','B','C','D'].map((l,li)=>`<div class="opcao ${q.resposta_correta===l?'correta':'normal'}"><span>${l})</span><span>${[q.opcao_a,q.opcao_b,q.opcao_c,q.opcao_d][li]}</span>${q.resposta_correta===l?'<span style="margin-left:auto">✅</span>':''}</div>`).join('')}${q.comentario?`<div style="margin-top:10px;padding:10px;background:#fff8e1;border-radius:6px;font-size:11px">📖 ${q.comentario}</div>`:''}</div>`).join('')}`:''}
+</div><div class="footer"><div>🐯 TIGERJUS</div><div>"Não basta estudar Direito. É preciso pensar como um Tigre."</div><div>${data}</div></div><script>window.onload=()=>{window.print();window.onafterprint=()=>window.close()}</script></body></html>`
   const blob = new Blob([html], { type: 'text/html;charset=utf-8' })
   const url = URL.createObjectURL(blob)
   const win = window.open(url, '_blank')
-  if (!win) {
-    // fallback: download direto
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `TigerJus_${disciplina.slug}_${new Date().toISOString().split('T')[0]}.html`
-    document.body.appendChild(a); a.click(); document.body.removeChild(a)
-  }
+  if (!win) { const a = document.createElement('a'); a.href=url; a.download=`TigerJus_${disciplina.slug}.html`; document.body.appendChild(a); a.click(); document.body.removeChild(a) }
   setTimeout(() => URL.revokeObjectURL(url), 10000)
 }
 
-// ─── UPGRADE MODAL ────────────────────────────────────────────────────────────
 function UpgradeModal({ onClose, onSelect }: { onClose: () => void; onSelect: (plan: string) => void }) {
   return (
     <div style={{position:'fixed',inset:0,zIndex:300,background:'rgba(0,0,0,0.95)',backdropFilter:'blur(10px)',display:'flex',alignItems:'center',justifyContent:'center',padding:20,overflowY:'auto'}}>
@@ -372,11 +201,9 @@ function UpgradeModal({ onClose, onSelect }: { onClose: () => void; onSelect: (p
           <h2 style={{fontFamily:'var(--font-display)',fontSize:36,fontWeight:900,marginBottom:8}}>Escolha seu <span style={{color:'var(--gold)'}}>plano</span></h2>
           <p style={{color:'var(--text-muted)',fontSize:15}}>Desbloqueie todo o potencial do TigerJus</p>
         </div>
-        <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(190px,1fr))',gap:16}}>
+        <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(220px,1fr))',gap:16}}>
           {PLANS_UPGRADE.map(plan => (
-            <div key={plan.id} style={{background:(plan as any).featured?'linear-gradient(160deg,rgba(212,168,67,0.1),rgba(30,30,30,1))':'rgba(20,20,20,0.9)',border:(plan as any).featured?'1px solid var(--gold)':'1px solid rgba(255,255,255,0.1)',borderRadius:16,padding:24,position:'relative',cursor:'pointer',transition:'transform 0.2s'}}
-              onMouseEnter={e=>e.currentTarget.style.transform='translateY(-4px)'}
-              onMouseLeave={e=>e.currentTarget.style.transform='translateY(0)'}>
+            <div key={plan.id} style={{background:(plan as any).featured?'linear-gradient(160deg,rgba(212,168,67,0.1),rgba(30,30,30,1))':'rgba(20,20,20,0.9)',border:(plan as any).featured?'1px solid var(--gold)':'1px solid rgba(255,255,255,0.1)',borderRadius:16,padding:24,position:'relative',cursor:'pointer',transition:'transform 0.2s'}} onMouseEnter={e=>e.currentTarget.style.transform='translateY(-4px)'} onMouseLeave={e=>e.currentTarget.style.transform='translateY(0)'}>
               {(plan as any).badge&&<div style={{position:'absolute',top:16,right:16,background:'linear-gradient(135deg,var(--gold),var(--orange))',color:'#000',fontSize:9,fontWeight:900,letterSpacing:'1.5px',padding:'4px 10px',borderRadius:100}}>{(plan as any).badge}</div>}
               <div style={{fontSize:10,fontWeight:700,letterSpacing:'2.5px',textTransform:'uppercase',color:'var(--text-muted)',marginBottom:8}}>{plan.name}</div>
               <div style={{fontFamily:'var(--font-display)',fontSize:38,fontWeight:900,color:plan.color,marginBottom:4}}><sup style={{fontSize:15,color:'var(--text-muted)',verticalAlign:'super'}}>R$</sup>{plan.price}</div>
@@ -412,17 +239,13 @@ function XPTooltip({ xp, levelName }: { xp: number; levelName: LevelName }) {
   return(
     <div style={{position:'relative',display:'inline-block'}} onMouseEnter={()=>setShow(true)} onMouseLeave={()=>setShow(false)}>
       <span style={{cursor:'help',borderBottom:'1px dashed rgba(212,168,67,0.4)',color:'var(--gold)',fontWeight:700}}>{xp.toLocaleString()} XP ℹ️</span>
-      {show&&(
-        <div style={{position:'absolute',top:'calc(100% + 8px)',left:'50%',transform:'translateX(-50%)',background:'#1a1a1a',border:'1px solid rgba(212,168,67,0.25)',borderRadius:12,padding:16,width:280,zIndex:100,boxShadow:'0 8px 32px rgba(0,0,0,0.6)'}}>
-          <div style={{fontSize:12,fontWeight:700,color:'var(--gold)',marginBottom:8}}>O que é XP?</div>
-          <div style={{fontSize:12,color:'var(--text-muted)',lineHeight:1.6,marginBottom:12}}>XP representa seus pontos de evolução.</div>
-          <div style={{background:'rgba(255,255,255,0.08)',borderRadius:100,height:6,overflow:'hidden'}}>
-            <div style={{width:`${pct}%`,height:'100%',background:'linear-gradient(90deg,var(--gold),var(--orange))',borderRadius:100}}/>
-          </div>
-          <div style={{marginTop:10,fontSize:11,color:'var(--text-dim)'}}>Faltam <strong style={{color:'var(--gold)'}}>{(xpNext-xp).toLocaleString()} XP</strong> para o próximo nível</div>
-          <div style={{marginTop:8,fontSize:11,color:'var(--text-muted)'}}>💡 Questão certa = +100 XP · Login diário = +50 XP</div>
-        </div>
-      )}
+      {show&&(<div style={{position:'absolute',top:'calc(100% + 8px)',left:'50%',transform:'translateX(-50%)',background:'#1a1a1a',border:'1px solid rgba(212,168,67,0.25)',borderRadius:12,padding:16,width:280,zIndex:100,boxShadow:'0 8px 32px rgba(0,0,0,0.6)'}}>
+        <div style={{fontSize:12,fontWeight:700,color:'var(--gold)',marginBottom:8}}>O que é XP?</div>
+        <div style={{fontSize:12,color:'var(--text-muted)',lineHeight:1.6,marginBottom:12}}>XP representa seus pontos de evolução.</div>
+        <div style={{background:'rgba(255,255,255,0.08)',borderRadius:100,height:6,overflow:'hidden'}}><div style={{width:`${pct}%`,height:'100%',background:'linear-gradient(90deg,var(--gold),var(--orange))',borderRadius:100}}/></div>
+        <div style={{marginTop:10,fontSize:11,color:'var(--text-dim)'}}>Faltam <strong style={{color:'var(--gold)'}}>{(xpNext-xp).toLocaleString()} XP</strong> para o próximo nível</div>
+        <div style={{marginTop:8,fontSize:11,color:'var(--text-muted)'}}>💡 Questão certa = +100 XP · Login diário = +50 XP</div>
+      </div>)}
     </div>
   )
 }
@@ -432,8 +255,8 @@ function PremiumGate({ onClose, onUpgrade }: { onClose:()=>void; onUpgrade:()=>v
     <div style={{position:'fixed',inset:0,zIndex:200,background:'rgba(0,0,0,0.93)',backdropFilter:'blur(10px)',display:'flex',alignItems:'center',justifyContent:'center',padding:20}}>
       <div style={{background:'var(--gray)',border:'1px solid rgba(212,168,67,0.22)',borderRadius:24,padding:'48px 40px',textAlign:'center',maxWidth:480,width:'100%'}}>
         <div style={{fontSize:54,marginBottom:18}}>🔒</div>
-        <h2 style={{fontFamily:'var(--font-display)',fontSize:30,fontWeight:900,lineHeight:1.2,marginBottom:14}}>Seu modo<br/><span style={{color:'var(--gold)'}}>degustação terminou.</span></h2>
-        <p style={{fontSize:15,color:'var(--text-muted)',marginBottom:28,lineHeight:1.7}}>Assine e continue evoluindo sem parar.</p>
+        <h2 style={{fontFamily:'var(--font-display)',fontSize:30,fontWeight:900,lineHeight:1.2,marginBottom:14}}>Recurso <span style={{color:'var(--gold)'}}>premium.</span></h2>
+        <p style={{fontSize:15,color:'var(--text-muted)',marginBottom:28,lineHeight:1.7}}>Faça upgrade para desbloquear este recurso.</p>
         <div style={{display:'flex',flexDirection:'column',gap:10,marginBottom:28,textAlign:'left'}}>
           {['IA ilimitada','Simulados completos OAB','Radar TigerJus','Trilhas personalizadas','Mapas mentais e PDFs'].map((l,i)=>(
             <div key={i} style={{display:'flex',alignItems:'center',gap:12,background:'rgba(212,168,67,0.06)',border:'1px solid rgba(212,168,67,0.12)',borderRadius:10,padding:'12px 16px',fontSize:13}}>
@@ -449,7 +272,7 @@ function PremiumGate({ onClose, onUpgrade }: { onClose:()=>void; onUpgrade:()=>v
   )
 }
 
-function DashHome({ profile, onNav, showUpgrade, isPremium, onOpenRadar }: any) {
+function DashHome({ profile, onNav, showUpgrade, isPago, canAccessPremium, onOpenRadar }: any) {
   const xp=profile?.xp||0
   const levelName=(profile?.level_name||'Filhote') as LevelName
   const streak=profile?.streak||0
@@ -462,9 +285,7 @@ function DashHome({ profile, onNav, showUpgrade, isPremium, onOpenRadar }: any) 
 
   return(
     <div style={{padding:'24px 20px',flex:1,overflowY:'auto',maxWidth:'100%'}}>
-      {/* Banner publicitário rotativo */}
-      <AdBannerRotativo isPremium={isPremium}/>
-
+      <AdBannerRotativo isPremium={canAccessPremium}/>
       <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',flexWrap:'wrap',gap:12,marginBottom:20}}>
         <div>
           <h1 style={{fontFamily:'var(--font-display)',fontSize:'clamp(22px,5vw,32px)',fontWeight:900,marginBottom:6}}>Olá, {profile?.nome?.split(' ')[0]||levelName}! 🔥</h1>
@@ -503,7 +324,6 @@ function DashHome({ profile, onNav, showUpgrade, isPremium, onOpenRadar }: any) 
         ))}
       </div>
 
-      {/* Ad card feed */}
       <AdCardFeed/>
 
       <div style={{background:'linear-gradient(135deg,rgba(212,168,67,0.1),rgba(232,98,26,0.06))',border:'1px solid rgba(212,168,67,0.2)',borderRadius:16,padding:18,marginBottom:16,cursor:'pointer'}} onClick={()=>onNav('quiz')}>
@@ -517,23 +337,20 @@ function DashHome({ profile, onNav, showUpgrade, isPremium, onOpenRadar }: any) 
         </div>
       </div>
 
-      {/* Radar TigerJus — clicável e funcional */}
-      <div
-        style={{background:isPremium?'linear-gradient(135deg,rgba(58,143,232,0.1),rgba(212,168,67,0.06))':'linear-gradient(135deg,rgba(58,143,232,0.08),rgba(212,168,67,0.06))',border:`1px solid ${isPremium?'rgba(58,143,232,0.25)':'rgba(58,143,232,0.2)'}`,borderRadius:16,padding:20,marginBottom:20,cursor:'pointer',transition:'all 0.2s'}}
-        onClick={isPremium?onOpenRadar:showUpgrade}
+      <div style={{background:canAccessPremium?'linear-gradient(135deg,rgba(58,143,232,0.1),rgba(212,168,67,0.06))':'linear-gradient(135deg,rgba(58,143,232,0.08),rgba(212,168,67,0.06))',border:`1px solid ${canAccessPremium?'rgba(58,143,232,0.25)':'rgba(58,143,232,0.2)'}`,borderRadius:16,padding:20,marginBottom:20,cursor:'pointer',transition:'all 0.2s'}}
+        onClick={canAccessPremium?onOpenRadar:showUpgrade}
         onMouseEnter={e=>{e.currentTarget.style.transform='translateY(-2px)';e.currentTarget.style.boxShadow='0 8px 24px rgba(0,0,0,0.3)'}}
-        onMouseLeave={e=>{e.currentTarget.style.transform='translateY(0)';e.currentTarget.style.boxShadow='none'}}
-      >
+        onMouseLeave={e=>{e.currentTarget.style.transform='translateY(0)';e.currentTarget.style.boxShadow='none'}}>
         <div style={{display:'flex',alignItems:'center',gap:12,marginBottom:8}}>
           <span style={{fontSize:20}}>🎯</span>
           <div style={{fontSize:16,fontWeight:700,flex:1}}>Radar TigerJus</div>
-          {isPremium
+          {canAccessPremium
             ?<div style={{fontSize:9,fontWeight:800,letterSpacing:'1.5px',textTransform:'uppercase',background:'rgba(76,175,125,0.15)',border:'1px solid rgba(76,175,125,0.3)',color:'var(--success)',padding:'4px 10px',borderRadius:100}}>✓ ATIVO — CLIQUE</div>
             :<div style={{fontSize:9,fontWeight:800,letterSpacing:'1.5px',textTransform:'uppercase',background:'rgba(212,168,67,0.1)',border:'1px solid rgba(212,168,67,0.2)',color:'var(--gold)',padding:'4px 10px',borderRadius:100}}>🔒 Premium</div>
           }
         </div>
         <div style={{fontSize:13,color:'var(--text-muted)'}}>
-          {isPremium?'Veja os 6 temas com maior probabilidade de cair no 47º Exame OAB →':'Temas com maior probabilidade de cair na próxima OAB.'}
+          {canAccessPremium?'Veja os 6 temas com maior probabilidade de cair no 47º Exame OAB →':'Temas com maior probabilidade de cair na próxima OAB.'}
         </div>
       </div>
 
@@ -550,12 +367,8 @@ function DashHome({ profile, onNav, showUpgrade, isPremium, onOpenRadar }: any) 
             <div style={{fontSize:22,marginBottom:10}}>{d.icon}</div>
             <div style={{fontSize:13,fontWeight:700,marginBottom:5}}>{d.name}</div>
             <div style={{fontSize:11,color:'var(--text-muted)',marginBottom:8}}>{d.progress}% · {d.q}q</div>
-            <div style={{background:'rgba(255,255,255,0.06)',borderRadius:100,height:4,overflow:'hidden',marginBottom:8}}>
-              <div style={{width:`${d.progress}%`,height:'100%',background:'linear-gradient(90deg,var(--gold),var(--orange))',borderRadius:100}}/>
-            </div>
-            <div style={{display:'flex',gap:4,flexWrap:'wrap'}}>
-              {d.tags.map(t=><span key={t} style={{fontSize:9,padding:'2px 6px',background:'rgba(212,168,67,0.07)',border:'1px solid rgba(212,168,67,0.15)',borderRadius:4,color:'var(--gold-dark)',fontWeight:600}}>{t}</span>)}
-            </div>
+            <div style={{background:'rgba(255,255,255,0.06)',borderRadius:100,height:4,overflow:'hidden',marginBottom:8}}><div style={{width:`${d.progress}%`,height:'100%',background:'linear-gradient(90deg,var(--gold),var(--orange))',borderRadius:100}}/></div>
+            <div style={{display:'flex',gap:4,flexWrap:'wrap'}}>{d.tags.map(t=><span key={t} style={{fontSize:9,padding:'2px 6px',background:'rgba(212,168,67,0.07)',border:'1px solid rgba(212,168,67,0.15)',borderRadius:4,color:'var(--gold-dark)',fontWeight:600}}>{t}</span>)}</div>
           </div>
         ))}
       </div>
@@ -563,7 +376,7 @@ function DashHome({ profile, onNav, showUpgrade, isPremium, onOpenRadar }: any) 
   )
 }
 
-function QuizPage({ freeQ, setFreeQ, showUpgrade, onXp, profile, isPremium }: any) {
+function QuizPage({ freeQ, setFreeQ, showUpgrade, onXp, profile, isPago }: any) {
   const [disciplina,setDisciplina]=useState<string>('')
   const [modo,setModo]=useState<'Fácil'|'Médio'|'Difícil'>('Fácil')
   const [started,setStarted]=useState(false)
@@ -574,8 +387,9 @@ function QuizPage({ freeQ, setFreeQ, showUpgrade, onXp, profile, isPremium }: an
   const [answered,setAnswered]=useState(false)
   const [score,setScore]=useState(0)
   const [done,setDone]=useState(false)
-  const [time,setTime]=useState(90)
+  const [time,setTime]=useState(60)
   const MODO_QTD:Record<string,number>={'Fácil':20,'Médio':40,'Difícil':60}
+  const MODO_TEMPO:Record<string,number>={'Fácil':60,'Médio':90,'Difícil':120}
 
   useEffect(()=>{
     if(!started||answered||done)return
@@ -591,16 +405,17 @@ function QuizPage({ freeQ, setFreeQ, showUpgrade, onXp, profile, isPremium }: an
     if(error||!data||data.length===0){setLoadingQ(false);alert('Nenhuma questão encontrada.');return}
     const shuffled=[...data].sort(()=>Math.random()-0.5).slice(0,MODO_QTD[modo])
     setQuestions(shuffled.map((q:any)=>({id:q.id,disc:q.disciplina,q:q.enunciado,opts:[q.opcao_a,q.opcao_b,q.opcao_c,q.opcao_d],correct:['A','B','C','D'].indexOf(q.resposta_correta),exp:q.comentario||''})))
-    setLoadingQ(false);setStarted(true);setCur(0);setSel(null);setAnswered(false);setScore(0);setDone(false);setTime(90)
+    setLoadingQ(false);setStarted(true);setCur(0);setSel(null);setAnswered(false);setScore(0);setDone(false);setTime(MODO_TEMPO[modo])
   }
 
   const pick=(i:number)=>{
     if(answered)return
-    if(freeQ<=0){showUpgrade();return}
-    setSel(i);setAnswered(true);setFreeQ((p:number)=>p-1)
+    if(!isPago && freeQ<=0){showUpgrade();return}
+    setSel(i);setAnswered(true)
+    if(!isPago)setFreeQ((p:number)=>p-1)
     if(i===questions[cur].correct){setScore(p=>p+1);onXp('question_correct')}else onXp('question_wrong')
   }
-  const next=()=>{if(cur+1>=questions.length){setDone(true);return}setCur(p=>p+1);setSel(null);setAnswered(false);setTime(90)}
+  const next=()=>{if(cur+1>=questions.length){setDone(true);return}setCur(p=>p+1);setSel(null);setAnswered(false);setTime(MODO_TEMPO[modo])}
   const restart=()=>{setStarted(false);setDone(false);setScore(0);setCur(0)}
 
   if(!started)return(
@@ -608,20 +423,26 @@ function QuizPage({ freeQ, setFreeQ, showUpgrade, onXp, profile, isPremium }: an
       <h1 style={{fontFamily:'var(--font-display)',fontSize:'clamp(22px,5vw,32px)',fontWeight:900,marginBottom:6}}>Quiz OAB 📝</h1>
       <p style={{fontSize:14,color:'var(--text-muted)',marginBottom:6}}>Questões reais dos exames 42º ao 46º da OAB.</p>
       <div style={{display:'inline-flex',alignItems:'center',gap:6,background:'rgba(212,168,67,0.08)',border:'1px solid rgba(212,168,67,0.2)',borderRadius:100,padding:'5px 12px',fontSize:11,color:'var(--gold)',marginBottom:24}}>📋 400 questões reais no banco</div>
+      {!isPago&&(
+        <div style={{background:'rgba(212,168,67,0.06)',border:'1px solid rgba(212,168,67,0.15)',borderRadius:12,padding:'12px 16px',marginBottom:20,fontSize:13,color:'var(--gold)'}}>
+          ⚡ Plano gratuito: <strong>{freeQ} questões restantes</strong>. Faça upgrade para questões ilimitadas.
+        </div>
+      )}
       <div style={{maxWidth:560,background:'var(--gray)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:20,padding:'24px'}}>
         <div style={{marginBottom:20}}>
           <label style={{fontSize:11,fontWeight:700,letterSpacing:'1.5px',textTransform:'uppercase',color:'var(--text-muted)',display:'block',marginBottom:10}}>Disciplina (opcional)</label>
-          <select value={disciplina} onChange={e=>setDisciplina(e.target.value)} style={{width:'100%',background:'var(--gray-mid)',border:'1px solid rgba(255,255,255,0.08)',borderRadius:10,padding:'12px 16px',color:'var(--white)',fontSize:14,fontFamily:'var(--font-body)'}}>
+          <select value={disciplina} onChange={e=>setDisciplina(e.target.value)} style={{width:'100%',background:'#1c1c1c',border:'1px solid rgba(255,255,255,0.08)',borderRadius:10,padding:'12px 16px',color:'#fff',fontSize:14,fontFamily:'var(--font-body)',colorScheme:'dark'}}>
             <option value="">Todas as disciplinas</option>
             {Object.keys(DISC_MAP).map(d=><option key={d} value={d}>{d}</option>)}
           </select>
         </div>
         <div style={{marginBottom:28}}>
-          <label style={{fontSize:11,fontWeight:700,letterSpacing:'1.5px',textTransform:'uppercase',color:'var(--text-muted)',display:'block',marginBottom:10}}>Modo — <span style={{color:'var(--gold)'}}>{modo} ({MODO_QTD[modo]} questões)</span></label>
+          <label style={{fontSize:11,fontWeight:700,letterSpacing:'1.5px',textTransform:'uppercase',color:'var(--text-muted)',display:'block',marginBottom:10}}>Modo — <span style={{color:'var(--gold)'}}>{modo} ({MODO_QTD[modo]} questões · {MODO_TEMPO[modo]}s por questão)</span></label>
           <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:8}}>
             {(['Fácil','Médio','Difícil'] as const).map(m=>(
-              <button key={m} onClick={()=>setModo(m)} style={{padding:'12px 8px',borderRadius:10,border:modo===m?'1px solid rgba(212,168,67,0.5)':'1px solid rgba(255,255,255,0.08)',background:modo===m?'rgba(212,168,67,0.1)':'transparent',color:modo===m?'var(--gold)':'var(--text-muted)',fontSize:12,fontWeight:700,cursor:'pointer',fontFamily:'var(--font-body)',textAlign:'center'}}>
-                <div>{m}</div><div style={{fontSize:10,marginTop:3,opacity:0.7}}>{MODO_QTD[m]}q</div>
+              <button key={m} onClick={()=>{if(m!=='Fácil'&&!isPago){showUpgrade();return}setModo(m)}} style={{padding:'12px 8px',borderRadius:10,border:modo===m?'1px solid rgba(212,168,67,0.5)':'1px solid rgba(255,255,255,0.08)',background:modo===m?'rgba(212,168,67,0.1)':'transparent',color:modo===m?'var(--gold)':m!=='Fácil'&&!isPago?'var(--text-dim)':'var(--text-muted)',fontSize:12,fontWeight:700,cursor:'pointer',fontFamily:'var(--font-body)',textAlign:'center',position:'relative'}}>
+                <div>{m} {m!=='Fácil'&&!isPago&&'🔒'}</div>
+                <div style={{fontSize:10,marginTop:3,opacity:0.7}}>{MODO_QTD[m]}q · {MODO_TEMPO[m]}s/q</div>
               </button>
             ))}
           </div>
@@ -630,7 +451,7 @@ function QuizPage({ freeQ, setFreeQ, showUpgrade, onXp, profile, isPremium }: an
           {loadingQ?'⏳ Carregando...':'INICIAR QUIZ →'}
         </button>
         <div style={{marginTop:10,textAlign:'center',fontSize:12,color:'var(--text-muted)'}}>
-          {freeQ>9000?'✓ Ilimitado':freeQ>0?`${freeQ} grátis restantes`:'🔒 Limite atingido'}
+          {isPago?'✓ Ilimitado':freeQ>0?`${freeQ} grátis restantes`:'🔒 Limite atingido'}
         </div>
       </div>
     </div>
@@ -668,9 +489,7 @@ function QuizPage({ freeQ, setFreeQ, showUpgrade, onXp, profile, isPremium }: an
           <div style={{fontSize:13,color:'var(--text-muted)'}}>Q{cur+1}/{questions.length} · {modo}</div>
           <div style={{fontFamily:'var(--font-mono)',fontSize:18,fontWeight:700,color:time<20?'var(--danger)':'var(--gold)'}}>{String(Math.floor(time/60)).padStart(2,'0')}:{String(time%60).padStart(2,'0')}</div>
         </div>
-        <div style={{background:'rgba(255,255,255,0.06)',borderRadius:100,height:4,marginBottom:24,overflow:'hidden'}}>
-          <div style={{width:`${pct}%`,height:'100%',background:'linear-gradient(90deg,var(--gold),var(--orange))',borderRadius:100,transition:'width 0.4s'}}/>
-        </div>
+        <div style={{background:'rgba(255,255,255,0.06)',borderRadius:100,height:4,marginBottom:24,overflow:'hidden'}}><div style={{width:`${pct}%`,height:'100%',background:'linear-gradient(90deg,var(--gold),var(--orange))',borderRadius:100,transition:'width 0.4s'}}/></div>
         <div style={{background:'var(--gray)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:20,padding:'24px'}}>
           <div style={{display:'flex',gap:8,marginBottom:14}}><span style={{fontSize:10,fontWeight:700,letterSpacing:2,textTransform:'uppercase',color:'var(--gold)'}}>{q.disc}</span><span style={{fontSize:10,color:'var(--text-muted)'}}>· OAB Oficial</span></div>
           <div style={{fontSize:'clamp(14px,3vw,18px)',fontWeight:600,lineHeight:1.6,marginBottom:24}}>{q.q}</div>
@@ -678,12 +497,10 @@ function QuizPage({ freeQ, setFreeQ, showUpgrade, onXp, profile, isPremium }: an
             {q.opts.map((opt:string,i:number)=>{
               let bg='rgba(255,255,255,0.03)',bc='rgba(255,255,255,0.08)',color='var(--white)'
               if(answered){if(i===q.correct){bg='rgba(76,175,125,0.1)';bc='var(--success)';color='var(--success)'}else if(i===sel){bg='rgba(232,66,26,0.1)';bc='var(--danger)';color='var(--danger)'}}
-              return(
-                <button key={i} onClick={()=>pick(i)} style={{display:'flex',alignItems:'flex-start',gap:12,background:bg,border:`1px solid ${bc}`,borderRadius:12,padding:'14px 16px',cursor:'pointer',transition:'all 0.2s',textAlign:'left',width:'100%',fontFamily:'var(--font-body)',fontSize:'clamp(13px,2.5vw,14px)',color}}>
-                  <span style={{width:26,height:26,borderRadius:'50%',flexShrink:0,display:'flex',alignItems:'center',justifyContent:'center',fontSize:11,fontWeight:800,background:'rgba(255,255,255,0.06)'}}>{String.fromCharCode(65+i)}</span>
-                  <span style={{flex:1}}>{opt}</span>
-                </button>
-              )
+              return(<button key={i} onClick={()=>pick(i)} style={{display:'flex',alignItems:'flex-start',gap:12,background:bg,border:`1px solid ${bc}`,borderRadius:12,padding:'14px 16px',cursor:'pointer',transition:'all 0.2s',textAlign:'left',width:'100%',fontFamily:'var(--font-body)',fontSize:'clamp(13px,2.5vw,14px)',color}}>
+                <span style={{width:26,height:26,borderRadius:'50%',flexShrink:0,display:'flex',alignItems:'center',justifyContent:'center',fontSize:11,fontWeight:800,background:'rgba(255,255,255,0.06)'}}>{String.fromCharCode(65+i)}</span>
+                <span style={{flex:1}}>{opt}</span>
+              </button>)
             })}
           </div>
           {answered&&q.exp&&<div style={{marginTop:20,padding:16,background:'rgba(212,168,67,0.06)',border:'1px solid rgba(212,168,67,0.15)',borderRadius:12,fontSize:13,lineHeight:1.7,color:'var(--text-muted)'}}>{sel===q.correct?'✅ ':'❌ '}<strong style={{color:'var(--gold)'}}>{sel===q.correct?'Correto!':'Incorreto.'}</strong> {q.exp}</div>}
@@ -694,7 +511,7 @@ function QuizPage({ freeQ, setFreeQ, showUpgrade, onXp, profile, isPremium }: an
   )
 }
 
-function IAPage({ freeIA, setFreeIA, showUpgrade, profile }: any) {
+function IAPage({ freeIA, setFreeIA, showUpgrade, profile, isPago }: any) {
   const [msgs,setMsgs]=useState([{role:'assistant',text:'Olá! Sou o TigerJus AI — seu tutor jurídico de alta performance. 🐯⚖️\n\nPosso te ajudar com dúvidas de Direito, explicar artigos, resumir temas e te preparar para a OAB.\n\nO que você quer aprender hoje?'}])
   const [input,setInput]=useState('')
   const [loading,setLoading]=useState(false)
@@ -704,8 +521,9 @@ function IAPage({ freeIA, setFreeIA, showUpgrade, profile }: any) {
   const send=async(text?:string)=>{
     const msg=text||input.trim()
     if(!msg)return
-    if(freeIA<=0){showUpgrade();return}
-    setInput('');setFreeIA((p:number)=>p-1)
+    if(!isPago && freeIA<=0){showUpgrade();return}
+    setInput('')
+    if(!isPago)setFreeIA((p:number)=>p-1)
     const newMsgs=[...msgs,{role:'user',text:msg}]
     setMsgs(newMsgs);setLoading(true)
     try{
@@ -721,7 +539,15 @@ function IAPage({ freeIA, setFreeIA, showUpgrade, profile }: any) {
   return(
     <div style={{padding:'24px 20px',flex:1,display:'flex',flexDirection:'column'}}>
       <h1 style={{fontFamily:'var(--font-display)',fontSize:'clamp(22px,5vw,32px)',fontWeight:900,marginBottom:6}}>IA Jurídica 🤖</h1>
-      <p style={{fontSize:14,color:'var(--text-muted)',marginBottom:12}}>Tutor inteligente 24/7. {freeIA>0?<span style={{color:'var(--gold)',fontWeight:700}}>{freeIA} perguntas grátis</span>:<span style={{color:'var(--danger)'}}>🔒 Limite atingido</span>}</p>
+      <p style={{fontSize:14,color:'var(--text-muted)',marginBottom:12}}>
+        Tutor inteligente 24/7. {isPago?<span style={{color:'var(--success)',fontWeight:700}}>Ilimitado</span>:freeIA>0?<span style={{color:'var(--gold)',fontWeight:700}}>{freeIA} perguntas grátis</span>:<span style={{color:'var(--danger)'}}>🔒 Limite atingido</span>}
+      </p>
+      {!isPago&&freeIA<=0&&(
+        <div style={{background:'rgba(232,66,26,0.08)',border:'1px solid rgba(232,66,26,0.2)',borderRadius:12,padding:'14px 16px',marginBottom:16,fontSize:13}}>
+          🔒 Você atingiu o limite de perguntas do plano gratuito.
+          <button onClick={showUpgrade} style={{color:'var(--gold)',background:'none',border:'none',cursor:'pointer',fontSize:13,fontFamily:'var(--font-body)',marginLeft:8,fontWeight:700}}>Fazer upgrade →</button>
+        </div>
+      )}
       <div style={{display:'flex',gap:6,flexWrap:'wrap',marginBottom:14}}>
         {chips.map(c=><button key={c} onClick={()=>send(c)} style={{background:'rgba(212,168,67,0.06)',border:'1px solid rgba(212,168,67,0.14)',borderRadius:100,padding:'5px 12px',fontSize:11,color:'var(--text-muted)',cursor:'pointer',fontFamily:'var(--font-body)'}}>{c}</button>)}
       </div>
@@ -737,20 +563,21 @@ function IAPage({ freeIA, setFreeIA, showUpgrade, profile }: any) {
           <div ref={endRef}/>
         </div>
         <div style={{display:'flex',gap:10,padding:14,background:'var(--gray-mid)',borderTop:'1px solid rgba(255,255,255,0.06)'}}>
-          <textarea className="form-input" placeholder="Pergunte algo jurídico..." value={input} onChange={e=>setInput(e.target.value)} onKeyDown={e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send()}}} style={{flex:1,resize:'none',minHeight:42}} rows={1}/>
-          <button onClick={()=>send()} style={{background:'linear-gradient(135deg,var(--gold),var(--orange))',border:'none',borderRadius:10,width:42,height:42,display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',fontSize:17,color:'var(--deep-black)'}}>➤</button>
+          <textarea className="form-input" placeholder="Pergunte algo jurídico..." value={input} onChange={e=>setInput(e.target.value)} onKeyDown={e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send()}}} style={{flex:1,resize:'none',minHeight:42}} rows={1} disabled={!isPago&&freeIA<=0}/>
+          <button onClick={()=>send()} disabled={!isPago&&freeIA<=0} style={{background:'linear-gradient(135deg,var(--gold),var(--orange))',border:'none',borderRadius:10,width:42,height:42,display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',fontSize:17,color:'var(--deep-black)',opacity:(!isPago&&freeIA<=0)?0.4:1}}>➤</button>
         </div>
       </div>
     </div>
   )
 }
 
-function DisciplinesPage({ showUpgrade, profile, isPremium }: any) {
+function DisciplinesPage({ showUpgrade, profile, isPago, canAccessPremium }: any) {
   const [selected,setSelected]=useState<any>(null)
   const [subTab,setSubTab]=useState<'resumo'|'quiz'|'flash'|'pdf'>('resumo')
   const [gerandoPDF,setGerandoPDF]=useState(false)
 
   const handlePDF=async(disc:any)=>{
+    if(!isPago){showUpgrade();return}
     setGerandoPDF(true)
     try{
       const resumo=RESUMOS[disc.slug]||`${disc.name} — Resumo em elaboração.`
@@ -774,7 +601,7 @@ function DisciplinesPage({ showUpgrade, profile, isPremium }: any) {
         <div style={{display:'flex',gap:8,marginBottom:20,flexWrap:'wrap'}}>
           {(['resumo','quiz','flash','pdf'] as const).map(t=>(
             <button key={t} onClick={()=>setSubTab(t)} style={{padding:'9px 18px',borderRadius:10,border:subTab===t?'1px solid rgba(212,168,67,0.4)':'1px solid rgba(255,255,255,0.08)',background:subTab===t?'rgba(212,168,67,0.1)':'transparent',color:subTab===t?'var(--gold)':'var(--text-muted)',fontSize:12,fontWeight:600,cursor:'pointer',fontFamily:'var(--font-body)'}}>
-              {t==='resumo'?'📖 Resumo':t==='quiz'?'📝 Quiz':t==='flash'?'🃏 Flashcards':'📄 PDF'}
+              {t==='resumo'?'📖 Resumo':t==='quiz'?'📝 Quiz':t==='flash'?'🃏 Flashcards':isPago?'📄 PDF':'🔒 PDF'}
             </button>
           ))}
         </div>
@@ -791,13 +618,23 @@ function DisciplinesPage({ showUpgrade, profile, isPremium }: any) {
         {subTab==='flash'&&<FlashCards disciplina={selected.name}/>}
         {subTab==='pdf'&&(
           <div style={{background:'var(--gray)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:20,padding:40,textAlign:'center'}}>
-            <div style={{fontSize:44,marginBottom:14}}>📄</div>
-            <h3 style={{fontFamily:'var(--font-display)',fontSize:20,fontWeight:900,marginBottom:8}}>PDF — {selected.name}</h3>
-            <p style={{color:'var(--text-muted)',marginBottom:24,fontSize:14}}>Resumo essencial + questões OAB reais com gabarito comentado.</p>
-            <button className="btn-primary" onClick={()=>handlePDF(selected)} disabled={gerandoPDF} style={{minWidth:220,fontSize:14}}>
-              {gerandoPDF?'⏳ Gerando PDF...':'📄 GERAR E BAIXAR PDF'}
-            </button>
-            <p style={{fontSize:11,color:'var(--text-muted)',marginTop:12}}>Uma janela de impressão abrirá — salve como PDF</p>
+            {isPago?(
+              <>
+                <div style={{fontSize:44,marginBottom:14}}>📄</div>
+                <h3 style={{fontFamily:'var(--font-display)',fontSize:20,fontWeight:900,marginBottom:8}}>PDF — {selected.name}</h3>
+                <p style={{color:'var(--text-muted)',marginBottom:24,fontSize:14}}>Resumo essencial + questões OAB reais com gabarito comentado.</p>
+                <button className="btn-primary" onClick={()=>handlePDF(selected)} disabled={gerandoPDF} style={{minWidth:220,fontSize:14}}>
+                  {gerandoPDF?'⏳ Gerando PDF...':'📄 GERAR E BAIXAR PDF'}
+                </button>
+              </>
+            ):(
+              <>
+                <div style={{fontSize:44,marginBottom:14}}>🔒</div>
+                <h3 style={{fontFamily:'var(--font-display)',fontSize:20,fontWeight:900,marginBottom:8}}>PDF — Recurso Pago</h3>
+                <p style={{color:'var(--text-muted)',marginBottom:24,fontSize:14}}>Faça upgrade para gerar PDFs com resumos e questões OAB.</p>
+                <button className="btn-primary" onClick={showUpgrade} style={{minWidth:220,fontSize:14}}>🚀 VER PLANOS</button>
+              </>
+            )}
           </div>
         )}
       </div>
@@ -817,12 +654,8 @@ function DisciplinesPage({ showUpgrade, profile, isPremium }: any) {
             <div style={{fontSize:22,marginBottom:10}}>{d.icon}</div>
             <div style={{fontSize:13,fontWeight:700,marginBottom:5}}>{d.name}</div>
             <div style={{fontSize:11,color:'var(--text-muted)',marginBottom:8}}>{d.progress}% · {d.q}q</div>
-            <div style={{background:'rgba(255,255,255,0.06)',borderRadius:100,height:4,overflow:'hidden',marginBottom:8}}>
-              <div style={{width:`${d.progress}%`,height:'100%',background:'linear-gradient(90deg,var(--gold),var(--orange))',borderRadius:100}}/>
-            </div>
-            <div style={{display:'flex',gap:4,flexWrap:'wrap'}}>
-              {d.tags.map(t=><span key={t} style={{fontSize:9,padding:'2px 6px',background:'rgba(212,168,67,0.07)',border:'1px solid rgba(212,168,67,0.15)',borderRadius:4,color:'var(--gold-dark)',fontWeight:600}}>{t}</span>)}
-            </div>
+            <div style={{background:'rgba(255,255,255,0.06)',borderRadius:100,height:4,overflow:'hidden',marginBottom:8}}><div style={{width:`${d.progress}%`,height:'100%',background:'linear-gradient(90deg,var(--gold),var(--orange))',borderRadius:100}}/></div>
+            <div style={{display:'flex',gap:4,flexWrap:'wrap'}}>{d.tags.map(t=><span key={t} style={{fontSize:9,padding:'2px 6px',background:'rgba(212,168,67,0.07)',border:'1px solid rgba(212,168,67,0.15)',borderRadius:4,color:'var(--gold-dark)',fontWeight:600}}>{t}</span>)}</div>
           </div>
         ))}
       </div>
@@ -862,7 +695,7 @@ function FlashCards({disciplina}:{disciplina:string}) {
   )
 }
 
-function SimuladosPage({ showUpgrade, freeQ, setFreeQ, onXp, profile, isPremium }: any) {
+function SimuladosPage({ showUpgrade, freeQ, setFreeQ, onXp, profile, isPago, canAccessElite }: any) {
   const [running,setRunning]=useState(false)
   const [cur,setCur]=useState(0)
   const [sel,setSel]=useState<number|null>(null)
@@ -874,14 +707,13 @@ function SimuladosPage({ showUpgrade, freeQ, setFreeQ, onXp, profile, isPremium 
   const [provasOAB,setProvasOAB]=useState<any[]>([])
   const [loadingProva,setLoadingProva]=useState(false)
   const [tab,setTab]=useState<'oficiais'|'pratica'>('oficiais')
-  const isElite=profile?.role==='admin'||profile?.plano==='elite'||profile?.plano==='premium'
 
   const SIMULADOS_PRATICA=[
     {icon:'⚡',t:'Mini Simulado — Constitucional',info:'5 questões · 15min · Grátis',tags:['Grátis'],lock:false},
-    {icon:'🔥',t:'Simulado Intensivo — Penal',info:'30 questões · 45min',tags:['Intensivo'],lock:true},
-    {icon:'📝',t:'Simulado OAB 2ª Fase',info:'Peça jurídica · 5h',tags:['OAB'],lock:true},
-    {icon:'📜',t:'Ética e Estatuto OAB',info:'20 questões · 30min',tags:['OAB'],lock:true},
-    {icon:'🏛️',t:'Simulado Geral',info:'60 questões · 4h',tags:['Completo'],lock:true},
+    {icon:'🔥',t:'Simulado Intensivo — Penal',info:'30 questões · 45min',tags:['Pago'],lock:true},
+    {icon:'📝',t:'Simulado OAB 2ª Fase',info:'Peça jurídica · 5h',tags:['Premium'],lock:true},
+    {icon:'📜',t:'Ética e Estatuto OAB',info:'20 questões · 30min',tags:['Pago'],lock:true},
+    {icon:'🏛️',t:'Simulado Geral',info:'60 questões · 4h',tags:['Elite'],lock:true},
   ]
 
   useEffect(()=>{loadProvas()},[])
@@ -891,7 +723,7 @@ function SimuladosPage({ showUpgrade, freeQ, setFreeQ, onXp, profile, isPremium 
   }
 
   const iniciarProvaOficial=async(prova:any)=>{
-    if(!isElite){showUpgrade();return}
+    if(!canAccessElite){showUpgrade();return}
     setLoadingProva(true)
     const{data}=await supabase.from('questoes_oab').select('*').eq('prova_id',prova.id).order('numero_questao')
     if(data&&data.length>0){
@@ -903,7 +735,7 @@ function SimuladosPage({ showUpgrade, freeQ, setFreeQ, onXp, profile, isPremium 
   }
 
   const iniciarSimuladoPratica=async(s:any)=>{
-    if(s.lock&&!isElite){showUpgrade();return}
+    if(s.lock&&!isPago){showUpgrade();return}
     setLoadingProva(true)
     const discMap:Record<string,string>={'Mini Simulado — Constitucional':'Constitucional','Simulado Intensivo — Penal':'Penal','Ética e Estatuto OAB':'Ética'}
     const qtdMap:Record<string,number>={'Mini Simulado — Constitucional':5,'Simulado Intensivo — Penal':30,'Ética e Estatuto OAB':20,'Simulado OAB 2ª Fase':40,'Simulado Geral':60}
@@ -927,8 +759,9 @@ function SimuladosPage({ showUpgrade, freeQ, setFreeQ, onXp, profile, isPremium 
 
   const pick=(i:number)=>{
     if(answered)return
-    if(freeQ<=0){showUpgrade();return}
-    setSel(i);setAnswered(true);setFreeQ((p:number)=>p-1)
+    if(!isPago&&freeQ<=0){showUpgrade();return}
+    setSel(i);setAnswered(true)
+    if(!isPago)setFreeQ((p:number)=>p-1)
     if(i===selectedSimulado.questions[cur].correct){setScore(p=>p+1);onXp('question_correct')}else onXp('question_wrong')
   }
   const next=()=>{if(cur+1>=selectedSimulado.questions.length){setDone(true);return}setCur(p=>p+1);setSel(null);setAnswered(false)}
@@ -944,9 +777,7 @@ function SimuladosPage({ showUpgrade, freeQ, setFreeQ, onXp, profile, isPremium 
             <div style={{fontSize:12,color:'var(--text-muted)'}}>{selectedSimulado.edicao||selectedSimulado.t} · Q{cur+1}/{selectedSimulado.questions.length}</div>
             <div style={{fontFamily:'var(--font-mono)',fontSize:16,fontWeight:700,color:time<600?'var(--danger)':'var(--gold)'}}>{h>0?`${String(h).padStart(2,'0')}:`:''}${String(m).padStart(2,'0')}:{String(s).padStart(2,'0')}</div>
           </div>
-          <div style={{background:'rgba(255,255,255,0.06)',borderRadius:100,height:4,marginBottom:22,overflow:'hidden'}}>
-            <div style={{width:`${pct}%`,height:'100%',background:'linear-gradient(90deg,var(--gold),var(--orange))',borderRadius:100,transition:'width 0.4s'}}/>
-          </div>
+          <div style={{background:'rgba(255,255,255,0.06)',borderRadius:100,height:4,marginBottom:22,overflow:'hidden'}}><div style={{width:`${pct}%`,height:'100%',background:'linear-gradient(90deg,var(--gold),var(--orange))',borderRadius:100,transition:'width 0.4s'}}/></div>
           <div style={{background:'var(--gray)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:20,padding:'22px'}}>
             <div style={{display:'flex',gap:8,marginBottom:14}}><span style={{fontSize:10,fontWeight:700,letterSpacing:2,textTransform:'uppercase',color:'var(--gold)'}}>{q.disc}</span><span style={{fontSize:10,color:'var(--text-muted)'}}>· OAB Oficial</span></div>
             <div style={{fontSize:'clamp(14px,3vw,17px)',fontWeight:600,lineHeight:1.7,marginBottom:22}}>{q.q}</div>
@@ -954,12 +785,10 @@ function SimuladosPage({ showUpgrade, freeQ, setFreeQ, onXp, profile, isPremium 
               {q.opts.map((opt:string,i:number)=>{
                 let bg='rgba(255,255,255,0.03)',bc='rgba(255,255,255,0.08)',color='var(--white)'
                 if(answered){if(i===q.correct){bg='rgba(76,175,125,0.1)';bc='var(--success)';color='var(--success)'}else if(i===sel){bg='rgba(232,66,26,0.1)';bc='var(--danger)';color='var(--danger)'}}
-                return(
-                  <button key={i} onClick={()=>pick(i)} style={{display:'flex',alignItems:'flex-start',gap:12,background:bg,border:`1px solid ${bc}`,borderRadius:12,padding:'13px 15px',cursor:'pointer',transition:'all 0.2s',textAlign:'left',width:'100%',fontFamily:'var(--font-body)',fontSize:'clamp(13px,2.5vw,14px)',color}}>
-                    <span style={{width:26,height:26,borderRadius:'50%',flexShrink:0,display:'flex',alignItems:'center',justifyContent:'center',fontSize:11,fontWeight:800,background:'rgba(255,255,255,0.06)',color:'var(--white)'}}>{String.fromCharCode(65+i)}</span>
-                    <span style={{flex:1}}>{opt}</span>
-                  </button>
-                )
+                return(<button key={i} onClick={()=>pick(i)} style={{display:'flex',alignItems:'flex-start',gap:12,background:bg,border:`1px solid ${bc}`,borderRadius:12,padding:'13px 15px',cursor:'pointer',transition:'all 0.2s',textAlign:'left',width:'100%',fontFamily:'var(--font-body)',fontSize:'clamp(13px,2.5vw,14px)',color}}>
+                  <span style={{width:26,height:26,borderRadius:'50%',flexShrink:0,display:'flex',alignItems:'center',justifyContent:'center',fontSize:11,fontWeight:800,background:'rgba(255,255,255,0.06)',color:'var(--white)'}}>{String.fromCharCode(65+i)}</span>
+                  <span style={{flex:1}}>{opt}</span>
+                </button>)
               })}
             </div>
             {answered&&q.exp&&<div style={{marginTop:20,padding:16,background:'rgba(212,168,67,0.06)',border:'1px solid rgba(212,168,67,0.15)',borderRadius:12,fontSize:13,lineHeight:1.7,color:'var(--text-muted)'}}>{sel===q.correct?'✅ ':'❌ '}<strong style={{color:'var(--gold)'}}>{sel===q.correct?'Correto!':'Incorreto.'}</strong> {q.exp}</div>}
@@ -979,19 +808,10 @@ function SimuladosPage({ showUpgrade, freeQ, setFreeQ, onXp, profile, isPremium 
         <div style={{maxWidth:600,margin:'0 auto',textAlign:'center'}}>
           <div style={{fontSize:60,marginBottom:18}}>{aprovado?'🏆':rate>=50?'📝':'💪'}</div>
           <h1 style={{fontFamily:'var(--font-display)',fontSize:'clamp(22px,5vw,30px)',fontWeight:900,marginBottom:8}}>Simulado Concluído!</h1>
-          <p style={{fontSize:14,color:'var(--text-muted)',marginBottom:6}}>{selectedSimulado.edicao||selectedSimulado.t}</p>
           <p style={{fontSize:14,color:'var(--text-muted)',marginBottom:20}}>{score} de {total} corretas</p>
           <div style={{background:aprovado?'rgba(76,175,125,0.1)':'rgba(232,98,26,0.1)',border:`1px solid ${aprovado?'var(--success)':'var(--orange)'}`,borderRadius:16,padding:16,marginBottom:18}}>
             <div style={{fontSize:18,fontWeight:900,color:aprovado?'var(--success)':'var(--orange)',marginBottom:6}}>{aprovado?'✅ APROVADO!':'❌ Não aprovado'}</div>
             <div style={{fontSize:13,color:'var(--text-muted)'}}>{aprovado?`${rate}% de acerto.`:`Precisava de ${Math.ceil(total*0.625)} acertos.`}</div>
-          </div>
-          <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:12,marginBottom:20}}>
-            {[['Acertos',`${score}/${total}`,'var(--gold)'],['Taxa',`${rate}%`,rate>=62?'var(--success)':'var(--orange)'],['Aprovação',aprovado?'✅':'❌',aprovado?'var(--success)':'var(--danger)']].map(([l,v,c])=>(
-              <div key={l} style={{background:'var(--gray)',borderRadius:14,padding:16,border:'1px solid rgba(255,255,255,0.06)'}}>
-                <div style={{fontSize:10,fontWeight:700,letterSpacing:1.5,textTransform:'uppercase',color:'var(--text-muted)',marginBottom:6}}>{l}</div>
-                <div style={{fontFamily:'var(--font-display)',fontSize:20,fontWeight:900,color:c}}>{v}</div>
-              </div>
-            ))}
           </div>
           <div style={{display:'flex',gap:10,justifyContent:'center'}}>
             <button className="btn-primary" onClick={()=>{setRunning(false);setDone(false)}}>NOVO SIMULADO</button>
@@ -1006,6 +826,11 @@ function SimuladosPage({ showUpgrade, freeQ, setFreeQ, onXp, profile, isPremium 
     <div style={{padding:'24px 20px',flex:1}}>
       <h1 style={{fontFamily:'var(--font-display)',fontSize:'clamp(22px,5vw,32px)',fontWeight:900,marginBottom:6}}>Simulados 📋</h1>
       <p style={{fontSize:14,color:'var(--text-muted)',marginBottom:20}}>Treine com provas reais da OAB e simulados temáticos.</p>
+      {!isPago&&(
+        <div style={{background:'rgba(212,168,67,0.06)',border:'1px solid rgba(212,168,67,0.15)',borderRadius:12,padding:'12px 16px',marginBottom:20,fontSize:13,color:'var(--gold)'}}>
+          🔒 Plano gratuito: apenas Mini Simulados disponíveis. <button onClick={showUpgrade} style={{color:'var(--gold)',background:'none',border:'none',cursor:'pointer',fontSize:13,fontFamily:'var(--font-body)',fontWeight:700}}>Fazer upgrade →</button>
+        </div>
+      )}
       <div style={{display:'flex',gap:8,marginBottom:24,flexWrap:'wrap'}}>
         {([['oficiais','🏛️ Provas OAB'],['pratica','⚡ Temáticos']] as const).map(([key,label])=>(
           <button key={key} onClick={()=>setTab(key)} style={{padding:'10px 18px',borderRadius:10,border:tab===key?'1px solid rgba(212,168,67,0.4)':'1px solid rgba(255,255,255,0.08)',background:tab===key?'rgba(212,168,67,0.1)':'transparent',color:tab===key?'var(--gold)':'var(--text-muted)',fontSize:13,fontWeight:700,cursor:'pointer',fontFamily:'var(--font-body)'}}>{label}</button>
@@ -1017,14 +842,14 @@ function SimuladosPage({ showUpgrade, freeQ, setFreeQ, onXp, profile, isPremium 
             <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:6,flexWrap:'wrap'}}>
               <span style={{fontSize:18}}>📋</span>
               <div style={{fontSize:14,fontWeight:700}}>Últimas 5 Provas Oficiais da OAB</div>
-              {!isElite&&<span style={{fontSize:10,fontWeight:800,background:'rgba(212,168,67,0.1)',border:'1px solid rgba(212,168,67,0.2)',color:'var(--gold)',padding:'3px 10px',borderRadius:100}}>🔒 ELITE</span>}
+              {!canAccessElite&&<span style={{fontSize:10,fontWeight:800,background:'rgba(212,168,67,0.1)',border:'1px solid rgba(212,168,67,0.2)',color:'var(--gold)',padding:'3px 10px',borderRadius:100}}>🔒 ELITE</span>}
             </div>
             <div style={{fontSize:13,color:'var(--text-muted)'}}>Questões reais com gabarito oficial.</div>
           </div>
           {loadingProva&&<div style={{textAlign:'center',padding:40,color:'var(--gold)'}}>⏳ Carregando...</div>}
           <div style={{display:'flex',flexDirection:'column',gap:14}}>
             {provasOAB.map((prova,i)=>(
-              <div key={prova.id} style={{background:'var(--gray)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:16,padding:'18px',display:'flex',alignItems:'center',justifyContent:'space-between',flexWrap:'wrap',gap:14,transition:'border-color 0.2s'}}
+              <div key={prova.id} style={{background:'var(--gray)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:16,padding:'18px',display:'flex',alignItems:'center',justifyContent:'space-between',flexWrap:'wrap',gap:14}}
                 onMouseEnter={e=>e.currentTarget.style.borderColor='rgba(212,168,67,0.2)'}
                 onMouseLeave={e=>e.currentTarget.style.borderColor='rgba(255,255,255,0.06)'}>
                 <div style={{display:'flex',alignItems:'center',gap:14}}>
@@ -1041,8 +866,8 @@ function SimuladosPage({ showUpgrade, freeQ, setFreeQ, onXp, profile, isPremium 
                     </div>
                   </div>
                 </div>
-                <button onClick={()=>iniciarProvaOficial(prova)} className={isElite?'btn-primary':'btn-secondary'} style={{fontSize:12,padding:'10px 20px'}} disabled={loadingProva}>
-                  {isElite?'▶ INICIAR':'🔒 ELITE'}
+                <button onClick={()=>iniciarProvaOficial(prova)} className={canAccessElite?'btn-primary':'btn-secondary'} style={{fontSize:12,padding:'10px 20px'}} disabled={loadingProva}>
+                  {canAccessElite?'▶ INICIAR':'🔒 ELITE'}
                 </button>
               </div>
             ))}
@@ -1061,7 +886,7 @@ function SimuladosPage({ showUpgrade, freeQ, setFreeQ, onXp, profile, isPremium 
               <div style={{display:'flex',gap:5,flexWrap:'wrap',marginBottom:16}}>
                 {s.tags.map(tag=><span key={tag} style={{fontSize:10,padding:'2px 9px',borderRadius:100,fontWeight:700,background:'rgba(212,168,67,0.1)',color:'var(--gold)',border:'1px solid rgba(212,168,67,0.2)'}}>{tag}</span>)}
               </div>
-              {s.lock&&!isElite
+              {s.lock&&!isPago
                 ?<button className="btn-secondary" style={{width:'100%',fontSize:12,padding:'10px'}} onClick={()=>showUpgrade()}>🔒 DESBLOQUEAR</button>
                 :<button className="btn-gold-sm" style={{width:'100%',fontSize:12}} onClick={()=>iniciarSimuladoPratica(s)} disabled={loadingProva}>{loadingProva?'⏳':'INICIAR →'}</button>
               }
@@ -1135,28 +960,21 @@ export default function TigerJusApp() {
   const [loading,setLoading]=useState(true)
   const [menuOpen,setMenuOpen]=useState(false)
 
-  const isPremium=!!(profile?.role==='admin'||profile?.plano==='elite'||profile?.plano==='premium'||profile?.plano==='pro'||profile?.plano==='plus'||profile?.plano==='start')
+  // ── Permissões centralizadas ──────────────────────────────────────────────
+  const plano = profile?.plano
+  const userIsPago = !!(isAdmin(profile?.role) || isPago(plano))
+  const canAccessPremium = !!(isAdmin(profile?.role) || canAccess(plano, 'premium'))
+  const canAccessElite = !!(isAdmin(profile?.role) || canAccess(plano, 'elite'))
+  const limites = getLimites(plano)
 
   useEffect(()=>{
     const init=async()=>{
-      // ✅ Aguarda sessão OAuth ser estabelecida (PKCE pode demorar um pouco)
       const{data:{session}}=await supabase.auth.getSession()
       if(session){await loadProfile(session.user.id);return}
-
-      // ✅ Escuta mudanças de auth — captura sessão do Google OAuth
+      const timeout=setTimeout(()=>{router.push('/login')},3000)
       const{data:{subscription}}=supabase.auth.onAuthStateChange(async(event,session)=>{
-        if(event==='SIGNED_IN'&&session){
-          await loadProfile(session.user.id)
-          subscription.unsubscribe()
-        }
-        if(event==='SIGNED_OUT'){
-          router.push('/login')
-        }
+        if(session){clearTimeout(timeout);await loadProfile(session.user.id);subscription.unsubscribe()}
       })
-
-      // ✅ Aumenta timeout para 8 segundos (Google OAuth pode demorar)
-      const timeout=setTimeout(()=>{router.push('/login')},8000)
-
       return()=>{clearTimeout(timeout);subscription.unsubscribe()}
     }
     init()
@@ -1166,8 +984,13 @@ export default function TigerJusApp() {
     const{data}=await supabase.from('profiles').select('*').eq('id',userId).single()
     if(data){
       setProfile(data as Profile)
-      if(data.role==='admin'||data.plano==='elite'||data.plano==='premium'){setFreeQ(999999);setFreeIA(999999)}
-      else{setFreeQ(Math.max(0,15-(data.free_questions_used||0)));setFreeIA(Math.max(0,5-(data.free_ia_used||0)))}
+      const l = getLimites(data.plano)
+      if(isAdmin(data.role)){
+        setFreeQ(999999);setFreeIA(999999)
+      } else {
+        setFreeQ(Math.max(0, l.questoes - (data.free_questions_used||0)))
+        setFreeIA(Math.max(0, l.ia - (data.free_ia_used||0)))
+      }
     }
     setLoading(false)
     if(data){
@@ -1216,6 +1039,8 @@ export default function TigerJusApp() {
     {icon:'🏆',label:'Ranking',key:'ranking'},
   ]
 
+  const planoDisplay = profile?.plano?.charAt(0).toUpperCase() + (profile?.plano?.slice(1) || '') || 'Gratuito'
+
   return(
     <div style={{background:'var(--deep-black)',minHeight:'100vh'}}>
       {notif&&<Notification msg={notif} onClose={()=>setNotif(null)}/>}
@@ -1223,7 +1048,6 @@ export default function TigerJusApp() {
       {showUpgradeModal&&<UpgradeModal onClose={()=>setShowUpgradeModal(false)} onSelect={handleUpgradeSelect}/>}
       {showRadar&&<RadarModal onClose={()=>setShowRadar(false)}/>}
 
-      {/* NAVBAR */}
       <nav style={{position:'fixed',top:0,left:0,right:0,zIndex:100,display:'flex',alignItems:'center',justifyContent:'space-between',padding:'0 16px',height:60,background:'rgba(8,8,8,0.95)',backdropFilter:'blur(12px)',borderBottom:'1px solid rgba(255,255,255,0.06)'}}>
         <div style={{display:'flex',alignItems:'center',gap:8}}>
           <div style={{width:34,height:34,background:'linear-gradient(135deg,var(--gold),var(--orange))',borderRadius:8,display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'var(--font-display)',fontSize:16,fontWeight:900,color:'var(--deep-black)',flexShrink:0}}>T</div>
@@ -1238,7 +1062,7 @@ export default function TigerJusApp() {
         </div>
         <div style={{display:'flex',gap:8,alignItems:'center'}}>
           <span className="nav-desktop" style={{fontSize:12,color:'var(--text-muted)'}}>{profile?.nome?.split(' ')[0]||'Usuário'}</span>
-          <button className="btn-gold-sm nav-desktop" onClick={()=>setShowUpgradeModal(true)} style={{fontSize:11}}>🚀 {profile?.plano?.toUpperCase()||'UPGRADE'}</button>
+          <button className="btn-gold-sm nav-desktop" onClick={()=>setShowUpgradeModal(true)} style={{fontSize:11}}>🚀 {planoDisplay.toUpperCase()}</button>
           <button onClick={handleLogout} className="nav-desktop" style={{color:'var(--text-muted)',fontSize:11,border:'none',background:'none',cursor:'pointer',fontFamily:'var(--font-body)'}}>Sair</button>
           <button className="nav-mobile" onClick={()=>setMenuOpen(o=>!o)} style={{background:'none',border:'1px solid rgba(255,255,255,0.1)',borderRadius:8,width:36,height:36,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:5,cursor:'pointer',padding:8}}>
             <span style={{display:'block',width:18,height:2,background:'var(--white)',borderRadius:2,transition:'all 0.2s',transform:menuOpen?'rotate(45deg) translate(5px,5px)':'none'}}/>
@@ -1248,7 +1072,6 @@ export default function TigerJusApp() {
         </div>
       </nav>
 
-      {/* Menu mobile dropdown */}
       {menuOpen&&(
         <div style={{position:'fixed',top:60,left:0,right:0,zIndex:99,background:'rgba(10,10,10,0.98)',backdropFilter:'blur(12px)',borderBottom:'1px solid rgba(255,255,255,0.08)',padding:'12px 0',display:'flex',flexDirection:'column'}}>
           {SIDEBAR.map(item=>(
@@ -1257,14 +1080,13 @@ export default function TigerJusApp() {
             </button>
           ))}
           <div style={{borderTop:'1px solid rgba(255,255,255,0.06)',margin:'8px 0',padding:'8px 20px',display:'flex',gap:10}}>
-            <button className="btn-gold-sm" style={{flex:1,fontSize:12}} onClick={()=>{setShowUpgradeModal(true);setMenuOpen(false)}}>🚀 {profile?.plano?.toUpperCase()||'UPGRADE'}</button>
+            <button className="btn-gold-sm" style={{flex:1,fontSize:12}} onClick={()=>{setShowUpgradeModal(true);setMenuOpen(false)}}>🚀 UPGRADE</button>
             <button onClick={()=>{handleLogout();setMenuOpen(false)}} style={{color:'var(--text-muted)',fontSize:12,border:'1px solid rgba(255,255,255,0.08)',borderRadius:8,padding:'8px 14px',background:'none',cursor:'pointer',fontFamily:'var(--font-body)'}}>Sair</button>
           </div>
         </div>
       )}
 
       <div style={{display:'flex',paddingTop:60,minHeight:'100vh'}}>
-        {/* Sidebar desktop */}
         <aside className="dash-sidebar nav-desktop">
           {SIDEBAR.map(item=>(
             <button key={item.key} className={`sidebar-item${page===item.key?' active':''}`} onClick={()=>navTo(item.key)}>
@@ -1272,23 +1094,25 @@ export default function TigerJusApp() {
             </button>
           ))}
           <div style={{fontSize:10,fontWeight:700,letterSpacing:'2.5px',textTransform:'uppercase',color:'var(--text-dim)',padding:'12px 14px 6px',marginTop:8}}>CONTA</div>
-          {profile?.role==='admin'&&<button className="sidebar-item" onClick={()=>router.push('/admin')}>⚙️ Admin Panel</button>}
+          {isAdmin(profile?.role)&&<button className="sidebar-item" onClick={()=>router.push('/admin')}>⚙️ Admin Panel</button>}
           <button className="sidebar-item" onClick={handleLogout}>🚪 Sair</button>
           <div style={{marginTop:'auto',padding:'20px 12px 0'}}>
             <div style={{background:'rgba(212,168,67,0.06)',border:'1px solid rgba(212,168,67,0.14)',borderRadius:12,padding:14}}>
-              <div style={{fontSize:9,fontWeight:700,letterSpacing:2,textTransform:'uppercase',color:'var(--gold)',marginBottom:5}}>{profile?.plano?.toUpperCase()||'PLANO GRATUITO'}</div>
-              <div style={{fontSize:11,color:'var(--text-muted)',marginBottom:10}}>{freeQ>9000?'Ilimitado':`${freeQ} questões`} · {freeIA>9000?'IA Ilimitada':`${freeIA} perguntas IA`}</div>
-              <button className="btn-gold-sm" style={{width:'100%',fontSize:11}} onClick={()=>setShowUpgradeModal(true)}>🚀 FAZER UPGRADE</button>
+              <div style={{fontSize:9,fontWeight:700,letterSpacing:2,textTransform:'uppercase',color:'var(--gold)',marginBottom:5}}>{planoDisplay.toUpperCase()}</div>
+              <div style={{fontSize:11,color:'var(--text-muted)',marginBottom:10}}>
+                {userIsPago?'Ilimitado':`${freeQ} questões`} · {userIsPago?'IA Ilimitada':`${freeIA} perguntas IA`}
+              </div>
+              {!userIsPago&&<button className="btn-gold-sm" style={{width:'100%',fontSize:11}} onClick={()=>setShowUpgradeModal(true)}>🚀 FAZER UPGRADE</button>}
             </div>
             <RadarOAB/>
           </div>
         </aside>
 
-        {page==='dashboard'&&<DashHome profile={profile} onNav={navTo} showUpgrade={showUpgrade} isPremium={isPremium} onOpenRadar={()=>setShowRadar(true)}/>}
-        {page==='disciplines'&&<DisciplinesPage showUpgrade={showUpgrade} profile={profile} isPremium={isPremium}/>}
-        {page==='quiz'&&<QuizPage freeQ={freeQ} setFreeQ={setFreeQ} showUpgrade={showUpgrade} onXp={handleXp} profile={profile} isPremium={isPremium}/>}
-        {page==='simulados'&&<SimuladosPage showUpgrade={showUpgrade} freeQ={freeQ} setFreeQ={setFreeQ} onXp={handleXp} profile={profile} isPremium={isPremium}/>}
-        {page==='ia'&&<IAPage freeIA={freeIA} setFreeIA={setFreeIA} showUpgrade={showUpgrade} profile={profile}/>}
+        {page==='dashboard'&&<DashHome profile={profile} onNav={navTo} showUpgrade={showUpgrade} isPago={userIsPago} canAccessPremium={canAccessPremium} onOpenRadar={()=>setShowRadar(true)}/>}
+        {page==='disciplines'&&<DisciplinesPage showUpgrade={showUpgrade} profile={profile} isPago={userIsPago} canAccessPremium={canAccessPremium}/>}
+        {page==='quiz'&&<QuizPage freeQ={freeQ} setFreeQ={setFreeQ} showUpgrade={showUpgrade} onXp={handleXp} profile={profile} isPago={userIsPago}/>}
+        {page==='simulados'&&<SimuladosPage showUpgrade={showUpgrade} freeQ={freeQ} setFreeQ={setFreeQ} onXp={handleXp} profile={profile} isPago={userIsPago} canAccessElite={canAccessElite}/>}
+        {page==='ia'&&<IAPage freeIA={freeIA} setFreeIA={setFreeIA} showUpgrade={showUpgrade} profile={profile} isPago={userIsPago}/>}
         {page==='ranking'&&<RankingPage profile={profile}/>}
       </div>
 
