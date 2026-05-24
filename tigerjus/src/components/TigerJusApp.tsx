@@ -664,6 +664,36 @@ function DisciplinesPage({ showUpgrade, profile, isPago, canAccessPremium }: any
   )
 }
 
+// ─── ALIASES DE DISCIPLINA ────────────────────────────────────────────────────
+// Mapeia o nome exibido na UI para possíveis valores no banco (questoes_oab / flashcards)
+const DISCIPLINA_ALIASES: Record<string, string[]> = {
+  'Constitucional':    ['Constitucional', 'Direito Constitucional'],
+  'Administrativo':    ['Administrativo', 'Direito Administrativo'],
+  'Penal':             ['Penal', 'Direito Penal'],
+  'Processo Penal':    ['Processo Penal', 'Direito Processual Penal', 'Processual Penal'],
+  'Civil':             ['Civil', 'Direito Civil'],
+  'Processo Civil':    ['Processo Civil', 'Direito Processual Civil', 'Processual Civil'],
+  'Trabalho':          ['Trabalho', 'Direito do Trabalho', 'Direito Trabalhista'],
+  'Proc. Trabalho':    ['Processo do Trabalho', 'Proc. Trabalho', 'Processual do Trabalho', 'Direito Processual do Trabalho'],
+  'Tributário':        ['Tributário', 'Direito Tributário'],
+  'Empresarial':       ['Empresarial', 'Direito Empresarial', 'Direito Comercial'],
+  'Ética OAB':         ['Ética', 'Ética OAB', 'Estatuto da OAB', 'Ética Profissional'],
+  'Consumidor':        ['Consumidor', 'Direito do Consumidor', 'CDC'],
+  'Direitos Humanos':  ['Direitos Humanos', 'Direito Internacional dos Direitos Humanos'],
+  'Ambiental':         ['Ambiental', 'Direito Ambiental'],
+  'Filosofia':         ['Filosofia', 'Filosofia do Direito', 'Sociologia Jurídica'],
+  'Internacional':     ['Internacional', 'Direito Internacional', 'Direito Internacional Público'],
+  'ECA':               ['ECA', 'Estatuto da Criança e do Adolescente', 'Direito da Criança'],
+}
+
+/**
+ * Retorna os termos de busca para uma disciplina:
+ * 1º o nome exato da UI, 2º os aliases, 3º o primeiro token como fallback ilike
+ */
+function getDisciplinaAliases(disciplina: string): string[] {
+  return DISCIPLINA_ALIASES[disciplina] ?? [disciplina]
+}
+
 // ─── FLASHCARDS PAGE — tela geral do menu lateral ────────────────────────────
 function FlashCardsPage() {
   const [disciplinaAtiva, setDisciplinaAtiva] = useState<string|null>(null)
@@ -753,20 +783,30 @@ function QuizDisciplina({disciplina}:{disciplina:string}) {
 
     const carregar = async () => {
       try {
-        // Tentativa 1: match exato
-        let { data, error } = await supabase
-          .from('questoes_oab')
-          .select('id,disciplina,enunciado,opcao_a,opcao_b,opcao_c,opcao_d,resposta_correta,comentario')
-          .eq('disciplina', disciplina)
-          .neq('resposta_correta', '*')
+        const aliases = getDisciplinaAliases(disciplina)
+        let data: any[] | null = null
+        let error: any = null
 
-        // Fallback: match parcial se vazio
+        // Tentativa 1: match exato em cada alias
+        for (const alias of aliases) {
+          const res = await supabase
+            .from('questoes_oab')
+            .select('id,disciplina,enunciado,opcao_a,opcao_b,opcao_c,opcao_d,resposta_correta,comentario')
+            .eq('disciplina', alias)
+            .neq('resposta_correta', '*')
+          if (!res.error && res.data && res.data.length > 0) {
+            data = res.data; error = null; break
+          }
+          error = res.error
+        }
+
+        // Tentativa 2: ilike com primeiro token se aliases falharam
         if (!error && (!data || data.length === 0)) {
-          const primeira = disciplina.split(' ')[0]
+          const token = aliases[0].split(' ')[0]
           const fb = await supabase
             .from('questoes_oab')
             .select('id,disciplina,enunciado,opcao_a,opcao_b,opcao_c,opcao_d,resposta_correta,comentario')
-            .ilike('disciplina', `%${primeira}%`)
+            .ilike('disciplina', `%${token}%`)
             .neq('resposta_correta', '*')
           data = fb.data; error = fb.error
         }
@@ -819,15 +859,22 @@ function QuizDisciplina({disciplina}:{disciplina:string}) {
     // Re-dispara o useEffect
     const carregar = async () => {
       try {
-        let { data, error } = await supabase
-          .from('questoes_oab')
-          .select('id,disciplina,enunciado,opcao_a,opcao_b,opcao_c,opcao_d,resposta_correta,comentario')
-          .eq('disciplina', disciplina).neq('resposta_correta', '*')
+        const aliases = getDisciplinaAliases(disciplina)
+        let data: any[] | null = null
+        let error: any = null
+        for (const alias of aliases) {
+          const res = await supabase
+            .from('questoes_oab')
+            .select('id,disciplina,enunciado,opcao_a,opcao_b,opcao_c,opcao_d,resposta_correta,comentario')
+            .eq('disciplina', alias).neq('resposta_correta', '*')
+          if (!res.error && res.data && res.data.length > 0) { data = res.data; error = null; break }
+          error = res.error
+        }
         if (!error && (!data || data.length === 0)) {
           const fb = await supabase
             .from('questoes_oab')
             .select('id,disciplina,enunciado,opcao_a,opcao_b,opcao_c,opcao_d,resposta_correta,comentario')
-            .ilike('disciplina', `%${disciplina.split(' ')[0]}%`).neq('resposta_correta', '*')
+            .ilike('disciplina', `%${getDisciplinaAliases(disciplina)[0].split(' ')[0]}%`).neq('resposta_correta', '*')
           data = fb.data; error = fb.error
         }
         if (error) { setErro(true); return }
@@ -989,74 +1036,58 @@ function FlashCards({disciplina}:{disciplina:string}) {
   const cacheRef = useRef<Map<string, {id:string; frente:string; verso:string}[]>>(new Map())
 
   useEffect(() => {
-    // Reseta estado ao trocar disciplina
-    setIdx(0)
-    setFlipped(false)
-    setErro(false)
+    setIdx(0); setFlipped(false); setErro(false)
 
-    // Verifica cache primeiro
     const cached = cacheRef.current.get(disciplina)
-    if (cached) {
-      setCards(cached)
-      setLoading(false)
-      return
-    }
+    if (cached) { setCards(cached); setLoading(false); return }
 
-    // Evita double-fetch no StrictMode
     if (fetchingRef.current) return
     fetchingRef.current = true
     setLoading(true)
 
     const carregar = async () => {
       try {
-        // Tentativa 1: match exato na disciplina
-        let { data, error } = await supabase
-          .from('flashcards')
-          .select('id, frente, verso')
-          .eq('disciplina', disciplina)
-          .eq('ativo', true)
-          .order('created_at', { ascending: true })
-          .limit(50)
+        const aliases = getDisciplinaAliases(disciplina)
+        let data: any[] | null = null
+        let error: any = null
 
-        // Tentativa 2: fallback com ilike se vier vazio
-        if (!error && (!data || data.length === 0)) {
-          const primeiraLavra = disciplina.split(' ')[0]
-          const fallback = await supabase
+        // Tentativa 1: match exato em cada alias
+        for (const alias of aliases) {
+          const res = await supabase
             .from('flashcards')
             .select('id, frente, verso')
-            .ilike('disciplina', `%${primeiraLavra}%`)
+            .eq('disciplina', alias)
             .eq('ativo', true)
             .order('created_at', { ascending: true })
             .limit(50)
-          data = fallback.data
-          error = fallback.error
+          if (!res.error && res.data && res.data.length > 0) {
+            data = res.data; error = null; break
+          }
+          error = res.error
         }
 
-        if (error) {
-          setErro(true)
-          return
+        // Tentativa 2: ilike com primeiro token se aliases falharam
+        if (!error && (!data || data.length === 0)) {
+          const token = aliases[0].split(' ')[0]
+          const fb = await supabase
+            .from('flashcards')
+            .select('id, frente, verso')
+            .ilike('disciplina', `%${token}%`)
+            .eq('ativo', true)
+            .limit(50)
+          data = fb.data; error = fb.error
         }
 
-        const resultado = (data || []).map((c: any) => ({
-          id: c.id,
-          frente: c.frente,
-          verso: c.verso,
-        }))
-
+        if (error) { setErro(true); return }
+        const resultado = (data || []).map((c: any) => ({ id: c.id, frente: c.frente, verso: c.verso }))
         cacheRef.current.set(disciplina, resultado)
         setCards(resultado)
-      } catch {
-        setErro(true)
-      } finally {
-        setLoading(false)
-        fetchingRef.current = false
-      }
+      } catch { setErro(true) }
+      finally { setLoading(false); fetchingRef.current = false }
     }
-
     carregar()
   }, [disciplina])
 
-  // Loading
   if (loading) return (
     <div style={{maxWidth:560, padding:'40px 0', textAlign:'center'}}>
       <div style={{fontSize:36, marginBottom:12}}>⏳</div>
@@ -1066,34 +1097,21 @@ function FlashCards({disciplina}:{disciplina:string}) {
     </div>
   )
 
-  // Erro de rede
   if (erro) return (
     <div style={{maxWidth:560, padding:'40px 0', textAlign:'center'}}>
       <div style={{fontSize:36, marginBottom:12}}>⚠️</div>
-      <div style={{fontSize:14, fontWeight:700, marginBottom:8, color:'var(--white)'}}>
-        Não foi possível carregar os flashcards.
-      </div>
-      <div style={{fontSize:12, color:'var(--text-muted)', marginBottom:20}}>
-        Verifique sua conexão e tente novamente.
-      </div>
+      <div style={{fontSize:14, fontWeight:700, marginBottom:8, color:'var(--white)'}}>Não foi possível carregar os flashcards.</div>
+      <div style={{fontSize:12, color:'var(--text-muted)', marginBottom:20}}>Verifique sua conexão e tente novamente.</div>
       <button className="btn-secondary" style={{fontSize:12}} onClick={() => {
-        cacheRef.current.delete(disciplina)
-        fetchingRef.current = false
-        setErro(false)
-        setLoading(true)
-      }}>
-        🔄 Tentar novamente
-      </button>
+        cacheRef.current.delete(disciplina); fetchingRef.current = false; setErro(false); setLoading(true)
+      }}>🔄 Tentar novamente</button>
     </div>
   )
 
-  // Vazio — sem flashcards para esta disciplina
   if (cards.length === 0) return (
     <div style={{maxWidth:560, padding:'40px 0', textAlign:'center'}}>
       <div style={{fontSize:40, marginBottom:12}}>🃏</div>
-      <div style={{fontSize:14, fontWeight:700, marginBottom:8, color:'var(--white)'}}>
-        Nenhum flashcard disponível
-      </div>
+      <div style={{fontSize:14, fontWeight:700, marginBottom:8, color:'var(--white)'}}>Nenhum flashcard disponível</div>
       <div style={{fontSize:12, color:'var(--text-muted)', lineHeight:1.6}}>
         Os flashcards de <strong style={{color:'var(--gold)'}}>{disciplina}</strong> ainda estão sendo preparados.
       </div>
@@ -1103,77 +1121,65 @@ function FlashCards({disciplina}:{disciplina:string}) {
   const card = cards[idx]
 
   return (
-    <div style={{maxWidth:560}}>
+    <div style={{maxWidth:580}}>
       <div style={{marginBottom:14, display:'flex', alignItems:'center', justifyContent:'space-between'}}>
         <div style={{fontSize:13, color:'var(--text-muted)'}}>
           Card {idx+1} de {cards.length} · <span style={{color:'var(--gold)'}}>{disciplina}</span>
         </div>
-        <div style={{fontSize:11, color:'var(--text-muted)'}}>
-          {flipped ? '👁️ Resposta' : '❓ Pergunta'}
-        </div>
+        <div style={{fontSize:11, color:'var(--text-muted)'}}>{flipped ? '👁️ Resposta' : '❓ Pergunta'}</div>
       </div>
 
+      {/* Card flip — altura dinâmica, sem overflow */}
       <div style={{perspective:1000, marginBottom:20, cursor:'pointer'}} onClick={() => setFlipped(f => !f)}>
-        <div style={{
-          position:'relative', height:220,
-          transformStyle:'preserve-3d',
-          transition:'transform 0.6s',
-          transform: flipped ? 'rotateY(180deg)' : 'rotateY(0)'
-        }}>
+        <div style={{position:'relative', transformStyle:'preserve-3d', transition:'transform 0.6s', transform: flipped ? 'rotateY(180deg)' : 'rotateY(0)'}}>
+
           {/* Frente */}
           <div style={{
-            position:'absolute', inset:0, backfaceVisibility:'hidden',
+            backfaceVisibility:'hidden',
             background:'var(--gray)', border:'1px solid rgba(212,168,67,0.2)',
-            borderRadius:20, padding:28,
-            display:'flex', alignItems:'center', justifyContent:'center', textAlign:'center'
+            borderRadius:20, padding:'24px 24px 20px',
+            minHeight:180,
+            display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', textAlign:'center',
           }}>
-            <div>
-              <div style={{fontSize:10, fontWeight:700, letterSpacing:2, textTransform:'uppercase', color:'var(--gold)', marginBottom:14}}>
-                PERGUNTA
-              </div>
-              <div style={{fontSize:15, fontWeight:600, lineHeight:1.6}}>{card.frente}</div>
-              <div style={{marginTop:16, fontSize:11, color:'var(--text-muted)'}}>
-                Toque para ver a resposta
-              </div>
-            </div>
+            <div style={{fontSize:10, fontWeight:700, letterSpacing:2, textTransform:'uppercase', color:'var(--gold)', marginBottom:12}}>PERGUNTA</div>
+            <div style={{
+              fontSize:14, fontWeight:600, lineHeight:1.7, color:'var(--white)',
+              whiteSpace:'pre-wrap', wordBreak:'break-word', overflowWrap:'anywhere',
+              maxHeight:280, overflowY:'auto', width:'100%',
+            }}>{card.frente}</div>
+            <div style={{marginTop:14, fontSize:11, color:'var(--text-muted)', flexShrink:0}}>Toque para ver a resposta</div>
           </div>
+
           {/* Verso */}
           <div style={{
-            position:'absolute', inset:0, backfaceVisibility:'hidden',
-            transform:'rotateY(180deg)',
+            position:'absolute', top:0, left:0, right:0,
+            backfaceVisibility:'hidden', transform:'rotateY(180deg)',
             background:'linear-gradient(135deg,rgba(212,168,67,0.1),rgba(232,98,26,0.06))',
             border:'1px solid rgba(212,168,67,0.3)',
-            borderRadius:20, padding:28,
-            display:'flex', alignItems:'center', justifyContent:'center', textAlign:'center'
+            borderRadius:20, padding:'24px 24px 20px',
+            minHeight:180,
+            display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', textAlign:'center',
           }}>
-            <div>
-              <div style={{fontSize:10, fontWeight:700, letterSpacing:2, textTransform:'uppercase', color:'var(--gold)', marginBottom:14}}>
-                RESPOSTA
-              </div>
-              <div style={{fontSize:13, lineHeight:1.8, color:'var(--text-muted)'}}>{card.verso}</div>
-            </div>
+            <div style={{fontSize:10, fontWeight:700, letterSpacing:2, textTransform:'uppercase', color:'var(--gold)', marginBottom:12}}>RESPOSTA</div>
+            <div style={{
+              fontSize:13, lineHeight:1.8, color:'var(--text-muted)',
+              whiteSpace:'pre-wrap', wordBreak:'break-word', overflowWrap:'anywhere',
+              maxHeight:300, overflowY:'auto', width:'100%',
+            }}>{card.verso}</div>
           </div>
         </div>
       </div>
 
+      {/* Botões — sempre abaixo do card */}
       <div style={{display:'flex', gap:10, justifyContent:'center'}}>
-        <button className="btn-secondary"
-          onClick={() => { setIdx(i => Math.max(0, i-1)); setFlipped(false) }}
-          disabled={idx === 0}>
-          ← Anterior
-        </button>
-        <button className="btn-secondary" onClick={() => setFlipped(f => !f)}>
-          Virar
-        </button>
-        <button className="btn-primary"
-          onClick={() => { setIdx(i => Math.min(cards.length-1, i+1)); setFlipped(false) }}
-          disabled={idx === cards.length-1}>
-          Próximo →
-        </button>
+        <button className="btn-secondary" onClick={() => { setIdx(i => Math.max(0, i-1)); setFlipped(false) }} disabled={idx === 0}>← Anterior</button>
+        <button className="btn-secondary" onClick={() => setFlipped(f => !f)}>Virar</button>
+        <button className="btn-primary" onClick={() => { setIdx(i => Math.min(cards.length-1, i+1)); setFlipped(false) }} disabled={idx === cards.length-1}>Próximo →</button>
       </div>
     </div>
   )
 }
+
 
 function SimuladosPage({ showUpgrade, freeQ, setFreeQ, onXp, profile, isPago, canAccessElite }: any) {
   const [running,setRunning]=useState(false)
