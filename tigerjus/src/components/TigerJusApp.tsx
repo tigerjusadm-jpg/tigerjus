@@ -615,6 +615,7 @@ function DisciplinesPage({ showUpgrade, profile, isPago, canAccessPremium }: any
             </div>
           </div>
         )}
+        {subTab==='quiz'&&<QuizDisciplina disciplina={selected.name}/>}
         {subTab==='flash'&&<FlashCards disciplina={selected.name}/>}
         {subTab==='pdf'&&(
           <div style={{background:'var(--gray)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:20,padding:40,textAlign:'center'}}>
@@ -658,6 +659,260 @@ function DisciplinesPage({ showUpgrade, profile, isPago, canAccessPremium }: any
             <div style={{display:'flex',gap:4,flexWrap:'wrap'}}>{d.tags.map(t=><span key={t} style={{fontSize:9,padding:'2px 6px',background:'rgba(212,168,67,0.07)',border:'1px solid rgba(212,168,67,0.15)',borderRadius:4,color:'var(--gold-dark)',fontWeight:600}}>{t}</span>)}</div>
           </div>
         ))}
+      </div>
+    </div>
+  )
+}
+
+// ─── QUIZ POR DISCIPLINA — busca real do banco filtrada por disciplina ────────
+function QuizDisciplina({disciplina}:{disciplina:string}) {
+  const [questions, setQuestions] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+  const [erro, setErro] = useState(false)
+  const [started, setStarted] = useState(false)
+  const [cur, setCur] = useState(0)
+  const [sel, setSel] = useState<number|null>(null)
+  const [answered, setAnswered] = useState(false)
+  const [score, setScore] = useState(0)
+  const [done, setDone] = useState(false)
+  const [time, setTime] = useState(90)
+  const fetchingRef = useRef(false)
+  const cacheRef = useRef<Map<string, any[]>>(new Map())
+
+  // Busca questões ao montar ou trocar disciplina
+  useEffect(() => {
+    setStarted(false); setDone(false); setScore(0); setCur(0)
+    setSel(null); setAnswered(false); setErro(false)
+
+    const cached = cacheRef.current.get(disciplina)
+    if (cached) { setQuestions(cached); setLoading(false); return }
+
+    if (fetchingRef.current) return
+    fetchingRef.current = true
+    setLoading(true)
+
+    const carregar = async () => {
+      try {
+        // Tentativa 1: match exato
+        let { data, error } = await supabase
+          .from('questoes_oab')
+          .select('id,disciplina,enunciado,opcao_a,opcao_b,opcao_c,opcao_d,resposta_correta,comentario')
+          .eq('disciplina', disciplina)
+          .neq('resposta_correta', '*')
+
+        // Fallback: match parcial se vazio
+        if (!error && (!data || data.length === 0)) {
+          const primeira = disciplina.split(' ')[0]
+          const fb = await supabase
+            .from('questoes_oab')
+            .select('id,disciplina,enunciado,opcao_a,opcao_b,opcao_c,opcao_d,resposta_correta,comentario')
+            .ilike('disciplina', `%${primeira}%`)
+            .neq('resposta_correta', '*')
+          data = fb.data; error = fb.error
+        }
+
+        if (error) { setErro(true); return }
+
+        // Embaralha e limita (provisório — futuramente virá de plan_settings.mini_simulado_qtd)
+        const shuffled = [...(data||[])].sort(() => Math.random() - 0.5).slice(0, 20)
+        const formatted = shuffled.map((q:any) => ({
+          id: q.id, disc: q.disciplina, q: q.enunciado,
+          opts: [q.opcao_a, q.opcao_b, q.opcao_c, q.opcao_d],
+          correct: ['A','B','C','D'].indexOf(q.resposta_correta),
+          exp: q.comentario || '',
+        }))
+        cacheRef.current.set(disciplina, formatted)
+        setQuestions(formatted)
+      } catch { setErro(true) }
+      finally { setLoading(false); fetchingRef.current = false }
+    }
+    carregar()
+  }, [disciplina])
+
+  // Timer por questão
+  useEffect(() => {
+    if (!started || answered || done) return
+    const t = setInterval(() => setTime(p => {
+      if (p <= 1) { clearInterval(t); setAnswered(true); return 0 }
+      return p - 1
+    }), 1000)
+    return () => clearInterval(t)
+  }, [started, answered, done, cur])
+
+  const pick = (i: number) => {
+    if (answered) return
+    setSel(i); setAnswered(true)
+    if (i === questions[cur].correct) setScore(p => p + 1)
+  }
+
+  const next = () => {
+    if (cur + 1 >= questions.length) { setDone(true); return }
+    setCur(p => p + 1); setSel(null); setAnswered(false); setTime(90)
+  }
+
+  const restart = () => {
+    // Limpa cache para embaralhar novamente
+    cacheRef.current.delete(disciplina)
+    fetchingRef.current = false
+    setStarted(false); setDone(false); setScore(0); setCur(0)
+    setSel(null); setAnswered(false); setLoading(true); setErro(false)
+    // Re-dispara o useEffect
+    const carregar = async () => {
+      try {
+        let { data, error } = await supabase
+          .from('questoes_oab')
+          .select('id,disciplina,enunciado,opcao_a,opcao_b,opcao_c,opcao_d,resposta_correta,comentario')
+          .eq('disciplina', disciplina).neq('resposta_correta', '*')
+        if (!error && (!data || data.length === 0)) {
+          const fb = await supabase
+            .from('questoes_oab')
+            .select('id,disciplina,enunciado,opcao_a,opcao_b,opcao_c,opcao_d,resposta_correta,comentario')
+            .ilike('disciplina', `%${disciplina.split(' ')[0]}%`).neq('resposta_correta', '*')
+          data = fb.data; error = fb.error
+        }
+        if (error) { setErro(true); return }
+        const shuffled = [...(data||[])].sort(() => Math.random() - 0.5).slice(0, 20)
+        const formatted = shuffled.map((q:any) => ({
+          id: q.id, disc: q.disciplina, q: q.enunciado,
+          opts: [q.opcao_a, q.opcao_b, q.opcao_c, q.opcao_d],
+          correct: ['A','B','C','D'].indexOf(q.resposta_correta),
+          exp: q.comentario || '',
+        }))
+        cacheRef.current.set(disciplina, formatted)
+        setQuestions(formatted)
+      } catch { setErro(true) }
+      finally { setLoading(false) }
+    }
+    carregar()
+  }
+
+  // ── Loading ────────────────────────────────────────────────────────────────
+  if (loading) return (
+    <div style={{padding:'40px 0', textAlign:'center'}}>
+      <div style={{fontSize:36, marginBottom:12}}>⏳</div>
+      <div style={{fontSize:13, color:'var(--text-muted)'}}>
+        Carregando questões de <strong style={{color:'var(--gold)'}}>{disciplina}</strong>...
+      </div>
+    </div>
+  )
+
+  // ── Erro ───────────────────────────────────────────────────────────────────
+  if (erro) return (
+    <div style={{padding:'40px 0', textAlign:'center'}}>
+      <div style={{fontSize:36, marginBottom:12}}>⚠️</div>
+      <div style={{fontSize:14, fontWeight:700, marginBottom:8}}>Não foi possível carregar as questões.</div>
+      <div style={{fontSize:12, color:'var(--text-muted)', marginBottom:20}}>Verifique sua conexão e tente novamente.</div>
+      <button className="btn-secondary" style={{fontSize:12}} onClick={() => {
+        cacheRef.current.delete(disciplina); fetchingRef.current = false
+        setErro(false); setLoading(true)
+      }}>🔄 Tentar novamente</button>
+    </div>
+  )
+
+  // ── Vazio ──────────────────────────────────────────────────────────────────
+  if (questions.length === 0) return (
+    <div style={{padding:'40px 0', textAlign:'center'}}>
+      <div style={{fontSize:40, marginBottom:12}}>📝</div>
+      <div style={{fontSize:14, fontWeight:700, marginBottom:8}}>Nenhuma questão disponível</div>
+      <div style={{fontSize:12, color:'var(--text-muted)'}}>
+        As questões de <strong style={{color:'var(--gold)'}}>{disciplina}</strong> ainda estão sendo preparadas.
+      </div>
+    </div>
+  )
+
+  // ── Tela inicial ───────────────────────────────────────────────────────────
+  if (!started) return (
+    <div style={{maxWidth:560}}>
+      <div style={{background:'var(--gray)', border:'1px solid rgba(255,255,255,0.06)', borderRadius:20, padding:24}}>
+        <div style={{fontSize:10, fontWeight:700, letterSpacing:'2px', textTransform:'uppercase', color:'var(--gold)', marginBottom:12}}>
+          📝 QUIZ — {disciplina.toUpperCase()}
+        </div>
+        <div style={{fontSize:28, fontWeight:900, fontFamily:'var(--font-display)', marginBottom:8}}>
+          {questions.length} questões
+        </div>
+        <div style={{fontSize:13, color:'var(--text-muted)', marginBottom:24, lineHeight:1.6}}>
+          Questões reais da OAB filtradas por <strong style={{color:'var(--gold)'}}>{disciplina}</strong>. 90 segundos por questão.
+        </div>
+        <button className="btn-primary" style={{width:'100%', fontSize:14, padding:14}} onClick={() => { setStarted(true); setTime(90) }}>
+          INICIAR QUIZ →
+        </button>
+      </div>
+    </div>
+  )
+
+  // ── Resultado ──────────────────────────────────────────────────────────────
+  if (done) {
+    const rate = Math.round((score / questions.length) * 100)
+    const aprovado = score >= Math.ceil(questions.length * 0.625)
+    return (
+      <div style={{maxWidth:560, textAlign:'center'}}>
+        <div style={{fontSize:54, marginBottom:16}}>{aprovado ? '🏆' : rate >= 50 ? '📝' : '💪'}</div>
+        <h2 style={{fontFamily:'var(--font-display)', fontSize:26, fontWeight:900, marginBottom:8}}>Quiz Concluído!</h2>
+        <p style={{fontSize:13, color:'var(--text-muted)', marginBottom:20}}>
+          {score} de {questions.length} corretas · {disciplina}
+        </p>
+        <div style={{background:aprovado?'rgba(76,175,125,0.1)':'rgba(232,98,26,0.1)', border:`1px solid ${aprovado?'var(--success)':'var(--orange)'}`, borderRadius:14, padding:16, marginBottom:20}}>
+          <div style={{fontSize:16, fontWeight:900, color:aprovado?'var(--success)':'var(--orange)', marginBottom:4}}>
+            {aprovado ? '✅ Na média OAB!' : '❌ Abaixo da média OAB'}
+          </div>
+          <div style={{fontSize:12, color:'var(--text-muted)'}}>
+            {aprovado ? `${rate}% — acima dos 62,5% exigidos.` : `Precisava de ${Math.ceil(questions.length * 0.625)} acertos.`}
+          </div>
+        </div>
+        <button className="btn-primary" style={{width:'100%'}} onClick={restart}>
+          🔄 NOVO QUIZ
+        </button>
+      </div>
+    )
+  }
+
+  // ── Questão ────────────────────────────────────────────────────────────────
+  const q = questions[cur]
+  const pct = Math.round(((cur + (answered ? 1 : 0)) / questions.length) * 100)
+
+  return (
+    <div style={{maxWidth:680}}>
+      <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:12}}>
+        <div style={{fontSize:12, color:'var(--text-muted)'}}>Q{cur+1}/{questions.length} · {disciplina}</div>
+        <div style={{fontFamily:'var(--font-mono)', fontSize:16, fontWeight:700, color:time<20?'var(--danger)':'var(--gold)'}}>
+          {String(Math.floor(time/60)).padStart(2,'0')}:{String(time%60).padStart(2,'0')}
+        </div>
+      </div>
+      <div style={{background:'rgba(255,255,255,0.06)', borderRadius:100, height:4, marginBottom:20, overflow:'hidden'}}>
+        <div style={{width:`${pct}%`, height:'100%', background:'linear-gradient(90deg,var(--gold),var(--orange))', borderRadius:100, transition:'width 0.4s'}}/>
+      </div>
+      <div style={{background:'var(--gray)', border:'1px solid rgba(255,255,255,0.06)', borderRadius:20, padding:'22px'}}>
+        <div style={{display:'flex', gap:8, marginBottom:14}}>
+          <span style={{fontSize:10, fontWeight:700, letterSpacing:2, textTransform:'uppercase', color:'var(--gold)'}}>{q.disc}</span>
+          <span style={{fontSize:10, color:'var(--text-muted)'}}>· OAB Oficial</span>
+        </div>
+        <div style={{fontSize:'clamp(14px,3vw,17px)', fontWeight:600, lineHeight:1.7, marginBottom:20}}>{q.q}</div>
+        <div style={{display:'flex', flexDirection:'column', gap:10}}>
+          {q.opts.map((opt:string, i:number) => {
+            let bg='rgba(255,255,255,0.03)', bc='rgba(255,255,255,0.08)', color='var(--white)'
+            if (answered) {
+              if (i === q.correct) { bg='rgba(76,175,125,0.1)'; bc='var(--success)'; color='var(--success)' }
+              else if (i === sel) { bg='rgba(232,66,26,0.1)'; bc='var(--danger)'; color='var(--danger)' }
+            }
+            return (
+              <button key={i} onClick={() => pick(i)} style={{display:'flex', alignItems:'flex-start', gap:12, background:bg, border:`1px solid ${bc}`, borderRadius:12, padding:'12px 14px', cursor:'pointer', transition:'all 0.2s', textAlign:'left', width:'100%', fontFamily:'var(--font-body)', fontSize:'clamp(13px,2.5vw,14px)', color}}>
+                <span style={{width:26, height:26, borderRadius:'50%', flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center', fontSize:11, fontWeight:800, background:'rgba(255,255,255,0.06)', color:'var(--white)'}}>{String.fromCharCode(65+i)}</span>
+                <span style={{flex:1}}>{opt}</span>
+              </button>
+            )
+          })}
+        </div>
+        {answered && q.exp && (
+          <div style={{marginTop:18, padding:14, background:'rgba(212,168,67,0.06)', border:'1px solid rgba(212,168,67,0.15)', borderRadius:12, fontSize:13, lineHeight:1.7, color:'var(--text-muted)'}}>
+            {sel === q.correct ? '✅ ' : '❌ '}
+            <strong style={{color:'var(--gold)'}}>{sel === q.correct ? 'Correto!' : 'Incorreto.'}</strong> {q.exp}
+          </div>
+        )}
+        {answered && (
+          <button className="btn-primary" style={{width:'100%', marginTop:16}} onClick={next}>
+            {cur + 1 >= questions.length ? 'VER RESULTADO' : 'PRÓXIMA →'}
+          </button>
+        )}
       </div>
     </div>
   )
