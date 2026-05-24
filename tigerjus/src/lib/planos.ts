@@ -1,24 +1,31 @@
-import type { SupabaseClient } from '@supabase/supabase-js'
-
 // ═══════════════════════════════════════════════════════════════════
 // CAMADA OFICIAL DE PLANOS — TigerJus
-// 
-// Fonte única da verdade pra:
+//
+// Fonte única da verdade para:
 //   - Nomes e hierarquia de planos
-//   - Checagem de features (canAccess) e tier (isAtLeast)
+//   - Checagem de tier (isAtLeast, canAccess, isPago)
+//   - Helpers de role (isAdmin)
+//   - Limites por plano (getLimites) — fallback local até plan_settings carregar
 //   - Conversão nivel → nome (getLevelName)
 //   - Cálculo de cota diária (dailyQuotaRemaining)
-//   - Fetch de plan_settings do banco
+//   - Fetch de plan_settings do banco (getPlanSettings)
+//   - Display de planos para UI (PLANOS_DISPLAY)
 //
 // Toda regra de plano no app DEVE passar por aqui.
-// Nada hardcoded fora deste arquivo.
 // ═══════════════════════════════════════════════════════════════════
 
+import type { SupabaseClient } from '@supabase/supabase-js'
+
 
 // ───────────────────────────────────────────────────────────────────
-// TIPOS
+// TIPOS PÚBLICOS
 // ───────────────────────────────────────────────────────────────────
-export type PlanName = 'gratuito' | 'entrada' | 'premium' | 'elite'
+
+/** Planos oficiais. Nunca usar free/start/plus/pro no código. */
+export type Plano = 'gratuito' | 'entrada' | 'premium' | 'elite'
+
+/** Alias para compatibilidade com arquitetura futura */
+export type PlanName = Plano
 
 export type PlanFeature =
   | 'pdf'
@@ -52,11 +59,22 @@ export interface ProfileLike {
   role?: string | null
 }
 
+/** Limites consumidos diretamente pelo TigerJusApp */
+export interface Limites {
+  questoes: number
+  ia: number
+  flashcards: number
+  mini_simulado: number
+  permite_pdf: boolean
+  permite_simulado_completo: boolean
+  permite_radar: boolean
+}
+
 export interface Nivel {
-  nivel: number       // 1..5
-  nome: string        // exibido na UI
-  xp_min: number      // XP mínimo pra entrar nesse nível
-  xp_max: number | null  // null no topo (sem limite superior)
+  nivel: number
+  nome: string
+  xp_min: number
+  xp_max: number | null
   icon: string
 }
 
@@ -65,20 +83,18 @@ export interface Nivel {
 // CONSTANTES INTERNAS
 // ───────────────────────────────────────────────────────────────────
 
-const PLANO_ALIASES: Record<string, PlanName> = {
-  // Legacy → atual (fallback defensivo)
-  'free':     'gratuito',
-  'start':    'entrada',
-  'plus':     'premium',
-  'pro':      'premium',
-  // Atuais (idempotência)
-  'gratuito': 'gratuito',
-  'entrada':  'entrada',
-  'premium':  'premium',
-  'elite':    'elite',
+const PLANO_ALIASES: Record<string, Plano> = {
+  free:     'gratuito',
+  gratuito: 'gratuito',
+  start:    'entrada',
+  entrada:  'entrada',
+  plus:     'premium',
+  pro:      'premium',
+  premium:  'premium',
+  elite:    'elite',
 }
 
-const LEVELS: Record<PlanName, number> = {
+const PLANO_LEVEL: Record<Plano, number> = {
   gratuito: 0,
   entrada:  1,
   premium:  2,
@@ -94,108 +110,164 @@ const FEATURE_TO_COLUMN: Record<PlanFeature, keyof PlanSettings> = {
 }
 
 /**
- * Tabela de níveis do TigerJus.
- * Mantida em código (não em banco) por decisão arquitetural: dados puros,
- * raramente mudam, não precisam edição por admin no MVP.
- * Se em algum momento precisar virar tabela `niveis`, este array vira o seed.
+ * Limites estáticos de fallback.
+ * Usados enquanto plan_settings do banco não foi carregado.
+ * Infinity representa ilimitado no código TypeScript.
  */
+const LIMITES_FALLBACK: Record<Plano, Limites> = {
+  gratuito: {
+    questoes: 15, ia: 5, flashcards: 5, mini_simulado: 10,
+    permite_pdf: false, permite_simulado_completo: false, permite_radar: false,
+  },
+  entrada: {
+    questoes: Infinity, ia: 20, flashcards: 15, mini_simulado: 20,
+    permite_pdf: false, permite_simulado_completo: true, permite_radar: false,
+  },
+  premium: {
+    questoes: Infinity, ia: 100, flashcards: 30, mini_simulado: 30,
+    permite_pdf: true, permite_simulado_completo: true, permite_radar: true,
+  },
+  elite: {
+    questoes: Infinity, ia: Infinity, flashcards: Infinity, mini_simulado: Infinity,
+    permite_pdf: true, permite_simulado_completo: true, permite_radar: true,
+  },
+}
+
 export const NIVEIS: readonly Nivel[] = [
-  { nivel: 1, nome: 'Filhote',     xp_min: 0,     xp_max: 999,    icon: '🐯' },
-  { nivel: 2, nome: 'Aprendiz',    xp_min: 1000,  xp_max: 4999,   icon: '🎯' },
-  { nivel: 3, nome: 'Guerreiro',   xp_min: 5000,  xp_max: 14999,  icon: '⚔️' },
-  { nivel: 4, nome: 'Mestre',      xp_min: 15000, xp_max: 39999,  icon: '🏆' },
-  { nivel: 5, nome: 'Tigre Elite', xp_min: 40000, xp_max: null,   icon: '👑' },
+  { nivel: 1, nome: 'Filhote',     xp_min: 0,     xp_max: 999,   icon: '🐯' },
+  { nivel: 2, nome: 'Aprendiz',    xp_min: 1000,  xp_max: 4999,  icon: '🎯' },
+  { nivel: 3, nome: 'Guerreiro',   xp_min: 5000,  xp_max: 14999, icon: '⚔️' },
+  { nivel: 4, nome: 'Mestre',      xp_min: 15000, xp_max: 39999, icon: '🏆' },
+  { nivel: 5, nome: 'Tigre Elite', xp_min: 40000, xp_max: null,  icon: '👑' },
 ] as const
 
 
 // ═══════════════════════════════════════════════════════════════════
-// PLANOS — NORMALIZAÇÃO E HIERARQUIA
+// NORMALIZAÇÃO E HIERARQUIA
 // ═══════════════════════════════════════════════════════════════════
 
 /**
- * Converte valor legacy de plano (free/start/plus/pro) pro nome atual.
- *
- * - Domínio: Planos
- * - Tabela: profiles.plano (apenas lê via parâmetro)
- * - Risco: Zero — função pura, sem side effect
- * - Fallback: 'gratuito' para input null/undefined/inválido
- * - Teste: `normalizePlano('free')` → `'gratuito'` · `normalizePlano(null)` → `'gratuito'`
+ * Converte valor legacy (free/start/plus/pro) para o plano oficial.
+ * Fallback: 'gratuito' para qualquer input inválido ou nulo.
  */
-export function normalizePlano(plano: string | null | undefined): PlanName {
+export function normalizePlano(plano: string | null | undefined): Plano {
   if (!plano) return 'gratuito'
   return PLANO_ALIASES[plano.toLowerCase().trim()] ?? 'gratuito'
 }
 
 /**
- * Nível numérico do plano (gratuito=0, entrada=1, premium=2, elite=3).
- * Útil pra comparações de tier.
- *
- * - Domínio: Planos
- * - Tabela: profiles.plano (apenas via parâmetro)
- * - Risco: Zero — função pura
- * - Fallback: 0 (gratuito) para qualquer input que normalize pra gratuito
- * - Teste: `getPlanoLevel('premium')` → `2`
+ * Nível numérico do plano (gratuito=0 … elite=3).
+ * Aceita string bruta — normaliza internamente.
  */
 export function getPlanoLevel(plano: string | null | undefined): number {
-  return LEVELS[normalizePlano(plano)]
+  return PLANO_LEVEL[normalizePlano(plano)]
 }
 
 /**
- * Retorna true se o profile está no tier informado ou superior.
- * Admin (role === 'admin') passa em qualquer tier.
- *
- * - Domínio: Planos + Roles
- * - Tabela: profiles (plano, role) — somente leitura
- * - Risco: Zero — função pura
- * - Fallback: false se profile null/undefined
- * - Teste: `isAtLeast({plano:'premium'}, 'entrada')` → `true` · `isAtLeast({role:'admin'}, 'elite')` → `true`
+ * Retorna true se o plano está no tier informado ou superior.
+ * Aceita string bruta ou ProfileLike.
+ * Quando recebe ProfileLike, admin sempre passa.
  */
 export function isAtLeast(
-  profile: ProfileLike | null | undefined,
-  tier: PlanName
+  planoOrProfile: string | null | undefined | ProfileLike,
+  tier: Plano
 ): boolean {
-  if (!profile) return false
-  if (profile.role === 'admin') return true
-  return getPlanoLevel(profile.plano) >= LEVELS[tier]
+  if (!planoOrProfile) return false
+  // ProfileLike
+  if (typeof planoOrProfile === 'object') {
+    if (planoOrProfile.role === 'admin') return true
+    return getPlanoLevel(planoOrProfile.plano) >= PLANO_LEVEL[tier]
+  }
+  // string
+  return getPlanoLevel(planoOrProfile) >= PLANO_LEVEL[tier]
 }
 
 
 // ═══════════════════════════════════════════════════════════════════
-// PLANOS — ACESSO A FEATURES
+// HELPERS USADOS PELO TigerJusApp E ADMIN
 // ═══════════════════════════════════════════════════════════════════
 
 /**
- * Verifica se o profile pode acessar uma feature.
- * Lê de plan_settings, com override de admin.
+ * isAdmin — verifica se o role é 'admin'.
+ * Usado em TigerJusApp: `isAdmin(profile?.role)`
+ */
+export function isAdmin(role?: string | null): boolean {
+  return role === 'admin'
+}
+
+/**
+ * isPago — qualquer plano acima de gratuito.
+ * Usado em TigerJusApp: `isPago(plano)`
+ */
+export function isPago(plano?: string | null): boolean {
+  return getPlanoLevel(plano) >= 1
+}
+
+/**
+ * canAccess — verifica acesso a um recurso.
  *
- * - Domínio: Planos + Features
- * - Tabela: plan_settings (lê via parâmetro)
- * - Risco: Zero — função pura. Fail-closed se settings não carregou.
- * - Fallback: false (deny por padrão). Admin sempre passa.
- * - Teste: `canAccess({plano:'gratuito'}, 'radar', settings)` → `false` quando permite_radar=false no gratuito
+ * COMPATIBILIDADE DUPLA:
+ *
+ * Assinatura legada (TigerJusApp atual):
+ *   canAccess(plano: string, tier: Plano) → boolean
+ *   Exemplo: canAccess(profile.plano, 'premium')
+ *
+ * Assinatura nova (arquitetura futura com plan_settings):
+ *   canAccess(profile: ProfileLike, feature: PlanFeature, settings: PlanSettingsMap) → boolean
+ *   Exemplo: canAccess({plano, role}, 'radar', settingsMap)
+ *
+ * A distinção é feita pelo tipo do segundo argumento:
+ *   - Se string curta conhecida como Plano → assinatura legada (tier check)
+ *   - Se string de feature (pdf/radar/…) com 3 args → assinatura nova
  */
 export function canAccess(
-  profile: ProfileLike | null | undefined,
-  feature: PlanFeature,
-  settings: PlanSettingsMap | null | undefined
+  planoOrProfile: string | null | undefined | ProfileLike,
+  tierOrFeature: Plano | PlanFeature,
+  settings?: PlanSettingsMap | null
 ): boolean {
-  if (!profile) return false
-  if (profile.role === 'admin') return true
-  if (!settings) return false
-  const userSettings = settings[normalizePlano(profile.plano)]
-  if (!userSettings) return false
-  return Boolean(userSettings[FEATURE_TO_COLUMN[feature]])
+  // Assinatura nova: 3 argumentos com settings
+  if (settings !== undefined) {
+    const profile = planoOrProfile as ProfileLike | null | undefined
+    const feature = tierOrFeature as PlanFeature
+    if (!profile) return false
+    if (profile.role === 'admin') return true
+    if (!settings) return false
+    const userSettings = settings[normalizePlano(profile.plano)]
+    if (!userSettings) return false
+    return Boolean(userSettings[FEATURE_TO_COLUMN[feature]])
+  }
+
+  // Assinatura legada: 2 argumentos (plano string, tier Plano)
+  if (typeof planoOrProfile === 'object' && planoOrProfile !== null) {
+    // ProfileLike passado com tier
+    const profile = planoOrProfile as ProfileLike
+    if (profile.role === 'admin') return true
+    return getPlanoLevel(profile.plano) >= PLANO_LEVEL[tierOrFeature as Plano]
+  }
+  // string plano passado com tier
+  return getPlanoLevel(planoOrProfile as string) >= PLANO_LEVEL[tierOrFeature as Plano]
 }
 
 /**
- * Retorna o objeto PlanSettings do plano do usuário (já normalizado).
- * Útil pra UI acessar limites diretamente sem repetir normalizePlano.
+ * getLimites — retorna limites do plano para uso no TigerJusApp.
+ * Usa fallback local (LIMITES_FALLBACK).
+ * Futuramente pode receber PlanSettingsMap para usar valores do banco.
  *
- * - Domínio: Planos
- * - Tabela: plan_settings (lê via parâmetro)
- * - Risco: Zero — função pura
- * - Fallback: null se profile ou settings estiverem ausentes
- * - Teste: `getUserPlanSettings({plano:'gratuito'}, settings)?.mini_simulado_qtd` → `10`
+ * Usado em TigerJusApp:
+ *   const l = getLimites(data.plano)
+ *   setFreeQ(Math.max(0, l.questoes - used))
+ *   setFreeIA(Math.max(0, l.ia - used))
+ */
+export function getLimites(
+  plano?: string | null,
+  _settings?: PlanSettingsMap | null  // reservado para futura integração com banco
+): Limites {
+  return LIMITES_FALLBACK[normalizePlano(plano)]
+}
+
+/**
+ * getUserPlanSettings — retorna o PlanSettings do usuário a partir do mapa.
+ * Retorna null se profile ou settings estiverem ausentes.
  */
 export function getUserPlanSettings(
   profile: ProfileLike | null | undefined,
@@ -207,18 +279,67 @@ export function getUserPlanSettings(
 
 
 // ═══════════════════════════════════════════════════════════════════
-// COTAS — DATAS E LIMITES DIÁRIOS
+// DISPLAY — UI e selects
 // ═══════════════════════════════════════════════════════════════════
 
 /**
- * Verifica se uma data armazenada é hoje (timezone local).
- *
- * - Domínio: Cotas
- * - Tabela: Nenhuma (recebe via parâmetro)
- * - Risco: Zero — função pura
- * - Fallback: false para input null/undefined/inválido
- * - Teste: `isToday(new Date())` → `true` · `isToday('2020-01-01')` → `false`
+ * Usado em admin/page.tsx e TigerJusApp para selects e labels.
+ * Mantém a ordem correta: gratuito → entrada → premium → elite
  */
+export const PLANOS_DISPLAY: { value: Plano; label: string }[] = [
+  { value: 'gratuito', label: 'Gratuito' },
+  { value: 'entrada',  label: 'Entrada'  },
+  { value: 'premium',  label: 'Premium'  },
+  { value: 'elite',    label: 'Elite'    },
+]
+
+
+// ═══════════════════════════════════════════════════════════════════
+// NÍVEIS — Conversão e progressão
+// ═══════════════════════════════════════════════════════════════════
+
+/**
+ * Converte nivel numérico em nome exibido.
+ * Usado no frontend: getLevelName(profile.nivel)
+ * Fallback: 'Filhote' para null/undefined/inválido.
+ */
+export function getLevelName(nivel: number | null | undefined): string {
+  if (!nivel || nivel < 1) return NIVEIS[0].nome
+  const found = NIVEIS.find(n => n.nivel === nivel)
+  return found ? found.nome : NIVEIS[NIVEIS.length - 1].nome
+}
+
+/**
+ * Retorna o objeto Nivel completo baseado no XP atual.
+ * Útil para barra de progressão e badge.
+ */
+export function getNivelByXp(xp: number): Nivel {
+  if (!Number.isFinite(xp) || xp < 0) return NIVEIS[0]
+  for (let i = NIVEIS.length - 1; i >= 0; i--) {
+    if (xp >= NIVEIS[i].xp_min) return NIVEIS[i]
+  }
+  return NIVEIS[0]
+}
+
+/**
+ * Próximo nível na hierarquia. null se já está no topo.
+ */
+export function getNextNivel(xp: number): Nivel | null {
+  const current = getNivelByXp(xp)
+  if (current.xp_max === null) return null
+  return NIVEIS.find(n => n.nivel === current.nivel + 1) ?? null
+}
+
+
+// ═══════════════════════════════════════════════════════════════════
+// COTAS DIÁRIAS
+// ═══════════════════════════════════════════════════════════════════
+
+export function todayISO(): string {
+  const d = new Date()
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
 export function isToday(date: string | Date | null | undefined): boolean {
   if (!date) return false
   const d = typeof date === 'string' ? new Date(date) : date
@@ -230,34 +351,10 @@ export function isToday(date: string | Date | null | undefined): boolean {
 }
 
 /**
- * Data de hoje em formato YYYY-MM-DD.
- * Use ao gravar em profiles.last_quiz_reset / last_ia_reset.
- *
- * - Domínio: Cotas
- * - Tabela: profiles.last_quiz_reset, profiles.last_ia_reset (formato de escrita)
- * - Risco: Zero — função pura
- * - Fallback: N/A
- * - Teste: `todayISO()` → `'2026-05-24'` (formato)
- */
-export function todayISO(): string {
-  const d = new Date()
-  const yyyy = d.getFullYear()
-  const mm = String(d.getMonth() + 1).padStart(2, '0')
-  const dd = String(d.getDate()).padStart(2, '0')
-  return `${yyyy}-${mm}-${dd}`
-}
-
-/**
- * Cota diária remanescente pro usuário.
- * - limit === null  → Infinity (plano ilimitado)
- * - lastReset != hoje → cota cheia (reset vai acontecer no próximo write)
+ * Cota diária remanescente.
+ * - limit === null → Infinity (plano ilimitado)
+ * - lastReset != hoje → cota cheia
  * - lastReset == hoje → limit - used (mínimo zero)
- *
- * - Domínio: Cotas
- * - Tabela: plan_settings.*_limite + profiles.free_*_used + profiles.last_*_reset
- * - Risco: Zero — função pura. Não escreve nada — só lê e calcula.
- * - Fallback: Infinity quando limit é null (intencional: significa ilimitado)
- * - Teste: `dailyQuotaRemaining(15, 5, today)` → `10` · `dailyQuotaRemaining(null, 999, ...)` → `Infinity`
  */
 export function dailyQuotaRemaining(
   limit: number | null,
@@ -271,71 +368,12 @@ export function dailyQuotaRemaining(
 
 
 // ═══════════════════════════════════════════════════════════════════
-// NÍVEIS — Conversão e progressão
-// ═══════════════════════════════════════════════════════════════════
-
-/**
- * Converte nivel numérico em nome exibido (Filhote, Aprendiz, ...).
- *
- * - Domínio: Níveis
- * - Tabela: profiles.nivel (apenas via parâmetro)
- * - Risco: Zero — função pura
- * - Fallback: 'Filhote' (nivel 1) para input null/undefined/inválido. 'Tigre Elite' para nivel > 5.
- * - Teste: `getLevelName(1)` → `'Filhote'` · `getLevelName(null)` → `'Filhote'`
- */
-export function getLevelName(nivel: number | null | undefined): string {
-  if (!nivel || nivel < 1) return NIVEIS[0].nome
-  const found = NIVEIS.find(n => n.nivel === nivel)
-  return found ? found.nome : NIVEIS[NIVEIS.length - 1].nome
-}
-
-/**
- * Retorna o objeto Nivel completo baseado no XP atual do usuário.
- * Útil pra UI de progressão (barra de XP, badge, etc.).
- *
- * - Domínio: Níveis
- * - Tabela: profiles.xp (via parâmetro)
- * - Risco: Zero — função pura
- * - Fallback: Filhote (NIVEIS[0]) se xp inválido ou negativo
- * - Teste: `getNivelByXp(5500).nome` → `'Guerreiro'`
- */
-export function getNivelByXp(xp: number): Nivel {
-  if (!Number.isFinite(xp) || xp < 0) return NIVEIS[0]
-  for (let i = NIVEIS.length - 1; i >= 0; i--) {
-    if (xp >= NIVEIS[i].xp_min) return NIVEIS[i]
-  }
-  return NIVEIS[0]
-}
-
-/**
- * Próximo nível na hierarquia. Retorna null se já está no topo.
- *
- * - Domínio: Níveis
- * - Tabela: profiles.xp (via parâmetro)
- * - Risco: Zero — função pura
- * - Fallback: null no nível máximo (esperado, não é erro)
- * - Teste: `getNextNivel(0)?.nome` → `'Aprendiz'` · `getNextNivel(50000)` → `null`
- */
-export function getNextNivel(xp: number): Nivel | null {
-  const current = getNivelByXp(xp)
-  if (current.xp_max === null) return null
-  return NIVEIS.find(n => n.nivel === current.nivel + 1) ?? null
-}
-
-
-// ═══════════════════════════════════════════════════════════════════
 // FETCHER — Carrega plan_settings do Supabase
 // ═══════════════════════════════════════════════════════════════════
 
 /**
- * Busca todos os planos ativos e retorna como mapa indexado por nome.
- *
- * - Domínio: Planos (DB I/O)
- * - Tabela: plan_settings (SELECT)
- * - Risco: Baixo — retorna null em erro. Caller decide fallback.
- *          Sem efeito colateral. Ler de RLS: policy de SELECT TO authenticated existe.
- * - Fallback: null se erro de rede / RLS / banco vazio
- * - Teste: Smoke manual em dev — `console.log(await getPlanSettings(supabase))` deve mostrar os 4 planos
+ * Busca plan_settings ativos e retorna como mapa indexado por plano.
+ * Retorna null em caso de erro — caller decide fallback.
  */
 export async function getPlanSettings(
   supabase: SupabaseClient
