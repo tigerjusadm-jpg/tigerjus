@@ -37,8 +37,17 @@ export default function LoginPage() {
       localStorage.removeItem('tigerjus_lembrar')
     }
     const { error } = await supabase.auth.signInWithPassword({ email, password: senha })
-    if (error) { setErro('Email ou senha incorretos.') }
-    else { router.push('/plataforma') }
+    if (error) {
+      if (error.message.includes('Email not confirmed')) {
+        setErro('Confirme seu email antes de entrar. Verifique sua caixa de entrada.')
+      } else if (error.message.includes('Invalid login credentials')) {
+        setErro('Email ou senha incorretos.')
+      } else {
+        setErro('Erro ao entrar. Tente novamente.')
+      }
+    } else {
+      router.push('/plataforma')
+    }
     setLoading(false)
   }
 
@@ -46,15 +55,41 @@ export default function LoginPage() {
     if (!email || !senha || !nome) { setErro('Preencha todos os campos.'); return }
     if (senha.length < 6) { setErro('Senha deve ter pelo menos 6 caracteres.'); return }
     setLoading(true); setErro('')
-    const { error } = await supabase.auth.signUp({
-      email, password: senha,
+
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password: senha,
       options: {
         data: { nome },
-        emailRedirectTo: `${window.location.origin}/auth/callback`
+        emailRedirectTo: `${window.location.origin}/auth/callback`,
       }
     })
-    if (error) { setErro('Erro ao criar conta. Tente novamente.') }
-    else { setSucesso('Conta criada! Verifique seu email para confirmar o cadastro.') }
+
+    if (error) {
+      if (error.message.includes('already registered') || error.message.includes('User already registered')) {
+        setErro('Este email já está cadastrado. Tente fazer login.')
+      } else {
+        setErro(`Erro ao criar conta: ${error.message}`)
+      }
+      setLoading(false)
+      return
+    }
+
+    // Usuário criado com sucesso
+    if (data?.user) {
+      // Verifica se precisa confirmar email
+      if (data.user.identities && data.user.identities.length === 0) {
+        // Email já existe mas não confirmado
+        setErro('Este email já está cadastrado. Verifique sua caixa de entrada para confirmar.')
+      } else if (!data.session) {
+        // Cadastro OK mas precisa confirmar email
+        setSucesso('✅ Conta criada! Enviamos um link de confirmação para seu email. Verifique sua caixa de entrada e clique no link para ativar sua conta.')
+      } else {
+        // Cadastro OK e já logado (confirmação desativada)
+        router.push('/plataforma')
+      }
+    }
+
     setLoading(false)
   }
 
@@ -100,55 +135,70 @@ export default function LoginPage() {
             </div>
           )}
           {sucesso && (
-            <div style={{background:'rgba(76,175,125,0.1)',border:'1px solid rgba(76,175,125,0.25)',borderRadius:10,padding:'12px 16px',marginBottom:20,fontSize:13,color:'var(--success)'}}>
-              ✅ {sucesso}
+            <div style={{background:'rgba(76,175,125,0.1)',border:'1px solid rgba(76,175,125,0.25)',borderRadius:10,padding:'12px 16px',marginBottom:20,fontSize:13,color:'var(--success)',lineHeight:1.6}}>
+              {sucesso}
             </div>
           )}
 
-          {mode === 'cadastro' && (
+          {mode === 'cadastro' && !sucesso && (
             <div style={{marginBottom:16}}>
               <label style={{fontSize:11,fontWeight:700,letterSpacing:'1.5px',textTransform:'uppercase',color:'var(--text-muted)',display:'block',marginBottom:8}}>Nome completo</label>
               <input className="form-input" placeholder="Seu nome" value={nome} onChange={e => setNome(e.target.value)} onKeyDown={e => e.key==='Enter'&&handleSubmit()} />
             </div>
           )}
 
-          <div style={{marginBottom:16}}>
-            <label style={{fontSize:11,fontWeight:700,letterSpacing:'1.5px',textTransform:'uppercase',color:'var(--text-muted)',display:'block',marginBottom:8}}>E-mail</label>
-            <input className="form-input" type="email" placeholder="seu@email.com" value={email} onChange={e => setEmail(e.target.value)} onKeyDown={e => e.key==='Enter'&&handleSubmit()} />
-          </div>
+          {!sucesso && (
+            <>
+              <div style={{marginBottom:16}}>
+                <label style={{fontSize:11,fontWeight:700,letterSpacing:'1.5px',textTransform:'uppercase',color:'var(--text-muted)',display:'block',marginBottom:8}}>E-mail</label>
+                <input className="form-input" type="email" placeholder="seu@email.com" value={email} onChange={e => setEmail(e.target.value)} onKeyDown={e => e.key==='Enter'&&handleSubmit()} />
+              </div>
 
-          {mode !== 'reset' && (
-            <div style={{marginBottom: mode === 'login' ? 16 : 24}}>
-              <label style={{fontSize:11,fontWeight:700,letterSpacing:'1.5px',textTransform:'uppercase',color:'var(--text-muted)',display:'block',marginBottom:8}}>Senha</label>
-              <input className="form-input" type="password" placeholder="••••••••" value={senha} onChange={e => setSenha(e.target.value)} onKeyDown={e => e.key==='Enter'&&handleSubmit()} />
-            </div>
-          )}
-
-          {mode === 'login' && (
-            <div style={{marginBottom:24}}>
-              <label style={{display:'flex',alignItems:'center',gap:10,cursor:'pointer',userSelect:'none'}} onClick={() => setLembrar(l => !l)}>
-                <div style={{width:20,height:20,borderRadius:6,border:lembrar?'2px solid var(--gold)':'2px solid rgba(255,255,255,0.2)',background:lembrar?'rgba(212,168,67,0.15)':'transparent',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,transition:'all 0.2s'}}>
-                  {lembrar && (
-                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-                      <path d="M2 6l3 3 5-5" stroke="#D4A843" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                    </svg>
-                  )}
+              {mode !== 'reset' && (
+                <div style={{marginBottom: mode === 'login' ? 16 : 24}}>
+                  <label style={{fontSize:11,fontWeight:700,letterSpacing:'1.5px',textTransform:'uppercase',color:'var(--text-muted)',display:'block',marginBottom:8}}>Senha</label>
+                  <input className="form-input" type="password" placeholder="••••••••" value={senha} onChange={e => setSenha(e.target.value)} onKeyDown={e => e.key==='Enter'&&handleSubmit()} />
                 </div>
-                <span style={{fontSize:13,color:lembrar?'var(--gold)':'var(--text-muted)',transition:'color 0.2s',fontWeight:lembrar?600:400}}>
-                  Lembrar meu email neste dispositivo
-                </span>
-              </label>
-            </div>
+              )}
+
+              {mode === 'login' && (
+                <div style={{marginBottom:24}}>
+                  <label style={{display:'flex',alignItems:'center',gap:10,cursor:'pointer',userSelect:'none'}} onClick={() => setLembrar(l => !l)}>
+                    <div style={{width:20,height:20,borderRadius:6,border:lembrar?'2px solid var(--gold)':'2px solid rgba(255,255,255,0.2)',background:lembrar?'rgba(212,168,67,0.15)':'transparent',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,transition:'all 0.2s'}}>
+                      {lembrar && (
+                        <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                          <path d="M2 6l3 3 5-5" stroke="#D4A843" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
+                      )}
+                    </div>
+                    <span style={{fontSize:13,color:lembrar?'var(--gold)':'var(--text-muted)',transition:'color 0.2s',fontWeight:lembrar?600:400}}>
+                      Lembrar meu email neste dispositivo
+                    </span>
+                  </label>
+                </div>
+              )}
+
+              <button
+                className="btn-primary"
+                style={{width:'100%',marginBottom:16,fontSize:15,padding:16,opacity:loading?0.7:1}}
+                onClick={handleSubmit}
+                disabled={loading}
+              >
+                {loading ? '⏳ Aguarde...' : mode === 'login' ? 'ENTRAR' : mode === 'cadastro' ? 'CRIAR CONTA' : 'ENVIAR LINK'}
+              </button>
+            </>
           )}
 
-          <button
-            className="btn-primary"
-            style={{width:'100%',marginBottom:16,fontSize:15,padding:16,opacity:loading?0.7:1}}
-            onClick={handleSubmit}
-            disabled={loading}
-          >
-            {loading ? '⏳ Aguarde...' : mode === 'login' ? 'ENTRAR' : mode === 'cadastro' ? 'CRIAR CONTA' : 'ENVIAR LINK'}
-          </button>
+          {/* Após cadastro bem-sucedido, mostra botão para ir ao login */}
+          {sucesso && mode === 'cadastro' && (
+            <button
+              className="btn-primary"
+              style={{width:'100%',fontSize:15,padding:16}}
+              onClick={() => { setMode('login'); setSucesso(''); setErro('') }}
+            >
+              IR PARA O LOGIN
+            </button>
+          )}
 
           <div style={{marginTop:24,textAlign:'center',fontSize:13,color:'var(--text-muted)'}}>
             {mode === 'login' && (
@@ -164,7 +214,7 @@ export default function LoginPage() {
                 </div>
               </>
             )}
-            {mode === 'cadastro' && (
+            {mode === 'cadastro' && !sucesso && (
               <span>Já tem conta? <button onClick={() => {setMode('login');setErro('');setSucesso('')}} style={{color:'var(--gold)',background:'none',border:'none',cursor:'pointer',fontSize:13,fontFamily:'var(--font-body)'}}>Entrar</button></span>
             )}
             {mode === 'reset' && (
