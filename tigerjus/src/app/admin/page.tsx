@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
+import { PLANOS_DISPLAY } from '@/lib/planos'
 
 interface Stats {
   total_usuarios: number
@@ -77,8 +78,8 @@ export default function AdminPage() {
       setUsuarios(users)
       setStats({
         total_usuarios: users.length,
-        usuarios_premium: users.filter(u => u.plano !== 'free').length,
-        usuarios_free: users.filter(u => u.plano === 'free').length,
+        usuarios_premium: users.filter(u => u.plano !== 'gratuito').length,
+        usuarios_free: users.filter(u => u.plano === 'gratuito').length,
         total_questoes: 0,
         total_simulados: sims?.length || 0,
         questoes_respondidas: users.reduce((acc, u) => acc + (u.questoes_respondidas || 0), 0),
@@ -163,6 +164,20 @@ export default function AdminPage() {
     'Filosofia','Internacional','ECA'
   ]
 
+  const PLANO_BADGE_COLOR: Record<string, string> = {
+    gratuito: 'rgba(255,255,255,0.06)',
+    entrada: 'rgba(76,175,125,0.1)',
+    premium: 'rgba(212,168,67,0.1)',
+    elite: 'rgba(232,98,26,0.1)',
+  }
+
+  const PLANO_TEXT_COLOR: Record<string, string> = {
+    gratuito: 'var(--text-muted)',
+    entrada: 'var(--success)',
+    premium: 'var(--gold)',
+    elite: 'var(--orange)',
+  }
+
   return (
     <div style={{ minHeight:'100vh', background:'var(--deep-black)', color:'var(--white)' }}>
       <style>{`
@@ -204,8 +219,8 @@ export default function AdminPage() {
               <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(180px,1fr))', gap:16, marginBottom:32 }}>
                 {[
                   { label:'Total usuários', value:stats.total_usuarios, color:'var(--gold)', icon:'👥' },
-                  { label:'Usuários premium', value:stats.usuarios_premium, color:'var(--success)', icon:'⭐' },
-                  { label:'Plano free', value:stats.usuarios_free, color:'var(--text-muted)', icon:'🆓' },
+                  { label:'Usuários pagos', value:stats.usuarios_premium, color:'var(--success)', icon:'⭐' },
+                  { label:'Plano gratuito', value:stats.usuarios_free, color:'var(--text-muted)', icon:'🆓' },
                   { label:'Questões no banco', value:stats.total_questoes, color:'var(--gold)', icon:'📝' },
                   { label:'Provas OAB', value:stats.total_simulados, color:'var(--orange)', icon:'📋' },
                   { label:'Questões respondidas', value:stats.questoes_respondidas, color:'var(--success)', icon:'✅' },
@@ -228,7 +243,7 @@ export default function AdminPage() {
                     </div>
                     <div style={{ fontSize:12, color:'var(--orange)' }}>🔥{u.streak||0}d</div>
                     <div style={{ fontSize:14, fontWeight:700, color:'var(--gold)', fontFamily:'var(--font-mono)' }}>{(u.xp||0).toLocaleString()} XP</div>
-                    <div style={{ fontSize:10, fontWeight:800, padding:'3px 10px', borderRadius:100, background: u.plano==='free'?'rgba(255,255,255,0.06)':'rgba(76,175,125,0.1)', color: u.plano==='free'?'var(--text-muted)':'var(--success)', border:`1px solid ${u.plano==='free'?'rgba(255,255,255,0.08)':'rgba(76,175,125,0.25)'}` }}>
+                    <div style={{ fontSize:10, fontWeight:800, padding:'3px 10px', borderRadius:100, background: PLANO_BADGE_COLOR[u.plano] || 'rgba(255,255,255,0.06)', color: PLANO_TEXT_COLOR[u.plano] || 'var(--text-muted)', border: `1px solid ${PLANO_TEXT_COLOR[u.plano] || 'rgba(255,255,255,0.08)'}20` }}>
                       {u.plano?.toUpperCase()}
                     </div>
                   </div>
@@ -255,13 +270,22 @@ export default function AdminPage() {
                       </div>
                     </div>
                     <div style={{ display:'flex', gap:8, alignItems:'center', flexWrap:'wrap' }}>
-                      <select className="admin-select" value={u.plano||'free'} onChange={e => atualizarPlano(u.id, e.target.value)}
-                        style={{ ...SELECT_DARK, width:'auto', padding:'6px 10px', color:'#D4A843', border:'1px solid rgba(212,168,67,0.3)', background:'rgba(212,168,67,0.08)', fontSize:12 }}>
-                        {['free','start','plus','pro','elite','premium'].map(p => <option key={p} value={p}>{p.charAt(0).toUpperCase()+p.slice(1)}</option>)}
+                      <select
+                        className="admin-select"
+                        value={u.plano||'gratuito'}
+                        onChange={e => atualizarPlano(u.id, e.target.value)}
+                        style={{ ...SELECT_DARK, width:'auto', padding:'6px 10px', color: PLANO_TEXT_COLOR[u.plano] || 'var(--text-muted)', border:`1px solid ${PLANO_TEXT_COLOR[u.plano] || 'rgba(255,255,255,0.08)'}40`, background: PLANO_BADGE_COLOR[u.plano] || 'rgba(255,255,255,0.04)', fontSize:12 }}>
+                        {PLANOS_DISPLAY.map(p => (
+                          <option key={p.value} value={p.value}>{p.label}</option>
+                        ))}
                       </select>
-                      <select className="admin-select" value={u.role||'user'} onChange={e => atualizarRole(u.id, e.target.value)}
+                      <select
+                        className="admin-select"
+                        value={u.role||'user'}
+                        onChange={e => atualizarRole(u.id, e.target.value)}
                         style={{ ...SELECT_DARK, width:'auto', padding:'6px 10px', color:'#E8621A', border:'1px solid rgba(232,98,26,0.3)', background:'rgba(232,98,26,0.08)', fontSize:12 }}>
-                        {['user','admin'].map(r => <option key={r} value={r}>{r.charAt(0).toUpperCase()+r.slice(1)}</option>)}
+                        <option value="user">User</option>
+                        <option value="admin">Admin</option>
                       </select>
                       <div style={{ fontSize:10, color:'var(--text-muted)' }}>{new Date(u.created_at).toLocaleDateString('pt-BR')}</div>
                     </div>
