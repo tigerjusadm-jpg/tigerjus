@@ -196,12 +196,23 @@ function UpgradeModal({ onClose, onSelect }: { onClose: () => void; onSelect: (p
   return (
     <div style={{position:'fixed',inset:0,zIndex:300,background:'rgba(0,0,0,0.95)',backdropFilter:'blur(10px)',display:'flex',alignItems:'center',justifyContent:'center',padding:20,overflowY:'auto'}}>
       <div style={{width:'100%',maxWidth:900,position:'relative',padding:'20px 0'}}>
+
+        {/* Botão X — mantido */}
         <button onClick={onClose} style={{position:'absolute',top:-10,right:0,background:'none',border:'none',color:'#888',fontSize:24,cursor:'pointer',zIndex:10}}>✕</button>
+
+        {/* Botão de retorno — topo esquerdo, visível em mobile */}
+        <button onClick={onClose} style={{display:'flex',alignItems:'center',gap:6,background:'none',border:'none',color:'var(--text-muted)',fontSize:13,cursor:'pointer',fontFamily:'var(--font-body)',marginBottom:20,padding:0,transition:'color 0.2s'}}
+          onMouseEnter={e=>e.currentTarget.style.color='var(--gold)'}
+          onMouseLeave={e=>e.currentTarget.style.color='var(--text-muted)'}>
+          ← Voltar para a plataforma
+        </button>
+
         <div style={{textAlign:'center',marginBottom:32}}>
           <div style={{fontSize:48,marginBottom:12}}>🚀</div>
           <h2 style={{fontFamily:'var(--font-display)',fontSize:36,fontWeight:900,marginBottom:8}}>Escolha seu <span style={{color:'var(--gold)'}}>plano</span></h2>
           <p style={{color:'var(--text-muted)',fontSize:15}}>Desbloqueie todo o potencial do TigerJus</p>
         </div>
+
         <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(220px,1fr))',gap:16}}>
           {PLANS_UPGRADE.map(plan => (
             <div key={plan.id} style={{background:(plan as any).featured?'linear-gradient(160deg,rgba(212,168,67,0.1),rgba(30,30,30,1))':'rgba(20,20,20,0.9)',border:(plan as any).featured?'1px solid var(--gold)':'1px solid rgba(255,255,255,0.1)',borderRadius:16,padding:24,position:'relative',cursor:'pointer',transition:'transform 0.2s'}} onMouseEnter={e=>e.currentTarget.style.transform='translateY(-4px)'} onMouseLeave={e=>e.currentTarget.style.transform='translateY(0)'}>
@@ -216,7 +227,20 @@ function UpgradeModal({ onClose, onSelect }: { onClose: () => void; onSelect: (p
             </div>
           ))}
         </div>
-        <div style={{textAlign:'center',marginTop:20,fontSize:13,color:'var(--text-muted)'}}>💳 PIX ou Cartão · 🔒 Pagamento seguro · Cancele quando quiser</div>
+
+        {/* Rodapé com retorno explícito */}
+        <div style={{marginTop:28,display:'flex',flexDirection:'column',alignItems:'center',gap:12}}>
+          <div style={{fontSize:13,color:'var(--text-muted)'}}>💳 PIX ou Cartão · 🔒 Pagamento seguro · Cancele quando quiser</div>
+          <div style={{display:'flex',gap:12,flexWrap:'wrap',justifyContent:'center'}}>
+            <button onClick={onClose} className="btn-secondary" style={{fontSize:13,padding:'10px 24px'}}>
+              ← Voltar para a plataforma
+            </button>
+            <button onClick={onClose} style={{background:'none',border:'none',color:'var(--text-muted)',fontSize:13,cursor:'pointer',fontFamily:'var(--font-body)',textDecoration:'underline',textDecorationColor:'rgba(255,255,255,0.2)',padding:'10px 0'}}>
+              Continuar estudando agora
+            </button>
+          </div>
+        </div>
+
       </div>
     </div>
   )
