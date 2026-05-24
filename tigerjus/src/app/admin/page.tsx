@@ -26,6 +26,18 @@ interface Usuario {
   created_at: string
 }
 
+const SELECT_DARK = {
+  background: '#1c1c1c',
+  border: '1px solid rgba(255,255,255,0.12)',
+  borderRadius: 10,
+  padding: '12px 16px',
+  color: '#ffffff',
+  fontSize: 14,
+  fontFamily: 'var(--font-body)',
+  colorScheme: 'dark' as const,
+  width: '100%',
+}
+
 export default function AdminPage() {
   const router = useRouter()
   const [loading, setLoading] = useState(true)
@@ -36,9 +48,13 @@ export default function AdminPage() {
   const [busca, setBusca] = useState('')
   const [salvando, setSalvando] = useState(false)
   const [msg, setMsg] = useState('')
+  const [msgTipo, setMsgTipo] = useState<'ok'|'erro'>('ok')
 
-  // Form nova questão
-  const [novaQ, setNovaQ] = useState({ disciplina:'', enunciado:'', opcao_a:'', opcao_b:'', opcao_c:'', opcao_d:'', resposta_correta:'A', comentario:'' })
+  const [novaQ, setNovaQ] = useState({
+    disciplina:'', enunciado:'',
+    opcao_a:'', opcao_b:'', opcao_c:'', opcao_d:'',
+    resposta_correta:'A', comentario:''
+  })
 
   useEffect(() => { verificarAdmin() }, [])
 
@@ -73,23 +89,26 @@ export default function AdminPage() {
     setStats(s => ({ ...s, total_questoes: count || 0 }))
   }
 
+  const mostrarMsg = (texto: string, tipo: 'ok'|'erro' = 'ok') => {
+    setMsg(texto); setMsgTipo(tipo)
+    setTimeout(() => setMsg(''), 3000)
+  }
+
   const atualizarPlano = async (userId: string, plano: string) => {
     await supabase.from('profiles').update({ plano }).eq('id', userId)
     setUsuarios(prev => prev.map(u => u.id === userId ? { ...u, plano } : u))
-    setMsg('Plano atualizado!')
-    setTimeout(() => setMsg(''), 2000)
+    mostrarMsg('✅ Plano atualizado!')
   }
 
   const atualizarRole = async (userId: string, role: string) => {
     await supabase.from('profiles').update({ role }).eq('id', userId)
     setUsuarios(prev => prev.map(u => u.id === userId ? { ...u, role } : u))
-    setMsg('Role atualizado!')
-    setTimeout(() => setMsg(''), 2000)
+    mostrarMsg('✅ Role atualizado!')
   }
 
   const salvarQuestao = async () => {
     if (!novaQ.disciplina || !novaQ.enunciado || !novaQ.opcao_a || !novaQ.opcao_b || !novaQ.opcao_c || !novaQ.opcao_d) {
-      setMsg('Preencha todos os campos obrigatórios.'); return
+      mostrarMsg('❌ Preencha todos os campos obrigatórios.', 'erro'); return
     }
     setSalvando(true)
     const { error } = await supabase.from('questoes_oab').insert({
@@ -103,19 +122,17 @@ export default function AdminPage() {
       comentario: novaQ.comentario,
     })
     setSalvando(false)
-    if (error) { setMsg('Erro ao salvar questão.'); return }
-    setMsg('✅ Questão salva com sucesso!')
+    if (error) { mostrarMsg(`❌ Erro: ${error.message}`, 'erro'); return }
+    mostrarMsg('✅ Questão salva com sucesso!')
     setNovaQ({ disciplina:'', enunciado:'', opcao_a:'', opcao_b:'', opcao_c:'', opcao_d:'', resposta_correta:'A', comentario:'' })
     await carregarDados()
-    setTimeout(() => setMsg(''), 3000)
   }
 
   const deletarQuestao = async (id: string) => {
     if (!confirm('Deletar esta questão?')) return
     await supabase.from('questoes_oab').delete().eq('id', id)
     setQuestoes(prev => prev.filter(q => q.id !== id))
-    setMsg('Questão deletada.')
-    setTimeout(() => setMsg(''), 2000)
+    mostrarMsg('Questão deletada.')
   }
 
   const usuariosFiltrados = usuarios.filter(u =>
@@ -139,24 +156,32 @@ export default function AdminPage() {
     { key:'simulados', label:'📋 Simulados' },
   ] as const
 
-  const DISCIPLINAS = ['Constitucional','Administrativo','Penal','Processo Penal','Civil','Processo Civil','Trabalho','Processo do Trabalho','Tributário','Empresarial','Ética','Consumidor','Direitos Humanos','Ambiental','Filosofia','Internacional','ECA']
+  const DISCIPLINAS = [
+    'Constitucional','Administrativo','Penal','Processo Penal','Civil',
+    'Processo Civil','Trabalho','Processo do Trabalho','Tributário',
+    'Empresarial','Ética','Consumidor','Direitos Humanos','Ambiental',
+    'Filosofia','Internacional','ECA'
+  ]
 
   return (
     <div style={{ minHeight:'100vh', background:'var(--deep-black)', color:'var(--white)' }}>
-      {/* Header */}
+      <style>{`
+        .admin-select option { background:#1c1c1c; color:#ffffff; }
+        .admin-select:focus { outline: 1px solid rgba(212,168,67,0.5); }
+      `}</style>
+
       <nav style={{ position:'fixed', top:0, left:0, right:0, zIndex:100, height:60, background:'rgba(8,8,8,0.97)', borderBottom:'1px solid rgba(212,168,67,0.15)', display:'flex', alignItems:'center', justifyContent:'space-between', padding:'0 24px' }}>
         <div style={{ display:'flex', alignItems:'center', gap:12 }}>
           <div style={{ width:34, height:34, background:'linear-gradient(135deg,var(--gold),var(--orange))', borderRadius:8, display:'flex', alignItems:'center', justifyContent:'center', fontFamily:'var(--font-display)', fontSize:16, fontWeight:900, color:'var(--deep-black)' }}>T</div>
           <span style={{ fontFamily:'var(--font-display)', fontSize:16, fontWeight:900, color:'var(--gold)' }}>TIGERJUS ADMIN</span>
           <span style={{ fontSize:10, fontWeight:800, background:'rgba(232,98,26,0.15)', border:'1px solid rgba(232,98,26,0.3)', color:'var(--orange)', padding:'3px 10px', borderRadius:100 }}>PAINEL RESTRITO</span>
         </div>
-        <div style={{ display:'flex', gap:8 }}>
-          <button onClick={() => router.push('/plataforma')} style={{ color:'var(--text-muted)', fontSize:12, border:'1px solid rgba(255,255,255,0.08)', borderRadius:8, padding:'8px 14px', background:'none', cursor:'pointer', fontFamily:'var(--font-body)' }}>← Voltar à plataforma</button>
-        </div>
+        <button onClick={() => router.push('/plataforma')} style={{ color:'var(--text-muted)', fontSize:12, border:'1px solid rgba(255,255,255,0.08)', borderRadius:8, padding:'8px 14px', background:'none', cursor:'pointer', fontFamily:'var(--font-body)' }}>
+          ← Voltar à plataforma
+        </button>
       </nav>
 
       <div style={{ paddingTop:60 }}>
-        {/* Tabs */}
         <div style={{ borderBottom:'1px solid rgba(255,255,255,0.06)', padding:'0 24px', display:'flex', gap:4 }}>
           {TABS.map(t => (
             <button key={t.key} onClick={() => setTab(t.key)} style={{ padding:'16px 20px', background:'none', border:'none', borderBottom: tab===t.key ? '2px solid var(--gold)' : '2px solid transparent', color: tab===t.key ? 'var(--gold)' : 'var(--text-muted)', fontSize:13, fontWeight:600, cursor:'pointer', fontFamily:'var(--font-body)', marginBottom:-1 }}>
@@ -166,14 +191,13 @@ export default function AdminPage() {
         </div>
 
         {msg && (
-          <div style={{ margin:'16px 24px 0', background:'rgba(76,175,125,0.1)', border:'1px solid rgba(76,175,125,0.25)', borderRadius:10, padding:'12px 16px', fontSize:13, color:'var(--success)' }}>
+          <div style={{ margin:'16px 24px 0', background: msgTipo==='ok'?'rgba(76,175,125,0.1)':'rgba(232,66,26,0.1)', border: `1px solid ${msgTipo==='ok'?'rgba(76,175,125,0.25)':'rgba(232,66,26,0.25)'}`, borderRadius:10, padding:'12px 16px', fontSize:13, color: msgTipo==='ok'?'var(--success)':'#E8421A' }}>
             {msg}
           </div>
         )}
 
         <div style={{ padding:'24px' }}>
 
-          {/* OVERVIEW */}
           {tab === 'overview' && (
             <div>
               <h1 style={{ fontFamily:'var(--font-display)', fontSize:28, fontWeight:900, marginBottom:24 }}>📊 Overview da Plataforma</h1>
@@ -193,19 +217,18 @@ export default function AdminPage() {
                   </div>
                 ))}
               </div>
-
               <h2 style={{ fontFamily:'var(--font-display)', fontSize:20, fontWeight:900, marginBottom:16 }}>🏆 Top 5 usuários por XP</h2>
               <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
                 {[...usuarios].sort((a,b) => (b.xp||0)-(a.xp||0)).slice(0,5).map((u,i) => (
-                  <div key={u.id} style={{ background:'var(--gray)', border:'1px solid rgba(255,255,255,0.06)', borderRadius:12, padding:'14px 16px', display:'flex', alignItems:'center', gap:14 }}>
+                  <div key={u.id} style={{ background:'var(--gray)', border:'1px solid rgba(255,255,255,0.06)', borderRadius:12, padding:'14px 16px', display:'flex', alignItems:'center', gap:14, flexWrap:'wrap' }}>
                     <div style={{ fontFamily:'var(--font-mono)', fontWeight:900, color:'var(--gold)', width:24 }}>#{i+1}</div>
                     <div style={{ flex:1 }}>
                       <div style={{ fontSize:14, fontWeight:700 }}>{u.nome}</div>
                       <div style={{ fontSize:11, color:'var(--text-muted)' }}>{u.email} · {u.level_name}</div>
                     </div>
-                    <div style={{ fontSize:12, color:'var(--orange)' }}>🔥{u.streak}d</div>
+                    <div style={{ fontSize:12, color:'var(--orange)' }}>🔥{u.streak||0}d</div>
                     <div style={{ fontSize:14, fontWeight:700, color:'var(--gold)', fontFamily:'var(--font-mono)' }}>{(u.xp||0).toLocaleString()} XP</div>
-                    <div style={{ fontSize:10, fontWeight:800, padding:'3px 10px', borderRadius:100, background: u.plano==='free'?'rgba(255,255,255,0.06)':'rgba(76,175,125,0.1)', color: u.plano==='free'?'var(--text-muted)':'var(--success)', border: `1px solid ${u.plano==='free'?'rgba(255,255,255,0.08)':'rgba(76,175,125,0.25)'}` }}>
+                    <div style={{ fontSize:10, fontWeight:800, padding:'3px 10px', borderRadius:100, background: u.plano==='free'?'rgba(255,255,255,0.06)':'rgba(76,175,125,0.1)', color: u.plano==='free'?'var(--text-muted)':'var(--success)', border:`1px solid ${u.plano==='free'?'rgba(255,255,255,0.08)':'rgba(76,175,125,0.25)'}` }}>
                       {u.plano?.toUpperCase()}
                     </div>
                   </div>
@@ -214,17 +237,12 @@ export default function AdminPage() {
             </div>
           )}
 
-          {/* USUÁRIOS */}
           {tab === 'usuarios' && (
             <div>
               <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:20, flexWrap:'wrap', gap:12 }}>
                 <h1 style={{ fontFamily:'var(--font-display)', fontSize:28, fontWeight:900 }}>👥 Usuários ({usuarios.length})</h1>
-                <input
-                  placeholder="Buscar por nome ou email..."
-                  value={busca}
-                  onChange={e => setBusca(e.target.value)}
-                  style={{ background:'var(--gray)', border:'1px solid rgba(255,255,255,0.08)', borderRadius:10, padding:'10px 16px', color:'var(--white)', fontSize:13, fontFamily:'var(--font-body)', width:280 }}
-                />
+                <input placeholder="Buscar por nome ou email..." value={busca} onChange={e => setBusca(e.target.value)}
+                  style={{ background:'#1c1c1c', border:'1px solid rgba(255,255,255,0.08)', borderRadius:10, padding:'10px 16px', color:'#ffffff', fontSize:13, fontFamily:'var(--font-body)', width:280 }} />
               </div>
               <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
                 {usuariosFiltrados.map(u => (
@@ -233,33 +251,19 @@ export default function AdminPage() {
                       <div style={{ fontSize:14, fontWeight:700, marginBottom:2 }}>{u.nome}</div>
                       <div style={{ fontSize:11, color:'var(--text-muted)' }}>{u.email}</div>
                       <div style={{ fontSize:11, color:'var(--text-muted)', marginTop:2 }}>
-                        {u.level_name} · {(u.xp||0).toLocaleString()} XP · 🔥{u.streak||0}d · {u.questoes_respondidas||0}q respondidas
+                        {u.level_name} · {(u.xp||0).toLocaleString()} XP · 🔥{u.streak||0}d · {u.questoes_respondidas||0}q
                       </div>
                     </div>
                     <div style={{ display:'flex', gap:8, alignItems:'center', flexWrap:'wrap' }}>
-                      <select
-                        value={u.plano||'free'}
-                        onChange={e => atualizarPlano(u.id, e.target.value)}
-                        style={{ background:'rgba(212,168,67,0.06)', border:'1px solid rgba(212,168,67,0.2)', borderRadius:8, padding:'6px 10px', color:'var(--gold)', fontSize:12, fontFamily:'var(--font-body)', cursor:'pointer' }}
-                      >
-                        <option value="free">Free</option>
-                        <option value="start">Start</option>
-                        <option value="plus">Plus</option>
-                        <option value="pro">Pro</option>
-                        <option value="elite">Elite</option>
-                        <option value="premium">Premium</option>
+                      <select className="admin-select" value={u.plano||'free'} onChange={e => atualizarPlano(u.id, e.target.value)}
+                        style={{ ...SELECT_DARK, width:'auto', padding:'6px 10px', color:'#D4A843', border:'1px solid rgba(212,168,67,0.3)', background:'rgba(212,168,67,0.08)', fontSize:12 }}>
+                        {['free','start','plus','pro','elite','premium'].map(p => <option key={p} value={p}>{p.charAt(0).toUpperCase()+p.slice(1)}</option>)}
                       </select>
-                      <select
-                        value={u.role||'user'}
-                        onChange={e => atualizarRole(u.id, e.target.value)}
-                        style={{ background:'rgba(232,98,26,0.06)', border:'1px solid rgba(232,98,26,0.2)', borderRadius:8, padding:'6px 10px', color:'var(--orange)', fontSize:12, fontFamily:'var(--font-body)', cursor:'pointer' }}
-                      >
-                        <option value="user">User</option>
-                        <option value="admin">Admin</option>
+                      <select className="admin-select" value={u.role||'user'} onChange={e => atualizarRole(u.id, e.target.value)}
+                        style={{ ...SELECT_DARK, width:'auto', padding:'6px 10px', color:'#E8621A', border:'1px solid rgba(232,98,26,0.3)', background:'rgba(232,98,26,0.08)', fontSize:12 }}>
+                        {['user','admin'].map(r => <option key={r} value={r}>{r.charAt(0).toUpperCase()+r.slice(1)}</option>)}
                       </select>
-                      <div style={{ fontSize:10, color:'var(--text-muted)' }}>
-                        {new Date(u.created_at).toLocaleDateString('pt-BR')}
-                      </div>
+                      <div style={{ fontSize:10, color:'var(--text-muted)' }}>{new Date(u.created_at).toLocaleDateString('pt-BR')}</div>
                     </div>
                   </div>
                 ))}
@@ -267,25 +271,23 @@ export default function AdminPage() {
             </div>
           )}
 
-          {/* QUESTÕES */}
           {tab === 'questoes' && (
             <div>
               <h1 style={{ fontFamily:'var(--font-display)', fontSize:28, fontWeight:900, marginBottom:24 }}>📝 Questões ({stats.total_questoes})</h1>
-
-              {/* Form nova questão */}
               <div style={{ background:'var(--gray)', border:'1px solid rgba(212,168,67,0.15)', borderRadius:20, padding:24, marginBottom:32 }}>
                 <h2 style={{ fontFamily:'var(--font-display)', fontSize:18, fontWeight:900, marginBottom:20, color:'var(--gold)' }}>+ Adicionar nova questão</h2>
                 <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:16, marginBottom:16 }}>
                   <div>
                     <label style={{ fontSize:11, fontWeight:700, letterSpacing:'1.5px', textTransform:'uppercase', color:'var(--text-muted)', display:'block', marginBottom:8 }}>Disciplina *</label>
-                    <select value={novaQ.disciplina} onChange={e => setNovaQ(p=>({...p,disciplina:e.target.value}))} style={{ width:'100%', background:'rgba(255,255,255,0.04)', border:'1px solid rgba(255,255,255,0.08)', borderRadius:10, padding:'12px 16px', color:'var(--white)', fontSize:14, fontFamily:'var(--font-body)' }}>
+                    <select className="admin-select" value={novaQ.disciplina} onChange={e => setNovaQ(p=>({...p,disciplina:e.target.value}))} style={SELECT_DARK}>
                       <option value="">Selecionar disciplina</option>
                       {DISCIPLINAS.map(d => <option key={d} value={d}>{d}</option>)}
                     </select>
                   </div>
                   <div>
                     <label style={{ fontSize:11, fontWeight:700, letterSpacing:'1.5px', textTransform:'uppercase', color:'var(--text-muted)', display:'block', marginBottom:8 }}>Gabarito *</label>
-                    <select value={novaQ.resposta_correta} onChange={e => setNovaQ(p=>({...p,resposta_correta:e.target.value}))} style={{ width:'100%', background:'rgba(76,175,125,0.06)', border:'1px solid rgba(76,175,125,0.2)', borderRadius:10, padding:'12px 16px', color:'var(--success)', fontSize:14, fontFamily:'var(--font-body)', fontWeight:700 }}>
+                    <select className="admin-select" value={novaQ.resposta_correta} onChange={e => setNovaQ(p=>({...p,resposta_correta:e.target.value}))}
+                      style={{ ...SELECT_DARK, color:'#4CAF7D', border:'1px solid rgba(76,175,125,0.3)', background:'rgba(76,175,125,0.08)', fontWeight:700 }}>
                       {['A','B','C','D'].map(l => <option key={l} value={l}>{l}</option>)}
                     </select>
                   </div>
@@ -293,36 +295,37 @@ export default function AdminPage() {
 
                 <div style={{ marginBottom:16 }}>
                   <label style={{ fontSize:11, fontWeight:700, letterSpacing:'1.5px', textTransform:'uppercase', color:'var(--text-muted)', display:'block', marginBottom:8 }}>Enunciado *</label>
-                  <textarea value={novaQ.enunciado} onChange={e => setNovaQ(p=>({...p,enunciado:e.target.value}))} rows={4} placeholder="Digite o enunciado da questão..." style={{ width:'100%', background:'rgba(255,255,255,0.04)', border:'1px solid rgba(255,255,255,0.08)', borderRadius:10, padding:'12px 16px', color:'var(--white)', fontSize:14, fontFamily:'var(--font-body)', resize:'vertical' }} />
+                  <textarea value={novaQ.enunciado} onChange={e => setNovaQ(p=>({...p,enunciado:e.target.value}))} rows={4}
+                    placeholder="Digite o enunciado da questão..."
+                    style={{ width:'100%', background:'#1c1c1c', border:'1px solid rgba(255,255,255,0.08)', borderRadius:10, padding:'12px 16px', color:'#ffffff', fontSize:14, fontFamily:'var(--font-body)', resize:'vertical' }} />
                 </div>
 
                 <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12, marginBottom:16 }}>
                   {(['a','b','c','d'] as const).map(l => (
                     <div key={l}>
-                      <label style={{ fontSize:11, fontWeight:700, letterSpacing:'1.5px', textTransform:'uppercase', color: novaQ.resposta_correta===l.toUpperCase()?'var(--success)':'var(--text-muted)', display:'block', marginBottom:8 }}>
+                      <label style={{ fontSize:11, fontWeight:700, letterSpacing:'1.5px', textTransform:'uppercase', color: novaQ.resposta_correta===l.toUpperCase()?'#4CAF7D':'var(--text-muted)', display:'block', marginBottom:8 }}>
                         Opção {l.toUpperCase()} {novaQ.resposta_correta===l.toUpperCase()&&'✅'}
                       </label>
-                      <input
-                        value={(novaQ as any)[`opcao_${l}`]}
-                        onChange={e => setNovaQ(p=>({...p,[`opcao_${l}`]:e.target.value}))}
+                      <input value={(novaQ as any)[`opcao_${l}`]} onChange={e => setNovaQ(p=>({...p,[`opcao_${l}`]:e.target.value}))}
                         placeholder={`Texto da opção ${l.toUpperCase()}...`}
-                        style={{ width:'100%', background: novaQ.resposta_correta===l.toUpperCase()?'rgba(76,175,125,0.06)':'rgba(255,255,255,0.04)', border:`1px solid ${novaQ.resposta_correta===l.toUpperCase()?'rgba(76,175,125,0.25)':'rgba(255,255,255,0.08)'}`, borderRadius:10, padding:'12px 16px', color:'var(--white)', fontSize:13, fontFamily:'var(--font-body)' }}
-                      />
+                        style={{ width:'100%', background: novaQ.resposta_correta===l.toUpperCase()?'rgba(76,175,125,0.08)':'#1c1c1c', border:`1px solid ${novaQ.resposta_correta===l.toUpperCase()?'rgba(76,175,125,0.3)':'rgba(255,255,255,0.08)'}`, borderRadius:10, padding:'12px 16px', color:'#ffffff', fontSize:13, fontFamily:'var(--font-body)' }} />
                     </div>
                   ))}
                 </div>
 
                 <div style={{ marginBottom:20 }}>
                   <label style={{ fontSize:11, fontWeight:700, letterSpacing:'1.5px', textTransform:'uppercase', color:'var(--text-muted)', display:'block', marginBottom:8 }}>Comentário / Justificativa</label>
-                  <textarea value={novaQ.comentario} onChange={e => setNovaQ(p=>({...p,comentario:e.target.value}))} rows={3} placeholder="Explique o gabarito (opcional)..." style={{ width:'100%', background:'rgba(255,255,255,0.04)', border:'1px solid rgba(255,255,255,0.08)', borderRadius:10, padding:'12px 16px', color:'var(--white)', fontSize:14, fontFamily:'var(--font-body)', resize:'vertical' }} />
+                  <textarea value={novaQ.comentario} onChange={e => setNovaQ(p=>({...p,comentario:e.target.value}))} rows={3}
+                    placeholder="Explique o gabarito (opcional)..."
+                    style={{ width:'100%', background:'#1c1c1c', border:'1px solid rgba(255,255,255,0.08)', borderRadius:10, padding:'12px 16px', color:'#ffffff', fontSize:14, fontFamily:'var(--font-body)', resize:'vertical' }} />
                 </div>
 
-                <button onClick={salvarQuestao} disabled={salvando} style={{ background:'linear-gradient(135deg,var(--gold),var(--orange))', border:'none', borderRadius:12, padding:'14px 28px', fontSize:14, fontWeight:800, color:'var(--deep-black)', cursor:'pointer', fontFamily:'var(--font-body)', opacity:salvando?0.7:1 }}>
+                <button onClick={salvarQuestao} disabled={salvando}
+                  style={{ background:'linear-gradient(135deg,var(--gold),var(--orange))', border:'none', borderRadius:12, padding:'14px 28px', fontSize:14, fontWeight:800, color:'var(--deep-black)', cursor:'pointer', fontFamily:'var(--font-body)', opacity:salvando?0.7:1 }}>
                   {salvando ? '⏳ Salvando...' : '✅ SALVAR QUESTÃO'}
                 </button>
               </div>
 
-              {/* Lista questões recentes */}
               <h2 style={{ fontFamily:'var(--font-display)', fontSize:18, fontWeight:900, marginBottom:16 }}>Últimas 50 questões</h2>
               <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
                 {questoes.map(q => (
@@ -334,7 +337,8 @@ export default function AdminPage() {
                       </div>
                       <div style={{ fontSize:13, color:'var(--white)', lineHeight:1.5 }}>{q.enunciado?.slice(0,120)}...</div>
                     </div>
-                    <button onClick={() => deletarQuestao(q.id)} style={{ background:'rgba(232,66,26,0.1)', border:'1px solid rgba(232,66,26,0.2)', borderRadius:8, padding:'6px 12px', fontSize:11, color:'var(--danger)', cursor:'pointer', fontFamily:'var(--font-body)', flexShrink:0 }}>
+                    <button onClick={() => deletarQuestao(q.id)}
+                      style={{ background:'rgba(232,66,26,0.1)', border:'1px solid rgba(232,66,26,0.2)', borderRadius:8, padding:'6px 12px', fontSize:11, color:'#E8421A', cursor:'pointer', fontFamily:'var(--font-body)', flexShrink:0 }}>
                       🗑️ Deletar
                     </button>
                   </div>
@@ -343,7 +347,6 @@ export default function AdminPage() {
             </div>
           )}
 
-          {/* SIMULADOS */}
           {tab === 'simulados' && (
             <div>
               <h1 style={{ fontFamily:'var(--font-display)', fontSize:28, fontWeight:900, marginBottom:8 }}>📋 Simulados & Provas OAB</h1>
@@ -374,7 +377,7 @@ function ProvasAdmin() {
   }
 
   const salvar = async () => {
-    if (!novaProva.numero_exame || !novaProva.edicao) { setMsg('Preencha número e edição.'); return }
+    if (!novaProva.numero_exame || !novaProva.edicao) { setMsg('❌ Preencha número e edição.'); return }
     setSalvando(true)
     const { error } = await supabase.from('provas_oab').insert({
       numero_exame: parseInt(novaProva.numero_exame),
@@ -384,7 +387,7 @@ function ProvasAdmin() {
       status: novaProva.status,
     })
     setSalvando(false)
-    if (error) { setMsg('Erro ao salvar.'); return }
+    if (error) { setMsg(`❌ Erro: ${error.message}`); return }
     setMsg('✅ Prova cadastrada!')
     setNovaProva({ numero_exame:'', edicao:'', total_questoes:'80', taxa_aprovacao_oficial:'0', status:'ativo' })
     await carregar()
@@ -397,9 +400,11 @@ function ProvasAdmin() {
     setProvas(prev => prev.filter(p => p.id !== id))
   }
 
+  const INPUT_STYLE = { width:'100%', background:'#1c1c1c', border:'1px solid rgba(255,255,255,0.08)', borderRadius:10, padding:'12px 16px', color:'#ffffff', fontSize:13, fontFamily:'var(--font-body)' }
+
   return (
     <div>
-      {msg && <div style={{ background:'rgba(76,175,125,0.1)', border:'1px solid rgba(76,175,125,0.25)', borderRadius:10, padding:'12px 16px', fontSize:13, color:'var(--success)', marginBottom:20 }}>{msg}</div>}
+      {msg && <div style={{ background: msg.startsWith('❌')?'rgba(232,66,26,0.1)':'rgba(76,175,125,0.1)', border:`1px solid ${msg.startsWith('❌')?'rgba(232,66,26,0.25)':'rgba(76,175,125,0.25)'}`, borderRadius:10, padding:'12px 16px', fontSize:13, color: msg.startsWith('❌')?'#E8421A':'var(--success)', marginBottom:20 }}>{msg}</div>}
 
       <div style={{ background:'var(--gray)', border:'1px solid rgba(212,168,67,0.15)', borderRadius:20, padding:24, marginBottom:28 }}>
         <h2 style={{ fontFamily:'var(--font-display)', fontSize:18, fontWeight:900, marginBottom:20, color:'var(--gold)' }}>+ Cadastrar nova prova OAB</h2>
@@ -412,16 +417,12 @@ function ProvasAdmin() {
           ].map(f => (
             <div key={f.key}>
               <label style={{ fontSize:11, fontWeight:700, letterSpacing:'1.5px', textTransform:'uppercase', color:'var(--text-muted)', display:'block', marginBottom:8 }}>{f.label}</label>
-              <input
-                value={(novaProva as any)[f.key]}
-                onChange={e => setNovaProva(p => ({ ...p, [f.key]: e.target.value }))}
-                placeholder={f.placeholder}
-                style={{ width:'100%', background:'rgba(255,255,255,0.04)', border:'1px solid rgba(255,255,255,0.08)', borderRadius:10, padding:'12px 16px', color:'var(--white)', fontSize:13, fontFamily:'var(--font-body)' }}
-              />
+              <input value={(novaProva as any)[f.key]} onChange={e => setNovaProva(p => ({ ...p, [f.key]: e.target.value }))} placeholder={f.placeholder} style={INPUT_STYLE} />
             </div>
           ))}
         </div>
-        <button onClick={salvar} disabled={salvando} style={{ background:'linear-gradient(135deg,var(--gold),var(--orange))', border:'none', borderRadius:12, padding:'14px 28px', fontSize:14, fontWeight:800, color:'var(--deep-black)', cursor:'pointer', fontFamily:'var(--font-body)' }}>
+        <button onClick={salvar} disabled={salvando}
+          style={{ background:'linear-gradient(135deg,var(--gold),var(--orange))', border:'none', borderRadius:12, padding:'14px 28px', fontSize:14, fontWeight:800, color:'var(--deep-black)', cursor:'pointer', fontFamily:'var(--font-body)' }}>
           {salvando ? '⏳ Salvando...' : '✅ CADASTRAR PROVA'}
         </button>
       </div>
@@ -437,7 +438,8 @@ function ProvasAdmin() {
                 <div style={{ fontSize:14, fontWeight:700 }}>{p.edicao}</div>
                 <div style={{ fontSize:11, color:'var(--text-muted)' }}>{p.total_questoes}q · {p.taxa_aprovacao_oficial}% aprovação · {p.status}</div>
               </div>
-              <button onClick={() => deletar(p.id)} style={{ background:'rgba(232,66,26,0.1)', border:'1px solid rgba(232,66,26,0.2)', borderRadius:8, padding:'6px 12px', fontSize:11, color:'var(--danger)', cursor:'pointer', fontFamily:'var(--font-body)' }}>
+              <button onClick={() => deletar(p.id)}
+                style={{ background:'rgba(232,66,26,0.1)', border:'1px solid rgba(232,66,26,0.2)', borderRadius:8, padding:'6px 12px', fontSize:11, color:'#E8421A', cursor:'pointer', fontFamily:'var(--font-body)' }}>
                 🗑️ Deletar
               </button>
             </div>
