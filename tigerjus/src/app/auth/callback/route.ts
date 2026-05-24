@@ -33,9 +33,11 @@ export async function GET(request: Request) {
     const { data, error } = await supabase.auth.exchangeCodeForSession(code)
 
     if (!error) {
-      // Safety net defensivo: trigger handle_new_user é a fonte primária.
-      // Este check só roda o INSERT se o trigger por algum motivo não criou
-      // o profile. Insert mínimo — todo o resto cai nos defaults do schema:
+      // Safety net defensivo.
+      // Fonte primária do profile = trigger handle_new_user em auth.users (SECURITY DEFINER).
+      // Este check só roda INSERT no cenário raro do trigger ter caído na EXCEPTION handler
+      // (que loga e segue silenciosamente pra não quebrar o signup).
+      // Insert mínimo — defaults do schema cobrem o resto:
       //   plano='gratuito', xp=0, nivel=1, streak=0, role='user',
       //   free_questions_used=0, free_ia_used=0
       if (data?.user) {
@@ -51,6 +53,7 @@ export async function GET(request: Request) {
             email: data.user.email,
             nome: data.user.user_metadata?.full_name
               || data.user.user_metadata?.name
+              || data.user.user_metadata?.nome
               || data.user.email?.split('@')[0],
           })
         }
