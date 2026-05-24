@@ -1,1304 +1,449 @@
 'use client'
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
-import RadarOAB from '@/components/RadarOAB'
 
-interface Profile {
-  id: string; nome: string; email: string; plano: string
-  xp: number; level: number; level_name: string; streak: number
-  free_questions_used: number; free_ia_used: number
-  questoes_respondidas: number; questoes_corretas: number
-  role?: string
+interface Stats {
+  total_usuarios: number
+  usuarios_premium: number
+  usuarios_free: number
+  total_questoes: number
+  total_simulados: number
+  questoes_respondidas: number
 }
 
-type LevelName = 'Filhote' | 'Caçador' | 'Alpha' | 'Tigre Supremo' | 'Mestre TigerJus'
-
-const XP_NEXT: Record<LevelName, number> = {
-  'Filhote': 1000, 'Caçador': 5000, 'Alpha': 15000,
-  'Tigre Supremo': 40000, 'Mestre TigerJus': 999999,
-}
-const XP_PREV: Record<LevelName, number> = {
-  'Filhote': 0, 'Caçador': 1000, 'Alpha': 5000,
-  'Tigre Supremo': 15000, 'Mestre TigerJus': 40000,
-}
-
-const PLANS_UPGRADE = [
-  { id:'start', name:'Tiger Start', price:'1,99', color:'var(--success)', features:['Questões ilimitadas','IA intermediária','Mais simulados','Streak + ranking'] },
-  { id:'plus', name:'Tiger Plus', price:'5,99', color:'var(--blue)', features:['Simulados completos','Mapas mentais','PDFs premium','IA ampliada'] },
-  { id:'pro', name:'Tiger Pro', price:'9,99', color:'var(--gold)', badge:'POPULAR', featured:true, features:['IA avançada ilimitada','Radar jurídico','Trilhas personalizadas','Previsão de aprovação'] },
-  { id:'elite', name:'Tiger Elite', price:'19,99', color:'var(--orange)', badge:'TOP', features:['Tudo ilimitado','IA prioritária','Conteúdos exclusivos','Simulados inéditos'] },
-]
-
-const DISCIPLINES = [
-  {id:1,icon:'⚖️',name:'Constitucional',slug:'constitucional',progress:68,q:142,tags:['Quiz','Resumo','Flash','PDF']},
-  {id:2,icon:'🏛️',name:'Administrativo',slug:'administrativo',progress:45,q:98,tags:['Quiz','Resumo','Flash','PDF']},
-  {id:3,icon:'🔒',name:'Penal',slug:'penal',progress:72,q:210,tags:['Quiz','Resumo','Flash','PDF']},
-  {id:4,icon:'🔍',name:'Processo Penal',slug:'processo-penal',progress:38,q:156,tags:['Quiz','Resumo','Flash','PDF']},
-  {id:5,icon:'📋',name:'Civil',slug:'civil',progress:55,q:187,tags:['Quiz','Resumo','Flash','PDF']},
-  {id:6,icon:'⚡',name:'Processo Civil',slug:'processo-civil',progress:30,q:134,tags:['Quiz','Resumo','Flash','PDF']},
-  {id:7,icon:'🦺',name:'Trabalho',slug:'trabalho',progress:60,q:112,tags:['Quiz','Resumo','Flash','PDF']},
-  {id:8,icon:'👷',name:'Proc. Trabalho',slug:'proc-trabalho',progress:25,q:89,tags:['Quiz','Resumo','Flash','PDF']},
-  {id:9,icon:'💰',name:'Tributário',slug:'tributario',progress:42,q:76,tags:['Quiz','Resumo','Flash','PDF']},
-  {id:10,icon:'🏢',name:'Empresarial',slug:'empresarial',progress:35,q:93,tags:['Quiz','Resumo','Flash','PDF']},
-  {id:11,icon:'📜',name:'Ética OAB',slug:'etica',progress:80,q:64,tags:['Quiz','Resumo','Flash','PDF']},
-  {id:12,icon:'🛒',name:'Consumidor',slug:'consumidor',progress:50,q:55,tags:['Quiz','Resumo','Flash','PDF']},
-  {id:13,icon:'🌍',name:'Direitos Humanos',slug:'direitos-humanos',progress:28,q:48,tags:['Quiz','Resumo','Flash','PDF']},
-  {id:14,icon:'🌿',name:'Ambiental',slug:'ambiental',progress:20,q:42,tags:['Quiz','Resumo','Flash','PDF']},
-  {id:15,icon:'📖',name:'Filosofia',slug:'filosofia',progress:15,q:30,tags:['Quiz','Resumo','Flash','PDF']},
-  {id:16,icon:'🌐',name:'Internacional',slug:'internacional',progress:22,q:38,tags:['Quiz','Resumo','Flash','PDF']},
-  {id:17,icon:'👶',name:'ECA',slug:'eca',progress:32,q:44,tags:['Quiz','Resumo','Flash','PDF']},
-]
-
-const DISC_MAP: Record<string, string> = {
-  'Constitucional':'Constitucional','Administrativo':'Administrativo','Penal':'Penal',
-  'Processo Penal':'Processo Penal','Civil':'Civil','Processo Civil':'Processo Civil',
-  'Trabalho':'Trabalho','Processo do Trabalho':'Proc. Trabalho','Tributário':'Tributário',
-  'Empresarial':'Empresarial','Ética':'Ética OAB','Consumidor':'Consumidor',
-  'Direitos Humanos':'Direitos Humanos','Ambiental':'Ambiental','Filosofia':'Filosofia',
-  'Internacional':'Internacional','ECA':'ECA',
+interface Usuario {
+  id: string
+  nome: string
+  email: string
+  plano: string
+  xp: number
+  level_name: string
+  streak: number
+  questoes_respondidas: number
+  questoes_corretas: number
+  role: string
+  created_at: string
 }
 
-const RANKING_DATA = [
-  {pos:1,name:'Rafael M.',level:'Tigre Supremo',xp:48200,streak:45,av:'🦁'},
-  {pos:2,name:'Ana C.',level:'Alpha',xp:41800,streak:38,av:'⚡'},
-  {pos:3,name:'Lucas F.',level:'Alpha',xp:39500,streak:22,av:'🔥'},
-  {pos:4,name:'Beatriz S.',level:'Caçador',xp:28900,streak:15,av:'🎯'},
-  {pos:5,name:'Você',level:'Caçador',xp:18400,streak:7,av:'🐯',me:true},
-  {pos:6,name:'Carlos L.',level:'Caçador',xp:14200,streak:9,av:'⚖️'},
-  {pos:7,name:'Marina T.',level:'Filhote',xp:8900,streak:4,av:'📚'},
-]
+export default function AdminPage() {
+  const router = useRouter()
+  const [loading, setLoading] = useState(true)
+  const [tab, setTab] = useState<'overview'|'usuarios'|'questoes'|'simulados'>('overview')
+  const [stats, setStats] = useState<Stats>({ total_usuarios:0, usuarios_premium:0, usuarios_free:0, total_questoes:0, total_simulados:0, questoes_respondidas:0 })
+  const [usuarios, setUsuarios] = useState<Usuario[]>([])
+  const [questoes, setQuestoes] = useState<any[]>([])
+  const [busca, setBusca] = useState('')
+  const [salvando, setSalvando] = useState(false)
+  const [msg, setMsg] = useState('')
 
-const RESUMOS: Record<string, string> = {
-  constitucional:`DIREITO CONSTITUCIONAL — RESUMO ESSENCIAL\n\nESTRUTURA DA CF/88\nA Constituição Federal de 1988 é rígida, analítica e promulgada. Organiza-se em 9 títulos.\n\nDIREITOS FUNDAMENTAIS (Art. 5º)\nSão cláusulas pétreas. Principais garantias:\n- Habeas Corpus — liberdade de locomoção\n- Mandado de Segurança — direito líquido e certo\n- Habeas Data — informações pessoais\n- Mandado de Injunção — omissão legislativa\n\nPRINCÍPIOS FUNDAMENTAIS\n- Soberania, Cidadania, Dignidade da pessoa humana\n- Valores sociais do trabalho e da livre iniciativa\n- Pluralismo político\n\nORGANIZAÇÃO DOS PODERES\n- Executivo, Legislativo e Judiciário — independentes e harmônicos\n- Sistema de freios e contrapesos`,
-  penal:`DIREITO PENAL — RESUMO ESSENCIAL\n\nTEORIA DO CRIME\nCrime = Fato típico + Ilicitude + Culpabilidade\n\nDOLO E CULPA\n- Dolo direto: quis o resultado\n- Dolo eventual: assumiu o risco\n- Culpa: imprudência, negligência ou imperícia\n\nEXCLUDENTES DE ILICITUDE (Art. 23 CP)\n- Estado de necessidade\n- Legítima defesa\n- Estrito cumprimento do dever legal`,
-  civil:`DIREITO CIVIL — RESUMO ESSENCIAL\n\nCAPACIDADE\n- Plena: maiores de 18 anos não incapazes\n- Absolutamente incapaz: menores de 16 anos (art. 3º CC)\n- Relativamente incapaz: 16-18 anos, ébrios habituais, pródigos\n\nRESPONSABILIDADE CIVIL\n- Subjetiva: necessita de culpa\n- Objetiva: independe de culpa (risco da atividade)`,
-}
+  // Form nova questão
+  const [novaQ, setNovaQ] = useState({ disciplina:'', enunciado:'', opcao_a:'', opcao_b:'', opcao_c:'', opcao_d:'', resposta_correta:'A', comentario:'' })
 
-// ─── RADAR TIGERJUS — temas quentes ──────────────────────────────────────────
-const RADAR_TEMAS = [
-  { disc:'Direito Constitucional', tema:'Direitos Fundamentais — Art. 5º', prob:94, tipo:'Lei seca', dica:'Foco em HC, MS, HD e MI. Caem todo exame.' },
-  { disc:'Direito Penal', tema:'Teoria do Crime — Dolo e Culpa', prob:91, tipo:'Jurisprudência', dica:'STJ e STF consolidaram entendimento sobre dolo eventual.' },
-  { disc:'Ética OAB', tema:'Sigilo Profissional e Incompatibilidades', prob:89, tipo:'Estatuto', dica:'Art. 34 do Estatuto. Questão garantida em todo exame.' },
-  { disc:'Processo Civil', tema:'Prazos e Recursos — CPC/2015', prob:86, tipo:'Lei seca', dica:'Prazo de 15 dias úteis para a maioria dos recursos.' },
-  { disc:'Direito Civil', tema:'Responsabilidade Civil Objetiva', prob:82, tipo:'Doutrina', dica:'CDC + CC/2002. Risco da atividade muito cobrado.' },
-  { disc:'Direito do Trabalho', tema:'Rescisão Contratual e FGTS', prob:79, tipo:'CLT', dica:'Multa de 40% sobre FGTS nas demissões sem justa causa.' },
-]
+  useEffect(() => { verificarAdmin() }, [])
 
-function RadarModal({ onClose }: { onClose: () => void }) {
-  return (
-    <div style={{position:'fixed',inset:0,zIndex:400,background:'rgba(0,0,0,0.95)',backdropFilter:'blur(10px)',display:'flex',alignItems:'center',justifyContent:'center',padding:20,overflowY:'auto'}}>
-      <div style={{width:'100%',maxWidth:700,background:'var(--gray)',border:'1px solid rgba(212,168,67,0.25)',borderRadius:24,padding:'32px 28px',position:'relative'}}>
-        <button onClick={onClose} style={{position:'absolute',top:16,right:16,background:'none',border:'none',color:'#888',fontSize:22,cursor:'pointer'}}>✕</button>
-        <div style={{display:'flex',alignItems:'center',gap:12,marginBottom:8}}>
-          <span style={{fontSize:28}}>🎯</span>
-          <div>
-            <h2 style={{fontFamily:'var(--font-display)',fontSize:24,fontWeight:900,marginBottom:2}}>Radar TigerJus</h2>
-            <p style={{fontSize:12,color:'var(--text-muted)'}}>Temas com maior probabilidade de cair no 47º Exame OAB</p>
-          </div>
-        </div>
-        <div style={{background:'rgba(212,168,67,0.06)',border:'1px solid rgba(212,168,67,0.15)',borderRadius:12,padding:'10px 14px',marginBottom:24,fontSize:12,color:'var(--text-muted)'}}>
-          📡 Baseado na análise dos últimos 5 exames (42º ao 46º) + jurisprudência recente STF/STJ
-        </div>
-        <div style={{display:'flex',flexDirection:'column',gap:12}}>
-          {RADAR_TEMAS.map((t,i) => (
-            <div key={i} style={{background:'rgba(255,255,255,0.03)',border:'1px solid rgba(255,255,255,0.07)',borderRadius:14,padding:'16px 18px'}}>
-              <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:8,flexWrap:'wrap',gap:8}}>
-                <div style={{flex:1}}>
-                  <div style={{fontSize:10,fontWeight:700,letterSpacing:1.5,textTransform:'uppercase',color:'var(--text-muted)',marginBottom:4}}>{t.disc}</div>
-                  <div style={{fontSize:14,fontWeight:700,color:'var(--white)'}}>{t.tema}</div>
-                </div>
-                <div style={{textAlign:'right',flexShrink:0}}>
-                  <div style={{fontFamily:'var(--font-display)',fontSize:22,fontWeight:900,color:t.prob>=90?'var(--success)':t.prob>=80?'var(--gold)':'var(--orange)'}}>{t.prob}%</div>
-                  <div style={{fontSize:10,color:'var(--text-muted)'}}>probabilidade</div>
-                </div>
-              </div>
-              <div style={{background:'rgba(255,255,255,0.06)',borderRadius:100,height:5,overflow:'hidden',marginBottom:8}}>
-                <div style={{width:`${t.prob}%`,height:'100%',background:`linear-gradient(90deg,${t.prob>=90?'var(--success)':t.prob>=80?'var(--gold)':'var(--orange)'},var(--orange))`,borderRadius:100,transition:'width 1s ease'}}/>
-              </div>
-              <div style={{display:'flex',alignItems:'center',gap:8,flexWrap:'wrap'}}>
-                <span style={{fontSize:10,padding:'2px 8px',background:'rgba(58,143,232,0.1)',border:'1px solid rgba(58,143,232,0.2)',borderRadius:100,color:'#3a8fe8',fontWeight:600}}>{t.tipo}</span>
-                <span style={{fontSize:12,color:'var(--text-muted)'}}>💡 {t.dica}</span>
-              </div>
-            </div>
-          ))}
-        </div>
-        <div style={{marginTop:20,textAlign:'center',fontSize:11,color:'var(--text-muted)'}}>
-          🔄 Atualizado após cada exame oficial · Próxima atualização: 47º EOU (30/08/2026)
-        </div>
-      </div>
-    </div>
-  )
-}
-
-// ─── BANNER PUBLICITÁRIO ROTATIVO ─────────────────────────────────────────────
-const ADS_BANNER = [
-  {
-    id:1,
-    url:'https://damasio.com.br',
-    bg:'linear-gradient(135deg,#1a237e,#283593)',
-    logo:'🎓',
-    logoColor:'#fff',
-    titulo:'Faculdade Damásio',
-    subtitulo:'OAB 1ª e 2ª Fase — Aprovação garantida ou devolução do investimento',
-    cta:'Conhecer agora',
-    ctaBg:'#fff',
-    ctaColor:'#1a237e',
-    badge:'PARCEIRO OFICIAL',
-    badgeBg:'rgba(255,255,255,0.15)',
-  },
-  {
-    id:2,
-    url:'https://cers.com.br',
-    bg:'linear-gradient(135deg,#b71c1c,#c62828)',
-    logo:'⚖️',
-    logoColor:'#fff',
-    titulo:'CERS Cursos Jurídicos',
-    subtitulo:'Mais de 1 milhão de aprovados. A maior plataforma jurídica do Brasil.',
-    cta:'Ver cursos',
-    ctaBg:'#fff',
-    ctaColor:'#b71c1c',
-    badge:'TOP PARCEIRO',
-    badgeBg:'rgba(255,255,255,0.15)',
-  },
-  {
-    id:3,
-    url:'https://grancursosonline.com.br',
-    bg:'linear-gradient(135deg,#1b5e20,#2e7d32)',
-    logo:'🏆',
-    logoColor:'#fff',
-    titulo:'Gran Cursos Online',
-    subtitulo:'Simulados ilimitados para OAB. Comece grátis e seja aprovado.',
-    cta:'Começar grátis',
-    ctaBg:'#fff',
-    ctaColor:'#1b5e20',
-    badge:'RECOMENDADO',
-    badgeBg:'rgba(255,255,255,0.15)',
-  },
-]
-
-function AdBannerRotativo({ isPremium }: { isPremium: boolean }) {
-  const [idx, setIdx] = useState(0)
-  const [fade, setFade] = useState(true)
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setFade(false)
-      setTimeout(() => {
-        setIdx(i => (i + 1) % ADS_BANNER.length)
-        setFade(true)
-      }, 400)
-    }, 10000)
-    return () => clearInterval(interval)
-  }, [])
-
-  const ad = ADS_BANNER[idx]
-
-  return (
-    <div style={{marginBottom:20}}>
-      <div style={{fontSize:9,fontWeight:700,letterSpacing:'2px',textTransform:'uppercase',color:'var(--text-dim)',marginBottom:6,textAlign:'right'}}>PUBLICIDADE</div>
-      <div
-        onClick={() => window.open(ad.url,'_blank')}
-        style={{
-          background: ad.bg,
-          borderRadius:14,
-          padding:'16px 20px',
-          cursor:'pointer',
-          transition:'opacity 0.4s ease, transform 0.2s',
-          opacity: fade ? 1 : 0,
-          display:'flex',
-          alignItems:'center',
-          gap:16,
-          flexWrap:'wrap',
-          boxShadow:'0 4px 20px rgba(0,0,0,0.3)',
-        }}
-        onMouseEnter={e => e.currentTarget.style.transform='scale(1.01)'}
-        onMouseLeave={e => e.currentTarget.style.transform='scale(1)'}
-      >
-        {/* Logo / ícone */}
-        <div style={{width:48,height:48,borderRadius:12,background:'rgba(255,255,255,0.15)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:24,flexShrink:0}}>
-          {ad.logo}
-        </div>
-        {/* Texto */}
-        <div style={{flex:1,minWidth:0}}>
-          <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:4,flexWrap:'wrap'}}>
-            <span style={{fontSize:14,fontWeight:800,color:'#fff'}}>{ad.titulo}</span>
-            <span style={{fontSize:9,fontWeight:800,letterSpacing:'1.5px',background:ad.badgeBg,color:'#fff',padding:'2px 8px',borderRadius:100,border:'1px solid rgba(255,255,255,0.3)'}}>{ad.badge}</span>
-          </div>
-          <div style={{fontSize:12,color:'rgba(255,255,255,0.8)',lineHeight:1.5}}>{ad.subtitulo}</div>
-        </div>
-        {/* CTA */}
-        <button style={{background:ad.ctaBg,color:ad.ctaColor,border:'none',borderRadius:10,padding:'10px 18px',fontSize:12,fontWeight:800,cursor:'pointer',whiteSpace:'nowrap',flexShrink:0}}>
-          {ad.cta} →
-        </button>
-        {/* Indicadores de slide */}
-        <div style={{width:'100%',display:'flex',gap:5,justifyContent:'center',marginTop:4}}>
-          {ADS_BANNER.map((_,i) => (
-            <button key={i} onClick={e=>{e.stopPropagation();setFade(false);setTimeout(()=>{setIdx(i);setFade(true)},300)}}
-              style={{width:i===idx?20:6,height:6,borderRadius:3,background:i===idx?'rgba(255,255,255,0.9)':'rgba(255,255,255,0.3)',border:'none',cursor:'pointer',transition:'all 0.3s',padding:0}}/>
-          ))}
-        </div>
-      </div>
-    </div>
-  )
-}
-
-function AdCardFeed() {
-  const ad = ADS_BANNER[1]
-  return (
-    <div onClick={() => window.open(ad.url,'_blank')} style={{background:'rgba(183,28,28,0.08)',border:'1px solid rgba(183,28,28,0.2)',borderRadius:14,padding:'14px 18px',marginBottom:16,cursor:'pointer',display:'flex',alignItems:'center',gap:12,flexWrap:'wrap'}}>
-      <span style={{fontSize:20}}>⚖️</span>
-      <div style={{flex:1,minWidth:0}}>
-        <div style={{fontSize:9,fontWeight:700,letterSpacing:2,textTransform:'uppercase',color:'var(--text-dim)',marginBottom:2}}>PUBLICIDADE</div>
-        <div style={{fontSize:13,fontWeight:700}}>{ad.titulo}</div>
-        <div style={{fontSize:11,color:'var(--text-muted)'}}>{ad.subtitulo}</div>
-      </div>
-      <button style={{background:'rgba(183,28,28,0.15)',border:'1px solid rgba(183,28,28,0.3)',borderRadius:8,padding:'6px 12px',fontSize:11,fontWeight:700,color:'#ef5350',cursor:'pointer',whiteSpace:'nowrap'}}>Ver cursos →</button>
-    </div>
-  )
-}
-
-// ─── PDF REAL com HTML → impressão do navegador ───────────────────────────────
-async function gerarPDF(disciplina: any, resumo: string, questoes: any[]) {
-  const data = new Date().toLocaleDateString('pt-BR')
-  const html = `<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-<meta charset="UTF-8">
-<title>TigerJus — ${disciplina.name}</title>
-<style>
-  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap');
-  * { margin:0; padding:0; box-sizing:border-box; }
-  body { font-family:'Inter',sans-serif; background:#fff; color:#1a1a1a; font-size:12px; line-height:1.6; }
-  .header { background:linear-gradient(135deg,#D4A843,#E8621A); padding:28px 40px; color:#000; display:flex; align-items:center; justify-content:space-between; }
-  .logo { font-size:28px; font-weight:900; letter-spacing:3px; }
-  .logo span { font-size:13px; display:block; letter-spacing:1px; opacity:0.8; font-weight:600; margin-top:2px; }
-  .header-right { text-align:right; font-size:11px; opacity:0.8; }
-  .disc-badge { background:rgba(0,0,0,0.15); border-radius:8px; padding:6px 14px; display:inline-block; margin-top:8px; font-weight:700; font-size:13px; }
-  .container { padding:32px 40px; }
-  .section-title { font-size:15px; font-weight:900; text-transform:uppercase; letter-spacing:2px; color:#D4A843; border-bottom:2px solid #D4A843; padding-bottom:8px; margin:28px 0 16px; }
-  .resumo-box { background:#fafafa; border:1px solid #eee; border-left:4px solid #D4A843; border-radius:8px; padding:20px 24px; white-space:pre-wrap; font-size:12px; line-height:1.8; }
-  .questao { border:1px solid #e0e0e0; border-radius:10px; padding:18px 20px; margin-bottom:16px; page-break-inside:avoid; }
-  .questao-num { font-size:10px; font-weight:700; letter-spacing:2px; text-transform:uppercase; color:#888; margin-bottom:6px; }
-  .questao-texto { font-size:13px; font-weight:600; margin-bottom:12px; line-height:1.6; }
-  .opcao { display:flex; gap:10px; padding:8px 10px; border-radius:6px; margin-bottom:4px; font-size:12px; }
-  .opcao.correta { background:#e8f5e9; border:1px solid #4caf50; color:#1b5e20; font-weight:600; }
-  .opcao.normal { background:#fafafa; border:1px solid #eee; }
-  .letra { font-weight:800; min-width:20px; }
-  .comentario { margin-top:10px; padding:10px 14px; background:#fff8e1; border:1px solid #ffe082; border-radius:6px; font-size:11px; color:#555; line-height:1.6; }
-  .footer { margin-top:40px; padding:20px 40px; background:#f5f5f5; border-top:2px solid #D4A843; display:flex; justify-content:space-between; align-items:center; font-size:10px; color:#888; }
-  .footer-logo { font-weight:900; font-size:14px; color:#D4A843; letter-spacing:2px; }
-  .gabarito-box { background:#fff8e1; border:1px solid #ffe082; border-radius:10px; padding:16px 20px; margin:20px 0; }
-  .gabarito-grid { display:grid; grid-template-columns:repeat(10,1fr); gap:6px; margin-top:10px; }
-  .gab-item { text-align:center; font-size:11px; font-weight:700; background:#fff; border:1px solid #eee; border-radius:4px; padding:4px 2px; }
-  .gab-num { font-size:9px; color:#888; display:block; }
-  @media print { body{-webkit-print-color-adjust:exact;print-color-adjust:exact;} }
-</style>
-</head>
-<body>
-<div class="header">
-  <div>
-    <div class="logo">🐯 TIGERJUS<span>Sistema de Evolução Jurídica</span></div>
-    <div class="disc-badge">${disciplina.icon} ${disciplina.name.toUpperCase()}</div>
-  </div>
-  <div class="header-right">
-    <div>Material de Estudo Premium</div>
-    <div>Gerado em: ${data}</div>
-    <div>tigerjus.com.br</div>
-  </div>
-</div>
-
-<div class="container">
-  <div class="section-title">📖 Resumo Essencial</div>
-  <div class="resumo-box">${resumo}</div>
-
-  ${questoes.length > 0 ? `
-  <div class="section-title">📝 Questões OAB Reais — ${disciplina.name}</div>
-  <p style="font-size:11px;color:#888;margin-bottom:16px;">Questões dos exames 42º ao 46º da OAB com gabarito e comentários.</p>
-
-  ${questoes.slice(0,20).map((q:any, i:number) => `
-  <div class="questao">
-    <div class="questao-num">Questão ${i+1} · ${q.disciplina||disciplina.name} · OAB Oficial</div>
-    <div class="questao-texto">${q.enunciado}</div>
-    ${['A','B','C','D'].map((l,li) => `
-    <div class="opcao ${q.resposta_correta===l?'correta':'normal'}">
-      <span class="letra">${l})</span>
-      <span>${[q.opcao_a,q.opcao_b,q.opcao_c,q.opcao_d][li]}</span>
-      ${q.resposta_correta===l?'<span style="margin-left:auto;font-size:10px;">✅ GABARITO</span>':''}
-    </div>`).join('')}
-    ${q.comentario?`<div class="comentario">📖 <strong>Comentário:</strong> ${q.comentario}</div>`:''}
-  </div>`).join('')}
-
-  <div class="gabarito-box">
-    <div style="font-weight:800;font-size:12px;margin-bottom:4px;">🗂️ GABARITO RÁPIDO</div>
-    <div class="gabarito-grid">
-      ${questoes.slice(0,20).map((q:any,i:number)=>`<div class="gab-item"><span class="gab-num">${i+1}</span>${q.resposta_correta}</div>`).join('')}
-    </div>
-  </div>
-  ` : ''}
-</div>
-
-<div class="footer">
-  <div class="footer-logo">🐯 TIGERJUS</div>
-  <div>"Não basta estudar Direito. É preciso pensar como um Tigre."</div>
-  <div>tigerjus.com.br · ${data}</div>
-</div>
-
-<script>window.onload=()=>{window.print();window.onafterprint=()=>window.close()}</script>
-</body>
-</html>`
-
-  const blob = new Blob([html], { type: 'text/html;charset=utf-8' })
-  const url = URL.createObjectURL(blob)
-  const win = window.open(url, '_blank')
-  if (!win) {
-    // fallback: download direto
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `TigerJus_${disciplina.slug}_${new Date().toISOString().split('T')[0]}.html`
-    document.body.appendChild(a); a.click(); document.body.removeChild(a)
-  }
-  setTimeout(() => URL.revokeObjectURL(url), 10000)
-}
-
-// ─── UPGRADE MODAL ────────────────────────────────────────────────────────────
-function UpgradeModal({ onClose, onSelect }: { onClose: () => void; onSelect: (plan: string) => void }) {
-  return (
-    <div style={{position:'fixed',inset:0,zIndex:300,background:'rgba(0,0,0,0.95)',backdropFilter:'blur(10px)',display:'flex',alignItems:'center',justifyContent:'center',padding:20,overflowY:'auto'}}>
-      <div style={{width:'100%',maxWidth:900,position:'relative',padding:'20px 0'}}>
-        <button onClick={onClose} style={{position:'absolute',top:-10,right:0,background:'none',border:'none',color:'#888',fontSize:24,cursor:'pointer',zIndex:10}}>✕</button>
-        <div style={{textAlign:'center',marginBottom:32}}>
-          <div style={{fontSize:48,marginBottom:12}}>🚀</div>
-          <h2 style={{fontFamily:'var(--font-display)',fontSize:36,fontWeight:900,marginBottom:8}}>Escolha seu <span style={{color:'var(--gold)'}}>plano</span></h2>
-          <p style={{color:'var(--text-muted)',fontSize:15}}>Desbloqueie todo o potencial do TigerJus</p>
-        </div>
-        <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(190px,1fr))',gap:16}}>
-          {PLANS_UPGRADE.map(plan => (
-            <div key={plan.id} style={{background:(plan as any).featured?'linear-gradient(160deg,rgba(212,168,67,0.1),rgba(30,30,30,1))':'rgba(20,20,20,0.9)',border:(plan as any).featured?'1px solid var(--gold)':'1px solid rgba(255,255,255,0.1)',borderRadius:16,padding:24,position:'relative',cursor:'pointer',transition:'transform 0.2s'}}
-              onMouseEnter={e=>e.currentTarget.style.transform='translateY(-4px)'}
-              onMouseLeave={e=>e.currentTarget.style.transform='translateY(0)'}>
-              {(plan as any).badge&&<div style={{position:'absolute',top:16,right:16,background:'linear-gradient(135deg,var(--gold),var(--orange))',color:'#000',fontSize:9,fontWeight:900,letterSpacing:'1.5px',padding:'4px 10px',borderRadius:100}}>{(plan as any).badge}</div>}
-              <div style={{fontSize:10,fontWeight:700,letterSpacing:'2.5px',textTransform:'uppercase',color:'var(--text-muted)',marginBottom:8}}>{plan.name}</div>
-              <div style={{fontFamily:'var(--font-display)',fontSize:38,fontWeight:900,color:plan.color,marginBottom:4}}><sup style={{fontSize:15,color:'var(--text-muted)',verticalAlign:'super'}}>R$</sup>{plan.price}</div>
-              <div style={{fontSize:12,color:'var(--text-muted)',marginBottom:20}}>/mês</div>
-              <ul style={{listStyle:'none',display:'flex',flexDirection:'column',gap:8,marginBottom:20}}>
-                {plan.features.map((f,i)=><li key={i} style={{display:'flex',alignItems:'center',gap:8,fontSize:12,color:'var(--white)'}}><span style={{color:'var(--success)'}}>✓</span>{f}</li>)}
-              </ul>
-              <button onClick={()=>onSelect(plan.id)} className={(plan as any).featured?'btn-primary':'btn-secondary'} style={{width:'100%',fontSize:13,padding:'12px'}}>{(plan as any).featured?'ASSINAR AGORA':'ASSINAR'}</button>
-            </div>
-          ))}
-        </div>
-        <div style={{textAlign:'center',marginTop:20,fontSize:13,color:'var(--text-muted)'}}>💳 PIX ou Cartão · 🔒 Pagamento seguro · Cancele quando quiser</div>
-      </div>
-    </div>
-  )
-}
-
-function Notification({ msg, onClose }: { msg: string; onClose: () => void }) {
-  useEffect(()=>{const t=setTimeout(onClose,4500);return()=>clearTimeout(t)},[onClose])
-  return(
-    <div style={{position:'fixed',top:90,right:24,zIndex:150,background:'var(--gray)',border:'1px solid rgba(212,168,67,0.25)',borderRadius:14,padding:'16px 20px',minWidth:280,boxShadow:'0 8px 32px rgba(0,0,0,0.5)',animation:'fadeInDown 0.4s ease'}}>
-      <div style={{fontSize:12,fontWeight:700,color:'var(--gold)',marginBottom:4}}>🐯 TigerJus</div>
-      <div style={{fontSize:13,color:'var(--text-muted)'}}>{msg}</div>
-    </div>
-  )
-}
-
-function XPTooltip({ xp, levelName }: { xp: number; levelName: LevelName }) {
-  const [show,setShow]=useState(false)
-  const xpNext=XP_NEXT[levelName]||5000
-  const xpPrev=XP_PREV[levelName]||0
-  const pct=Math.min(100,Math.round(((xp-xpPrev)/(xpNext-xpPrev))*100))
-  return(
-    <div style={{position:'relative',display:'inline-block'}} onMouseEnter={()=>setShow(true)} onMouseLeave={()=>setShow(false)}>
-      <span style={{cursor:'help',borderBottom:'1px dashed rgba(212,168,67,0.4)',color:'var(--gold)',fontWeight:700}}>{xp.toLocaleString()} XP ℹ️</span>
-      {show&&(
-        <div style={{position:'absolute',top:'calc(100% + 8px)',left:'50%',transform:'translateX(-50%)',background:'#1a1a1a',border:'1px solid rgba(212,168,67,0.25)',borderRadius:12,padding:16,width:280,zIndex:100,boxShadow:'0 8px 32px rgba(0,0,0,0.6)'}}>
-          <div style={{fontSize:12,fontWeight:700,color:'var(--gold)',marginBottom:8}}>O que é XP?</div>
-          <div style={{fontSize:12,color:'var(--text-muted)',lineHeight:1.6,marginBottom:12}}>XP representa seus pontos de evolução.</div>
-          <div style={{background:'rgba(255,255,255,0.08)',borderRadius:100,height:6,overflow:'hidden'}}>
-            <div style={{width:`${pct}%`,height:'100%',background:'linear-gradient(90deg,var(--gold),var(--orange))',borderRadius:100}}/>
-          </div>
-          <div style={{marginTop:10,fontSize:11,color:'var(--text-dim)'}}>Faltam <strong style={{color:'var(--gold)'}}>{(xpNext-xp).toLocaleString()} XP</strong> para o próximo nível</div>
-          <div style={{marginTop:8,fontSize:11,color:'var(--text-muted)'}}>💡 Questão certa = +100 XP · Login diário = +50 XP</div>
-        </div>
-      )}
-    </div>
-  )
-}
-
-function PremiumGate({ onClose, onUpgrade }: { onClose:()=>void; onUpgrade:()=>void }) {
-  return(
-    <div style={{position:'fixed',inset:0,zIndex:200,background:'rgba(0,0,0,0.93)',backdropFilter:'blur(10px)',display:'flex',alignItems:'center',justifyContent:'center',padding:20}}>
-      <div style={{background:'var(--gray)',border:'1px solid rgba(212,168,67,0.22)',borderRadius:24,padding:'48px 40px',textAlign:'center',maxWidth:480,width:'100%'}}>
-        <div style={{fontSize:54,marginBottom:18}}>🔒</div>
-        <h2 style={{fontFamily:'var(--font-display)',fontSize:30,fontWeight:900,lineHeight:1.2,marginBottom:14}}>Seu modo<br/><span style={{color:'var(--gold)'}}>degustação terminou.</span></h2>
-        <p style={{fontSize:15,color:'var(--text-muted)',marginBottom:28,lineHeight:1.7}}>Assine e continue evoluindo sem parar.</p>
-        <div style={{display:'flex',flexDirection:'column',gap:10,marginBottom:28,textAlign:'left'}}>
-          {['IA ilimitada','Simulados completos OAB','Radar TigerJus','Trilhas personalizadas','Mapas mentais e PDFs'].map((l,i)=>(
-            <div key={i} style={{display:'flex',alignItems:'center',gap:12,background:'rgba(212,168,67,0.06)',border:'1px solid rgba(212,168,67,0.12)',borderRadius:10,padding:'12px 16px',fontSize:13}}>
-              <span style={{color:'var(--success)'}}>✓</span><span>{l}</span>
-            </div>
-          ))}
-        </div>
-        <button className="btn-primary" style={{width:'100%',marginBottom:12,fontSize:15,padding:16}} onClick={onUpgrade}>🚀 VER PLANOS</button>
-        <button className="btn-secondary" style={{width:'100%',fontSize:12}} onClick={onClose}>Continuar no plano gratuito</button>
-        <div style={{marginTop:16,fontSize:11,color:'var(--text-dim)'}}>A partir de R$1,99/mês · Cancele quando quiser</div>
-      </div>
-    </div>
-  )
-}
-
-function DashHome({ profile, onNav, showUpgrade, isPremium, onOpenRadar }: any) {
-  const xp=profile?.xp||0
-  const levelName=(profile?.level_name||'Filhote') as LevelName
-  const streak=profile?.streak||0
-  const xpNext=XP_NEXT[levelName]||1000
-  const xpPrev=XP_PREV[levelName]||0
-  const pct=Math.min(100,Math.round(((xp-xpPrev)/(xpNext-xpPrev))*100))
-  const questoes=profile?.questoes_respondidas||0
-  const corretas=profile?.questoes_corretas||0
-  const taxa=questoes>0?Math.round((corretas/questoes)*100):0
-
-  return(
-    <div style={{padding:'24px 20px',flex:1,overflowY:'auto',maxWidth:'100%'}}>
-      {/* Banner publicitário rotativo */}
-      <AdBannerRotativo isPremium={isPremium}/>
-
-      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',flexWrap:'wrap',gap:12,marginBottom:20}}>
-        <div>
-          <h1 style={{fontFamily:'var(--font-display)',fontSize:'clamp(22px,5vw,32px)',fontWeight:900,marginBottom:6}}>Olá, {profile?.nome?.split(' ')[0]||levelName}! 🔥</h1>
-          <p style={{fontSize:14,color:'var(--text-muted)'}}>
-            {streak>0?<>Sequência de <span style={{color:'var(--gold)'}}>{streak} dias</span>. Continue!</>:'Comece seus estudos hoje.'}
-          </p>
-        </div>
-        {streak>0&&<div style={{display:'inline-flex',alignItems:'center',gap:6,background:'rgba(232,98,26,0.1)',border:'1px solid rgba(232,98,26,0.25)',borderRadius:100,padding:'8px 16px',fontSize:13,fontWeight:700,color:'var(--orange)'}}>🔥 {streak} dias</div>}
-      </div>
-
-      <div style={{background:'linear-gradient(135deg,rgba(212,168,67,0.12),rgba(232,98,26,0.06))',border:'1px solid rgba(212,168,67,0.2)',borderRadius:20,padding:'24px',marginBottom:20,position:'relative',overflow:'hidden'}}>
-        <div style={{position:'absolute',right:-16,top:-16,fontSize:100,opacity:0.04,pointerEvents:'none'}}>🐯</div>
-        <div style={{fontSize:10,fontWeight:700,letterSpacing:'2.5px',textTransform:'uppercase',color:'var(--gold)',marginBottom:6}}>NÍVEL — {levelName.toUpperCase()}</div>
-        <div style={{fontFamily:'var(--font-display)',fontSize:'clamp(20px,5vw,32px)',fontWeight:900,marginBottom:4}}><XPTooltip xp={xp} levelName={levelName}/></div>
-        <div style={{fontSize:13,color:'var(--text-muted)',marginBottom:16}}>{xp<xpNext?`${(xpNext-xp).toLocaleString()} XP para o próximo nível 🏆`:'Nível máximo! 👑'}</div>
-        <div style={{background:'rgba(255,255,255,0.08)',borderRadius:100,height:8,overflow:'hidden'}}>
-          <div style={{width:`${pct}%`,height:'100%',background:'linear-gradient(90deg,var(--gold),var(--orange))',borderRadius:100,transition:'width 1s ease'}}/>
-        </div>
-        <div style={{display:'flex',justifyContent:'space-between',marginTop:6,fontSize:11,color:'var(--text-muted)'}}>
-          <span>{levelName}</span><span>{pct}%</span><span>Próximo</span>
-        </div>
-      </div>
-
-      <div style={{display:'grid',gridTemplateColumns:'repeat(2,1fr)',gap:12,marginBottom:20}}>
-        {[
-          {label:'Questões',value:questoes.toLocaleString(),cls:'var(--gold)',sub:'respondidas'},
-          {label:'Taxa Acerto',value:`${taxa}%`,cls:'var(--success)',sub:'aproveitamento'},
-          {label:'Streak',value:`${streak} 🔥`,cls:'var(--orange)',sub:'dias seguidos'},
-          {label:'XP Total',value:xp.toLocaleString(),cls:'var(--gold)',sub:'pontos ganhos'},
-        ].map(s=>(
-          <div key={s.label} style={{background:'var(--gray)',border:'1px solid rgba(255,255,255,0.05)',borderRadius:14,padding:16}}>
-            <div style={{fontSize:10,fontWeight:600,letterSpacing:'1.5px',textTransform:'uppercase',color:'var(--text-muted)',marginBottom:8}}>{s.label}</div>
-            <div style={{fontFamily:'var(--font-display)',fontSize:'clamp(20px,5vw,28px)',fontWeight:900,color:s.cls}}>{s.value}</div>
-            <div style={{fontSize:11,color:'var(--text-muted)',marginTop:4}}>{s.sub}</div>
-          </div>
-        ))}
-      </div>
-
-      {/* Ad card feed */}
-      <AdCardFeed/>
-
-      <div style={{background:'linear-gradient(135deg,rgba(212,168,67,0.1),rgba(232,98,26,0.06))',border:'1px solid rgba(212,168,67,0.2)',borderRadius:16,padding:18,marginBottom:16,cursor:'pointer'}} onClick={()=>onNav('quiz')}>
-        <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',flexWrap:'wrap',gap:10}}>
-          <div>
-            <div style={{fontSize:10,fontWeight:700,letterSpacing:2,textTransform:'uppercase',color:'var(--gold)',marginBottom:4}}>⚡ QUESTÃO DO DIA</div>
-            <div style={{fontWeight:700,fontSize:15}}>Penal — Teoria do Crime: Tipicidade</div>
-            <div style={{fontSize:12,color:'var(--text-muted)',marginTop:4}}>+150 XP bônus ao responder hoje</div>
-          </div>
-          <button className="btn-gold-sm">+150 XP</button>
-        </div>
-      </div>
-
-      {/* Radar TigerJus — clicável e funcional */}
-      <div
-        style={{background:isPremium?'linear-gradient(135deg,rgba(58,143,232,0.1),rgba(212,168,67,0.06))':'linear-gradient(135deg,rgba(58,143,232,0.08),rgba(212,168,67,0.06))',border:`1px solid ${isPremium?'rgba(58,143,232,0.25)':'rgba(58,143,232,0.2)'}`,borderRadius:16,padding:20,marginBottom:20,cursor:'pointer',transition:'all 0.2s'}}
-        onClick={isPremium?onOpenRadar:showUpgrade}
-        onMouseEnter={e=>{e.currentTarget.style.transform='translateY(-2px)';e.currentTarget.style.boxShadow='0 8px 24px rgba(0,0,0,0.3)'}}
-        onMouseLeave={e=>{e.currentTarget.style.transform='translateY(0)';e.currentTarget.style.boxShadow='none'}}
-      >
-        <div style={{display:'flex',alignItems:'center',gap:12,marginBottom:8}}>
-          <span style={{fontSize:20}}>🎯</span>
-          <div style={{fontSize:16,fontWeight:700,flex:1}}>Radar TigerJus</div>
-          {isPremium
-            ?<div style={{fontSize:9,fontWeight:800,letterSpacing:'1.5px',textTransform:'uppercase',background:'rgba(76,175,125,0.15)',border:'1px solid rgba(76,175,125,0.3)',color:'var(--success)',padding:'4px 10px',borderRadius:100}}>✓ ATIVO — CLIQUE</div>
-            :<div style={{fontSize:9,fontWeight:800,letterSpacing:'1.5px',textTransform:'uppercase',background:'rgba(212,168,67,0.1)',border:'1px solid rgba(212,168,67,0.2)',color:'var(--gold)',padding:'4px 10px',borderRadius:100}}>🔒 Premium</div>
-          }
-        </div>
-        <div style={{fontSize:13,color:'var(--text-muted)'}}>
-          {isPremium?'Veja os 6 temas com maior probabilidade de cair no 47º Exame OAB →':'Temas com maior probabilidade de cair na próxima OAB.'}
-        </div>
-      </div>
-
-      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:14}}>
-        <h2 style={{fontFamily:'var(--font-display)',fontSize:'clamp(18px,4vw,22px)',fontWeight:900}}>Disciplinas em destaque</h2>
-        <button style={{color:'var(--gold)',fontSize:13,border:'none',background:'none',cursor:'pointer'}} onClick={()=>onNav('disciplines')}>Ver todas →</button>
-      </div>
-      <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(160px,1fr))',gap:12}}>
-        {DISCIPLINES.slice(0,6).map(d=>(
-          <div key={d.id} style={{background:'var(--gray)',border:'1px solid rgba(255,255,255,0.05)',borderRadius:14,padding:16,cursor:'pointer',transition:'all 0.2s'}}
-            onClick={()=>onNav('disciplines')}
-            onMouseEnter={e=>{e.currentTarget.style.borderColor='rgba(212,168,67,0.2)';e.currentTarget.style.transform='translateY(-2px)'}}
-            onMouseLeave={e=>{e.currentTarget.style.borderColor='rgba(255,255,255,0.05)';e.currentTarget.style.transform='translateY(0)'}}>
-            <div style={{fontSize:22,marginBottom:10}}>{d.icon}</div>
-            <div style={{fontSize:13,fontWeight:700,marginBottom:5}}>{d.name}</div>
-            <div style={{fontSize:11,color:'var(--text-muted)',marginBottom:8}}>{d.progress}% · {d.q}q</div>
-            <div style={{background:'rgba(255,255,255,0.06)',borderRadius:100,height:4,overflow:'hidden',marginBottom:8}}>
-              <div style={{width:`${d.progress}%`,height:'100%',background:'linear-gradient(90deg,var(--gold),var(--orange))',borderRadius:100}}/>
-            </div>
-            <div style={{display:'flex',gap:4,flexWrap:'wrap'}}>
-              {d.tags.map(t=><span key={t} style={{fontSize:9,padding:'2px 6px',background:'rgba(212,168,67,0.07)',border:'1px solid rgba(212,168,67,0.15)',borderRadius:4,color:'var(--gold-dark)',fontWeight:600}}>{t}</span>)}
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  )
-}
-
-function QuizPage({ freeQ, setFreeQ, showUpgrade, onXp, profile, isPremium }: any) {
-  const [disciplina,setDisciplina]=useState<string>('')
-  const [modo,setModo]=useState<'Fácil'|'Médio'|'Difícil'>('Fácil')
-  const [started,setStarted]=useState(false)
-  const [questions,setQuestions]=useState<any[]>([])
-  const [loadingQ,setLoadingQ]=useState(false)
-  const [cur,setCur]=useState(0)
-  const [sel,setSel]=useState<number|null>(null)
-  const [answered,setAnswered]=useState(false)
-  const [score,setScore]=useState(0)
-  const [done,setDone]=useState(false)
-  const [time,setTime]=useState(60)
-  const MODO_QTD:Record<string,number>={'Fácil':20,'Médio':40,'Difícil':60}
-  const MODO_TEMPO:Record<string,number>={'Fácil':60,'Médio':90,'Difícil':120}
-
-  useEffect(()=>{
-    if(!started||answered||done)return
-    const t=setInterval(()=>setTime(p=>{if(p<=1){clearInterval(t);setAnswered(true);return 0;}return p-1}),1000)
-    return()=>clearInterval(t)
-  },[started,answered,done,cur])
-
-  const startQuiz=async()=>{
-    setLoadingQ(true)
-    let query=supabase.from('questoes_oab').select('id,disciplina,enunciado,opcao_a,opcao_b,opcao_c,opcao_d,resposta_correta,comentario').neq('resposta_correta','*')
-    if(disciplina)query=query.ilike('disciplina',`%${disciplina}%`)
-    const{data,error}=await query
-    if(error||!data||data.length===0){setLoadingQ(false);alert('Nenhuma questão encontrada.');return}
-    const shuffled=[...data].sort(()=>Math.random()-0.5).slice(0,MODO_QTD[modo])
-    setQuestions(shuffled.map((q:any)=>({id:q.id,disc:q.disciplina,q:q.enunciado,opts:[q.opcao_a,q.opcao_b,q.opcao_c,q.opcao_d],correct:['A','B','C','D'].indexOf(q.resposta_correta),exp:q.comentario||''})))
-    setLoadingQ(false);setStarted(true);setCur(0);setSel(null);setAnswered(false);setScore(0);setDone(false);setTime(MODO_TEMPO[modo])
-  }
-
-  const pick=(i:number)=>{
-    if(answered)return
-    if(freeQ<=0){showUpgrade();return}
-    setSel(i);setAnswered(true);setFreeQ((p:number)=>p-1)
-    if(i===questions[cur].correct){setScore(p=>p+1);onXp('question_correct')}else onXp('question_wrong')
-  }
-  const next=()=>{if(cur+1>=questions.length){setDone(true);return}setCur(p=>p+1);setSel(null);setAnswered(false);setTime(MODO_TEMPO[modo])}
-  const restart=()=>{setStarted(false);setDone(false);setScore(0);setCur(0)}
-
-  if(!started)return(
-    <div style={{padding:'24px 20px',flex:1}}>
-      <h1 style={{fontFamily:'var(--font-display)',fontSize:'clamp(22px,5vw,32px)',fontWeight:900,marginBottom:6}}>Quiz OAB 📝</h1>
-      <p style={{fontSize:14,color:'var(--text-muted)',marginBottom:6}}>Questões reais dos exames 42º ao 46º da OAB.</p>
-      <div style={{display:'inline-flex',alignItems:'center',gap:6,background:'rgba(212,168,67,0.08)',border:'1px solid rgba(212,168,67,0.2)',borderRadius:100,padding:'5px 12px',fontSize:11,color:'var(--gold)',marginBottom:24}}>📋 400 questões reais no banco</div>
-      <div style={{maxWidth:560,background:'var(--gray)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:20,padding:'24px'}}>
-        <div style={{marginBottom:20}}>
-          <label style={{fontSize:11,fontWeight:700,letterSpacing:'1.5px',textTransform:'uppercase',color:'var(--text-muted)',display:'block',marginBottom:10}}>Disciplina (opcional)</label>
-          <select value={disciplina} onChange={e=>setDisciplina(e.target.value)} style={{width:'100%',background:'var(--gray-mid)',border:'1px solid rgba(255,255,255,0.08)',borderRadius:10,padding:'12px 16px',color:'var(--white)',fontSize:14,fontFamily:'var(--font-body)'}}>
-            <option value="">Todas as disciplinas</option>
-            {Object.keys(DISC_MAP).map(d=><option key={d} value={d}>{d}</option>)}
-          </select>
-        </div>
-        <div style={{marginBottom:28}}>
-          <label style={{fontSize:11,fontWeight:700,letterSpacing:'1.5px',textTransform:'uppercase',color:'var(--text-muted)',display:'block',marginBottom:10}}>Modo — <span style={{color:'var(--gold)'}}>{modo} ({MODO_QTD[modo]} questões · {MODO_TEMPO[modo]}s por questão)</span></label>
-          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:8}}>
-            {(['Fácil','Médio','Difícil'] as const).map(m=>(
-              <button key={m} onClick={()=>setModo(m)} style={{padding:'12px 8px',borderRadius:10,border:modo===m?'1px solid rgba(212,168,67,0.5)':'1px solid rgba(255,255,255,0.08)',background:modo===m?'rgba(212,168,67,0.1)':'transparent',color:modo===m?'var(--gold)':'var(--text-muted)',fontSize:12,fontWeight:700,cursor:'pointer',fontFamily:'var(--font-body)',textAlign:'center'}}>
-                <div>{m}</div><div style={{fontSize:10,marginTop:3,opacity:0.7}}>{MODO_QTD[m]}q · {MODO_TEMPO[m]}s/q</div>
-              </button>
-            ))}
-          </div>
-        </div>
-        <button className="btn-primary" style={{width:'100%',fontSize:15,padding:16}} onClick={startQuiz} disabled={loadingQ}>
-          {loadingQ?'⏳ Carregando...':'INICIAR QUIZ →'}
-        </button>
-        <div style={{marginTop:10,textAlign:'center',fontSize:12,color:'var(--text-muted)'}}>
-          {freeQ>9000?'✓ Ilimitado':freeQ>0?`${freeQ} grátis restantes`:'🔒 Limite atingido'}
-        </div>
-      </div>
-    </div>
-  )
-
-  const q=questions[cur]
-  const pct=Math.round(((cur+(answered?1:0))/questions.length)*100)
-
-  if(done){
-    const rate=Math.round((score/questions.length)*100)
-    const aprovado=score>=Math.ceil(questions.length*0.625)
-    return(
-      <div style={{padding:'24px 20px',flex:1}}>
-        <div style={{maxWidth:600,margin:'0 auto',textAlign:'center'}}>
-          <div style={{fontSize:60,marginBottom:18}}>{aprovado?'🏆':rate>=50?'📝':'💪'}</div>
-          <h1 style={{fontFamily:'var(--font-display)',fontSize:'clamp(22px,5vw,32px)',fontWeight:900,marginBottom:8}}>Quiz Concluído!</h1>
-          <p style={{fontSize:14,color:'var(--text-muted)',marginBottom:24}}>{score} de {questions.length} corretas · Modo {modo}</p>
-          <div style={{background:aprovado?'rgba(76,175,125,0.1)':'rgba(232,98,26,0.1)',border:`1px solid ${aprovado?'var(--success)':'var(--orange)'}`,borderRadius:16,padding:18,marginBottom:20}}>
-            <div style={{fontSize:18,fontWeight:900,color:aprovado?'var(--success)':'var(--orange)',marginBottom:6}}>{aprovado?'✅ Na média OAB!':'❌ Abaixo da média OAB'}</div>
-            <div style={{fontSize:13,color:'var(--text-muted)'}}>{aprovado?`${rate}% — acima dos 62,5% exigidos.`:`Precisa de ${Math.ceil(questions.length*0.625)} acertos.`}</div>
-          </div>
-          <div style={{display:'flex',gap:12,justifyContent:'center'}}>
-            <button className="btn-primary" onClick={restart}>NOVO QUIZ</button>
-            <button className="btn-secondary" onClick={restart}>MUDAR MODO</button>
-          </div>
-        </div>
-      </div>
-    )
-  }
-
-  return(
-    <div style={{padding:'24px 20px',flex:1}}>
-      <div style={{maxWidth:680,margin:'0 auto'}}>
-        <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:12}}>
-          <div style={{fontSize:13,color:'var(--text-muted)'}}>Q{cur+1}/{questions.length} · {modo}</div>
-          <div style={{fontFamily:'var(--font-mono)',fontSize:18,fontWeight:700,color:time<20?'var(--danger)':'var(--gold)'}}>{String(Math.floor(time/60)).padStart(2,'0')}:{String(time%60).padStart(2,'0')}</div>
-        </div>
-        <div style={{background:'rgba(255,255,255,0.06)',borderRadius:100,height:4,marginBottom:24,overflow:'hidden'}}>
-          <div style={{width:`${pct}%`,height:'100%',background:'linear-gradient(90deg,var(--gold),var(--orange))',borderRadius:100,transition:'width 0.4s'}}/>
-        </div>
-        <div style={{background:'var(--gray)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:20,padding:'24px'}}>
-          <div style={{display:'flex',gap:8,marginBottom:14}}><span style={{fontSize:10,fontWeight:700,letterSpacing:2,textTransform:'uppercase',color:'var(--gold)'}}>{q.disc}</span><span style={{fontSize:10,color:'var(--text-muted)'}}>· OAB Oficial</span></div>
-          <div style={{fontSize:'clamp(14px,3vw,18px)',fontWeight:600,lineHeight:1.6,marginBottom:24}}>{q.q}</div>
-          <div style={{display:'flex',flexDirection:'column',gap:10}}>
-            {q.opts.map((opt:string,i:number)=>{
-              let bg='rgba(255,255,255,0.03)',bc='rgba(255,255,255,0.08)',color='var(--white)'
-              if(answered){if(i===q.correct){bg='rgba(76,175,125,0.1)';bc='var(--success)';color='var(--success)'}else if(i===sel){bg='rgba(232,66,26,0.1)';bc='var(--danger)';color='var(--danger)'}}
-              return(
-                <button key={i} onClick={()=>pick(i)} style={{display:'flex',alignItems:'flex-start',gap:12,background:bg,border:`1px solid ${bc}`,borderRadius:12,padding:'14px 16px',cursor:'pointer',transition:'all 0.2s',textAlign:'left',width:'100%',fontFamily:'var(--font-body)',fontSize:'clamp(13px,2.5vw,14px)',color}}>
-                  <span style={{width:26,height:26,borderRadius:'50%',flexShrink:0,display:'flex',alignItems:'center',justifyContent:'center',fontSize:11,fontWeight:800,background:'rgba(255,255,255,0.06)'}}>{String.fromCharCode(65+i)}</span>
-                  <span style={{flex:1}}>{opt}</span>
-                </button>
-              )
-            })}
-          </div>
-          {answered&&q.exp&&<div style={{marginTop:20,padding:16,background:'rgba(212,168,67,0.06)',border:'1px solid rgba(212,168,67,0.15)',borderRadius:12,fontSize:13,lineHeight:1.7,color:'var(--text-muted)'}}>{sel===q.correct?'✅ ':'❌ '}<strong style={{color:'var(--gold)'}}>{sel===q.correct?'Correto!':'Incorreto.'}</strong> {q.exp}</div>}
-          {answered&&<button className="btn-primary" style={{width:'100%',marginTop:18}} onClick={next}>{cur+1>=questions.length?'VER RESULTADO':'PRÓXIMA →'}</button>}
-        </div>
-      </div>
-    </div>
-  )
-}
-
-function IAPage({ freeIA, setFreeIA, showUpgrade, profile }: any) {
-  const [msgs,setMsgs]=useState([{role:'assistant',text:'Olá! Sou o TigerJus AI — seu tutor jurídico de alta performance. 🐯⚖️\n\nPosso te ajudar com dúvidas de Direito, explicar artigos, resumir temas e te preparar para a OAB.\n\nO que você quer aprender hoje?'}])
-  const [input,setInput]=useState('')
-  const [loading,setLoading]=useState(false)
-  const endRef=useRef<HTMLDivElement>(null)
-  useEffect(()=>{endRef.current?.scrollIntoView({behavior:'smooth'})},[msgs])
-
-  const send=async(text?:string)=>{
-    const msg=text||input.trim()
-    if(!msg)return
-    if(freeIA<=0){showUpgrade();return}
-    setInput('');setFreeIA((p:number)=>p-1)
-    const newMsgs=[...msgs,{role:'user',text:msg}]
-    setMsgs(newMsgs);setLoading(true)
-    try{
-      const res=await fetch('/api/ia',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({messages:newMsgs.slice(1).map(m=>({role:m.role,content:m.text})),userId:profile?.id,plan:profile?.plano||'gratuito'})})
-      const data=await res.json()
-      if(data.error==='LIMIT_REACHED'){showUpgrade();return}
-      setMsgs(p=>[...p,{role:'assistant',text:data.text||'Erro ao conectar.'}])
-    }catch{setMsgs(p=>[...p,{role:'assistant',text:'Erro ao conectar com a IA.'}])}
-    finally{setLoading(false)}
-  }
-
-  const chips=['Explique habeas corpus','O que é dolo eventual?','Resumir Constitucional','Cláusula pétrea','Princípio da legalidade penal']
-  return(
-    <div style={{padding:'24px 20px',flex:1,display:'flex',flexDirection:'column'}}>
-      <h1 style={{fontFamily:'var(--font-display)',fontSize:'clamp(22px,5vw,32px)',fontWeight:900,marginBottom:6}}>IA Jurídica 🤖</h1>
-      <p style={{fontSize:14,color:'var(--text-muted)',marginBottom:12}}>Tutor inteligente 24/7. {freeIA>0?<span style={{color:'var(--gold)',fontWeight:700}}>{freeIA} perguntas grátis</span>:<span style={{color:'var(--danger)'}}>🔒 Limite atingido</span>}</p>
-      <div style={{display:'flex',gap:6,flexWrap:'wrap',marginBottom:14}}>
-        {chips.map(c=><button key={c} onClick={()=>send(c)} style={{background:'rgba(212,168,67,0.06)',border:'1px solid rgba(212,168,67,0.14)',borderRadius:100,padding:'5px 12px',fontSize:11,color:'var(--text-muted)',cursor:'pointer',fontFamily:'var(--font-body)'}}>{c}</button>)}
-      </div>
-      <div style={{flex:1,background:'var(--gray)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:20,overflow:'hidden',display:'flex',flexDirection:'column',minHeight:350}}>
-        <div style={{flex:1,overflowY:'auto',display:'flex',flexDirection:'column',gap:14,padding:20}}>
-          {msgs.map((m,i)=>(
-            <div key={i} style={{display:'flex',gap:10,maxWidth:'85%',alignSelf:m.role==='user'?'flex-end':'flex-start',flexDirection:m.role==='user'?'row-reverse':'row'}}>
-              <div style={{width:34,height:34,borderRadius:10,flexShrink:0,display:'flex',alignItems:'center',justifyContent:'center',fontSize:15,background:m.role==='user'?'var(--gray-light)':'linear-gradient(135deg,var(--gold),var(--orange))'}}>{m.role==='user'?'👤':'🐯'}</div>
-              <div style={{background:m.role==='user'?'rgba(212,168,67,0.1)':'rgba(255,255,255,0.04)',border:m.role==='user'?'1px solid rgba(212,168,67,0.2)':'1px solid rgba(255,255,255,0.06)',borderRadius:14,padding:'12px 16px',fontSize:13,lineHeight:1.7,color:'var(--white)',whiteSpace:'pre-wrap'}}>{m.text}</div>
-            </div>
-          ))}
-          {loading&&<div style={{display:'flex',gap:10}}><div style={{width:34,height:34,borderRadius:10,display:'flex',alignItems:'center',justifyContent:'center',background:'linear-gradient(135deg,var(--gold),var(--orange))'}}>🐯</div><div style={{background:'rgba(255,255,255,0.04)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:14,padding:'12px 16px',fontSize:13,opacity:0.6,fontStyle:'italic'}}>Analisando...</div></div>}
-          <div ref={endRef}/>
-        </div>
-        <div style={{display:'flex',gap:10,padding:14,background:'var(--gray-mid)',borderTop:'1px solid rgba(255,255,255,0.06)'}}>
-          <textarea className="form-input" placeholder="Pergunte algo jurídico..." value={input} onChange={e=>setInput(e.target.value)} onKeyDown={e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send()}}} style={{flex:1,resize:'none',minHeight:42}} rows={1}/>
-          <button onClick={()=>send()} style={{background:'linear-gradient(135deg,var(--gold),var(--orange))',border:'none',borderRadius:10,width:42,height:42,display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',fontSize:17,color:'var(--deep-black)'}}>➤</button>
-        </div>
-      </div>
-    </div>
-  )
-}
-
-function DisciplinesPage({ showUpgrade, profile, isPremium }: any) {
-  const [selected,setSelected]=useState<any>(null)
-  const [subTab,setSubTab]=useState<'resumo'|'quiz'|'flash'|'pdf'>('resumo')
-  const [gerandoPDF,setGerandoPDF]=useState(false)
-
-  const handlePDF=async(disc:any)=>{
-    setGerandoPDF(true)
-    try{
-      const resumo=RESUMOS[disc.slug]||`${disc.name} — Resumo em elaboração.`
-      const{data}=await supabase.from('questoes_oab').select('*').ilike('disciplina',`%${disc.name.split(' ')[0]}%`).neq('resposta_correta','*').limit(20)
-      await gerarPDF(disc,resumo,data||[])
-    }finally{setGerandoPDF(false)}
-  }
-
-  if(selected){
-    const resumo=RESUMOS[selected.slug]||`${selected.name.toUpperCase()}\n\nResumo completo em breve. Use a IA Jurídica para tirar dúvidas!`
-    return(
-      <div style={{padding:'24px 20px',flex:1}}>
-        <button onClick={()=>setSelected(null)} style={{display:'flex',alignItems:'center',gap:8,color:'var(--text-muted)',fontSize:13,border:'none',background:'none',cursor:'pointer',marginBottom:20,fontFamily:'var(--font-body)'}}>← Voltar</button>
-        <div style={{display:'flex',alignItems:'center',gap:14,marginBottom:20}}>
-          <span style={{fontSize:36}}>{selected.icon}</span>
-          <div>
-            <h1 style={{fontFamily:'var(--font-display)',fontSize:'clamp(20px,5vw,28px)',fontWeight:900}}>{selected.name}</h1>
-            <p style={{fontSize:12,color:'var(--text-muted)'}}>{selected.q} questões · {selected.progress}% concluído</p>
-          </div>
-        </div>
-        <div style={{display:'flex',gap:8,marginBottom:20,flexWrap:'wrap'}}>
-          {(['resumo','quiz','flash','pdf'] as const).map(t=>(
-            <button key={t} onClick={()=>setSubTab(t)} style={{padding:'9px 18px',borderRadius:10,border:subTab===t?'1px solid rgba(212,168,67,0.4)':'1px solid rgba(255,255,255,0.08)',background:subTab===t?'rgba(212,168,67,0.1)':'transparent',color:subTab===t?'var(--gold)':'var(--text-muted)',fontSize:12,fontWeight:600,cursor:'pointer',fontFamily:'var(--font-body)'}}>
-              {t==='resumo'?'📖 Resumo':t==='quiz'?'📝 Quiz':t==='flash'?'🃏 Flashcards':'📄 PDF'}
-            </button>
-          ))}
-        </div>
-        {subTab==='resumo'&&(
-          <div style={{background:'var(--gray)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:20,padding:'24px'}}>
-            <div style={{fontSize:14,lineHeight:1.9,color:'var(--text-muted)',whiteSpace:'pre-wrap'}}>
-              {resumo.split('\n').map((line,i)=>{
-                if(line.toUpperCase()===line&&line.length>5&&!line.startsWith('-'))return<div key={i} style={{fontFamily:'var(--font-display)',fontSize:17,fontWeight:900,color:'var(--white)',marginBottom:12,marginTop:i>0?20:0}}>{line}</div>
-                return<div key={i} style={{marginBottom:4}}>{line}</div>
-              })}
-            </div>
-          </div>
-        )}
-        {subTab==='flash'&&<FlashCards disciplina={selected.name}/>}
-        {subTab==='pdf'&&(
-          <div style={{background:'var(--gray)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:20,padding:40,textAlign:'center'}}>
-            <div style={{fontSize:44,marginBottom:14}}>📄</div>
-            <h3 style={{fontFamily:'var(--font-display)',fontSize:20,fontWeight:900,marginBottom:8}}>PDF — {selected.name}</h3>
-            <p style={{color:'var(--text-muted)',marginBottom:6,fontSize:14}}>Gerado automaticamente com:</p>
-            <div style={{display:'flex',flexDirection:'column',gap:6,marginBottom:24,maxWidth:300,margin:'0 auto 24px'}}>
-              {['✅ Logo TigerJus no cabeçalho','✅ Resumo essencial da disciplina','✅ Até 20 questões OAB reais','✅ Gabarito e comentários','✅ Gabarito rápido ao final'].map((item,i)=>(
-                <div key={i} style={{fontSize:13,color:'var(--text-muted)',textAlign:'left'}}>{item}</div>
-              ))}
-            </div>
-            <button className="btn-primary" onClick={()=>handlePDF(selected)} disabled={gerandoPDF} style={{minWidth:220,fontSize:14}}>
-              {gerandoPDF?'⏳ Gerando PDF...':'📄 GERAR E BAIXAR PDF'}
-            </button>
-            <p style={{fontSize:11,color:'var(--text-muted)',marginTop:12}}>Uma janela de impressão abrirá — salve como PDF</p>
-          </div>
-        )}
-      </div>
-    )
-  }
-
-  return(
-    <div style={{padding:'24px 20px',flex:1}}>
-      <h1 style={{fontFamily:'var(--font-display)',fontSize:'clamp(22px,5vw,32px)',fontWeight:900,marginBottom:6}}>Disciplinas 📚</h1>
-      <p style={{fontSize:14,color:'var(--text-muted)',marginBottom:24}}>17 disciplinas com resumos, quizzes, flashcards e PDFs.</p>
-      <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(160px,1fr))',gap:12}}>
-        {DISCIPLINES.map(d=>(
-          <div key={d.id} style={{background:'var(--gray)',border:'1px solid rgba(255,255,255,0.05)',borderRadius:14,padding:16,cursor:'pointer',transition:'all 0.2s'}}
-            onClick={()=>setSelected(d)}
-            onMouseEnter={e=>{e.currentTarget.style.borderColor='rgba(212,168,67,0.2)';e.currentTarget.style.transform='translateY(-2px)'}}
-            onMouseLeave={e=>{e.currentTarget.style.borderColor='rgba(255,255,255,0.05)';e.currentTarget.style.transform='translateY(0)'}}>
-            <div style={{fontSize:22,marginBottom:10}}>{d.icon}</div>
-            <div style={{fontSize:13,fontWeight:700,marginBottom:5}}>{d.name}</div>
-            <div style={{fontSize:11,color:'var(--text-muted)',marginBottom:8}}>{d.progress}% · {d.q}q</div>
-            <div style={{background:'rgba(255,255,255,0.06)',borderRadius:100,height:4,overflow:'hidden',marginBottom:8}}>
-              <div style={{width:`${d.progress}%`,height:'100%',background:'linear-gradient(90deg,var(--gold),var(--orange))',borderRadius:100}}/>
-            </div>
-            <div style={{display:'flex',gap:4,flexWrap:'wrap'}}>
-              {d.tags.map(t=><span key={t} style={{fontSize:9,padding:'2px 6px',background:'rgba(212,168,67,0.07)',border:'1px solid rgba(212,168,67,0.15)',borderRadius:4,color:'var(--gold-dark)',fontWeight:600}}>{t}</span>)}
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  )
-}
-
-function FlashCards({disciplina}:{disciplina:string}) {
-  const cards=[
-    {front:'O que é Habeas Corpus?',back:'Remédio constitucional que protege a liberdade de locomoção (art. 5º, LXVIII, CF/88).'},
-    {front:'O que é Mandado de Segurança?',back:'Protege direito líquido e certo não amparado por HC ou HD (art. 5º, LXIX, CF/88).'},
-    {front:'O que são Cláusulas Pétreas?',back:'Limitações materiais ao poder de reforma. Não podem ser abolidas: forma federativa, voto, separação dos poderes e direitos fundamentais (art. 60, §4º, CF/88).'},
-    {front:'O que é Dolo Eventual?',back:'O agente prevê o resultado como possível e assume o risco de produzi-lo (art. 18, I, CP).'},
-    {front:'Prescrição x Decadência?',back:'Prescrição: extingue a pretensão. Decadência: extingue o direito.'},
-  ]
-  const [idx,setIdx]=useState(0)
-  const [flipped,setFlipped]=useState(false)
-  return(
-    <div style={{maxWidth:560}}>
-      <div style={{marginBottom:14,fontSize:13,color:'var(--text-muted)'}}>Card {idx+1} de {cards.length} · {disciplina}</div>
-      <div style={{perspective:1000,marginBottom:20,cursor:'pointer'}} onClick={()=>setFlipped(f=>!f)}>
-        <div style={{position:'relative',height:220,transformStyle:'preserve-3d',transition:'transform 0.6s',transform:flipped?'rotateY(180deg)':'rotateY(0)'}}>
-          <div style={{position:'absolute',inset:0,backfaceVisibility:'hidden',background:'var(--gray)',border:'1px solid rgba(212,168,67,0.2)',borderRadius:20,padding:28,display:'flex',alignItems:'center',justifyContent:'center',textAlign:'center'}}>
-            <div><div style={{fontSize:10,fontWeight:700,letterSpacing:2,textTransform:'uppercase',color:'var(--gold)',marginBottom:14}}>PERGUNTA</div><div style={{fontSize:16,fontWeight:600,lineHeight:1.5}}>{cards[idx].front}</div><div style={{marginTop:16,fontSize:11,color:'var(--text-muted)'}}>Toque para ver a resposta</div></div>
-          </div>
-          <div style={{position:'absolute',inset:0,backfaceVisibility:'hidden',transform:'rotateY(180deg)',background:'linear-gradient(135deg,rgba(212,168,67,0.1),rgba(232,98,26,0.06))',border:'1px solid rgba(212,168,67,0.3)',borderRadius:20,padding:28,display:'flex',alignItems:'center',justifyContent:'center',textAlign:'center'}}>
-            <div><div style={{fontSize:10,fontWeight:700,letterSpacing:2,textTransform:'uppercase',color:'var(--gold)',marginBottom:14}}>RESPOSTA</div><div style={{fontSize:14,lineHeight:1.7,color:'var(--text-muted)'}}>{cards[idx].back}</div></div>
-          </div>
-        </div>
-      </div>
-      <div style={{display:'flex',gap:10,justifyContent:'center'}}>
-        <button className="btn-secondary" onClick={()=>{setIdx(i=>Math.max(0,i-1));setFlipped(false)}} disabled={idx===0}>← Anterior</button>
-        <button className="btn-secondary" onClick={()=>setFlipped(f=>!f)}>Virar</button>
-        <button className="btn-primary" onClick={()=>{setIdx(i=>Math.min(cards.length-1,i+1));setFlipped(false)}} disabled={idx===cards.length-1}>Próximo →</button>
-      </div>
-    </div>
-  )
-}
-
-function SimuladosPage({ showUpgrade, freeQ, setFreeQ, onXp, profile, isPremium }: any) {
-  const [running,setRunning]=useState(false)
-  const [cur,setCur]=useState(0)
-  const [sel,setSel]=useState<number|null>(null)
-  const [answered,setAnswered]=useState(false)
-  const [score,setScore]=useState(0)
-  const [done,setDone]=useState(false)
-  const [time,setTime]=useState(18000)
-  const [selectedSimulado,setSelectedSimulado]=useState<any>(null)
-  const [provasOAB,setProvasOAB]=useState<any[]>([])
-  const [loadingProva,setLoadingProva]=useState(false)
-  const [tab,setTab]=useState<'oficiais'|'pratica'>('oficiais')
-  const isElite=profile?.role==='admin'||profile?.plano==='elite'||profile?.plano==='premium'
-
-  const SIMULADOS_PRATICA=[
-    {icon:'⚡',t:'Mini Simulado — Constitucional',info:'5 questões · 15min · Grátis',tags:['Grátis'],lock:false},
-    {icon:'🔥',t:'Simulado Intensivo — Penal',info:'30 questões · 45min',tags:['Intensivo'],lock:true},
-    {icon:'📝',t:'Simulado OAB 2ª Fase',info:'Peça jurídica · 5h',tags:['OAB'],lock:true},
-    {icon:'📜',t:'Ética e Estatuto OAB',info:'20 questões · 30min',tags:['OAB'],lock:true},
-    {icon:'🏛️',t:'Simulado Geral',info:'60 questões · 4h',tags:['Completo'],lock:true},
-  ]
-
-  useEffect(()=>{loadProvas()},[])
-  const loadProvas=async()=>{
-    const{data}=await supabase.from('provas_oab').select('*').eq('status','ativo').order('numero_exame',{ascending:false})
-    if(data)setProvasOAB(data)
-  }
-
-  const iniciarProvaOficial=async(prova:any)=>{
-    if(!isElite){showUpgrade();return}
-    setLoadingProva(true)
-    const{data}=await supabase.from('questoes_oab').select('*').eq('prova_id',prova.id).order('numero_questao')
-    if(data&&data.length>0){
-      const q=data.map((q:any)=>({id:q.id,disc:q.disciplina,dificuldade:'OAB Oficial',q:q.enunciado,opts:[q.opcao_a,q.opcao_b,q.opcao_c,q.opcao_d],correct:['A','B','C','D'].indexOf(q.resposta_correta),exp:q.comentario||''}))
-      setSelectedSimulado({...prova,questions:q,oficial:true})
-      setRunning(true);setCur(0);setSel(null);setAnswered(false);setScore(0);setDone(false);setTime(18000)
-    }
-    setLoadingProva(false)
-  }
-
-  const iniciarSimuladoPratica=async(s:any)=>{
-    if(s.lock&&!isElite){showUpgrade();return}
-    setLoadingProva(true)
-    const discMap:Record<string,string>={'Mini Simulado — Constitucional':'Constitucional','Simulado Intensivo — Penal':'Penal','Ética e Estatuto OAB':'Ética'}
-    const qtdMap:Record<string,number>={'Mini Simulado — Constitucional':5,'Simulado Intensivo — Penal':30,'Ética e Estatuto OAB':20,'Simulado OAB 2ª Fase':40,'Simulado Geral':60}
-    const disc=discMap[s.t];const qtd=qtdMap[s.t]||20
-    let query=supabase.from('questoes_oab').select('*').neq('resposta_correta','*')
-    if(disc)query=query.ilike('disciplina',`%${disc}%`)
-    const{data}=await query
-    if(!data||data.length===0){setLoadingProva(false);showUpgrade();return}
-    const shuffled=[...data].sort(()=>Math.random()-0.5).slice(0,qtd)
-    const formatted=shuffled.map((q:any)=>({id:q.id,disc:q.disciplina,dificuldade:'OAB Oficial',q:q.enunciado,opts:[q.opcao_a,q.opcao_b,q.opcao_c,q.opcao_d],correct:['A','B','C','D'].indexOf(q.resposta_correta),exp:q.comentario||''}))
-    setSelectedSimulado({...s,questions:formatted})
-    setRunning(true);setCur(0);setSel(null);setAnswered(false);setScore(0);setDone(false);setTime(s.t.includes('Mini')?900:18000)
-    setLoadingProva(false)
-  }
-
-  useEffect(()=>{
-    if(!running||answered||done)return
-    const t=setInterval(()=>setTime(p=>{if(p<=1){clearInterval(t);setDone(true);return 0;}return p-1}),1000)
-    return()=>clearInterval(t)
-  },[running,answered,done,cur])
-
-  const pick=(i:number)=>{
-    if(answered)return
-    if(freeQ<=0){showUpgrade();return}
-    setSel(i);setAnswered(true);setFreeQ((p:number)=>p-1)
-    if(i===selectedSimulado.questions[cur].correct){setScore(p=>p+1);onXp('question_correct')}else onXp('question_wrong')
-  }
-  const next=()=>{if(cur+1>=selectedSimulado.questions.length){setDone(true);return}setCur(p=>p+1);setSel(null);setAnswered(false)}
-
-  if(running&&!done&&selectedSimulado){
-    const q=selectedSimulado.questions[cur]
-    const pct=Math.round(((cur+(answered?1:0))/selectedSimulado.questions.length)*100)
-    const h=Math.floor(time/3600),m=Math.floor((time%3600)/60),s=time%60
-    return(
-      <div style={{padding:'24px 20px',flex:1}}>
-        <div style={{maxWidth:680,margin:'0 auto'}}>
-          <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:12}}>
-            <div style={{fontSize:12,color:'var(--text-muted)'}}>{selectedSimulado.edicao||selectedSimulado.t} · Q{cur+1}/{selectedSimulado.questions.length}</div>
-            <div style={{fontFamily:'var(--font-mono)',fontSize:16,fontWeight:700,color:time<600?'var(--danger)':'var(--gold)'}}>{h>0?`${String(h).padStart(2,'0')}:`:''}${String(m).padStart(2,'0')}:{String(s).padStart(2,'0')}</div>
-          </div>
-          <div style={{background:'rgba(255,255,255,0.06)',borderRadius:100,height:4,marginBottom:22,overflow:'hidden'}}>
-            <div style={{width:`${pct}%`,height:'100%',background:'linear-gradient(90deg,var(--gold),var(--orange))',borderRadius:100,transition:'width 0.4s'}}/>
-          </div>
-          <div style={{background:'var(--gray)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:20,padding:'22px'}}>
-            <div style={{display:'flex',gap:8,marginBottom:14}}><span style={{fontSize:10,fontWeight:700,letterSpacing:2,textTransform:'uppercase',color:'var(--gold)'}}>{q.disc}</span><span style={{fontSize:10,color:'var(--text-muted)'}}>· OAB Oficial</span></div>
-            <div style={{fontSize:'clamp(14px,3vw,17px)',fontWeight:600,lineHeight:1.7,marginBottom:22}}>{q.q}</div>
-            <div style={{display:'flex',flexDirection:'column',gap:10}}>
-              {q.opts.map((opt:string,i:number)=>{
-                let bg='rgba(255,255,255,0.03)',bc='rgba(255,255,255,0.08)',color='var(--white)'
-                if(answered){if(i===q.correct){bg='rgba(76,175,125,0.1)';bc='var(--success)';color='var(--success)'}else if(i===sel){bg='rgba(232,66,26,0.1)';bc='var(--danger)';color='var(--danger)'}}
-                return(
-                  <button key={i} onClick={()=>pick(i)} style={{display:'flex',alignItems:'flex-start',gap:12,background:bg,border:`1px solid ${bc}`,borderRadius:12,padding:'13px 15px',cursor:'pointer',transition:'all 0.2s',textAlign:'left',width:'100%',fontFamily:'var(--font-body)',fontSize:'clamp(13px,2.5vw,14px)',color}}>
-                    <span style={{width:26,height:26,borderRadius:'50%',flexShrink:0,display:'flex',alignItems:'center',justifyContent:'center',fontSize:11,fontWeight:800,background:'rgba(255,255,255,0.06)',color:'var(--white)'}}>{String.fromCharCode(65+i)}</span>
-                    <span style={{flex:1}}>{opt}</span>
-                  </button>
-                )
-              })}
-            </div>
-            {answered&&q.exp&&<div style={{marginTop:20,padding:16,background:'rgba(212,168,67,0.06)',border:'1px solid rgba(212,168,67,0.15)',borderRadius:12,fontSize:13,lineHeight:1.7,color:'var(--text-muted)'}}>{sel===q.correct?'✅ ':'❌ '}<strong style={{color:'var(--gold)'}}>{sel===q.correct?'Correto!':'Incorreto.'}</strong> {q.exp}</div>}
-            {answered&&<button className="btn-primary" style={{width:'100%',marginTop:18}} onClick={next}>{cur+1>=selectedSimulado.questions.length?'VER RESULTADO':'PRÓXIMA →'}</button>}
-          </div>
-        </div>
-      </div>
-    )
-  }
-
-  if(done&&selectedSimulado){
-    const total=selectedSimulado.questions.length
-    const rate=Math.round((score/total)*100)
-    const aprovado=score>=Math.ceil(total*0.625)
-    return(
-      <div style={{padding:'24px 20px',flex:1}}>
-        <div style={{maxWidth:600,margin:'0 auto',textAlign:'center'}}>
-          <div style={{fontSize:60,marginBottom:18}}>{aprovado?'🏆':rate>=50?'📝':'💪'}</div>
-          <h1 style={{fontFamily:'var(--font-display)',fontSize:'clamp(22px,5vw,30px)',fontWeight:900,marginBottom:8}}>Simulado Concluído!</h1>
-          <p style={{fontSize:14,color:'var(--text-muted)',marginBottom:6}}>{selectedSimulado.edicao||selectedSimulado.t}</p>
-          <p style={{fontSize:14,color:'var(--text-muted)',marginBottom:20}}>{score} de {total} corretas</p>
-          <div style={{background:aprovado?'rgba(76,175,125,0.1)':'rgba(232,98,26,0.1)',border:`1px solid ${aprovado?'var(--success)':'var(--orange)'}`,borderRadius:16,padding:16,marginBottom:18}}>
-            <div style={{fontSize:18,fontWeight:900,color:aprovado?'var(--success)':'var(--orange)',marginBottom:6}}>{aprovado?'✅ APROVADO!':'❌ Não aprovado'}</div>
-            <div style={{fontSize:13,color:'var(--text-muted)'}}>{aprovado?`${rate}% de acerto.`:`Precisava de ${Math.ceil(total*0.625)} acertos.`}</div>
-          </div>
-          <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:12,marginBottom:20}}>
-            {[['Acertos',`${score}/${total}`,'var(--gold)'],['Taxa',`${rate}%`,rate>=62?'var(--success)':'var(--orange)'],['Aprovação',aprovado?'✅':'❌',aprovado?'var(--success)':'var(--danger)']].map(([l,v,c])=>(
-              <div key={l} style={{background:'var(--gray)',borderRadius:14,padding:16,border:'1px solid rgba(255,255,255,0.06)'}}>
-                <div style={{fontSize:10,fontWeight:700,letterSpacing:1.5,textTransform:'uppercase',color:'var(--text-muted)',marginBottom:6}}>{l}</div>
-                <div style={{fontFamily:'var(--font-display)',fontSize:20,fontWeight:900,color:c}}>{v}</div>
-              </div>
-            ))}
-          </div>
-          <div style={{display:'flex',gap:10,justifyContent:'center'}}>
-            <button className="btn-primary" onClick={()=>{setRunning(false);setDone(false)}}>NOVO SIMULADO</button>
-            <button className="btn-secondary" onClick={()=>{setRunning(false);setDone(false);setTab('oficiais')}}>PROVAS OAB</button>
-          </div>
-        </div>
-      </div>
-    )
-  }
-
-  return(
-    <div style={{padding:'24px 20px',flex:1}}>
-      <h1 style={{fontFamily:'var(--font-display)',fontSize:'clamp(22px,5vw,32px)',fontWeight:900,marginBottom:6}}>Simulados 📋</h1>
-      <p style={{fontSize:14,color:'var(--text-muted)',marginBottom:20}}>Treine com provas reais da OAB e simulados temáticos.</p>
-      <div style={{display:'flex',gap:8,marginBottom:24,flexWrap:'wrap'}}>
-        {([['oficiais','🏛️ Provas OAB'],['pratica','⚡ Temáticos']] as const).map(([key,label])=>(
-          <button key={key} onClick={()=>setTab(key)} style={{padding:'10px 18px',borderRadius:10,border:tab===key?'1px solid rgba(212,168,67,0.4)':'1px solid rgba(255,255,255,0.08)',background:tab===key?'rgba(212,168,67,0.1)':'transparent',color:tab===key?'var(--gold)':'var(--text-muted)',fontSize:13,fontWeight:700,cursor:'pointer',fontFamily:'var(--font-body)'}}>{label}</button>
-        ))}
-      </div>
-      {tab==='oficiais'&&(
-        <div>
-          <div style={{background:'linear-gradient(135deg,rgba(212,168,67,0.08),rgba(232,98,26,0.04))',border:'1px solid rgba(212,168,67,0.2)',borderRadius:16,padding:18,marginBottom:20}}>
-            <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:6,flexWrap:'wrap'}}>
-              <span style={{fontSize:18}}>📋</span>
-              <div style={{fontSize:14,fontWeight:700}}>Últimas 5 Provas Oficiais da OAB</div>
-              {!isElite&&<span style={{fontSize:10,fontWeight:800,background:'rgba(212,168,67,0.1)',border:'1px solid rgba(212,168,67,0.2)',color:'var(--gold)',padding:'3px 10px',borderRadius:100}}>🔒 ELITE</span>}
-            </div>
-            <div style={{fontSize:13,color:'var(--text-muted)'}}>Questões reais com gabarito oficial.</div>
-          </div>
-          {loadingProva&&<div style={{textAlign:'center',padding:40,color:'var(--gold)'}}>⏳ Carregando...</div>}
-          <div style={{display:'flex',flexDirection:'column',gap:14}}>
-            {provasOAB.map((prova,i)=>(
-              <div key={prova.id} style={{background:'var(--gray)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:16,padding:'18px',display:'flex',alignItems:'center',justifyContent:'space-between',flexWrap:'wrap',gap:14,transition:'border-color 0.2s'}}
-                onMouseEnter={e=>e.currentTarget.style.borderColor='rgba(212,168,67,0.2)'}
-                onMouseLeave={e=>e.currentTarget.style.borderColor='rgba(255,255,255,0.06)'}>
-                <div style={{display:'flex',alignItems:'center',gap:14}}>
-                  <div style={{width:44,height:44,borderRadius:12,background:i===0?'linear-gradient(135deg,var(--gold),var(--orange))':'rgba(255,255,255,0.06)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:i===0?18:13,fontWeight:900,color:i===0?'#000':'var(--text-muted)',fontFamily:'var(--font-display)',flexShrink:0}}>
-                    {i===0?'🆕':`${prova.numero_exame}º`}
-                  </div>
-                  <div>
-                    <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:4,flexWrap:'wrap'}}>
-                      <span style={{fontSize:14,fontWeight:700}}>{prova.edicao}</span>
-                      {i===0&&<span style={{fontSize:9,fontWeight:900,background:'linear-gradient(135deg,var(--gold),var(--orange))',color:'#000',padding:'2px 8px',borderRadius:100}}>RECENTE</span>}
-                    </div>
-                    <div style={{display:'flex',gap:12,fontSize:11,color:'var(--text-muted)',flexWrap:'wrap'}}>
-                      <span>📝 {prova.total_questoes}q</span><span>📊 {prova.taxa_aprovacao_oficial}% aprovação</span>
-                    </div>
-                  </div>
-                </div>
-                <button onClick={()=>iniciarProvaOficial(prova)} className={isElite?'btn-primary':'btn-secondary'} style={{fontSize:12,padding:'10px 20px'}} disabled={loadingProva}>
-                  {isElite?'▶ INICIAR':'🔒 ELITE'}
-                </button>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-      {tab==='pratica'&&(
-        <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(240px,1fr))',gap:14}}>
-          {SIMULADOS_PRATICA.map(s=>(
-            <div key={s.t} style={{background:'var(--gray)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:16,padding:20,transition:'all 0.2s',cursor:'pointer'}}
-              onMouseEnter={e=>{e.currentTarget.style.borderColor='rgba(212,168,67,0.18)';e.currentTarget.style.transform='translateY(-2px)'}}
-              onMouseLeave={e=>{e.currentTarget.style.borderColor='rgba(255,255,255,0.06)';e.currentTarget.style.transform='translateY(0)'}}>
-              <div style={{fontSize:26,marginBottom:12}}>{s.icon}</div>
-              <div style={{fontSize:14,fontWeight:700,marginBottom:5}}>{s.t}</div>
-              <div style={{fontSize:12,color:'var(--text-muted)',marginBottom:12}}>{s.info}</div>
-              <div style={{display:'flex',gap:5,flexWrap:'wrap',marginBottom:16}}>
-                {s.tags.map(tag=><span key={tag} style={{fontSize:10,padding:'2px 9px',borderRadius:100,fontWeight:700,background:'rgba(212,168,67,0.1)',color:'var(--gold)',border:'1px solid rgba(212,168,67,0.2)'}}>{tag}</span>)}
-              </div>
-              {s.lock&&!isElite
-                ?<button className="btn-secondary" style={{width:'100%',fontSize:12,padding:'10px'}} onClick={()=>showUpgrade()}>🔒 DESBLOQUEAR</button>
-                :<button className="btn-gold-sm" style={{width:'100%',fontSize:12}} onClick={()=>iniciarSimuladoPratica(s)} disabled={loadingProva}>{loadingProva?'⏳':'INICIAR →'}</button>
-              }
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  )
-}
-
-function RankingPage({profile}:any) {
-  const [tab,setTab]=useState<'geral'|'semanal'|'disciplina'>('semanal')
-  return(
-    <div style={{padding:'24px 20px',flex:1}}>
-      <h1 style={{fontFamily:'var(--font-display)',fontSize:'clamp(22px,5vw,32px)',fontWeight:900,marginBottom:6}}>Ranking Nacional 🏆</h1>
-      <p style={{fontSize:14,color:'var(--text-muted)',marginBottom:20}}>Top estudantes. Compita, evolua, seja aprovado.</p>
-      <div style={{display:'flex',gap:8,marginBottom:20,flexWrap:'wrap'}}>
-        {(['geral','semanal','disciplina'] as const).map(t=>(
-          <button key={t} onClick={()=>setTab(t)} style={{background:tab===t?'rgba(212,168,67,0.1)':'var(--gray)',border:tab===t?'1px solid rgba(212,168,67,0.3)':'1px solid rgba(255,255,255,0.06)',borderRadius:8,padding:'8px 14px',color:tab===t?'var(--gold)':'var(--text-muted)',fontSize:12,fontWeight:700,cursor:'pointer',fontFamily:'var(--font-body)',textTransform:'capitalize'}}>
-            {t==='disciplina'?'Por Disciplina':t.charAt(0).toUpperCase()+t.slice(1)}
-          </button>
-        ))}
-      </div>
-      <div style={{display:'flex',gap:10,marginBottom:24,justifyContent:'center',flexWrap:'wrap'}}>
-        {[1,0,2].map(idx=>{
-          const r=RANKING_DATA[idx]
-          const heights=[110,138,90]
-          const h=heights[idx===0?1:idx===1?0:2]
-          return(
-            <div key={r.pos} style={{textAlign:'center',width:100}}>
-              <div style={{fontSize:26,marginBottom:5}}>{r.av}</div>
-              <div style={{fontWeight:700,fontSize:11,marginBottom:2}}>{r.name}</div>
-              <div style={{fontSize:10,color:'var(--text-muted)',marginBottom:6}}>{r.level}</div>
-              <div style={{height:h,background:idx===0?'linear-gradient(135deg,var(--gold),var(--orange))':idx===1?'linear-gradient(135deg,#C0C0C0,#A0A0A0)':'linear-gradient(135deg,#CD7F32,#A0522D)',borderRadius:'8px 8px 0 0',display:'flex',alignItems:'flex-start',justifyContent:'center',paddingTop:8}}>
-                <div style={{fontFamily:'var(--font-display)',fontWeight:900,fontSize:18,color:idx===0?'var(--deep-black)':'#fff'}}>{['🥇','🥈','🥉'][idx===0?1:idx===1?0:2]}</div>
-              </div>
-            </div>
-          )
-        })}
-      </div>
-      <div style={{display:'flex',flexDirection:'column',gap:10}}>
-        {RANKING_DATA.map(r=>(
-          <div key={r.pos} style={{display:'flex',alignItems:'center',gap:12,background:(r as any).me?'rgba(212,168,67,0.06)':'var(--gray)',border:(r as any).me?'1px solid rgba(212,168,67,0.25)':'1px solid rgba(255,255,255,0.05)',borderRadius:14,padding:'14px 16px'}}>
-            <div style={{fontFamily:'var(--font-mono)',fontSize:13,fontWeight:700,width:28,textAlign:'center',color:r.pos===1?'#FFD700':r.pos===2?'#C0C0C0':r.pos===3?'#CD7F32':'var(--text-muted)'}}>{r.pos<=3?['🥇','🥈','🥉'][r.pos-1]:`#${r.pos}`}</div>
-            <div style={{width:36,height:36,borderRadius:'50%',background:'linear-gradient(135deg,var(--gold-dark),var(--orange))',display:'flex',alignItems:'center',justifyContent:'center',fontSize:18,flexShrink:0}}>{r.av}</div>
-            <div style={{flex:1,minWidth:0}}>
-              <div style={{fontSize:13,fontWeight:600}}>{r.name}{(r as any).me&&<span style={{marginLeft:8,fontSize:10,background:'rgba(212,168,67,0.15)',color:'var(--gold)',padding:'2px 8px',borderRadius:4}}>VOCÊ</span>}</div>
-              <div style={{fontSize:11,color:'var(--text-muted)'}}>{r.level}</div>
-            </div>
-            <div style={{fontSize:12,color:'var(--orange)'}}>🔥{r.streak}d</div>
-            <div style={{fontFamily:'var(--font-mono)',fontSize:12,fontWeight:700,color:'var(--gold)'}}>{r.xp.toLocaleString()}</div>
-          </div>
-        ))}
-      </div>
-    </div>
-  )
-}
-
-// ─── MAIN ─────────────────────────────────────────────────────────────────────
-export default function TigerJusApp() {
-  const router=useRouter()
-  const [profile,setProfile]=useState<Profile|null>(null)
-  const [page,setPage]=useState('dashboard')
-  const [showPremiumGate,setShowPremiumGate]=useState(false)
-  const [showUpgradeModal,setShowUpgradeModal]=useState(false)
-  const [showRadar,setShowRadar]=useState(false)
-  const [freeQ,setFreeQ]=useState(15)
-  const [freeIA,setFreeIA]=useState(5)
-  const [notif,setNotif]=useState<string|null>(null)
-  const [loading,setLoading]=useState(true)
-  const [menuOpen,setMenuOpen]=useState(false)
-
-  const isPremium=!!(profile?.role==='admin'||profile?.plano==='elite'||profile?.plano==='premium'||profile?.plano==='pro'||profile?.plano==='plus'||profile?.plano==='start')
-
-  useEffect(()=>{
-    const init=async()=>{
-      const{data:{session}}=await supabase.auth.getSession()
-      if(session){await loadProfile(session.user.id);return}
-      const timeout=setTimeout(()=>{router.push('/login')},3000)
-      const{data:{subscription}}=supabase.auth.onAuthStateChange(async(event,session)=>{
-        if(session){clearTimeout(timeout);await loadProfile(session.user.id);subscription.unsubscribe()}
-      })
-      return()=>{clearTimeout(timeout);subscription.unsubscribe()}
-    }
-    init()
-  },[])
-
-  const loadProfile=async(userId:string)=>{
-    const{data}=await supabase.from('profiles').select('*').eq('id',userId).single()
-    if(data){
-      setProfile(data as Profile)
-      if(data.role==='admin'||data.plano==='elite'||data.plano==='premium'){setFreeQ(999999);setFreeIA(999999)}
-      else{setFreeQ(Math.max(0,15-(data.free_questions_used||0)));setFreeIA(Math.max(0,5-(data.free_ia_used||0)))}
-    }
+  const verificarAdmin = async () => {
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session) { router.push('/login'); return }
+    const { data: profile } = await supabase.from('profiles').select('role').eq('id', session.user.id).single()
+    if (profile?.role !== 'admin') { router.push('/plataforma'); return }
+    await carregarDados()
     setLoading(false)
-    if(data){
-      const today=new Date().toISOString().split('T')[0]
-      if(data.ultimo_acesso!==today)await fetch('/api/xp',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId,action:'daily_login'})})
+  }
+
+  const carregarDados = async () => {
+    const [{ data: users }, { data: qs }, { data: sims }] = await Promise.all([
+      supabase.from('profiles').select('*').order('created_at', { ascending: false }),
+      supabase.from('questoes_oab').select('*').order('created_at', { ascending: false }).limit(50),
+      supabase.from('provas_oab').select('*'),
+    ])
+    if (users) {
+      setUsuarios(users)
+      setStats({
+        total_usuarios: users.length,
+        usuarios_premium: users.filter(u => u.plano !== 'free').length,
+        usuarios_free: users.filter(u => u.plano === 'free').length,
+        total_questoes: 0,
+        total_simulados: sims?.length || 0,
+        questoes_respondidas: users.reduce((acc, u) => acc + (u.questoes_respondidas || 0), 0),
+      })
     }
-    setTimeout(()=>setNotif('🔥 Bem-vindo de volta! Continue sua jornada jurídica.'),1000)
+    if (qs) setQuestoes(qs)
+    const { count } = await supabase.from('questoes_oab').select('*', { count: 'exact', head: true })
+    setStats(s => ({ ...s, total_questoes: count || 0 }))
   }
 
-  const handleXp=async(action:string)=>{
-    if(!profile)return
-    const res=await fetch('/api/xp',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId:profile.id,action})})
-    const data=await res.json()
-    if(data.leveled_up)setNotif(`🎉 Você subiu para ${data.level.name}! +${data.xp_earned} XP`)
-    else if(data.xp_earned>0)setNotif(`+${data.xp_earned} XP ganho!`)
-    setProfile(prev=>{
-      if(!prev)return prev
-      const incR=action==='question_correct'||action==='question_wrong'
-      const incC=action==='question_correct'
-      return{...prev,xp:data.total_xp??prev.xp,level_name:data.level?.name??prev.level_name,streak:data.streak??prev.streak,
-        questoes_respondidas:(prev.questoes_respondidas||0)+(incR?1:0),
-        questoes_corretas:(prev.questoes_corretas||0)+(incC?1:0)}
+  const atualizarPlano = async (userId: string, plano: string) => {
+    await supabase.from('profiles').update({ plano }).eq('id', userId)
+    setUsuarios(prev => prev.map(u => u.id === userId ? { ...u, plano } : u))
+    setMsg('Plano atualizado!')
+    setTimeout(() => setMsg(''), 2000)
+  }
+
+  const atualizarRole = async (userId: string, role: string) => {
+    await supabase.from('profiles').update({ role }).eq('id', userId)
+    setUsuarios(prev => prev.map(u => u.id === userId ? { ...u, role } : u))
+    setMsg('Role atualizado!')
+    setTimeout(() => setMsg(''), 2000)
+  }
+
+  const salvarQuestao = async () => {
+    if (!novaQ.disciplina || !novaQ.enunciado || !novaQ.opcao_a || !novaQ.opcao_b || !novaQ.opcao_c || !novaQ.opcao_d) {
+      setMsg('Preencha todos os campos obrigatórios.'); return
+    }
+    setSalvando(true)
+    const { error } = await supabase.from('questoes_oab').insert({
+      disciplina: novaQ.disciplina,
+      enunciado: novaQ.enunciado,
+      opcao_a: novaQ.opcao_a,
+      opcao_b: novaQ.opcao_b,
+      opcao_c: novaQ.opcao_c,
+      opcao_d: novaQ.opcao_d,
+      resposta_correta: novaQ.resposta_correta,
+      comentario: novaQ.comentario,
     })
+    setSalvando(false)
+    if (error) { setMsg('Erro ao salvar questão.'); return }
+    setMsg('✅ Questão salva com sucesso!')
+    setNovaQ({ disciplina:'', enunciado:'', opcao_a:'', opcao_b:'', opcao_c:'', opcao_d:'', resposta_correta:'A', comentario:'' })
+    await carregarDados()
+    setTimeout(() => setMsg(''), 3000)
   }
 
-  const handleLogout=async()=>{await supabase.auth.signOut();router.push('/')}
-  const handleUpgradeSelect=(planId:string)=>{setShowUpgradeModal(false);router.push(`/checkout?plan=${planId}`)}
-  const showUpgrade=()=>{setShowPremiumGate(false);setShowUpgradeModal(true)}
-  const navTo=(key:string)=>{setPage(key);setMenuOpen(false)}
+  const deletarQuestao = async (id: string) => {
+    if (!confirm('Deletar esta questão?')) return
+    await supabase.from('questoes_oab').delete().eq('id', id)
+    setQuestoes(prev => prev.filter(q => q.id !== id))
+    setMsg('Questão deletada.')
+    setTimeout(() => setMsg(''), 2000)
+  }
 
-  if(loading)return(
-    <div style={{minHeight:'100vh',background:'var(--deep-black)',display:'flex',alignItems:'center',justifyContent:'center'}}>
-      <div style={{textAlign:'center'}}>
-        <div style={{fontSize:48,marginBottom:16,animation:'pulse 1.5s infinite'}}>🐯</div>
-        <div style={{fontFamily:'var(--font-display)',fontSize:20,fontWeight:900,color:'var(--gold)'}}>Carregando TigerJus...</div>
+  const usuariosFiltrados = usuarios.filter(u =>
+    u.nome?.toLowerCase().includes(busca.toLowerCase()) ||
+    u.email?.toLowerCase().includes(busca.toLowerCase())
+  )
+
+  if (loading) return (
+    <div style={{ minHeight:'100vh', background:'var(--deep-black)', display:'flex', alignItems:'center', justifyContent:'center' }}>
+      <div style={{ textAlign:'center' }}>
+        <div style={{ fontSize:48, marginBottom:16 }}>⚙️</div>
+        <div style={{ fontFamily:'var(--font-display)', fontSize:20, fontWeight:900, color:'var(--gold)' }}>Carregando Admin...</div>
       </div>
     </div>
   )
 
-  const SIDEBAR=[
-    {icon:'🏠',label:'Dashboard',key:'dashboard'},
-    {icon:'📚',label:'Disciplinas',key:'disciplines'},
-    {icon:'📝',label:'Quiz',key:'quiz'},
-    {icon:'📋',label:'Simulados',key:'simulados'},
-    {icon:'🤖',label:'IA Jurídica',key:'ia'},
-    {icon:'🏆',label:'Ranking',key:'ranking'},
-  ]
+  const TABS = [
+    { key:'overview', label:'📊 Overview' },
+    { key:'usuarios', label:'👥 Usuários' },
+    { key:'questoes', label:'📝 Questões' },
+    { key:'simulados', label:'📋 Simulados' },
+  ] as const
 
-  return(
-    <div style={{background:'var(--deep-black)',minHeight:'100vh'}}>
-      {notif&&<Notification msg={notif} onClose={()=>setNotif(null)}/>}
-      {showPremiumGate&&<PremiumGate onClose={()=>setShowPremiumGate(false)} onUpgrade={showUpgrade}/>}
-      {showUpgradeModal&&<UpgradeModal onClose={()=>setShowUpgradeModal(false)} onSelect={handleUpgradeSelect}/>}
-      {showRadar&&<RadarModal onClose={()=>setShowRadar(false)}/>}
+  const DISCIPLINAS = ['Constitucional','Administrativo','Penal','Processo Penal','Civil','Processo Civil','Trabalho','Processo do Trabalho','Tributário','Empresarial','Ética','Consumidor','Direitos Humanos','Ambiental','Filosofia','Internacional','ECA']
 
-      {/* NAVBAR */}
-      <nav style={{position:'fixed',top:0,left:0,right:0,zIndex:100,display:'flex',alignItems:'center',justifyContent:'space-between',padding:'0 16px',height:60,background:'rgba(8,8,8,0.95)',backdropFilter:'blur(12px)',borderBottom:'1px solid rgba(255,255,255,0.06)'}}>
-        <div style={{display:'flex',alignItems:'center',gap:8}}>
-          <div style={{width:34,height:34,background:'linear-gradient(135deg,var(--gold),var(--orange))',borderRadius:8,display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'var(--font-display)',fontSize:16,fontWeight:900,color:'var(--deep-black)',flexShrink:0}}>T</div>
-          <span style={{fontFamily:'var(--font-display)',fontSize:18,fontWeight:900,letterSpacing:2,background:'linear-gradient(135deg,var(--gold-light),var(--gold))',WebkitBackgroundClip:'text',WebkitTextFillColor:'transparent'}}>TIGERJUS</span>
+  return (
+    <div style={{ minHeight:'100vh', background:'var(--deep-black)', color:'var(--white)' }}>
+      {/* Header */}
+      <nav style={{ position:'fixed', top:0, left:0, right:0, zIndex:100, height:60, background:'rgba(8,8,8,0.97)', borderBottom:'1px solid rgba(212,168,67,0.15)', display:'flex', alignItems:'center', justifyContent:'space-between', padding:'0 24px' }}>
+        <div style={{ display:'flex', alignItems:'center', gap:12 }}>
+          <div style={{ width:34, height:34, background:'linear-gradient(135deg,var(--gold),var(--orange))', borderRadius:8, display:'flex', alignItems:'center', justifyContent:'center', fontFamily:'var(--font-display)', fontSize:16, fontWeight:900, color:'var(--deep-black)' }}>T</div>
+          <span style={{ fontFamily:'var(--font-display)', fontSize:16, fontWeight:900, color:'var(--gold)' }}>TIGERJUS ADMIN</span>
+          <span style={{ fontSize:10, fontWeight:800, background:'rgba(232,98,26,0.15)', border:'1px solid rgba(232,98,26,0.3)', color:'var(--orange)', padding:'3px 10px', borderRadius:100 }}>PAINEL RESTRITO</span>
         </div>
-        <div className="nav-desktop" style={{display:'flex',gap:16,alignItems:'center'}}>
-          {SIDEBAR.map(i=>(
-            <button key={i.key} onClick={()=>navTo(i.key)} style={{color:page===i.key?'var(--gold)':'var(--text-muted)',fontSize:11,fontWeight:600,letterSpacing:1,textTransform:'uppercase',border:'none',background:'none',cursor:'pointer',fontFamily:'var(--font-body)',borderBottom:page===i.key?'2px solid var(--gold)':'2px solid transparent',paddingBottom:2}}>
-              {i.label}
-            </button>
-          ))}
-        </div>
-        <div style={{display:'flex',gap:8,alignItems:'center'}}>
-          <span className="nav-desktop" style={{fontSize:12,color:'var(--text-muted)'}}>{profile?.nome?.split(' ')[0]||'Usuário'}</span>
-          <button className="btn-gold-sm nav-desktop" onClick={()=>setShowUpgradeModal(true)} style={{fontSize:11}}>🚀 {profile?.plano?.toUpperCase()||'UPGRADE'}</button>
-          <button onClick={handleLogout} className="nav-desktop" style={{color:'var(--text-muted)',fontSize:11,border:'none',background:'none',cursor:'pointer',fontFamily:'var(--font-body)'}}>Sair</button>
-          <button className="nav-mobile" onClick={()=>setMenuOpen(o=>!o)} style={{background:'none',border:'1px solid rgba(255,255,255,0.1)',borderRadius:8,width:36,height:36,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:5,cursor:'pointer',padding:8}}>
-            <span style={{display:'block',width:18,height:2,background:'var(--white)',borderRadius:2,transition:'all 0.2s',transform:menuOpen?'rotate(45deg) translate(5px,5px)':'none'}}/>
-            <span style={{display:'block',width:18,height:2,background:'var(--white)',borderRadius:2,transition:'all 0.2s',opacity:menuOpen?0:1}}/>
-            <span style={{display:'block',width:18,height:2,background:'var(--white)',borderRadius:2,transition:'all 0.2s',transform:menuOpen?'rotate(-45deg) translate(5px,-5px)':'none'}}/>
-          </button>
+        <div style={{ display:'flex', gap:8 }}>
+          <button onClick={() => router.push('/plataforma')} style={{ color:'var(--text-muted)', fontSize:12, border:'1px solid rgba(255,255,255,0.08)', borderRadius:8, padding:'8px 14px', background:'none', cursor:'pointer', fontFamily:'var(--font-body)' }}>← Voltar à plataforma</button>
         </div>
       </nav>
 
-      {/* Menu mobile dropdown */}
-      {menuOpen&&(
-        <div style={{position:'fixed',top:60,left:0,right:0,zIndex:99,background:'rgba(10,10,10,0.98)',backdropFilter:'blur(12px)',borderBottom:'1px solid rgba(255,255,255,0.08)',padding:'12px 0',display:'flex',flexDirection:'column'}}>
-          {SIDEBAR.map(item=>(
-            <button key={item.key} onClick={()=>navTo(item.key)} style={{display:'flex',alignItems:'center',gap:14,padding:'14px 20px',background:page===item.key?'rgba(212,168,67,0.08)':'none',border:'none',cursor:'pointer',fontFamily:'var(--font-body)',fontSize:15,color:page===item.key?'var(--gold)':'var(--white)',textAlign:'left',borderLeft:page===item.key?'3px solid var(--gold)':'3px solid transparent'}}>
-              <span style={{fontSize:18,width:24,textAlign:'center'}}>{item.icon}</span>{item.label}
+      <div style={{ paddingTop:60 }}>
+        {/* Tabs */}
+        <div style={{ borderBottom:'1px solid rgba(255,255,255,0.06)', padding:'0 24px', display:'flex', gap:4 }}>
+          {TABS.map(t => (
+            <button key={t.key} onClick={() => setTab(t.key)} style={{ padding:'16px 20px', background:'none', border:'none', borderBottom: tab===t.key ? '2px solid var(--gold)' : '2px solid transparent', color: tab===t.key ? 'var(--gold)' : 'var(--text-muted)', fontSize:13, fontWeight:600, cursor:'pointer', fontFamily:'var(--font-body)', marginBottom:-1 }}>
+              {t.label}
             </button>
           ))}
-          <div style={{borderTop:'1px solid rgba(255,255,255,0.06)',margin:'8px 0',padding:'8px 20px',display:'flex',gap:10}}>
-            <button className="btn-gold-sm" style={{flex:1,fontSize:12}} onClick={()=>{setShowUpgradeModal(true);setMenuOpen(false)}}>🚀 {profile?.plano?.toUpperCase()||'UPGRADE'}</button>
-            <button onClick={()=>{handleLogout();setMenuOpen(false)}} style={{color:'var(--text-muted)',fontSize:12,border:'1px solid rgba(255,255,255,0.08)',borderRadius:8,padding:'8px 14px',background:'none',cursor:'pointer',fontFamily:'var(--font-body)'}}>Sair</button>
-          </div>
         </div>
-      )}
 
-      <div style={{display:'flex',paddingTop:60,minHeight:'100vh'}}>
-        {/* Sidebar desktop */}
-        <aside className="dash-sidebar nav-desktop">
-          {SIDEBAR.map(item=>(
-            <button key={item.key} className={`sidebar-item${page===item.key?' active':''}`} onClick={()=>navTo(item.key)}>
-              <span style={{fontSize:17,width:24,textAlign:'center'}}>{item.icon}</span> {item.label}
-            </button>
-          ))}
-          <div style={{fontSize:10,fontWeight:700,letterSpacing:'2.5px',textTransform:'uppercase',color:'var(--text-dim)',padding:'12px 14px 6px',marginTop:8}}>CONTA</div>
-          {profile?.role==='admin'&&<button className="sidebar-item" onClick={()=>router.push('/admin')}>⚙️ Admin Panel</button>}
-          <button className="sidebar-item" onClick={handleLogout}>🚪 Sair</button>
-          <div style={{marginTop:'auto',padding:'20px 12px 0'}}>
-            <div style={{background:'rgba(212,168,67,0.06)',border:'1px solid rgba(212,168,67,0.14)',borderRadius:12,padding:14}}>
-              <div style={{fontSize:9,fontWeight:700,letterSpacing:2,textTransform:'uppercase',color:'var(--gold)',marginBottom:5}}>{profile?.plano?.toUpperCase()||'PLANO GRATUITO'}</div>
-              <div style={{fontSize:11,color:'var(--text-muted)',marginBottom:10}}>{freeQ>9000?'Ilimitado':`${freeQ} questões`} · {freeIA>9000?'IA Ilimitada':`${freeIA} perguntas IA`}</div>
-              <button className="btn-gold-sm" style={{width:'100%',fontSize:11}} onClick={()=>setShowUpgradeModal(true)}>🚀 FAZER UPGRADE</button>
-            </div>
-            <RadarOAB/>
+        {msg && (
+          <div style={{ margin:'16px 24px 0', background:'rgba(76,175,125,0.1)', border:'1px solid rgba(76,175,125,0.25)', borderRadius:10, padding:'12px 16px', fontSize:13, color:'var(--success)' }}>
+            {msg}
           </div>
-        </aside>
+        )}
 
-        {page==='dashboard'&&<DashHome profile={profile} onNav={navTo} showUpgrade={showUpgrade} isPremium={isPremium} onOpenRadar={()=>setShowRadar(true)}/>}
-        {page==='disciplines'&&<DisciplinesPage showUpgrade={showUpgrade} profile={profile} isPremium={isPremium}/>}
-        {page==='quiz'&&<QuizPage freeQ={freeQ} setFreeQ={setFreeQ} showUpgrade={showUpgrade} onXp={handleXp} profile={profile} isPremium={isPremium}/>}
-        {page==='simulados'&&<SimuladosPage showUpgrade={showUpgrade} freeQ={freeQ} setFreeQ={setFreeQ} onXp={handleXp} profile={profile} isPremium={isPremium}/>}
-        {page==='ia'&&<IAPage freeIA={freeIA} setFreeIA={setFreeIA} showUpgrade={showUpgrade} profile={profile}/>}
-        {page==='ranking'&&<RankingPage profile={profile}/>}
+        <div style={{ padding:'24px' }}>
+
+          {/* OVERVIEW */}
+          {tab === 'overview' && (
+            <div>
+              <h1 style={{ fontFamily:'var(--font-display)', fontSize:28, fontWeight:900, marginBottom:24 }}>📊 Overview da Plataforma</h1>
+              <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(180px,1fr))', gap:16, marginBottom:32 }}>
+                {[
+                  { label:'Total usuários', value:stats.total_usuarios, color:'var(--gold)', icon:'👥' },
+                  { label:'Usuários premium', value:stats.usuarios_premium, color:'var(--success)', icon:'⭐' },
+                  { label:'Plano free', value:stats.usuarios_free, color:'var(--text-muted)', icon:'🆓' },
+                  { label:'Questões no banco', value:stats.total_questoes, color:'var(--gold)', icon:'📝' },
+                  { label:'Provas OAB', value:stats.total_simulados, color:'var(--orange)', icon:'📋' },
+                  { label:'Questões respondidas', value:stats.questoes_respondidas, color:'var(--success)', icon:'✅' },
+                ].map(s => (
+                  <div key={s.label} style={{ background:'var(--gray)', border:'1px solid rgba(255,255,255,0.06)', borderRadius:16, padding:20 }}>
+                    <div style={{ fontSize:24, marginBottom:8 }}>{s.icon}</div>
+                    <div style={{ fontFamily:'var(--font-display)', fontSize:28, fontWeight:900, color:s.color, marginBottom:4 }}>{s.value.toLocaleString()}</div>
+                    <div style={{ fontSize:12, color:'var(--text-muted)' }}>{s.label}</div>
+                  </div>
+                ))}
+              </div>
+
+              <h2 style={{ fontFamily:'var(--font-display)', fontSize:20, fontWeight:900, marginBottom:16 }}>🏆 Top 5 usuários por XP</h2>
+              <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
+                {[...usuarios].sort((a,b) => (b.xp||0)-(a.xp||0)).slice(0,5).map((u,i) => (
+                  <div key={u.id} style={{ background:'var(--gray)', border:'1px solid rgba(255,255,255,0.06)', borderRadius:12, padding:'14px 16px', display:'flex', alignItems:'center', gap:14 }}>
+                    <div style={{ fontFamily:'var(--font-mono)', fontWeight:900, color:'var(--gold)', width:24 }}>#{i+1}</div>
+                    <div style={{ flex:1 }}>
+                      <div style={{ fontSize:14, fontWeight:700 }}>{u.nome}</div>
+                      <div style={{ fontSize:11, color:'var(--text-muted)' }}>{u.email} · {u.level_name}</div>
+                    </div>
+                    <div style={{ fontSize:12, color:'var(--orange)' }}>🔥{u.streak}d</div>
+                    <div style={{ fontSize:14, fontWeight:700, color:'var(--gold)', fontFamily:'var(--font-mono)' }}>{(u.xp||0).toLocaleString()} XP</div>
+                    <div style={{ fontSize:10, fontWeight:800, padding:'3px 10px', borderRadius:100, background: u.plano==='free'?'rgba(255,255,255,0.06)':'rgba(76,175,125,0.1)', color: u.plano==='free'?'var(--text-muted)':'var(--success)', border: `1px solid ${u.plano==='free'?'rgba(255,255,255,0.08)':'rgba(76,175,125,0.25)'}` }}>
+                      {u.plano?.toUpperCase()}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* USUÁRIOS */}
+          {tab === 'usuarios' && (
+            <div>
+              <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:20, flexWrap:'wrap', gap:12 }}>
+                <h1 style={{ fontFamily:'var(--font-display)', fontSize:28, fontWeight:900 }}>👥 Usuários ({usuarios.length})</h1>
+                <input
+                  placeholder="Buscar por nome ou email..."
+                  value={busca}
+                  onChange={e => setBusca(e.target.value)}
+                  style={{ background:'var(--gray)', border:'1px solid rgba(255,255,255,0.08)', borderRadius:10, padding:'10px 16px', color:'var(--white)', fontSize:13, fontFamily:'var(--font-body)', width:280 }}
+                />
+              </div>
+              <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
+                {usuariosFiltrados.map(u => (
+                  <div key={u.id} style={{ background:'var(--gray)', border:'1px solid rgba(255,255,255,0.06)', borderRadius:14, padding:'16px 20px', display:'flex', alignItems:'center', gap:14, flexWrap:'wrap' }}>
+                    <div style={{ flex:1, minWidth:200 }}>
+                      <div style={{ fontSize:14, fontWeight:700, marginBottom:2 }}>{u.nome}</div>
+                      <div style={{ fontSize:11, color:'var(--text-muted)' }}>{u.email}</div>
+                      <div style={{ fontSize:11, color:'var(--text-muted)', marginTop:2 }}>
+                        {u.level_name} · {(u.xp||0).toLocaleString()} XP · 🔥{u.streak||0}d · {u.questoes_respondidas||0}q respondidas
+                      </div>
+                    </div>
+                    <div style={{ display:'flex', gap:8, alignItems:'center', flexWrap:'wrap' }}>
+                      <select
+                        value={u.plano||'free'}
+                        onChange={e => atualizarPlano(u.id, e.target.value)}
+                        style={{ background:'rgba(212,168,67,0.06)', border:'1px solid rgba(212,168,67,0.2)', borderRadius:8, padding:'6px 10px', color:'var(--gold)', fontSize:12, fontFamily:'var(--font-body)', cursor:'pointer' }}
+                      >
+                        <option value="free">Free</option>
+                        <option value="start">Start</option>
+                        <option value="plus">Plus</option>
+                        <option value="pro">Pro</option>
+                        <option value="elite">Elite</option>
+                        <option value="premium">Premium</option>
+                      </select>
+                      <select
+                        value={u.role||'user'}
+                        onChange={e => atualizarRole(u.id, e.target.value)}
+                        style={{ background:'rgba(232,98,26,0.06)', border:'1px solid rgba(232,98,26,0.2)', borderRadius:8, padding:'6px 10px', color:'var(--orange)', fontSize:12, fontFamily:'var(--font-body)', cursor:'pointer' }}
+                      >
+                        <option value="user">User</option>
+                        <option value="admin">Admin</option>
+                      </select>
+                      <div style={{ fontSize:10, color:'var(--text-muted)' }}>
+                        {new Date(u.created_at).toLocaleDateString('pt-BR')}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* QUESTÕES */}
+          {tab === 'questoes' && (
+            <div>
+              <h1 style={{ fontFamily:'var(--font-display)', fontSize:28, fontWeight:900, marginBottom:24 }}>📝 Questões ({stats.total_questoes})</h1>
+
+              {/* Form nova questão */}
+              <div style={{ background:'var(--gray)', border:'1px solid rgba(212,168,67,0.15)', borderRadius:20, padding:24, marginBottom:32 }}>
+                <h2 style={{ fontFamily:'var(--font-display)', fontSize:18, fontWeight:900, marginBottom:20, color:'var(--gold)' }}>+ Adicionar nova questão</h2>
+                <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:16, marginBottom:16 }}>
+                  <div>
+                    <label style={{ fontSize:11, fontWeight:700, letterSpacing:'1.5px', textTransform:'uppercase', color:'var(--text-muted)', display:'block', marginBottom:8 }}>Disciplina *</label>
+                    <select value={novaQ.disciplina} onChange={e => setNovaQ(p=>({...p,disciplina:e.target.value}))} style={{ width:'100%', background:'rgba(255,255,255,0.04)', border:'1px solid rgba(255,255,255,0.08)', borderRadius:10, padding:'12px 16px', color:'var(--white)', fontSize:14, fontFamily:'var(--font-body)' }}>
+                      <option value="">Selecionar disciplina</option>
+                      {DISCIPLINAS.map(d => <option key={d} value={d}>{d}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label style={{ fontSize:11, fontWeight:700, letterSpacing:'1.5px', textTransform:'uppercase', color:'var(--text-muted)', display:'block', marginBottom:8 }}>Gabarito *</label>
+                    <select value={novaQ.resposta_correta} onChange={e => setNovaQ(p=>({...p,resposta_correta:e.target.value}))} style={{ width:'100%', background:'rgba(76,175,125,0.06)', border:'1px solid rgba(76,175,125,0.2)', borderRadius:10, padding:'12px 16px', color:'var(--success)', fontSize:14, fontFamily:'var(--font-body)', fontWeight:700 }}>
+                      {['A','B','C','D'].map(l => <option key={l} value={l}>{l}</option>)}
+                    </select>
+                  </div>
+                </div>
+
+                <div style={{ marginBottom:16 }}>
+                  <label style={{ fontSize:11, fontWeight:700, letterSpacing:'1.5px', textTransform:'uppercase', color:'var(--text-muted)', display:'block', marginBottom:8 }}>Enunciado *</label>
+                  <textarea value={novaQ.enunciado} onChange={e => setNovaQ(p=>({...p,enunciado:e.target.value}))} rows={4} placeholder="Digite o enunciado da questão..." style={{ width:'100%', background:'rgba(255,255,255,0.04)', border:'1px solid rgba(255,255,255,0.08)', borderRadius:10, padding:'12px 16px', color:'var(--white)', fontSize:14, fontFamily:'var(--font-body)', resize:'vertical' }} />
+                </div>
+
+                <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12, marginBottom:16 }}>
+                  {(['a','b','c','d'] as const).map(l => (
+                    <div key={l}>
+                      <label style={{ fontSize:11, fontWeight:700, letterSpacing:'1.5px', textTransform:'uppercase', color: novaQ.resposta_correta===l.toUpperCase()?'var(--success)':'var(--text-muted)', display:'block', marginBottom:8 }}>
+                        Opção {l.toUpperCase()} {novaQ.resposta_correta===l.toUpperCase()&&'✅'}
+                      </label>
+                      <input
+                        value={(novaQ as any)[`opcao_${l}`]}
+                        onChange={e => setNovaQ(p=>({...p,[`opcao_${l}`]:e.target.value}))}
+                        placeholder={`Texto da opção ${l.toUpperCase()}...`}
+                        style={{ width:'100%', background: novaQ.resposta_correta===l.toUpperCase()?'rgba(76,175,125,0.06)':'rgba(255,255,255,0.04)', border:`1px solid ${novaQ.resposta_correta===l.toUpperCase()?'rgba(76,175,125,0.25)':'rgba(255,255,255,0.08)'}`, borderRadius:10, padding:'12px 16px', color:'var(--white)', fontSize:13, fontFamily:'var(--font-body)' }}
+                      />
+                    </div>
+                  ))}
+                </div>
+
+                <div style={{ marginBottom:20 }}>
+                  <label style={{ fontSize:11, fontWeight:700, letterSpacing:'1.5px', textTransform:'uppercase', color:'var(--text-muted)', display:'block', marginBottom:8 }}>Comentário / Justificativa</label>
+                  <textarea value={novaQ.comentario} onChange={e => setNovaQ(p=>({...p,comentario:e.target.value}))} rows={3} placeholder="Explique o gabarito (opcional)..." style={{ width:'100%', background:'rgba(255,255,255,0.04)', border:'1px solid rgba(255,255,255,0.08)', borderRadius:10, padding:'12px 16px', color:'var(--white)', fontSize:14, fontFamily:'var(--font-body)', resize:'vertical' }} />
+                </div>
+
+                <button onClick={salvarQuestao} disabled={salvando} style={{ background:'linear-gradient(135deg,var(--gold),var(--orange))', border:'none', borderRadius:12, padding:'14px 28px', fontSize:14, fontWeight:800, color:'var(--deep-black)', cursor:'pointer', fontFamily:'var(--font-body)', opacity:salvando?0.7:1 }}>
+                  {salvando ? '⏳ Salvando...' : '✅ SALVAR QUESTÃO'}
+                </button>
+              </div>
+
+              {/* Lista questões recentes */}
+              <h2 style={{ fontFamily:'var(--font-display)', fontSize:18, fontWeight:900, marginBottom:16 }}>Últimas 50 questões</h2>
+              <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
+                {questoes.map(q => (
+                  <div key={q.id} style={{ background:'var(--gray)', border:'1px solid rgba(255,255,255,0.05)', borderRadius:12, padding:'14px 16px', display:'flex', alignItems:'flex-start', gap:14 }}>
+                    <div style={{ flex:1, minWidth:0 }}>
+                      <div style={{ display:'flex', gap:8, marginBottom:6, flexWrap:'wrap' }}>
+                        <span style={{ fontSize:10, fontWeight:700, background:'rgba(212,168,67,0.1)', color:'var(--gold)', padding:'2px 8px', borderRadius:100, border:'1px solid rgba(212,168,67,0.2)' }}>{q.disciplina}</span>
+                        <span style={{ fontSize:10, fontWeight:700, background:'rgba(76,175,125,0.1)', color:'var(--success)', padding:'2px 8px', borderRadius:100 }}>✅ {q.resposta_correta}</span>
+                      </div>
+                      <div style={{ fontSize:13, color:'var(--white)', lineHeight:1.5 }}>{q.enunciado?.slice(0,120)}...</div>
+                    </div>
+                    <button onClick={() => deletarQuestao(q.id)} style={{ background:'rgba(232,66,26,0.1)', border:'1px solid rgba(232,66,26,0.2)', borderRadius:8, padding:'6px 12px', fontSize:11, color:'var(--danger)', cursor:'pointer', fontFamily:'var(--font-body)', flexShrink:0 }}>
+                      🗑️ Deletar
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* SIMULADOS */}
+          {tab === 'simulados' && (
+            <div>
+              <h1 style={{ fontFamily:'var(--font-display)', fontSize:28, fontWeight:900, marginBottom:8 }}>📋 Simulados & Provas OAB</h1>
+              <p style={{ fontSize:14, color:'var(--text-muted)', marginBottom:24 }}>Gerencie as provas oficiais cadastradas no banco.</p>
+              <ProvasAdmin />
+            </div>
+          )}
+
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function ProvasAdmin() {
+  const [provas, setProvas] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+  const [novaProva, setNovaProva] = useState({ numero_exame:'', edicao:'', total_questoes:'80', taxa_aprovacao_oficial:'0', status:'ativo' })
+  const [salvando, setSalvando] = useState(false)
+  const [msg, setMsg] = useState('')
+
+  useEffect(() => { carregar() }, [])
+
+  const carregar = async () => {
+    const { data } = await supabase.from('provas_oab').select('*').order('numero_exame', { ascending: false })
+    if (data) setProvas(data)
+    setLoading(false)
+  }
+
+  const salvar = async () => {
+    if (!novaProva.numero_exame || !novaProva.edicao) { setMsg('Preencha número e edição.'); return }
+    setSalvando(true)
+    const { error } = await supabase.from('provas_oab').insert({
+      numero_exame: parseInt(novaProva.numero_exame),
+      edicao: novaProva.edicao,
+      total_questoes: parseInt(novaProva.total_questoes),
+      taxa_aprovacao_oficial: parseFloat(novaProva.taxa_aprovacao_oficial),
+      status: novaProva.status,
+    })
+    setSalvando(false)
+    if (error) { setMsg('Erro ao salvar.'); return }
+    setMsg('✅ Prova cadastrada!')
+    setNovaProva({ numero_exame:'', edicao:'', total_questoes:'80', taxa_aprovacao_oficial:'0', status:'ativo' })
+    await carregar()
+    setTimeout(() => setMsg(''), 3000)
+  }
+
+  const deletar = async (id: string) => {
+    if (!confirm('Deletar esta prova?')) return
+    await supabase.from('provas_oab').delete().eq('id', id)
+    setProvas(prev => prev.filter(p => p.id !== id))
+  }
+
+  return (
+    <div>
+      {msg && <div style={{ background:'rgba(76,175,125,0.1)', border:'1px solid rgba(76,175,125,0.25)', borderRadius:10, padding:'12px 16px', fontSize:13, color:'var(--success)', marginBottom:20 }}>{msg}</div>}
+
+      <div style={{ background:'var(--gray)', border:'1px solid rgba(212,168,67,0.15)', borderRadius:20, padding:24, marginBottom:28 }}>
+        <h2 style={{ fontFamily:'var(--font-display)', fontSize:18, fontWeight:900, marginBottom:20, color:'var(--gold)' }}>+ Cadastrar nova prova OAB</h2>
+        <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(160px,1fr))', gap:14, marginBottom:20 }}>
+          {[
+            { label:'Nº do exame', key:'numero_exame', placeholder:'46' },
+            { label:'Edição', key:'edicao', placeholder:'46º Exame OAB — 2026/1' },
+            { label:'Total questões', key:'total_questoes', placeholder:'80' },
+            { label:'% aprovação oficial', key:'taxa_aprovacao_oficial', placeholder:'0' },
+          ].map(f => (
+            <div key={f.key}>
+              <label style={{ fontSize:11, fontWeight:700, letterSpacing:'1.5px', textTransform:'uppercase', color:'var(--text-muted)', display:'block', marginBottom:8 }}>{f.label}</label>
+              <input
+                value={(novaProva as any)[f.key]}
+                onChange={e => setNovaProva(p => ({ ...p, [f.key]: e.target.value }))}
+                placeholder={f.placeholder}
+                style={{ width:'100%', background:'rgba(255,255,255,0.04)', border:'1px solid rgba(255,255,255,0.08)', borderRadius:10, padding:'12px 16px', color:'var(--white)', fontSize:13, fontFamily:'var(--font-body)' }}
+              />
+            </div>
+          ))}
+        </div>
+        <button onClick={salvar} disabled={salvando} style={{ background:'linear-gradient(135deg,var(--gold),var(--orange))', border:'none', borderRadius:12, padding:'14px 28px', fontSize:14, fontWeight:800, color:'var(--deep-black)', cursor:'pointer', fontFamily:'var(--font-body)' }}>
+          {salvando ? '⏳ Salvando...' : '✅ CADASTRAR PROVA'}
+        </button>
       </div>
 
-      <div className="grain-overlay"/>
-      <style>{`
-        @keyframes fadeInDown{from{opacity:0;transform:translateY(-16px)}to{opacity:1;transform:translateY(0)}}
-        @keyframes fadeInUp{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:translateY(0)}}
-        @keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.5;transform:scale(0.9)}}
-        .nav-desktop{display:flex !important;}
-        .nav-mobile{display:none !important;}
-        @media(max-width:768px){
-          .nav-desktop{display:none !important;}
-          .nav-mobile{display:flex !important;}
-          .dash-sidebar{display:none !important;}
-        }
-      `}</style>
+      {loading ? <div style={{ textAlign:'center', padding:40, color:'var(--gold)' }}>⏳ Carregando...</div> : (
+        <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
+          {provas.map(p => (
+            <div key={p.id} style={{ background:'var(--gray)', border:'1px solid rgba(255,255,255,0.06)', borderRadius:12, padding:'14px 18px', display:'flex', alignItems:'center', gap:14, flexWrap:'wrap' }}>
+              <div style={{ width:44, height:44, borderRadius:10, background:'rgba(212,168,67,0.1)', border:'1px solid rgba(212,168,67,0.2)', display:'flex', alignItems:'center', justifyContent:'center', fontFamily:'var(--font-display)', fontSize:14, fontWeight:900, color:'var(--gold)', flexShrink:0 }}>
+                {p.numero_exame}º
+              </div>
+              <div style={{ flex:1 }}>
+                <div style={{ fontSize:14, fontWeight:700 }}>{p.edicao}</div>
+                <div style={{ fontSize:11, color:'var(--text-muted)' }}>{p.total_questoes}q · {p.taxa_aprovacao_oficial}% aprovação · {p.status}</div>
+              </div>
+              <button onClick={() => deletar(p.id)} style={{ background:'rgba(232,66,26,0.1)', border:'1px solid rgba(232,66,26,0.2)', borderRadius:8, padding:'6px 12px', fontSize:11, color:'var(--danger)', cursor:'pointer', fontFamily:'var(--font-body)' }}>
+                🗑️ Deletar
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   )
 }
