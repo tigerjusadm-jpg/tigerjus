@@ -663,33 +663,198 @@ function DisciplinesPage({ showUpgrade, profile, isPago, canAccessPremium }: any
   )
 }
 
+// ─── FLASHCARDS — busca real do banco por disciplina ──────────────────────────
 function FlashCards({disciplina}:{disciplina:string}) {
-  const cards=[
-    {front:'O que é Habeas Corpus?',back:'Remédio constitucional que protege a liberdade de locomoção (art. 5º, LXVIII, CF/88).'},
-    {front:'O que é Mandado de Segurança?',back:'Protege direito líquido e certo não amparado por HC ou HD (art. 5º, LXIX, CF/88).'},
-    {front:'O que são Cláusulas Pétreas?',back:'Limitações materiais ao poder de reforma. Não podem ser abolidas: forma federativa, voto, separação dos poderes e direitos fundamentais (art. 60, §4º, CF/88).'},
-    {front:'O que é Dolo Eventual?',back:'O agente prevê o resultado como possível e assume o risco de produzi-lo (art. 18, I, CP).'},
-    {front:'Prescrição x Decadência?',back:'Prescrição: extingue a pretensão. Decadência: extingue o direito.'},
-  ]
-  const [idx,setIdx]=useState(0)
-  const [flipped,setFlipped]=useState(false)
-  return(
+  const [cards, setCards] = useState<{id:string; frente:string; verso:string}[]>([])
+  const [loading, setLoading] = useState(true)
+  const [erro, setErro] = useState(false)
+  const [idx, setIdx] = useState(0)
+  const [flipped, setFlipped] = useState(false)
+  const fetchingRef = useRef(false)
+  const cacheRef = useRef<Map<string, {id:string; frente:string; verso:string}[]>>(new Map())
+
+  useEffect(() => {
+    // Reseta estado ao trocar disciplina
+    setIdx(0)
+    setFlipped(false)
+    setErro(false)
+
+    // Verifica cache primeiro
+    const cached = cacheRef.current.get(disciplina)
+    if (cached) {
+      setCards(cached)
+      setLoading(false)
+      return
+    }
+
+    // Evita double-fetch no StrictMode
+    if (fetchingRef.current) return
+    fetchingRef.current = true
+    setLoading(true)
+
+    const carregar = async () => {
+      try {
+        // Tentativa 1: match exato na disciplina
+        let { data, error } = await supabase
+          .from('flashcards')
+          .select('id, frente, verso')
+          .eq('disciplina', disciplina)
+          .eq('ativo', true)
+          .order('created_at', { ascending: true })
+          .limit(50)
+
+        // Tentativa 2: fallback com ilike se vier vazio
+        if (!error && (!data || data.length === 0)) {
+          const primeiraLavra = disciplina.split(' ')[0]
+          const fallback = await supabase
+            .from('flashcards')
+            .select('id, frente, verso')
+            .ilike('disciplina', `%${primeiraLavra}%`)
+            .eq('ativo', true)
+            .order('created_at', { ascending: true })
+            .limit(50)
+          data = fallback.data
+          error = fallback.error
+        }
+
+        if (error) {
+          setErro(true)
+          return
+        }
+
+        const resultado = (data || []).map((c: any) => ({
+          id: c.id,
+          frente: c.frente,
+          verso: c.verso,
+        }))
+
+        cacheRef.current.set(disciplina, resultado)
+        setCards(resultado)
+      } catch {
+        setErro(true)
+      } finally {
+        setLoading(false)
+        fetchingRef.current = false
+      }
+    }
+
+    carregar()
+  }, [disciplina])
+
+  // Loading
+  if (loading) return (
+    <div style={{maxWidth:560, padding:'40px 0', textAlign:'center'}}>
+      <div style={{fontSize:36, marginBottom:12}}>⏳</div>
+      <div style={{fontSize:13, color:'var(--text-muted)'}}>
+        Carregando flashcards de <strong style={{color:'var(--gold)'}}>{disciplina}</strong>...
+      </div>
+    </div>
+  )
+
+  // Erro de rede
+  if (erro) return (
+    <div style={{maxWidth:560, padding:'40px 0', textAlign:'center'}}>
+      <div style={{fontSize:36, marginBottom:12}}>⚠️</div>
+      <div style={{fontSize:14, fontWeight:700, marginBottom:8, color:'var(--white)'}}>
+        Não foi possível carregar os flashcards.
+      </div>
+      <div style={{fontSize:12, color:'var(--text-muted)', marginBottom:20}}>
+        Verifique sua conexão e tente novamente.
+      </div>
+      <button className="btn-secondary" style={{fontSize:12}} onClick={() => {
+        cacheRef.current.delete(disciplina)
+        fetchingRef.current = false
+        setErro(false)
+        setLoading(true)
+      }}>
+        🔄 Tentar novamente
+      </button>
+    </div>
+  )
+
+  // Vazio — sem flashcards para esta disciplina
+  if (cards.length === 0) return (
+    <div style={{maxWidth:560, padding:'40px 0', textAlign:'center'}}>
+      <div style={{fontSize:40, marginBottom:12}}>🃏</div>
+      <div style={{fontSize:14, fontWeight:700, marginBottom:8, color:'var(--white)'}}>
+        Nenhum flashcard disponível
+      </div>
+      <div style={{fontSize:12, color:'var(--text-muted)', lineHeight:1.6}}>
+        Os flashcards de <strong style={{color:'var(--gold)'}}>{disciplina}</strong> ainda estão sendo preparados.
+      </div>
+    </div>
+  )
+
+  const card = cards[idx]
+
+  return (
     <div style={{maxWidth:560}}>
-      <div style={{marginBottom:14,fontSize:13,color:'var(--text-muted)'}}>Card {idx+1} de {cards.length} · {disciplina}</div>
-      <div style={{perspective:1000,marginBottom:20,cursor:'pointer'}} onClick={()=>setFlipped(f=>!f)}>
-        <div style={{position:'relative',height:220,transformStyle:'preserve-3d',transition:'transform 0.6s',transform:flipped?'rotateY(180deg)':'rotateY(0)'}}>
-          <div style={{position:'absolute',inset:0,backfaceVisibility:'hidden',background:'var(--gray)',border:'1px solid rgba(212,168,67,0.2)',borderRadius:20,padding:28,display:'flex',alignItems:'center',justifyContent:'center',textAlign:'center'}}>
-            <div><div style={{fontSize:10,fontWeight:700,letterSpacing:2,textTransform:'uppercase',color:'var(--gold)',marginBottom:14}}>PERGUNTA</div><div style={{fontSize:16,fontWeight:600,lineHeight:1.5}}>{cards[idx].front}</div><div style={{marginTop:16,fontSize:11,color:'var(--text-muted)'}}>Toque para ver a resposta</div></div>
+      <div style={{marginBottom:14, display:'flex', alignItems:'center', justifyContent:'space-between'}}>
+        <div style={{fontSize:13, color:'var(--text-muted)'}}>
+          Card {idx+1} de {cards.length} · <span style={{color:'var(--gold)'}}>{disciplina}</span>
+        </div>
+        <div style={{fontSize:11, color:'var(--text-muted)'}}>
+          {flipped ? '👁️ Resposta' : '❓ Pergunta'}
+        </div>
+      </div>
+
+      <div style={{perspective:1000, marginBottom:20, cursor:'pointer'}} onClick={() => setFlipped(f => !f)}>
+        <div style={{
+          position:'relative', height:220,
+          transformStyle:'preserve-3d',
+          transition:'transform 0.6s',
+          transform: flipped ? 'rotateY(180deg)' : 'rotateY(0)'
+        }}>
+          {/* Frente */}
+          <div style={{
+            position:'absolute', inset:0, backfaceVisibility:'hidden',
+            background:'var(--gray)', border:'1px solid rgba(212,168,67,0.2)',
+            borderRadius:20, padding:28,
+            display:'flex', alignItems:'center', justifyContent:'center', textAlign:'center'
+          }}>
+            <div>
+              <div style={{fontSize:10, fontWeight:700, letterSpacing:2, textTransform:'uppercase', color:'var(--gold)', marginBottom:14}}>
+                PERGUNTA
+              </div>
+              <div style={{fontSize:15, fontWeight:600, lineHeight:1.6}}>{card.frente}</div>
+              <div style={{marginTop:16, fontSize:11, color:'var(--text-muted)'}}>
+                Toque para ver a resposta
+              </div>
+            </div>
           </div>
-          <div style={{position:'absolute',inset:0,backfaceVisibility:'hidden',transform:'rotateY(180deg)',background:'linear-gradient(135deg,rgba(212,168,67,0.1),rgba(232,98,26,0.06))',border:'1px solid rgba(212,168,67,0.3)',borderRadius:20,padding:28,display:'flex',alignItems:'center',justifyContent:'center',textAlign:'center'}}>
-            <div><div style={{fontSize:10,fontWeight:700,letterSpacing:2,textTransform:'uppercase',color:'var(--gold)',marginBottom:14}}>RESPOSTA</div><div style={{fontSize:14,lineHeight:1.7,color:'var(--text-muted)'}}>{cards[idx].back}</div></div>
+          {/* Verso */}
+          <div style={{
+            position:'absolute', inset:0, backfaceVisibility:'hidden',
+            transform:'rotateY(180deg)',
+            background:'linear-gradient(135deg,rgba(212,168,67,0.1),rgba(232,98,26,0.06))',
+            border:'1px solid rgba(212,168,67,0.3)',
+            borderRadius:20, padding:28,
+            display:'flex', alignItems:'center', justifyContent:'center', textAlign:'center'
+          }}>
+            <div>
+              <div style={{fontSize:10, fontWeight:700, letterSpacing:2, textTransform:'uppercase', color:'var(--gold)', marginBottom:14}}>
+                RESPOSTA
+              </div>
+              <div style={{fontSize:13, lineHeight:1.8, color:'var(--text-muted)'}}>{card.verso}</div>
+            </div>
           </div>
         </div>
       </div>
-      <div style={{display:'flex',gap:10,justifyContent:'center'}}>
-        <button className="btn-secondary" onClick={()=>{setIdx(i=>Math.max(0,i-1));setFlipped(false)}} disabled={idx===0}>← Anterior</button>
-        <button className="btn-secondary" onClick={()=>setFlipped(f=>!f)}>Virar</button>
-        <button className="btn-primary" onClick={()=>{setIdx(i=>Math.min(cards.length-1,i+1));setFlipped(false)}} disabled={idx===cards.length-1}>Próximo →</button>
+
+      <div style={{display:'flex', gap:10, justifyContent:'center'}}>
+        <button className="btn-secondary"
+          onClick={() => { setIdx(i => Math.max(0, i-1)); setFlipped(false) }}
+          disabled={idx === 0}>
+          ← Anterior
+        </button>
+        <button className="btn-secondary" onClick={() => setFlipped(f => !f)}>
+          Virar
+        </button>
+        <button className="btn-primary"
+          onClick={() => { setIdx(i => Math.min(cards.length-1, i+1)); setFlipped(false) }}
+          disabled={idx === cards.length-1}>
+          Próximo →
+        </button>
       </div>
     </div>
   )
