@@ -25,9 +25,10 @@ const XP_PREV: Record<LevelName, number> = {
 }
 
 const PLANS_UPGRADE = [
-  { id:'entrada', name:'Tiger Entrada', price:'1,99', color:'var(--success)', features:['Questões ilimitadas','IA intermediária','Mais simulados','Streak + ranking'] },
-  { id:'premium', name:'Tiger Premium', price:'9,99', color:'var(--gold)', badge:'POPULAR', featured:true, features:['IA avançada ilimitada','Radar jurídico','Trilhas personalizadas','Previsão de aprovação'] },
-  { id:'elite', name:'Tiger Elite', price:'19,99', color:'var(--orange)', badge:'TOP', features:['Tudo ilimitado','IA prioritária','Conteúdos exclusivos','Simulados inéditos'] },
+  { id:'start', name:'Tiger Start', price:'1,99', color:'var(--success)', features:['Questões ilimitadas','IA intermediária','42º Exame OAB','Streak + ranking'] },
+  { id:'plus', name:'Tiger Plus', price:'5,99', color:'#8B5CF6', features:['PDF por disciplina','Radar TigerJus','42º e 43º Exame OAB','Mais flashcards'] },
+  { id:'pro', name:'Tiger Pro', price:'9,99', color:'var(--gold)', badge:'POPULAR', featured:true, features:['IA avançada ilimitada','42º ao 44º Exame OAB','Trilhas personalizadas','Previsão de aprovação'] },
+  { id:'elite', name:'Tiger Elite', price:'19,99', color:'var(--orange)', badge:'TOP', features:['Tudo ilimitado','IA prioritária','Todos os simulados OAB','Acesso total vitalício'] },
 ]
 
 const DISCIPLINES = [
@@ -1449,7 +1450,7 @@ export default function TigerJusApp() {
   // ── Permissões centralizadas ──────────────────────────────────────────────
   const plano = profile?.plano
   const userIsPago = !!(isAdmin(profile?.role) || isPago(plano))
-  const canAccessPremium = !!(isAdmin(profile?.role) || canAccess(plano, 'premium'))
+  const canAccessPremium = !!(isAdmin(profile?.role) || canAccess(plano, 'pro'))
   const canAccessElite = !!(isAdmin(profile?.role) || canAccess(plano, 'elite'))
   const limites = getLimites(plano)
 
