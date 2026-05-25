@@ -596,6 +596,144 @@ function IAPage({ freeIA, setFreeIA, showUpgrade, profile, isPago }: any) {
   )
 }
 
+// ─── RESUMO RENDERER — markdown-light ────────────────────────────────────────
+function ResumoRenderer({ texto }: { texto: string }) {
+  const linhas = texto.split('\n')
+  return (
+    <div style={{fontSize:14, lineHeight:1.9, color:'var(--text-muted)'}}>
+      {linhas.map((linha, i) => {
+        const trim = linha.trim()
+        // Linha vazia → espaço
+        if (!trim) return <div key={i} style={{height:8}}/>
+        // TÍTULO — linha toda maiúscula com mais de 4 chars
+        if (trim === trim.toUpperCase() && trim.length > 4 && !trim.startsWith('-') && !trim.startsWith('•'))
+          return <div key={i} style={{fontFamily:'var(--font-display)',fontSize:16,fontWeight:900,color:'var(--white)',marginTop:i>0?20:0,marginBottom:8,letterSpacing:0.3}}>{trim}</div>
+        // BULLET — começa com - ou •
+        if (trim.startsWith('- ') || trim.startsWith('• '))
+          return (
+            <div key={i} style={{display:'flex',gap:8,marginBottom:4,paddingLeft:4}}>
+              <span style={{color:'var(--gold)',flexShrink:0,marginTop:2}}>▸</span>
+              <span>{trim.replace(/^[-•]\s/,'')}</span>
+            </div>
+          )
+        // Parágrafo normal
+        return <div key={i} style={{marginBottom:4}}>{trim}</div>
+      })}
+    </div>
+  )
+}
+
+// ─── RESUMO SECTION — busca banco + cache + fallback ─────────────────────────
+function ResumoSection({ disc, onNav }: { disc: any; onNav: (tab: string) => void }) {
+  const [estado, setEstado] = useState<'loading'|'banco'|'local'|'vazio'>('loading')
+  const [texto, setTexto] = useState('')
+  const [resumoCurto, setResumoCurto] = useState('')
+  const fetchingRef = useRef(false)
+  const cacheRef = useRef<Map<string, {texto:string; curto:string; fonte:'banco'|'local'|'vazio'}>>(new Map())
+
+  useEffect(() => {
+    setEstado('loading'); setTexto(''); setResumoCurto('')
+
+    const cached = cacheRef.current.get(disc.slug)
+    if (cached) { setTexto(cached.texto); setResumoCurto(cached.curto); setEstado(cached.fonte); return }
+
+    if (fetchingRef.current) return
+    fetchingRef.current = true
+
+    const carregar = async () => {
+      try {
+        // 1. Tenta banco
+        const { data } = await supabase
+          .from('discipline_summaries')
+          .select('resumo, resumo_curto, tipo, tags, nivel_dificuldade')
+          .eq('disciplina_slug', disc.slug)
+          .eq('ativo', true)
+          .maybeSingle()
+
+        if (data?.resumo) {
+          const entry = { texto: data.resumo, curto: data.resumo_curto || '', fonte: 'banco' as const }
+          cacheRef.current.set(disc.slug, entry)
+          setTexto(entry.texto); setResumoCurto(entry.curto); setEstado('banco')
+          return
+        }
+
+        // 2. Fallback local (RESUMOS hardcoded)
+        const local = RESUMOS[disc.slug]
+        if (local) {
+          const entry = { texto: local, curto: '', fonte: 'local' as const }
+          cacheRef.current.set(disc.slug, entry)
+          setTexto(local); setResumoCurto(''); setEstado('local')
+          return
+        }
+
+        // 3. Vazio
+        cacheRef.current.set(disc.slug, { texto:'', curto:'', fonte:'vazio' })
+        setEstado('vazio')
+      } catch {
+        setEstado('vazio')
+      } finally {
+        fetchingRef.current = false
+      }
+    }
+    carregar()
+  }, [disc.slug])
+
+  // Loading skeleton
+  if (estado === 'loading') return (
+    <div style={{background:'var(--gray)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:20,padding:24}}>
+      {[90,70,80,60,75].map((w,i) => (
+        <div key={i} style={{height:14,borderRadius:6,marginBottom:12,background:'rgba(255,255,255,0.06)',width:`${w}%`,animation:'pulse 1.5s infinite'}}/>
+      ))}
+      <style>{`@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}`}</style>
+    </div>
+  )
+
+  // Vazio — empty state com CTA
+  if (estado === 'vazio') return (
+    <div style={{background:'var(--gray)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:20,padding:32,textAlign:'center'}}>
+      <div style={{fontSize:40,marginBottom:14}}>📖</div>
+      <h3 style={{fontFamily:'var(--font-display)',fontSize:18,fontWeight:900,marginBottom:8,color:'var(--white)'}}>
+        Resumo em preparação
+      </h3>
+      <p style={{fontSize:13,color:'var(--text-muted)',lineHeight:1.7,marginBottom:24,maxWidth:380,margin:'0 auto 24px'}}>
+        O resumo de <strong style={{color:'var(--gold)'}}>{disc.name}</strong> ainda está sendo elaborado.
+        Enquanto isso, pratique com as questões disponíveis.
+      </p>
+      <div style={{display:'flex',gap:10,justifyContent:'center',flexWrap:'wrap'}}>
+        <button className="btn-primary" style={{fontSize:13}} onClick={() => onNav('quiz')}>
+          📝 Fazer Quiz
+        </button>
+        <button className="btn-secondary" style={{fontSize:13}} onClick={() => onNav('flash')}>
+          🃏 Ver Flashcards
+        </button>
+        <button className="btn-secondary" style={{fontSize:13}} onClick={() => onNav('ia')}>
+          🤖 Perguntar à IA
+        </button>
+      </div>
+    </div>
+  )
+
+  // Banco ou local — exibe resumo
+  return (
+    <div>
+      {resumoCurto && (
+        <div style={{background:'rgba(212,168,67,0.06)',border:'1px solid rgba(212,168,67,0.15)',borderRadius:12,padding:'12px 16px',marginBottom:16,fontSize:13,color:'var(--gold)',lineHeight:1.6}}>
+          {resumoCurto}
+        </div>
+      )}
+      <div style={{background:'var(--gray)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:20,padding:'24px'}}>
+        <ResumoRenderer texto={texto} />
+        {estado === 'local' && (
+          <div style={{marginTop:16,paddingTop:14,borderTop:'1px solid rgba(255,255,255,0.06)',fontSize:11,color:'var(--text-dim)'}}>
+            📌 Resumo base · Atualizado conforme novas provas são adicionadas.
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+// ─── DISCIPLINES PAGE ─────────────────────────────────────────────────────────
 function DisciplinesPage({ showUpgrade, profile, isPago, canAccessPremium }: any) {
   const [selected,setSelected]=useState<any>(null)
   const [subTab,setSubTab]=useState<'resumo'|'quiz'|'flash'|'pdf'>('resumo')
@@ -611,8 +749,13 @@ function DisciplinesPage({ showUpgrade, profile, isPago, canAccessPremium }: any
     }finally{setGerandoPDF(false)}
   }
 
+  // Navegar para aba e opcionalmente para IA (no menu principal)
+  const navTab = (tab: string) => {
+    if (tab === 'ia') { /* handled by parent via setPage — não temos acesso aqui, IA está no menu */ return }
+    setSubTab(tab as any)
+  }
+
   if(selected){
-    const resumo=RESUMOS[selected.slug]||`${selected.name.toUpperCase()}\n\nResumo completo em breve. Use a IA Jurídica para tirar dúvidas!`
     return(
       <div style={{padding:'24px 20px',flex:1}}>
         <button onClick={()=>setSelected(null)} style={{display:'flex',alignItems:'center',gap:8,color:'var(--text-muted)',fontSize:13,border:'none',background:'none',cursor:'pointer',marginBottom:20,fontFamily:'var(--font-body)'}}>← Voltar</button>
@@ -630,16 +773,7 @@ function DisciplinesPage({ showUpgrade, profile, isPago, canAccessPremium }: any
             </button>
           ))}
         </div>
-        {subTab==='resumo'&&(
-          <div style={{background:'var(--gray)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:20,padding:'24px'}}>
-            <div style={{fontSize:14,lineHeight:1.9,color:'var(--text-muted)',whiteSpace:'pre-wrap'}}>
-              {resumo.split('\n').map((line,i)=>{
-                if(line.toUpperCase()===line&&line.length>5&&!line.startsWith('-'))return<div key={i} style={{fontFamily:'var(--font-display)',fontSize:17,fontWeight:900,color:'var(--white)',marginBottom:12,marginTop:i>0?20:0}}>{line}</div>
-                return<div key={i} style={{marginBottom:4}}>{line}</div>
-              })}
-            </div>
-          </div>
-        )}
+        {subTab==='resumo'&&<ResumoSection disc={selected} onNav={navTab}/>}
         {subTab==='quiz'&&<QuizDisciplina disciplina={selected.name}/>}
         {subTab==='flash'&&<FlashCards disciplina={selected.name}/>}
         {subTab==='pdf'&&(
