@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import AdminShell, { type AdminSection } from '@/components/AdminShell'
 import ModuloResumos from '@/components/ModuloResumos'
+import ModuloUsuarios from '@/components/ModuloUsuarios'
 
 // ─── Seção Overview ───────────────────────────────────────────────────────────
 
@@ -98,6 +99,7 @@ function renderSection(section: AdminSection, adminId?: string) {
   switch (section) {
     case 'overview': return <SectionOverview />
     case 'resumos':  return <ModuloResumos adminId={adminId} />
+    case 'usuarios': return <ModuloUsuarios adminId={adminId} />
     default:         return <SectionPlaceholder section={section} />
   }
 }
