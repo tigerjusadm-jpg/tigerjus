@@ -3,25 +3,28 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import AdminShell, { type AdminSection } from '@/components/AdminShell'
+import ModuloResumos from '@/components/ModuloResumos'
 
-// ─── Seções ───────────────────────────────────────────────────────────────────
+// ─── Seção Overview ───────────────────────────────────────────────────────────
 
 function SectionOverview() {
-  const [stats, setStats] = useState({ usuarios: 0, questoes: 0, flashcards: 0, simulados: 0 })
+  const [stats, setStats] = useState({ usuarios: 0, questoes: 0, flashcards: 0, simulados: 0, resumos: 0 })
 
   useEffect(() => {
     const load = async () => {
-      const [u, q, f, p] = await Promise.all([
+      const [u, q, f, p, r] = await Promise.all([
         supabase.from('profiles').select('id', { count: 'exact', head: true }),
         supabase.from('questoes_oab').select('id', { count: 'exact', head: true }),
         supabase.from('flashcards').select('id', { count: 'exact', head: true }),
         supabase.from('provas_oab').select('id', { count: 'exact', head: true }),
+        supabase.from('discipline_summaries').select('id', { count: 'exact', head: true }),
       ])
       setStats({
         usuarios:   u.count ?? 0,
         questoes:   q.count ?? 0,
         flashcards: f.count ?? 0,
         simulados:  p.count ?? 0,
+        resumos:    r.count ?? 0,
       })
     }
     load()
@@ -32,6 +35,7 @@ function SectionOverview() {
     { label: 'Questões',    value: stats.questoes,   icon: '📝', color: '#D4A843' },
     { label: 'Flashcards',  value: stats.flashcards, icon: '🃏', color: '#a78bfa' },
     { label: 'Simulados',   value: stats.simulados,  icon: '📋', color: '#34d399' },
+    { label: 'Resumos',     value: stats.resumos,    icon: '📖', color: '#f472b6' },
   ]
 
   return (
@@ -41,11 +45,11 @@ function SectionOverview() {
         <p style={{fontSize:13,color:'#555'}}>Bem-vindo ao TigerJus Admin. Use ⌘K para navegar rapidamente.</p>
       </div>
 
-      <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(180px,1fr))',gap:14,marginBottom:32}}>
+      <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(160px,1fr))',gap:14,marginBottom:32}}>
         {cards.map(c => (
           <div key={c.label} style={{background:'#1a1a1a',border:'1px solid rgba(255,255,255,0.07)',borderRadius:14,padding:'20px 18px'}}>
             <div style={{fontSize:24,marginBottom:10}}>{c.icon}</div>
-            <div style={{fontFamily:'var(--font-display,system-ui)',fontSize:28,fontWeight:900,color:c.color,marginBottom:4}}>
+            <div style={{fontSize:28,fontWeight:900,color:c.color,marginBottom:4}}>
               {c.value.toLocaleString()}
             </div>
             <div style={{fontSize:12,color:'#555'}}>{c.label}</div>
@@ -58,11 +62,8 @@ function SectionOverview() {
           ATALHOS RÁPIDOS
         </div>
         <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
-          {[
-            ['👥 Usuários','usuarios'],['📝 Questões','questoes'],['🃏 Flashcards','flashcards'],
-            ['📖 Resumos','resumos'],['🚩 Feature Flags','flags'],['⚙️ Configurações','settings'],
-          ].map(([label]) => (
-            <div key={label} style={{background:'rgba(255,255,255,0.04)',border:'1px solid rgba(255,255,255,0.07)',borderRadius:8,padding:'7px 13px',fontSize:12,color:'#888',cursor:'default'}}>
+          {['👥 Usuários','📝 Questões','🃏 Flashcards','📖 Resumos','🚩 Feature Flags','⚙️ Configurações'].map(label => (
+            <div key={label} style={{background:'rgba(255,255,255,0.04)',border:'1px solid rgba(255,255,255,0.07)',borderRadius:8,padding:'7px 13px',fontSize:12,color:'#888'}}>
               {label}
             </div>
           ))}
@@ -75,14 +76,14 @@ function SectionOverview() {
   )
 }
 
+// ─── Placeholder ──────────────────────────────────────────────────────────────
+
 function SectionPlaceholder({ section }: { section: string }) {
   return (
     <div style={{display:'flex',alignItems:'center',justifyContent:'center',minHeight:300}}>
       <div style={{textAlign:'center'}}>
         <div style={{fontSize:48,marginBottom:16}}>🚧</div>
-        <div style={{fontSize:18,fontWeight:700,color:'#fff',marginBottom:8}}>
-          Módulo em construção
-        </div>
+        <div style={{fontSize:18,fontWeight:700,color:'#fff',marginBottom:8}}>Módulo em construção</div>
         <div style={{fontSize:13,color:'#555'}}>
           A seção <strong style={{color:'#D4A843'}}>{section}</strong> está sendo desenvolvida.
         </div>
@@ -93,18 +94,20 @@ function SectionPlaceholder({ section }: { section: string }) {
 
 // ─── Render por seção ─────────────────────────────────────────────────────────
 
-function renderSection(section: AdminSection) {
+function renderSection(section: AdminSection, adminId?: string) {
   switch (section) {
-    case 'overview':   return <SectionOverview />
-    default:           return <SectionPlaceholder section={section} />
+    case 'overview': return <SectionOverview />
+    case 'resumos':  return <ModuloResumos adminId={adminId} />
+    default:         return <SectionPlaceholder section={section} />
   }
 }
 
-// ─── Page principal ───────────────────────────────────────────────────────────
+// ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function AdminPage() {
   const router = useRouter()
   const [adminEmail, setAdminEmail] = useState('')
+  const [adminId, setAdminId] = useState<string | undefined>()
   const [checking, setChecking] = useState(true)
 
   useEffect(() => {
@@ -120,6 +123,7 @@ export default function AdminPage() {
       }
 
       setAdminEmail(profile.email || session.user.email || 'admin')
+      setAdminId(session.user.id)
       setChecking(false)
     }
     check()
@@ -136,7 +140,7 @@ export default function AdminPage() {
 
   return (
     <AdminShell adminEmail={adminEmail}>
-      {(section) => renderSection(section)}
+      {(section) => renderSection(section, adminId)}
     </AdminShell>
   )
 }
