@@ -75,17 +75,12 @@ export default function LoginPage() {
       return
     }
 
-    // Usuário criado com sucesso
     if (data?.user) {
-      // Verifica se precisa confirmar email
       if (data.user.identities && data.user.identities.length === 0) {
-        // Email já existe mas não confirmado
         setErro('Este email já está cadastrado. Verifique sua caixa de entrada para confirmar.')
       } else if (!data.session) {
-        // Cadastro OK mas precisa confirmar email
         setSucesso('✅ Conta criada! Enviamos um link de confirmação para seu email. Verifique sua caixa de entrada e clique no link para ativar sua conta.')
       } else {
-        // Cadastro OK e já logado (confirmação desativada)
         router.push('/plataforma')
       }
     }
@@ -97,10 +92,11 @@ export default function LoginPage() {
     if (!email) { setErro('Digite seu email.'); return }
     setLoading(true); setErro('')
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/auth/callback?next=/reset-password`,
+      // ✅ CORREÇÃO: vai direto para /reset-password com o token no hash
+      redirectTo: `${window.location.origin}/reset-password`,
     })
     if (error) { setErro('Erro ao enviar email. Tente novamente.') }
-    else { setSucesso('Email enviado! Verifique sua caixa de entrada.') }
+    else { setSucesso('Email enviado! Verifique sua caixa de entrada e clique no link para redefinir sua senha.') }
     setLoading(false)
   }
 
@@ -189,7 +185,6 @@ export default function LoginPage() {
             </>
           )}
 
-          {/* Após cadastro bem-sucedido, mostra botão para ir ao login */}
           {sucesso && mode === 'cadastro' && (
             <button
               className="btn-primary"
