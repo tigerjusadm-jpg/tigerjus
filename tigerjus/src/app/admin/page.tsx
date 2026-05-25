@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabase'
 import AdminShell, { type AdminSection } from '@/components/AdminShell'
 import ModuloResumos from '@/components/ModuloResumos'
 import ModuloUsuarios from '@/components/ModuloUsuarios'
+import ModuloFlags from '@/components/ModuloFlags'
 
 // ─── Seção Overview ───────────────────────────────────────────────────────────
 
@@ -100,6 +101,7 @@ function renderSection(section: AdminSection, adminId?: string) {
     case 'overview': return <SectionOverview />
     case 'resumos':  return <ModuloResumos adminId={adminId} />
     case 'usuarios': return <ModuloUsuarios adminId={adminId} />
+    case 'flags':    return <ModuloFlags adminId={adminId} />
     default:         return <SectionPlaceholder section={section} />
   }
 }
