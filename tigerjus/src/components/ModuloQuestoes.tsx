@@ -437,7 +437,7 @@ export default function ModuloQuestoes({adminId}:{adminId?:string}) {
   const [editando, setEditando]   = useState<Partial<Questao>|null>(null)
   const [preview, setPreview]     = useState<Questao|null>(null)
   const [novaCriando, setNovaCriando] = useState(false)
-  const buscaTimer                = useRef<NodeJS.Timeout>()
+  const buscaTimer                = useRef<NodeJS.Timeout | undefined>(undefined)
 
   const load = useCallback(async (pag = pagina, termoBusca = busca) => {
     setLoading(true)
