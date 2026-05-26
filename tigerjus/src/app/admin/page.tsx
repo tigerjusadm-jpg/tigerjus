@@ -7,6 +7,7 @@ import ModuloResumos from '@/components/ModuloResumos'
 import ModuloUsuarios from '@/components/ModuloUsuarios'
 import ModuloFlags from '@/components/ModuloFlags'
 import ModuloQuestoes from '@/components/ModuloQuestoes'
+import ModuloSimulados from '@/components/ModuloSimulados'
 
 // ─── Seção Overview ───────────────────────────────────────────────────────────
 
@@ -99,12 +100,13 @@ function SectionPlaceholder({ section }: { section: string }) {
 
 function renderSection(section: AdminSection, adminId?: string) {
   switch (section) {
-    case 'overview': return <SectionOverview />
-    case 'resumos':  return <ModuloResumos adminId={adminId} />
-    case 'usuarios': return <ModuloUsuarios adminId={adminId} />
-    case 'flags':    return <ModuloFlags adminId={adminId} />
-    case 'questoes': return <ModuloQuestoes adminId={adminId} />
-    default:         return <SectionPlaceholder section={section} />
+    case 'overview':  return <SectionOverview />
+    case 'resumos':   return <ModuloResumos adminId={adminId} />
+    case 'usuarios':  return <ModuloUsuarios adminId={adminId} />
+    case 'flags':     return <ModuloFlags adminId={adminId} />
+    case 'questoes':  return <ModuloQuestoes adminId={adminId} />
+    case 'simulados': return <ModuloSimulados adminId={adminId} />
+    default:          return <SectionPlaceholder section={section} />
   }
 }
 
