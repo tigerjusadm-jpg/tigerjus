@@ -6,6 +6,7 @@ import AdminShell, { type AdminSection } from '@/components/AdminShell'
 import ModuloResumos from '@/components/ModuloResumos'
 import ModuloUsuarios from '@/components/ModuloUsuarios'
 import ModuloFlags from '@/components/ModuloFlags'
+import ModuloQuestoes from '@/components/ModuloQuestoes'
 
 // ─── Seção Overview ───────────────────────────────────────────────────────────
 
@@ -102,6 +103,7 @@ function renderSection(section: AdminSection, adminId?: string) {
     case 'resumos':  return <ModuloResumos adminId={adminId} />
     case 'usuarios': return <ModuloUsuarios adminId={adminId} />
     case 'flags':    return <ModuloFlags adminId={adminId} />
+    case 'questoes': return <ModuloQuestoes adminId={adminId} />
     default:         return <SectionPlaceholder section={section} />
   }
 }
