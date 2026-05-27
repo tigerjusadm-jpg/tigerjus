@@ -8,6 +8,33 @@ import { supabase } from '@/lib/supabase'
 // ─── TIPOS ────────────────────────────────────────────────────────────────────
 
 export interface AppSettings {
+  // Landing Page
+  hero_badge:           string
+  hero_headline:        string
+  hero_subtitle:        string
+  hero_quote:           string
+  hero_cta_primary:     string
+  final_cta_title:      string
+  final_cta_subtitle:   string
+  final_cta_button:     string
+  final_cta_footer:     string
+  footer_copyright:     string
+  // Dashboard
+  welcome_message:      string
+  dashboard_subtitle:   string
+  ia_welcome_message:   string
+  upgrade_footer_text:  string
+  cta_downgrade_button: string
+  // CTAs e Upgrade
+  cta_upgrade_title:    string
+  cta_upgrade_subtitle: string
+  cta_upgrade_button:   string
+  // Social e Suporte
+  whatsapp_url:         string
+  instagram_url:        string
+  telegram_url:         string
+  email_suporte:        string
+  youtube_url:          string
   // Branding
   site_name:            string
   site_tagline:         string
@@ -16,17 +43,6 @@ export interface AppSettings {
   primary_color:        string
   secondary_color:      string
   background_color:     string
-  // Suporte e Social
-  whatsapp_url:         string
-  instagram_url:        string
-  telegram_url:         string
-  email_suporte:        string
-  youtube_url:          string
-  // Textos e CTAs
-  welcome_message:      string
-  cta_upgrade_title:    string
-  cta_upgrade_subtitle: string
-  cta_upgrade_button:   string
   // Manutenção
   maintenance_mode:     boolean
   maintenance_message:  string
@@ -35,21 +51,42 @@ export interface AppSettings {
 // ─── FALLBACKS SEGUROS ────────────────────────────────────────────────────────
 
 const FALLBACKS: AppSettings = {
-  site_name:            'TigerJus',
-  site_tagline:         'Estude como um Tigre.',
-  logo_url:             '',
-  primary_color:        '#D4A843',
-  secondary_color:      '#E8621A',
-  background_color:     '#0a0a0a',
+  // Landing Page
+  hero_badge:           'Plataforma jurídica de nova geração',
+  hero_headline:        'O jeito mais inteligente de evoluir no Direito.',
+  hero_subtitle:        'Estude com IA, gamificação e metodologia de alta performance. Aprovação na OAB com método e inteligência.',
+  hero_quote:           'Não basta estudar Direito. É preciso pensar como um Tigre.',
+  hero_cta_primary:     '🐯 COMEÇAR GRÁTIS',
+  final_cta_title:      'Pronto para pensar como um Tigre?',
+  final_cta_subtitle:   'Mais de 12.400 estudantes já estão evoluindo. Comece grátis e sinta a diferença.',
+  final_cta_button:     'COMEÇAR AGORA',
+  final_cta_footer:     'Sem cartão de crédito · Acesso imediato · 3 dias grátis',
+  footer_copyright:     '© 2025 TigerJus',
+  // Dashboard
+  welcome_message:      '🔥 Bem-vindo de volta! Continue sua jornada jurídica.',
+  dashboard_subtitle:   'Comece seus estudos hoje.',
+  ia_welcome_message:   'Olá! Sou o TigerJus AI — seu tutor jurídico de alta performance. 🐯⚖️\n\nPosso te ajudar com dúvidas de Direito, explicar artigos, resumir temas e te preparar para a OAB.\n\nO que você quer aprender hoje?',
+  upgrade_footer_text:  'A partir de R$1,99/mês · Cancele quando quiser',
+  cta_downgrade_button: 'Continuar no plano gratuito',
+  // CTAs e Upgrade
+  cta_upgrade_title:    'Desbloqueie o TigerJus Premium',
+  cta_upgrade_subtitle: 'Acesse conteúdo ilimitado.',
+  cta_upgrade_button:   'DESBLOQUEAR AGORA',
+  // Social e Suporte
   whatsapp_url:         '',
   instagram_url:        '',
   telegram_url:         '',
   email_suporte:        '',
   youtube_url:          '',
-  welcome_message:      '🔥 Bem-vindo de volta! Continue sua jornada jurídica.',
-  cta_upgrade_title:    'Desbloqueie o TigerJus Premium',
-  cta_upgrade_subtitle: 'Acesse conteúdo ilimitado.',
-  cta_upgrade_button:   'DESBLOQUEAR AGORA',
+  // Branding
+  site_name:            'TigerJus',
+  site_tagline:         'Estude como um Tigre.',
+  logo_url:             '',
+  // Visual
+  primary_color:        '#D4A843',
+  secondary_color:      '#E8621A',
+  background_color:     '#0a0a0a',
+  // Manutenção
   maintenance_mode:     false,
   maintenance_message:  'Voltamos em breve.',
 }
