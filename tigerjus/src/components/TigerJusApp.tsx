@@ -2,6 +2,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
+import { useAppSettings } from '@/contexts/AppSettingsContext'
 import RadarOAB from '@/components/RadarOAB'
 import { canAccess, isAdmin, getLimites, isPago, PLANOS_DISPLAY, type Plano } from '@/lib/planos'
 
@@ -276,12 +277,17 @@ function XPTooltip({ xp, levelName }: { xp: number; levelName: LevelName }) {
 }
 
 function PremiumGate({ onClose, onUpgrade }: { onClose:()=>void; onUpgrade:()=>void }) {
+  const { settings } = useAppSettings()
   return(
     <div style={{position:'fixed',inset:0,zIndex:200,background:'rgba(0,0,0,0.93)',backdropFilter:'blur(10px)',display:'flex',alignItems:'center',justifyContent:'center',padding:20}}>
       <div style={{background:'var(--gray)',border:'1px solid rgba(212,168,67,0.22)',borderRadius:24,padding:'48px 40px',textAlign:'center',maxWidth:480,width:'100%'}}>
         <div style={{fontSize:54,marginBottom:18}}>🔒</div>
-        <h2 style={{fontFamily:'var(--font-display)',fontSize:30,fontWeight:900,lineHeight:1.2,marginBottom:14}}>Recurso <span style={{color:'var(--gold)'}}>premium.</span></h2>
-        <p style={{fontSize:15,color:'var(--text-muted)',marginBottom:28,lineHeight:1.7}}>Faça upgrade para desbloquear este recurso.</p>
+        <h2 style={{fontFamily:'var(--font-display)',fontSize:30,fontWeight:900,lineHeight:1.2,marginBottom:14}}>
+          {settings.cta_upgrade_title || 'Recurso'} <span style={{color:'var(--gold)'}}>premium.</span>
+        </h2>
+        <p style={{fontSize:15,color:'var(--text-muted)',marginBottom:28,lineHeight:1.7}}>
+          {settings.cta_upgrade_subtitle || 'Faça upgrade para desbloquear este recurso.'}
+        </p>
         <div style={{display:'flex',flexDirection:'column',gap:10,marginBottom:28,textAlign:'left'}}>
           {['IA ilimitada','Simulados completos OAB','Radar TigerJus','Trilhas personalizadas','Mapas mentais e PDFs'].map((l,i)=>(
             <div key={i} style={{display:'flex',alignItems:'center',gap:12,background:'rgba(212,168,67,0.06)',border:'1px solid rgba(212,168,67,0.12)',borderRadius:10,padding:'12px 16px',fontSize:13}}>
@@ -289,7 +295,9 @@ function PremiumGate({ onClose, onUpgrade }: { onClose:()=>void; onUpgrade:()=>v
             </div>
           ))}
         </div>
-        <button className="btn-primary" style={{width:'100%',marginBottom:12,fontSize:15,padding:16}} onClick={onUpgrade}>🚀 VER PLANOS</button>
+        <button className="btn-primary" style={{width:'100%',marginBottom:12,fontSize:15,padding:16}} onClick={onUpgrade}>
+          🚀 {settings.cta_upgrade_button || 'VER PLANOS'}
+        </button>
         <button className="btn-secondary" style={{width:'100%',fontSize:12}} onClick={onClose}>Continuar no plano gratuito</button>
         <div style={{marginTop:16,fontSize:11,color:'var(--text-dim)'}}>A partir de R$1,99/mês · Cancele quando quiser</div>
       </div>
@@ -1647,6 +1655,7 @@ function RankingPage({profile}:any) {
 // ─── MAIN ─────────────────────────────────────────────────────────────────────
 export default function TigerJusApp() {
   const router=useRouter()
+  const { settings } = useAppSettings()
   const [profile,setProfile]=useState<Profile|null>(null)
   const [page,setPage]=useState('dashboard')
   const [showPremiumGate,setShowPremiumGate]=useState(false)
@@ -1695,7 +1704,7 @@ export default function TigerJusApp() {
       const today=new Date().toISOString().split('T')[0]
       if(data.ultimo_acesso!==today)await fetch('/api/xp',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId,action:'daily_login'})})
     }
-    setTimeout(()=>setNotif('🔥 Bem-vindo de volta! Continue sua jornada jurídica.'),1000)
+    setTimeout(()=>setNotif(settings.welcome_message||'🔥 Bem-vindo de volta! Continue sua jornada jurídica.'),1000)
   }
 
   const handleXp=async(action:string)=>{
@@ -1742,10 +1751,51 @@ export default function TigerJusApp() {
 
   return(
     <div style={{background:'var(--deep-black)',minHeight:'100vh'}}>
+
+      {/* ── MAINTENANCE MODE — bloqueia usuário comum, admin passa ── */}
+      {settings.maintenance_mode && !isAdmin(profile?.role) && (
+        <div style={{position:'fixed',inset:0,zIndex:9999,background:'var(--deep-black)',display:'flex',alignItems:'center',justifyContent:'center',padding:24}}>
+          <div style={{textAlign:'center',maxWidth:420}}>
+            <div style={{fontSize:64,marginBottom:20}}>🔧</div>
+            <h1 style={{fontFamily:'var(--font-display)',fontSize:28,fontWeight:900,color:'var(--gold)',marginBottom:12}}>
+              Em manutenção
+            </h1>
+            <p style={{fontSize:15,color:'var(--text-muted)',lineHeight:1.7,marginBottom:28}}>
+              {settings.maintenance_message || 'Voltamos em breve. Obrigado pela paciência!'}
+            </p>
+            {settings.whatsapp_url && (
+              <a href={settings.whatsapp_url} target="_blank" rel="noopener noreferrer"
+                style={{display:'inline-flex',alignItems:'center',gap:8,background:'#25D366',border:'none',borderRadius:10,padding:'12px 24px',color:'#fff',fontSize:14,fontWeight:700,textDecoration:'none'}}>
+                💬 Falar com o suporte
+              </a>
+            )}
+          </div>
+        </div>
+      )}
+
       {notif&&<Notification msg={notif} onClose={()=>setNotif(null)}/>}
       {showPremiumGate&&<PremiumGate onClose={()=>setShowPremiumGate(false)} onUpgrade={showUpgrade}/>}
       {showUpgradeModal&&<UpgradeModal onClose={()=>setShowUpgradeModal(false)} onSelect={handleUpgradeSelect}/>}
       {showRadar&&<RadarModal onClose={()=>setShowRadar(false)}/>}
+
+      {/* ── BOTÃO FLUTUANTE WHATSAPP — só aparece se URL estiver cadastrada ── */}
+      {settings.whatsapp_url && !settings.maintenance_mode && (
+        <a href={settings.whatsapp_url} target="_blank" rel="noopener noreferrer"
+          title="Falar com suporte"
+          style={{
+            position:'fixed', bottom:24, right:24, zIndex:150,
+            width:52, height:52, borderRadius:'50%',
+            background:'#25D366',
+            display:'flex', alignItems:'center', justifyContent:'center',
+            boxShadow:'0 4px 20px rgba(37,211,102,0.4)',
+            textDecoration:'none', fontSize:24,
+            transition:'transform 0.2s',
+          }}
+          onMouseEnter={e=>(e.currentTarget.style.transform='scale(1.1)')}
+          onMouseLeave={e=>(e.currentTarget.style.transform='scale(1)')}>
+          💬
+        </a>
+      )}
 
       <nav style={{position:'fixed',top:0,left:0,right:0,zIndex:100,display:'flex',alignItems:'center',justifyContent:'space-between',padding:'0 16px',height:60,background:'rgba(8,8,8,0.95)',backdropFilter:'blur(12px)',borderBottom:'1px solid rgba(255,255,255,0.06)'}}>
         <div style={{display:'flex',alignItems:'center',gap:8}}>
