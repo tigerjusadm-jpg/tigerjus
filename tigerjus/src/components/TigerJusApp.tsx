@@ -298,14 +298,15 @@ function PremiumGate({ onClose, onUpgrade }: { onClose:()=>void; onUpgrade:()=>v
         <button className="btn-primary" style={{width:'100%',marginBottom:12,fontSize:15,padding:16}} onClick={onUpgrade}>
           🚀 {settings.cta_upgrade_button || 'VER PLANOS'}
         </button>
-        <button className="btn-secondary" style={{width:'100%',fontSize:12}} onClick={onClose}>Continuar no plano gratuito</button>
-        <div style={{marginTop:16,fontSize:11,color:'var(--text-dim)'}}>A partir de R$1,99/mês · Cancele quando quiser</div>
+        <button className="btn-secondary" style={{width:'100%',fontSize:12}} onClick={onClose}>{settings.cta_downgrade_button||'Continuar no plano gratuito'}</button>
+        <div style={{marginTop:16,fontSize:11,color:'var(--text-dim)'}}>{settings.upgrade_footer_text||'A partir de R\$1,99/mês · Cancele quando quiser'}</div>
       </div>
     </div>
   )
 }
 
 function DashHome({ profile, onNav, showUpgrade, isPago, canAccessPremium, onOpenRadar }: any) {
+  const { settings: dashSettings } = useAppSettings()
   const xp=profile?.xp||0
   const levelName=(profile?.level_name||'Filhote') as LevelName
   const streak=profile?.streak||0
@@ -323,7 +324,7 @@ function DashHome({ profile, onNav, showUpgrade, isPago, canAccessPremium, onOpe
         <div>
           <h1 style={{fontFamily:'var(--font-display)',fontSize:'clamp(22px,5vw,32px)',fontWeight:900,marginBottom:6}}>Olá, {profile?.nome?.split(' ')[0]||levelName}! 🔥</h1>
           <p style={{fontSize:14,color:'var(--text-muted)'}}>
-            {streak>0?<>Sequência de <span style={{color:'var(--gold)'}}>{streak} dias</span>. Continue!</>:'Comece seus estudos hoje.'}
+            {streak>0?<>Sequência de <span style={{color:'var(--gold)'}}>{streak} dias</span>. Continue!</>:(dashSettings.dashboard_subtitle||'Comece seus estudos hoje.')}
           </p>
         </div>
         {streak>0&&<div style={{display:'inline-flex',alignItems:'center',gap:6,background:'rgba(232,98,26,0.1)',border:'1px solid rgba(232,98,26,0.25)',borderRadius:100,padding:'8px 16px',fontSize:13,fontWeight:700,color:'var(--orange)'}}>🔥 {streak} dias</div>}
@@ -545,7 +546,8 @@ function QuizPage({ freeQ, setFreeQ, showUpgrade, onXp, profile, isPago }: any) 
 }
 
 function IAPage({ freeIA, setFreeIA, showUpgrade, profile, isPago }: any) {
-  const [msgs,setMsgs]=useState([{role:'assistant',text:'Olá! Sou o TigerJus AI — seu tutor jurídico de alta performance. 🐯⚖️\n\nPosso te ajudar com dúvidas de Direito, explicar artigos, resumir temas e te preparar para a OAB.\n\nO que você quer aprender hoje?'}])
+  const { settings: iaSettings } = useAppSettings()
+  const [msgs,setMsgs]=useState([{role:'assistant',text:iaSettings.ia_welcome_message||'Olá! Sou o TigerJus AI — seu tutor jurídico de alta performance. 🐯⚖️\n\nPosso te ajudar com dúvidas de Direito, explicar artigos, resumir temas e te preparar para a OAB.\n\nO que você quer aprender hoje?'}])
   const [input,setInput]=useState('')
   const [loading,setLoading]=useState(false)
   const endRef=useRef<HTMLDivElement>(null)
@@ -1845,7 +1847,18 @@ export default function TigerJusApp() {
           <div style={{fontSize:10,fontWeight:700,letterSpacing:'2.5px',textTransform:'uppercase',color:'var(--text-dim)',padding:'12px 14px 6px',marginTop:8}}>CONTA</div>
           {isAdmin(profile?.role)&&<button className="sidebar-item" onClick={()=>router.push('/admin')}>⚙️ Admin Panel</button>}
           <button className="sidebar-item" onClick={handleLogout}>🚪 Sair</button>
-          <div style={{marginTop:'auto',padding:'20px 12px 0'}}>
+          {(settings.whatsapp_url||settings.instagram_url||settings.telegram_url)&&(
+            <div style={{padding:'8px 12px 0'}}>
+              <div style={{fontSize:9,fontWeight:700,letterSpacing:2,textTransform:'uppercase',color:'var(--text-dim)',marginBottom:6}}>SUPORTE</div>
+              <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
+                {settings.whatsapp_url&&<a href={settings.whatsapp_url} target="_blank" rel="noopener noreferrer" title="WhatsApp" style={{width:32,height:32,borderRadius:8,background:'#25D36618',border:'1px solid #25D36633',display:'flex',alignItems:'center',justifyContent:'center',fontSize:16,textDecoration:'none'}}>💬</a>}
+                {settings.instagram_url&&<a href={settings.instagram_url} target="_blank" rel="noopener noreferrer" title="Instagram" style={{width:32,height:32,borderRadius:8,background:'rgba(212,168,67,0.08)',border:'1px solid rgba(212,168,67,0.2)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:16,textDecoration:'none'}}>📸</a>}
+                {settings.telegram_url&&<a href={settings.telegram_url} target="_blank" rel="noopener noreferrer" title="Telegram" style={{width:32,height:32,borderRadius:8,background:'rgba(96,165,250,0.08)',border:'1px solid rgba(96,165,250,0.2)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:16,textDecoration:'none'}}>✈️</a>}
+                {settings.youtube_url&&<a href={settings.youtube_url} target="_blank" rel="noopener noreferrer" title="YouTube" style={{width:32,height:32,borderRadius:8,background:'rgba(248,113,113,0.08)',border:'1px solid rgba(248,113,113,0.2)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:16,textDecoration:'none'}}>▶️</a>}
+              </div>
+            </div>
+          )}
+          <div style={{marginTop:'auto'}},padding:'20px 12px 0'}}>
             <div style={{background:'rgba(212,168,67,0.06)',border:'1px solid rgba(212,168,67,0.14)',borderRadius:12,padding:14}}>
               <div style={{fontSize:9,fontWeight:700,letterSpacing:2,textTransform:'uppercase',color:'var(--gold)',marginBottom:5}}>{planoDisplay.toUpperCase()}</div>
               <div style={{fontSize:11,color:'var(--text-muted)',marginBottom:10}}>
