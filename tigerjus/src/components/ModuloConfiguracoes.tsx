@@ -44,7 +44,17 @@ const GRUPOS: { key: string; label: string; icon: string; keys: string[] }[] = [
     key: 'cta',
     label: 'CTAs e Textos',
     icon: '📢',
-    keys: ['cta_upgrade_title', 'cta_upgrade_subtitle', 'cta_upgrade_button', 'landing_headline'],
+    keys: [
+      'welcome_message',
+      'cta_upgrade_title', 'cta_upgrade_subtitle', 'cta_upgrade_button',
+      'landing_headline',
+    ],
+  },
+  {
+    key: 'social',
+    label: 'Social e Suporte',
+    icon: '💬',
+    keys: ['whatsapp_url', 'instagram_url', 'telegram_url', 'email_suporte', 'youtube_url'],
   },
 ]
 
@@ -72,11 +82,18 @@ const DEFAULTS: Omit<AppSetting, 'id' | 'ativo'>[] = [
   { key: 'ia_model',           value: 'claude-sonnet-4-20250514',   type: 'text',    description: 'Modelo de IA utilizado' },
   { key: 'ia_max_tokens',      value: '1000',                        type: 'number',  description: 'Máximo de tokens por resposta' },
   { key: 'ia_system_prompt',   value: '',                            type: 'json',    description: 'System prompt base da IA jurídica' },
-  // CTAs
+  // CTAs e Textos
+  { key: 'welcome_message',      value: 'Bem-vindo de volta! Continue sua jornada jurídica.', type: 'text', description: 'Mensagem de boas-vindas no dashboard' },
   { key: 'cta_upgrade_title',    value: 'Desbloqueie o TigerJus Premium', type: 'text', description: 'Título do modal de upgrade' },
   { key: 'cta_upgrade_subtitle', value: 'Acesse conteúdo ilimitado.',     type: 'text', description: 'Subtítulo do modal de upgrade' },
   { key: 'cta_upgrade_button',   value: 'DESBLOQUEAR AGORA',              type: 'text', description: 'Texto do botão de upgrade' },
   { key: 'landing_headline',     value: 'O jeito mais inteligente de evoluir no Direito.', type: 'text', description: 'Headline da landing page' },
+  // Social e Suporte
+  { key: 'whatsapp_url',   value: '', type: 'text', description: 'Link do WhatsApp de suporte (ex: https://wa.me/5511999999999)' },
+  { key: 'instagram_url',  value: '', type: 'text', description: 'Link do Instagram (ex: https://instagram.com/tigerjus)' },
+  { key: 'telegram_url',   value: '', type: 'text', description: 'Link do Telegram (ex: https://t.me/tigerjus)' },
+  { key: 'email_suporte',  value: '', type: 'text', description: 'E-mail de suporte (ex: suporte@tigerjus.com.br)' },
+  { key: 'youtube_url',    value: '', type: 'text', description: 'Link do canal YouTube (ex: https://youtube.com/@tigerjus)' },
 ]
 
 // ─── EDITOR POR TIPO ──────────────────────────────────────────────────────────
