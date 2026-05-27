@@ -17,6 +17,41 @@ interface AppSetting {
 
 const GRUPOS: { key: string; label: string; icon: string; keys: string[] }[] = [
   {
+    key: 'landing',
+    label: 'Landing Page',
+    icon: '🌐',
+    keys: [
+      'hero_badge', 'hero_headline', 'hero_subtitle', 'hero_quote',
+      'hero_cta_primary',
+      'final_cta_title', 'final_cta_subtitle', 'final_cta_button', 'final_cta_footer',
+      'footer_copyright',
+    ],
+  },
+  {
+    key: 'dashboard',
+    label: 'Dashboard',
+    icon: '🏠',
+    keys: [
+      'welcome_message', 'dashboard_subtitle',
+      'ia_welcome_message',
+      'upgrade_footer_text', 'cta_downgrade_button',
+    ],
+  },
+  {
+    key: 'cta',
+    label: 'CTAs e Upgrade',
+    icon: '📢',
+    keys: [
+      'cta_upgrade_title', 'cta_upgrade_subtitle', 'cta_upgrade_button',
+    ],
+  },
+  {
+    key: 'social',
+    label: 'Social e Suporte',
+    icon: '💬',
+    keys: ['whatsapp_url', 'instagram_url', 'telegram_url', 'email_suporte', 'youtube_url'],
+  },
+  {
     key: 'branding',
     label: 'Branding',
     icon: '🎨',
@@ -40,33 +75,44 @@ const GRUPOS: { key: string; label: string; icon: string; keys: string[] }[] = [
     icon: '🤖',
     keys: ['ia_enabled', 'ia_model', 'ia_max_tokens', 'ia_system_prompt'],
   },
-  {
-    key: 'cta',
-    label: 'CTAs e Textos',
-    icon: '📢',
-    keys: [
-      'welcome_message',
-      'cta_upgrade_title', 'cta_upgrade_subtitle', 'cta_upgrade_button',
-      'landing_headline',
-    ],
-  },
-  {
-    key: 'social',
-    label: 'Social e Suporte',
-    icon: '💬',
-    keys: ['whatsapp_url', 'instagram_url', 'telegram_url', 'email_suporte', 'youtube_url'],
-  },
 ]
 
 // Settings padrão para criar quando não existem
 const DEFAULTS: Omit<AppSetting, 'id' | 'ativo'>[] = [
+  // Landing Page
+  { key: 'hero_badge',         value: 'Plataforma jurídica de nova geração',                          type: 'text', description: 'Badge animado acima do título hero' },
+  { key: 'hero_headline',      value: 'O jeito mais inteligente de evoluir no Direito.',               type: 'text', description: 'Título principal da landing page (H1)' },
+  { key: 'hero_subtitle',      value: 'Estude com IA, gamificação e metodologia de alta performance. Aprovação na OAB com método e inteligência.', type: 'text', description: 'Subtítulo abaixo do H1' },
+  { key: 'hero_quote',         value: 'Não basta estudar Direito. É preciso pensar como um Tigre.',   type: 'text', description: 'Frase em itálico abaixo do subtítulo' },
+  { key: 'hero_cta_primary',   value: '🐯 COMEÇAR GRÁTIS',                                            type: 'text', description: 'Texto do botão CTA principal do hero' },
+  { key: 'final_cta_title',    value: 'Pronto para pensar como um Tigre?',                            type: 'text', description: 'Título da seção CTA final' },
+  { key: 'final_cta_subtitle', value: 'Mais de 12.400 estudantes já estão evoluindo. Comece grátis e sinta a diferença.', type: 'text', description: 'Subtítulo da seção CTA final' },
+  { key: 'final_cta_button',   value: 'COMEÇAR AGORA',                                                type: 'text', description: 'Texto do botão CTA final' },
+  { key: 'final_cta_footer',   value: 'Sem cartão de crédito · Acesso imediato · 3 dias grátis',      type: 'text', description: 'Texto abaixo do botão CTA final' },
+  { key: 'footer_copyright',   value: '© 2025 TigerJus',                                              type: 'text', description: 'Texto de copyright no footer' },
+  // Dashboard
+  { key: 'welcome_message',      value: '🔥 Bem-vindo de volta! Continue sua jornada jurídica.', type: 'text', description: 'Notificação de boas-vindas no dashboard' },
+  { key: 'dashboard_subtitle',   value: 'Comece seus estudos hoje.',                             type: 'text', description: 'Subtítulo abaixo do "Olá, [Nome]!"' },
+  { key: 'ia_welcome_message',   value: 'Olá! Sou o TigerJus AI — seu tutor jurídico de alta performance. 🐯⚖️\n\nPosso te ajudar com dúvidas de Direito, explicar artigos, resumir temas e te preparar para a OAB.\n\nO que você quer aprender hoje?', type: 'text', description: 'Mensagem inicial da IA Jurídica' },
+  { key: 'upgrade_footer_text',  value: 'A partir de R$1,99/mês · Cancele quando quiser',        type: 'text', description: 'Rodapé do modal de upgrade' },
+  { key: 'cta_downgrade_button', value: 'Continuar no plano gratuito',                          type: 'text', description: 'Botão secundário do modal de upgrade' },
+  // CTAs e Upgrade
+  { key: 'cta_upgrade_title',    value: 'Desbloqueie o TigerJus Premium', type: 'text', description: 'Título do modal de upgrade' },
+  { key: 'cta_upgrade_subtitle', value: 'Acesse conteúdo ilimitado.',     type: 'text', description: 'Subtítulo do modal de upgrade' },
+  { key: 'cta_upgrade_button',   value: 'DESBLOQUEAR AGORA',              type: 'text', description: 'Texto do botão de upgrade' },
+  // Social e Suporte
+  { key: 'whatsapp_url',   value: '', type: 'text', description: 'Link do WhatsApp de suporte (ex: https://wa.me/5511999999999)' },
+  { key: 'instagram_url',  value: '', type: 'text', description: 'Link do Instagram (ex: https://instagram.com/tigerjus)' },
+  { key: 'telegram_url',   value: '', type: 'text', description: 'Link do Telegram (ex: https://t.me/tigerjus)' },
+  { key: 'email_suporte',  value: '', type: 'text', description: 'E-mail de suporte (ex: suporte@tigerjus.com.br)' },
+  { key: 'youtube_url',    value: '', type: 'text', description: 'Link do canal YouTube (ex: https://youtube.com/@tigerjus)' },
   // Branding
   { key: 'site_name',          value: 'TigerJus',                    type: 'text',    description: 'Nome da plataforma' },
   { key: 'site_tagline',       value: 'Estude como um Tigre.',       type: 'text',    description: 'Slogan exibido na landing' },
   { key: 'site_description',   value: '',                            type: 'text',    description: 'Descrição para SEO' },
   { key: 'logo_url',           value: '',                            type: 'text',    description: 'URL do logo principal' },
   { key: 'favicon_url',        value: '',                            type: 'text',    description: 'URL do favicon' },
-  // Tema
+  // Tema Visual
   { key: 'primary_color',      value: '#D4A843',                     type: 'color',   description: 'Cor primária do tema' },
   { key: 'secondary_color',    value: '#E8621A',                     type: 'color',   description: 'Cor secundária do tema' },
   { key: 'background_color',   value: '#0a0a0a',                     type: 'color',   description: 'Cor de fundo principal' },
@@ -77,23 +123,11 @@ const DEFAULTS: Omit<AppSetting, 'id' | 'ativo'>[] = [
   { key: 'max_free_ia',        value: '5',                           type: 'number',  description: 'Perguntas IA grátis' },
   { key: 'maintenance_mode',   value: 'false',                       type: 'boolean', description: 'Ativa modo de manutenção' },
   { key: 'maintenance_message',value: 'Voltamos em breve.',          type: 'text',    description: 'Mensagem de manutenção' },
-  // IA
+  // IA Global
   { key: 'ia_enabled',         value: 'true',                        type: 'boolean', description: 'IA jurídica habilitada globalmente' },
   { key: 'ia_model',           value: 'claude-sonnet-4-20250514',   type: 'text',    description: 'Modelo de IA utilizado' },
   { key: 'ia_max_tokens',      value: '1000',                        type: 'number',  description: 'Máximo de tokens por resposta' },
   { key: 'ia_system_prompt',   value: '',                            type: 'json',    description: 'System prompt base da IA jurídica' },
-  // CTAs e Textos
-  { key: 'welcome_message',      value: 'Bem-vindo de volta! Continue sua jornada jurídica.', type: 'text', description: 'Mensagem de boas-vindas no dashboard' },
-  { key: 'cta_upgrade_title',    value: 'Desbloqueie o TigerJus Premium', type: 'text', description: 'Título do modal de upgrade' },
-  { key: 'cta_upgrade_subtitle', value: 'Acesse conteúdo ilimitado.',     type: 'text', description: 'Subtítulo do modal de upgrade' },
-  { key: 'cta_upgrade_button',   value: 'DESBLOQUEAR AGORA',              type: 'text', description: 'Texto do botão de upgrade' },
-  { key: 'landing_headline',     value: 'O jeito mais inteligente de evoluir no Direito.', type: 'text', description: 'Headline da landing page' },
-  // Social e Suporte
-  { key: 'whatsapp_url',   value: '', type: 'text', description: 'Link do WhatsApp de suporte (ex: https://wa.me/5511999999999)' },
-  { key: 'instagram_url',  value: '', type: 'text', description: 'Link do Instagram (ex: https://instagram.com/tigerjus)' },
-  { key: 'telegram_url',   value: '', type: 'text', description: 'Link do Telegram (ex: https://t.me/tigerjus)' },
-  { key: 'email_suporte',  value: '', type: 'text', description: 'E-mail de suporte (ex: suporte@tigerjus.com.br)' },
-  { key: 'youtube_url',    value: '', type: 'text', description: 'Link do canal YouTube (ex: https://youtube.com/@tigerjus)' },
 ]
 
 // ─── EDITOR POR TIPO ──────────────────────────────────────────────────────────
