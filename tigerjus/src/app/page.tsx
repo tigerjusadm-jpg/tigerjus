@@ -2,6 +2,7 @@
 import Link from 'next/link'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { useAppSettings } from '@/contexts/AppSettingsContext'
 
 const PLANS = [
   { id:'free', name:'Plano Generosidade', price:'0', period:'3 dias grátis', color:'var(--text-muted)', features:[{ok:true,txt:'15 questões'},{ok:true,txt:'5 perguntas IA'},{ok:true,txt:'1 mini simulado'},{ok:false,txt:'Simulados completos'},{ok:false,txt:'IA avançada'},{ok:false,txt:'Ranking'}] },
@@ -61,6 +62,7 @@ function UpgradeModal({ onClose }: { onClose: () => void }) {
 
 export default function HomePage() {
   const router = useRouter()
+  const { settings } = useAppSettings()
   const [showUpgrade, setShowUpgrade] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
 
@@ -71,19 +73,24 @@ export default function HomePage() {
     { label:'Planos', action: () => { document.getElementById('planos')?.scrollIntoView({behavior:'smooth'}); setMenuOpen(false) } },
   ]
 
+  // Redes sociais ativas
+  const sociais = [
+    { url: settings.instagram_url, icon: '📸', label: 'Instagram', color: 'rgba(212,168,67,0.15)' },
+    { url: settings.whatsapp_url,  icon: '💬', label: 'WhatsApp',  color: 'rgba(37,211,102,0.15)' },
+    { url: settings.telegram_url,  icon: '✈️', label: 'Telegram',  color: 'rgba(96,165,250,0.15)' },
+    { url: settings.youtube_url,   icon: '▶️', label: 'YouTube',   color: 'rgba(248,113,113,0.15)' },
+  ].filter(s => s.url)
+
   return (
     <div style={{background:'var(--deep-black)',minHeight:'100vh'}}>
       {showUpgrade && <UpgradeModal onClose={() => setShowUpgrade(false)} />}
 
       {/* NAVBAR */}
       <nav style={{position:'fixed',top:0,left:0,right:0,zIndex:100,display:'flex',alignItems:'center',justifyContent:'space-between',padding:'0 20px',height:60,background:'rgba(8,8,8,0.95)',backdropFilter:'blur(12px)',borderBottom:'1px solid rgba(255,255,255,0.06)'}}>
-        {/* Logo */}
         <div style={{display:'flex',alignItems:'center',gap:10}}>
           <div style={{width:36,height:36,background:'linear-gradient(135deg,var(--gold),var(--orange))',borderRadius:8,display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'var(--font-display)',fontSize:17,fontWeight:900,color:'var(--deep-black)',boxShadow:'0 0 20px rgba(212,168,67,0.3)',flexShrink:0}}>T</div>
-          <span style={{fontFamily:'var(--font-display)',fontSize:20,fontWeight:900,letterSpacing:2,background:'linear-gradient(135deg,var(--gold-light),var(--gold))',WebkitBackgroundClip:'text',WebkitTextFillColor:'transparent'}}>TIGERJUS</span>
+          <span style={{fontFamily:'var(--font-display)',fontSize:20,fontWeight:900,letterSpacing:2,background:'linear-gradient(135deg,var(--gold-light),var(--gold))',WebkitBackgroundClip:'text',WebkitTextFillColor:'transparent'}}>{settings.site_name||'TIGERJUS'}</span>
         </div>
-
-        {/* Menu desktop */}
         <div className="landing-nav-desktop" style={{display:'flex',gap:28,alignItems:'center'}}>
           {navItems.map(item=>(
             <button key={item.label} onClick={item.action}
@@ -92,17 +99,11 @@ export default function HomePage() {
               onMouseLeave={e=>(e.currentTarget.style.color='var(--text-muted)')}>{item.label}</button>
           ))}
         </div>
-
-        {/* Botões desktop */}
         <div className="landing-nav-desktop" style={{display:'flex',gap:10,alignItems:'center'}}>
           <Link href="/login" style={{color:'var(--text-muted)',fontSize:12,fontWeight:500,letterSpacing:1,textTransform:'uppercase',textDecoration:'none'}}>Entrar</Link>
           <Link href="/login?modo=cadastro" className="btn-primary" style={{padding:'10px 22px',fontSize:12}}>COMEÇAR GRÁTIS</Link>
         </div>
-
-        {/* Hamburguer mobile */}
-        <button
-          className="landing-nav-mobile"
-          onClick={() => setMenuOpen(o => !o)}
+        <button className="landing-nav-mobile" onClick={() => setMenuOpen(o => !o)}
           style={{background:'none',border:'1px solid rgba(255,255,255,0.1)',borderRadius:8,width:36,height:36,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:5,cursor:'pointer',padding:8,flexShrink:0}}>
           <span style={{display:'block',width:18,height:2,background:'var(--white)',borderRadius:2,transition:'all 0.25s',transform:menuOpen?'rotate(45deg) translate(5px,5px)':'none'}}/>
           <span style={{display:'block',width:18,height:2,background:'var(--white)',borderRadius:2,transition:'all 0.25s',opacity:menuOpen?0:1}}/>
@@ -110,7 +111,7 @@ export default function HomePage() {
         </button>
       </nav>
 
-      {/* Menu mobile dropdown */}
+      {/* Menu mobile */}
       {menuOpen && (
         <div style={{position:'fixed',top:60,left:0,right:0,zIndex:99,background:'rgba(8,8,8,0.98)',backdropFilter:'blur(12px)',borderBottom:'1px solid rgba(255,255,255,0.08)',display:'flex',flexDirection:'column',padding:'8px 0'}}>
           {navItems.map(item=>(
@@ -126,7 +127,7 @@ export default function HomePage() {
             </Link>
             <Link href="/login?modo=cadastro" onClick={() => setMenuOpen(false)} className="btn-primary"
               style={{display:'block',textAlign:'center',padding:'14px',fontSize:14,textDecoration:'none'}}>
-              🐯 COMEÇAR GRÁTIS
+              {settings.hero_cta_primary||'🐯 COMEÇAR GRÁTIS'}
             </Link>
           </div>
         </div>
@@ -139,21 +140,29 @@ export default function HomePage() {
 
         <div style={{display:'inline-flex',alignItems:'center',gap:8,border:'1px solid rgba(212,168,67,0.3)',borderRadius:100,padding:'8px 20px',marginBottom:40,fontSize:11,fontWeight:600,letterSpacing:2,textTransform:'uppercase',color:'var(--gold)',background:'rgba(212,168,67,0.05)',animation:'fadeInDown 0.8s ease both'}}>
           <div style={{width:6,height:6,borderRadius:'50%',background:'var(--gold)',animation:'pulse 2s infinite'}} />
-          Plataforma jurídica de nova geração
+          {settings.hero_badge||'Plataforma jurídica de nova geração'}
         </div>
 
         <h1 style={{fontFamily:'var(--font-display)',fontSize:'clamp(38px,8vw,88px)',fontWeight:900,lineHeight:1.05,letterSpacing:-1,marginBottom:24,animation:'fadeInUp 0.8s 0.1s ease both'}}>
-          O jeito mais inteligente<br/>
-          <span style={{background:'linear-gradient(135deg,var(--gold-light) 0%,var(--gold) 50%,var(--orange) 100%)',WebkitBackgroundClip:'text',WebkitTextFillColor:'transparent'}}>de evoluir no Direito.</span>
+          {settings.hero_headline
+            ? settings.hero_headline.includes('Direito')
+              ? <>
+                  {settings.hero_headline.split('Direito')[0]}
+                  <span style={{background:'linear-gradient(135deg,var(--gold-light) 0%,var(--gold) 50%,var(--orange) 100%)',WebkitBackgroundClip:'text',WebkitTextFillColor:'transparent'}}>Direito{settings.hero_headline.split('Direito')[1]}</span>
+                </>
+              : settings.hero_headline
+            : <>O jeito mais inteligente<br/><span style={{background:'linear-gradient(135deg,var(--gold-light) 0%,var(--gold) 50%,var(--orange) 100%)',WebkitBackgroundClip:'text',WebkitTextFillColor:'transparent'}}>de evoluir no Direito.</span></>
+          }
         </h1>
+
         <p style={{fontSize:'clamp(15px,2vw,20px)',color:'var(--text-muted)',maxWidth:580,lineHeight:1.7,marginBottom:16,animation:'fadeInUp 0.8s 0.2s ease both'}}>
-          Estude com IA, gamificação e metodologia de alta performance. Aprovação na OAB com método e inteligência.
+          {settings.hero_subtitle||'Estude com IA, gamificação e metodologia de alta performance. Aprovação na OAB com método e inteligência.'}
         </p>
         <p style={{fontSize:13,color:'var(--gold-dark)',fontStyle:'italic',letterSpacing:1,marginBottom:40,animation:'fadeInUp 0.8s 0.25s ease both'}}>
-          ✦ "Não basta estudar Direito. É preciso pensar como um Tigre."
+          ✦ "{settings.hero_quote||'Não basta estudar Direito. É preciso pensar como um Tigre.'}"
         </p>
         <div style={{display:'flex',gap:14,justifyContent:'center',flexWrap:'wrap',marginBottom:60,animation:'fadeInUp 0.8s 0.3s ease both'}}>
-          <Link href="/login?modo=cadastro" className="btn-primary" style={{fontSize:15,padding:'16px 40px'}}>🐯 COMEÇAR GRÁTIS</Link>
+          <Link href="/login?modo=cadastro" className="btn-primary" style={{fontSize:15,padding:'16px 40px'}}>{settings.hero_cta_primary||'🐯 COMEÇAR GRÁTIS'}</Link>
           <Link href="/login" className="btn-secondary" style={{fontSize:15,padding:'16px 32px'}}>JÁ TENHO CONTA</Link>
         </div>
         <div style={{display:'grid',gridTemplateColumns:'repeat(2,1fr)',gap:'20px 40px',maxWidth:480,margin:'0 auto',animation:'fadeInUp 0.8s 0.4s ease both'}}>
@@ -276,22 +285,58 @@ export default function HomePage() {
       <section style={{padding:'80px 24px',background:'linear-gradient(135deg,rgba(212,168,67,0.08),rgba(232,98,26,0.04))'}}>
         <div style={{maxWidth:600,margin:'0 auto',textAlign:'center'}}>
           <div style={{fontSize:52,marginBottom:20}}>🐯</div>
-          <h2 style={{fontFamily:'var(--font-display)',fontSize:'clamp(28px,5vw,54px)',fontWeight:900,marginBottom:16}}>Pronto para pensar<br/><span style={{color:'var(--gold)'}}>como um Tigre?</span></h2>
-          <p style={{color:'var(--text-muted)',fontSize:16,marginBottom:36,lineHeight:1.7}}>Mais de 12.400 estudantes já estão evoluindo. Comece grátis e sinta a diferença.</p>
-          <Link href="/login?modo=cadastro" className="btn-primary" style={{fontSize:16,padding:'16px 48px',display:'inline-block'}}>COMEÇAR AGORA</Link>
-          <div style={{marginTop:16,fontSize:13,color:'var(--text-muted)'}}>Sem cartão de crédito · Acesso imediato · 3 dias grátis</div>
+          <h2 style={{fontFamily:'var(--font-display)',fontSize:'clamp(28px,5vw,54px)',fontWeight:900,marginBottom:16}}>
+            {settings.final_cta_title
+              ? settings.final_cta_title.includes('Tigre')
+                ? <>{settings.final_cta_title.split('Tigre')[0]}<span style={{color:'var(--gold)'}}>Tigre{settings.final_cta_title.split('Tigre')[1]}</span></>
+                : settings.final_cta_title
+              : <>Pronto para pensar<br/><span style={{color:'var(--gold)'}}>como um Tigre?</span></>
+            }
+          </h2>
+          <p style={{color:'var(--text-muted)',fontSize:16,marginBottom:36,lineHeight:1.7}}>
+            {settings.final_cta_subtitle||'Mais de 12.400 estudantes já estão evoluindo. Comece grátis e sinta a diferença.'}
+          </p>
+          <Link href="/login?modo=cadastro" className="btn-primary" style={{fontSize:16,padding:'16px 48px',display:'inline-block'}}>
+            {settings.final_cta_button||'COMEÇAR AGORA'}
+          </Link>
+          <div style={{marginTop:16,fontSize:13,color:'var(--text-muted)'}}>
+            {settings.final_cta_footer||'Sem cartão de crédito · Acesso imediato · 3 dias grátis'}
+          </div>
         </div>
       </section>
 
       {/* FOOTER */}
       <footer style={{background:'var(--black)',borderTop:'1px solid rgba(212,168,67,0.08)',padding:'36px 24px',textAlign:'center'}}>
-        <div style={{fontFamily:'var(--font-display)',fontSize:20,fontWeight:900,letterSpacing:2,color:'var(--gold)',marginBottom:10}}>TIGERJUS</div>
-        <div style={{fontSize:13,color:'var(--text-muted)',marginBottom:14}}>"Não basta estudar Direito. É preciso pensar como um Tigre."</div>
+        <div style={{fontFamily:'var(--font-display)',fontSize:20,fontWeight:900,letterSpacing:2,color:'var(--gold)',marginBottom:10}}>
+          {settings.site_name||'TIGERJUS'}
+        </div>
+        <div style={{fontSize:13,color:'var(--text-muted)',marginBottom:14}}>
+          "{settings.hero_quote||'Não basta estudar Direito. É preciso pensar como um Tigre.'}"
+        </div>
+
+        {/* Redes sociais — só aparecem se URL estiver cadastrada */}
+        {sociais.length > 0 && (
+          <div style={{display:'flex',gap:10,justifyContent:'center',marginBottom:16,flexWrap:'wrap'}}>
+            {sociais.map(s=>(
+              <a key={s.label} href={s.url} target="_blank" rel="noopener noreferrer"
+                title={s.label}
+                style={{width:38,height:38,borderRadius:10,background:s.color,border:'1px solid rgba(255,255,255,0.1)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:18,textDecoration:'none',transition:'transform 0.2s'}}
+                onMouseEnter={e=>(e.currentTarget.style.transform='scale(1.1)')}
+                onMouseLeave={e=>(e.currentTarget.style.transform='scale(1)')}>
+                {s.icon}
+              </a>
+            ))}
+          </div>
+        )}
+
         <div style={{display:'flex',gap:20,justifyContent:'center',flexWrap:'wrap',fontSize:12,color:'var(--text-dim)'}}>
-          <span>© 2025 TigerJus</span>
+          <span>{settings.footer_copyright||'© 2025 TigerJus'}</span>
           <Link href="/privacidade" style={{color:'var(--text-dim)',textDecoration:'none'}}>Privacidade</Link>
           <Link href="/termos" style={{color:'var(--text-dim)',textDecoration:'none'}}>Termos</Link>
-          <a href="mailto:contato@tigerjus.com.br" style={{color:'var(--text-dim)',textDecoration:'none'}}>contato@tigerjus.com.br</a>
+          {settings.email_suporte
+            ? <a href={`mailto:${settings.email_suporte}`} style={{color:'var(--text-dim)',textDecoration:'none'}}>{settings.email_suporte}</a>
+            : <a href="mailto:contato@tigerjus.com.br" style={{color:'var(--text-dim)',textDecoration:'none'}}>contato@tigerjus.com.br</a>
+          }
         </div>
       </footer>
 
