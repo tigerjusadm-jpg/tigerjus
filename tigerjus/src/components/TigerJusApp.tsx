@@ -1858,7 +1858,7 @@ export default function TigerJusApp() {
               </div>
             </div>
           )}
-          <div style={{marginTop:'auto'}},padding:'20px 12px 0'}}>
+          <div style={{marginTop:'auto',padding:'20px 12px 0'}}>
             <div style={{background:'rgba(212,168,67,0.06)',border:'1px solid rgba(212,168,67,0.14)',borderRadius:12,padding:14}}>
               <div style={{fontSize:9,fontWeight:700,letterSpacing:2,textTransform:'uppercase',color:'var(--gold)',marginBottom:5}}>{planoDisplay.toUpperCase()}</div>
               <div style={{fontSize:11,color:'var(--text-muted)',marginBottom:10}}>
