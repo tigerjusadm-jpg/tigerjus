@@ -9,6 +9,7 @@ import ModuloFlags from '@/components/ModuloFlags'
 import ModuloQuestoes from '@/components/ModuloQuestoes'
 import ModuloSimulados from '@/components/ModuloSimulados'
 import ModuloFlashcards from '@/components/ModuloFlashcards'
+import ModuloPlanos from '@/components/ModuloPlanos'
 
 // ─── Seção Overview ───────────────────────────────────────────────────────────
 
@@ -54,19 +55,10 @@ function SectionOverview() {
   return (
     <div>
       <div style={{ marginBottom: 28 }}>
-        <h1 style={{
-          fontSize: 24,
-          fontWeight: 900,
-          marginBottom: 4,
-          color: '#fff'
-        }}>
+        <h1 style={{ fontSize: 24, fontWeight: 900, marginBottom: 4, color: '#fff' }}>
           Control Center 🐯
         </h1>
-
-        <p style={{
-          fontSize: 13,
-          color: '#555'
-        }}>
+        <p style={{ fontSize: 13, color: '#555' }}>
           Bem-vindo ao TigerJus Admin. Use ⌘K para navegar rapidamente.
         </p>
       </div>
@@ -87,28 +79,11 @@ function SectionOverview() {
               padding: '20px 18px'
             }}
           >
-            <div style={{
-              fontSize: 24,
-              marginBottom: 10
-            }}>
-              {c.icon}
-            </div>
-
-            <div style={{
-              fontSize: 28,
-              fontWeight: 900,
-              color: c.color,
-              marginBottom: 4
-            }}>
+            <div style={{ fontSize: 24, marginBottom: 10 }}>{c.icon}</div>
+            <div style={{ fontSize: 28, fontWeight: 900, color: c.color, marginBottom: 4 }}>
               {c.value.toLocaleString()}
             </div>
-
-            <div style={{
-              fontSize: 12,
-              color: '#555'
-            }}>
-              {c.label}
-            </div>
+            <div style={{ fontSize: 12, color: '#555' }}>{c.label}</div>
           </div>
         ))}
       </div>
@@ -130,16 +105,13 @@ function SectionOverview() {
           ATALHOS RÁPIDOS
         </div>
 
-        <div style={{
-          display: 'flex',
-          gap: 8,
-          flexWrap: 'wrap'
-        }}>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
           {[
             '👥 Usuários',
             '📝 Questões',
             '🃏 Flashcards',
             '📋 Simulados',
+            '💳 Planos',
             '📖 Resumos',
             '🚩 Feature Flags',
             '⚙️ Configurações'
@@ -160,11 +132,7 @@ function SectionOverview() {
           ))}
         </div>
 
-        <div style={{
-          marginTop: 14,
-          fontSize: 11,
-          color: '#444'
-        }}>
+        <div style={{ marginTop: 14, fontSize: 11, color: '#444' }}>
           💡 Use{' '}
           <kbd style={{
             background: 'rgba(255,255,255,0.08)',
@@ -192,31 +160,12 @@ function SectionPlaceholder({ section }: { section: string }) {
       minHeight: 300
     }}>
       <div style={{ textAlign: 'center' }}>
-        <div style={{
-          fontSize: 48,
-          marginBottom: 16
-        }}>
-          🚧
-        </div>
-
-        <div style={{
-          fontSize: 18,
-          fontWeight: 700,
-          color: '#fff',
-          marginBottom: 8
-        }}>
+        <div style={{ fontSize: 48, marginBottom: 16 }}>🚧</div>
+        <div style={{ fontSize: 18, fontWeight: 700, color: '#fff', marginBottom: 8 }}>
           Módulo em construção
         </div>
-
-        <div style={{
-          fontSize: 13,
-          color: '#555'
-        }}>
-          A seção{' '}
-          <strong style={{ color: '#D4A843' }}>
-            {section}
-          </strong>{' '}
-          está sendo desenvolvida.
+        <div style={{ fontSize: 13, color: '#555' }}>
+          A seção <strong style={{ color: '#D4A843' }}>{section}</strong> está sendo desenvolvida.
         </div>
       </div>
     </div>
@@ -248,6 +197,9 @@ function renderSection(section: AdminSection, adminId?: string) {
     case 'flashcards':
       return <ModuloFlashcards adminId={adminId} />
 
+    case 'planos':
+      return <ModuloPlanos adminId={adminId} />
+
     default:
       return <SectionPlaceholder section={section} />
   }
@@ -257,16 +209,13 @@ function renderSection(section: AdminSection, adminId?: string) {
 
 export default function AdminPage() {
   const router = useRouter()
-
   const [adminEmail, setAdminEmail] = useState('')
   const [adminId, setAdminId] = useState<string | undefined>()
   const [checking, setChecking] = useState(true)
 
   useEffect(() => {
     const check = async () => {
-      const {
-        data: { session }
-      } = await supabase.auth.getSession()
+      const { data: { session } } = await supabase.auth.getSession()
 
       if (!session) {
         router.push('/login')
@@ -302,19 +251,8 @@ export default function AdminPage() {
         justifyContent: 'center'
       }}>
         <div style={{ textAlign: 'center' }}>
-          <div style={{
-            fontSize: 40,
-            marginBottom: 12
-          }}>
-            🐯
-          </div>
-
-          <div style={{
-            fontSize: 14,
-            color: '#555'
-          }}>
-            Verificando acesso...
-          </div>
+          <div style={{ fontSize: 40, marginBottom: 12 }}>🐯</div>
+          <div style={{ fontSize: 14, color: '#555' }}>Verificando acesso...</div>
         </div>
       </div>
     )
