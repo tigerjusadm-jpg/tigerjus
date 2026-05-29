@@ -51,6 +51,15 @@ export interface AppSettings {
   // Tema
   background_style:     string
   card_glow_enabled:    boolean
+  // Hero Media
+  hero_media_enabled:   boolean
+  hero_media_type:      string
+  hero_media_url:       string
+  hero_media_position:  string
+  hero_media_opacity:   number
+  hero_media_animation: string
+  hero_media_max_width: number
+  hero_media_blur:      number
   // Manutenção
   maintenance_mode:     boolean
   maintenance_message:  string
@@ -102,6 +111,15 @@ const FALLBACKS: AppSettings = {
   // Tema
   background_style:     'tech',
   card_glow_enabled:    true,
+  // Hero Media
+  hero_media_enabled:   false,
+  hero_media_type:      'image',
+  hero_media_url:       '',
+  hero_media_position:  'right',
+  hero_media_opacity:   90,
+  hero_media_animation: 'float',
+  hero_media_max_width: 650,
+  hero_media_blur:      0,
   // Manutenção
   maintenance_mode:     false,
   maintenance_message:  'Voltamos em breve.',
@@ -147,6 +165,9 @@ export function AppSettingsProvider({ children }: { children: ReactNode }) {
       const raw = row.value ?? ''
       if (row.type === 'boolean') {
         (merged as any)[key] = raw === 'true'
+      } else if (row.type === 'number') {
+        const n = parseFloat(raw)
+        ;(merged as any)[key] = isNaN(n) ? (FALLBACKS as any)[key] : n
       } else {
         (merged as any)[key] = raw || (FALLBACKS as any)[key]
       }
