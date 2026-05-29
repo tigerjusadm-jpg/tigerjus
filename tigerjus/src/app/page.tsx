@@ -82,11 +82,12 @@ export default function HomePage() {
   ].filter(s => s.url)
 
   return (
-    <div style={{background:'var(--deep-black)',minHeight:'100vh'}}>
+    <div style={{background:'var(--tj-bg, #060a12)',minHeight:'100vh',position:'relative'}}>
+      <div className="tj-grid-overlay"/>
       {showUpgrade && <UpgradeModal onClose={() => setShowUpgrade(false)} />}
 
       {/* NAVBAR */}
-      <nav style={{position:'fixed',top:0,left:0,right:0,zIndex:100,display:'flex',alignItems:'center',justifyContent:'space-between',padding:'0 20px',height:60,background:'rgba(8,8,8,0.95)',backdropFilter:'blur(12px)',borderBottom:'1px solid rgba(255,255,255,0.06)'}}>
+      <nav style={{position:'fixed',top:0,left:0,right:0,zIndex:100,display:'flex',alignItems:'center',justifyContent:'space-between',padding:'0 20px',height:60,background:'rgba(6,10,18,0.92)',backdropFilter:'blur(12px)',borderBottom:'1px solid rgba(255,255,255,0.06)'}}>
         <div style={{display:'flex',alignItems:'center',gap:10}}>
           <div style={{width:36,height:36,background:'linear-gradient(135deg,var(--gold),var(--orange))',borderRadius:8,display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'var(--font-display)',fontSize:17,fontWeight:900,color:'var(--deep-black)',boxShadow:'0 0 20px rgba(212,168,67,0.3)',flexShrink:0}}>T</div>
           <span style={{fontFamily:'var(--font-display)',fontSize:20,fontWeight:900,letterSpacing:2,background:'linear-gradient(135deg,var(--gold-light),var(--gold))',WebkitBackgroundClip:'text',WebkitTextFillColor:'transparent'}}>{settings.site_name||'TIGERJUS'}</span>
@@ -135,8 +136,10 @@ export default function HomePage() {
 
       {/* HERO */}
       <section style={{minHeight:'100vh',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',textAlign:'center',padding:'120px 24px 80px',position:'relative',overflow:'hidden'}}>
-        <div style={{position:'absolute',inset:0,background:'radial-gradient(ellipse 80% 60% at 50% 40%, rgba(212,168,67,0.07) 0%, transparent 70%)',pointerEvents:'none'}} />
-        <div style={{position:'absolute',inset:0,backgroundImage:'linear-gradient(rgba(212,168,67,0.025) 1px, transparent 1px),linear-gradient(90deg, rgba(212,168,67,0.025) 1px, transparent 1px)',backgroundSize:'64px 64px',pointerEvents:'none'}} />
+        {/* Radial glow principal — azul+dourado */}
+        <div style={{position:'absolute',inset:0,background:'radial-gradient(ellipse 90% 70% at 50% 10%, rgba(99,130,200,0.18) 0%, rgba(212,168,67,0.06) 50%, transparent 75%)',pointerEvents:'none',zIndex:1}} />
+        {/* Segundo glow — destaque central */}
+        <div style={{position:'absolute',top:'20%',left:'50%',transform:'translateX(-50%)',width:600,height:400,background:'radial-gradient(ellipse at center, rgba(99,130,200,0.1) 0%, transparent 70%)',pointerEvents:'none',zIndex:1,filter:'blur(40px)'}} />
 
         <div style={{display:'inline-flex',alignItems:'center',gap:8,border:'1px solid rgba(212,168,67,0.3)',borderRadius:100,padding:'8px 20px',marginBottom:40,fontSize:11,fontWeight:600,letterSpacing:2,textTransform:'uppercase',color:'var(--gold)',background:'rgba(212,168,67,0.05)',animation:'fadeInDown 0.8s ease both'}}>
           <div style={{width:6,height:6,borderRadius:'50%',background:'var(--gold)',animation:'pulse 2s infinite'}} />
@@ -176,7 +179,7 @@ export default function HomePage() {
       </section>
 
       {/* FEATURES */}
-      <section id="plataforma" style={{padding:'80px 24px',background:'var(--black)'}}>
+      <section id="plataforma" style={{padding:'80px 24px',background:'var(--tj-bg-secondary, #0a1020)'}}>
         <div style={{maxWidth:1200,margin:'0 auto'}}>
           <div className="section-tag">🐯 A PLATAFORMA</div>
           <h2 style={{fontFamily:'var(--font-display)',fontSize:'clamp(28px,5vw,54px)',fontWeight:900,lineHeight:1.1,marginBottom:16}}>Tudo que você precisa para<br/><span style={{color:'var(--gold)'}}>ser aprovado.</span></h2>
@@ -184,9 +187,9 @@ export default function HomePage() {
           <p style={{fontSize:16,color:'var(--text-muted)',maxWidth:540,lineHeight:1.7,marginBottom:40}}>Uma experiência completa que combina tecnologia, disciplina e performance jurídica.</p>
           <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(260px,1fr))',gap:16}}>
             {FEATURES.map(f=>(
-              <div key={f.title} style={{background:'var(--gray)',border:'1px solid rgba(212,168,67,0.08)',borderRadius:16,padding:28,transition:'all 0.3s',cursor:'default'}}
-                onMouseEnter={e=>{e.currentTarget.style.borderColor='rgba(212,168,67,0.25)';e.currentTarget.style.transform='translateY(-4px)'}}
-                onMouseLeave={e=>{e.currentTarget.style.borderColor='rgba(212,168,67,0.08)';e.currentTarget.style.transform='translateY(0)'}}>
+              <div key={f.title} style={{background:'var(--tj-card-bg, rgba(12,20,40,0.85))',border:'1px solid var(--tj-card-border, rgba(99,130,200,0.18))',borderRadius:16,padding:28,transition:'all 0.3s',cursor:'default',backdropFilter:'blur(12px)',WebkitBackdropFilter:'blur(12px)'}}
+                onMouseEnter={e=>{e.currentTarget.style.borderColor='var(--tj-card-hover-border, rgba(99,130,200,0.5))';e.currentTarget.style.boxShadow='0 0 28px var(--tj-card-glow, rgba(99,130,200,0.12))';e.currentTarget.style.transform='translateY(-4px)'}}
+                onMouseLeave={e=>{e.currentTarget.style.borderColor='var(--tj-card-border, rgba(99,130,200,0.18))';e.currentTarget.style.boxShadow='none';e.currentTarget.style.transform='translateY(0)'}}>
                 <div style={{fontSize:30,marginBottom:16}}>{f.icon}</div>
                 <div style={{fontSize:16,fontWeight:700,marginBottom:8}}>{f.title}</div>
                 <div style={{fontSize:14,color:'var(--text-muted)',lineHeight:1.7}}>{f.desc}</div>
@@ -220,7 +223,7 @@ export default function HomePage() {
       </section>
 
       {/* PLANS */}
-      <section style={{padding:'80px 24px',background:'var(--black)'}} id="planos">
+      <section style={{padding:'80px 24px',background:'var(--tj-bg-secondary, #0a1020)'}} id="planos">
         <div style={{maxWidth:1200,margin:'0 auto'}}>
           <div className="section-tag">💎 PLANOS</div>
           <h2 style={{fontFamily:'var(--font-display)',fontSize:'clamp(28px,5vw,54px)',fontWeight:900,lineHeight:1.1,marginBottom:16}}>Invista no seu <span style={{color:'var(--gold)'}}>futuro jurídico.</span></h2>
@@ -306,7 +309,7 @@ export default function HomePage() {
       </section>
 
       {/* FOOTER */}
-      <footer style={{background:'var(--black)',borderTop:'1px solid rgba(212,168,67,0.08)',padding:'36px 24px',textAlign:'center'}}>
+      <footer style={{background:'var(--tj-bg, #060a12)',borderTop:'1px solid var(--tj-border, rgba(99,130,200,0.15))',padding:'36px 24px',textAlign:'center'}}>
         <div style={{fontFamily:'var(--font-display)',fontSize:20,fontWeight:900,letterSpacing:2,color:'var(--gold)',marginBottom:10}}>
           {settings.site_name||'TIGERJUS'}
         </div>
@@ -340,7 +343,6 @@ export default function HomePage() {
         </div>
       </footer>
 
-      <div className="grain-overlay" />
       <style>{`
         @keyframes fadeInUp { from { opacity:0; transform:translateY(24px); } to { opacity:1; transform:translateY(0); } }
         @keyframes fadeInDown { from { opacity:0; transform:translateY(-16px); } to { opacity:1; transform:translateY(0); } }
