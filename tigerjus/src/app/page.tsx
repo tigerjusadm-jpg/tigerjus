@@ -64,6 +64,10 @@ function UpgradeModal({ onClose }: { onClose: () => void }) {
 export default function HomePage() {
   const router = useRouter()
   const { settings } = useAppSettings()
+  // ── Hooks primeiro — regra do React ──────────────────────────
+  const [showUpgrade, setShowUpgrade] = useState(false)
+  const [menuOpen, setMenuOpen] = useState(false)
+  // ── Derivados de settings ─────────────────────────────────────
   const heroMedia = {
     enabled:   settings.hero_media_enabled,
     type:      settings.hero_media_type      || 'image',
@@ -74,11 +78,9 @@ export default function HomePage() {
     maxWidth:  settings.hero_media_max_width ?? 650,
     blur:      settings.hero_media_blur      ?? 0,
   }
-  const heroIsRight  = heroMedia.enabled && heroMedia.position === 'right'
-  const heroIsLeft   = heroMedia.enabled && heroMedia.position === 'left'
-  const heroIsBg     = heroMedia.enabled && heroMedia.position === 'background'
-  const [showUpgrade, setShowUpgrade] = useState(false)
-  const [menuOpen, setMenuOpen] = useState(false)
+  const heroIsRight = heroMedia.enabled && heroMedia.position === 'right'
+  const heroIsLeft  = heroMedia.enabled && heroMedia.position === 'left'
+  const heroIsBg    = heroMedia.enabled && heroMedia.position === 'background'
 
   const navItems = [
     { label:'Plataforma', action: () => { document.getElementById('plataforma')?.scrollIntoView({behavior:'smooth'}); setMenuOpen(false) } },
@@ -219,7 +221,8 @@ export default function HomePage() {
               <div style={{fontSize:10,color:'var(--text-muted)',letterSpacing:'1.5px',textTransform:'uppercase',marginTop:4}}>{l}</div>
             </div>
           ))}
-                </div>{/* fim coluna conteúdo */}
+        </div>{/* fim grid stats */}
+        </div>{/* fim coluna conteúdo */}
         </div>{/* fim layout duas colunas */}
       </section>
 
