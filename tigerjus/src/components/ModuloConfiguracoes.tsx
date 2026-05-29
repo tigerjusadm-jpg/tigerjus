@@ -28,6 +28,16 @@ const GRUPOS: { key: string; label: string; icon: string; keys: string[] }[] = [
     ],
   },
   {
+    key: 'hero_media',
+    label: 'Hero Media',
+    icon: '🐯',
+    keys: [
+      'hero_media_enabled', 'hero_media_type', 'hero_media_url',
+      'hero_media_position', 'hero_media_opacity', 'hero_media_animation',
+      'hero_media_max_width', 'hero_media_blur',
+    ],
+  },
+  {
     key: 'dashboard',
     label: 'Dashboard',
     icon: '🏠',
@@ -91,6 +101,15 @@ const DEFAULTS: Omit<AppSetting, 'id' | 'ativo'>[] = [
   { key: 'final_cta_button',   value: 'COMEÇAR AGORA',                                                type: 'text', description: 'Texto do botão CTA final' },
   { key: 'final_cta_footer',   value: 'Sem cartão de crédito · Acesso imediato · 3 dias grátis',      type: 'text', description: 'Texto abaixo do botão CTA final' },
   { key: 'footer_copyright',   value: '© 2025 TigerJus',                                              type: 'text', description: 'Texto de copyright no footer' },
+  // Hero Media
+  { key: 'hero_media_enabled',   value: 'false', type: 'boolean', description: 'Ativa mídia no hero da landing' },
+  { key: 'hero_media_type',      value: 'image', type: 'text',    description: 'Tipo de mídia: none | image | video' },
+  { key: 'hero_media_url',       value: '',      type: 'text',    description: 'URL da imagem PNG/WebP ou vídeo MP4' },
+  { key: 'hero_media_position',  value: 'right', type: 'text',    description: 'Posição: right | left | center | background' },
+  { key: 'hero_media_opacity',   value: '90',    type: 'number',  description: 'Opacidade de 0 a 100' },
+  { key: 'hero_media_animation', value: 'float', type: 'text',    description: 'Animação: none | float | pulse' },
+  { key: 'hero_media_max_width', value: '650',   type: 'number',  description: 'Largura máxima da mídia em px (ex: 650)' },
+  { key: 'hero_media_blur',      value: '0',     type: 'number',  description: 'Blur aplicado à mídia em px (0 = sem blur)' },
   // Dashboard
   { key: 'welcome_message',      value: '🔥 Bem-vindo de volta! Continue sua jornada jurídica.', type: 'text', description: 'Notificação de boas-vindas no dashboard' },
   { key: 'dashboard_subtitle',   value: 'Comece seus estudos hoje.',                             type: 'text', description: 'Subtítulo abaixo do "Olá, [Nome]!"' },
