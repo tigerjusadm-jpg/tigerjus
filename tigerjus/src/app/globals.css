@@ -65,12 +65,23 @@
     @apply inline-flex items-center justify-center px-8 py-4 rounded-lg font-extrabold text-sm tracking-widest uppercase transition-all duration-300;
     background: linear-gradient(135deg, var(--gold), var(--orange));
     color: var(--deep-black);
-    box-shadow: 0 4px 20px rgba(212,168,67,0.25);
+    box-shadow: 0 4px 20px rgba(212,168,67,0.3), 0 0 0 0 rgba(212,168,67,0);
+    position: relative;
+    overflow: hidden;
+  }
+  .btn-primary::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, rgba(255,255,255,0.15), transparent);
+    opacity: 0;
+    transition: opacity 0.3s;
   }
   .btn-primary:hover {
     transform: translateY(-2px);
-    box-shadow: 0 8px 32px rgba(212,168,67,0.4);
+    box-shadow: 0 8px 32px rgba(212,168,67,0.45), 0 0 60px rgba(212,168,67,0.15);
   }
+  .btn-primary:hover::before { opacity: 1; }
   .btn-primary:disabled { opacity: 0.7; transform: none; }
 
   .btn-secondary {
@@ -121,17 +132,17 @@
     border: 1px solid var(--tj-card-border);
     border-radius: var(--tj-radius);
     transition: border-color 0.25s ease, box-shadow 0.25s ease, transform 0.2s ease;
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
     position: relative;
     overflow: hidden;
   }
   .tj-card:hover {
     border-color: var(--tj-card-hover-border);
-    box-shadow: 0 0 var(--tj-glow-strength) var(--tj-card-glow);
-    transform: translateY(-1px);
+    box-shadow: 0 0 var(--tj-glow-strength) var(--tj-card-glow),
+                0 8px 32px rgba(0,0,0,0.3);
+    transform: translateY(-2px);
   }
-  /* Shimmer de borda no hover — efeito premium sutil */
   .tj-card::before {
     content: '';
     position: absolute;
@@ -139,15 +150,33 @@
     border-radius: inherit;
     background: linear-gradient(
       135deg,
-      rgba(255,255,255,0.03) 0%,
-      transparent 50%,
-      rgba(255,255,255,0.01) 100%
+      rgba(255,255,255,0.04) 0%,
+      transparent 60%
     );
     opacity: 0;
     transition: opacity 0.25s ease;
     pointer-events: none;
   }
   .tj-card:hover::before { opacity: 1; }
+
+  /* ── Glow do hero — luz central ───────────────────────────── */
+  .tj-hero-glow {
+    position: absolute;
+    top: -20%;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 800px;
+    height: 500px;
+    background: radial-gradient(
+      ellipse at center,
+      rgba(99,130,200,0.12) 0%,
+      rgba(212,168,67,0.05) 40%,
+      transparent 70%
+    );
+    pointer-events: none;
+    z-index: 0;
+    filter: blur(30px);
+  }
 
   /* ── Grid tecnológico ─────────────────────────────────────── */
   /* Ativado pelo ThemeProvider via --tj-grid-opacity          */
