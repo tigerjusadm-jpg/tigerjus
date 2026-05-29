@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAppSettings } from '@/contexts/AppSettingsContext'
+import HeroMedia from '@/components/HeroMedia'
 
 const PLANS = [
   { id:'free', name:'Plano Generosidade', price:'0', period:'3 dias grátis', color:'var(--text-muted)', features:[{ok:true,txt:'15 questões'},{ok:true,txt:'5 perguntas IA'},{ok:true,txt:'1 mini simulado'},{ok:false,txt:'Simulados completos'},{ok:false,txt:'IA avançada'},{ok:false,txt:'Ranking'}] },
@@ -63,6 +64,19 @@ function UpgradeModal({ onClose }: { onClose: () => void }) {
 export default function HomePage() {
   const router = useRouter()
   const { settings } = useAppSettings()
+  const heroMedia = {
+    enabled:   settings.hero_media_enabled,
+    type:      settings.hero_media_type      || 'image',
+    url:       settings.hero_media_url       || '',
+    position:  settings.hero_media_position  || 'right',
+    opacity:   settings.hero_media_opacity   ?? 90,
+    animation: settings.hero_media_animation || 'float',
+    maxWidth:  settings.hero_media_max_width ?? 650,
+    blur:      settings.hero_media_blur      ?? 0,
+  }
+  const heroIsRight  = heroMedia.enabled && heroMedia.position === 'right'
+  const heroIsLeft   = heroMedia.enabled && heroMedia.position === 'left'
+  const heroIsBg     = heroMedia.enabled && heroMedia.position === 'background'
   const [showUpgrade, setShowUpgrade] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
 
@@ -135,12 +149,42 @@ export default function HomePage() {
       )}
 
       {/* HERO */}
-      <section style={{minHeight:'100vh',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',textAlign:'center',padding:'120px 24px 80px',position:'relative',overflow:'hidden'}}>
+      <section style={{
+        minHeight:'100vh',
+        display:'flex',
+        flexDirection:'column',
+        alignItems:'center',
+        justifyContent:'center',
+        padding:'120px 24px 80px',
+        position:'relative',
+        overflow:'hidden',
+        textAlign: heroIsRight||heroIsLeft ? 'left' : 'center',
+      }}>
+        {/* Background media se position=background */}
+        {heroIsBg && <HeroMedia {...heroMedia}/>}
         {/* Radial glow principal — azul+dourado */}
         <div style={{position:'absolute',inset:0,background:'radial-gradient(ellipse 90% 70% at 50% 10%, rgba(99,130,200,0.18) 0%, rgba(212,168,67,0.06) 50%, transparent 75%)',pointerEvents:'none',zIndex:1}} />
         {/* Segundo glow — destaque central */}
         <div style={{position:'absolute',top:'20%',left:'50%',transform:'translateX(-50%)',width:600,height:400,background:'radial-gradient(ellipse at center, rgba(99,130,200,0.1) 0%, transparent 70%)',pointerEvents:'none',zIndex:1,filter:'blur(40px)'}} />
 
+        {/* Layout duas colunas quando right/left */}
+        <div style={{
+          display:'flex',
+          alignItems:'center',
+          gap:48,
+          width:'100%',
+          maxWidth: heroIsRight||heroIsLeft ? 1200 : 'none',
+          flexDirection: heroIsLeft ? 'row-reverse' : 'row',
+          position:'relative',zIndex:2,
+        }}>
+        {/* Coluna de mídia right/left */}
+        {(heroIsRight||heroIsLeft) && (
+          <div className="hero-media-side">
+            <HeroMedia {...heroMedia}/>
+          </div>
+        )}
+        {/* Coluna de conteúdo */}
+        <div style={{flex:1,display:'flex',flexDirection:'column',alignItems:heroIsRight||heroIsLeft?'flex-start':'center',position:'relative',zIndex:2}}>
         <div style={{display:'inline-flex',alignItems:'center',gap:8,border:'1px solid rgba(212,168,67,0.3)',borderRadius:100,padding:'8px 20px',marginBottom:40,fontSize:11,fontWeight:600,letterSpacing:2,textTransform:'uppercase',color:'var(--gold)',background:'rgba(212,168,67,0.05)',animation:'fadeInDown 0.8s ease both'}}>
           <div style={{width:6,height:6,borderRadius:'50%',background:'var(--gold)',animation:'pulse 2s infinite'}} />
           {settings.hero_badge||'Plataforma jurídica de nova geração'}
@@ -175,7 +219,8 @@ export default function HomePage() {
               <div style={{fontSize:10,color:'var(--text-muted)',letterSpacing:'1.5px',textTransform:'uppercase',marginTop:4}}>{l}</div>
             </div>
           ))}
-        </div>
+                </div>{/* fim coluna conteúdo */}
+        </div>{/* fim layout duas colunas */}
       </section>
 
       {/* FEATURES */}
