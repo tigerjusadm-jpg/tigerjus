@@ -35,6 +35,11 @@ export interface AppSettings {
   telegram_url:         string
   email_suporte:        string
   youtube_url:          string
+  // Ícones sociais customizados
+  instagram_icon_url:   string
+  whatsapp_icon_url:    string
+  telegram_icon_url:    string
+  youtube_icon_url:     string
   // Branding
   site_name:            string
   site_tagline:         string
@@ -43,6 +48,9 @@ export interface AppSettings {
   primary_color:        string
   secondary_color:      string
   background_color:     string
+  // Tema
+  background_style:     string
+  card_glow_enabled:    boolean
   // Manutenção
   maintenance_mode:     boolean
   maintenance_message:  string
@@ -78,6 +86,11 @@ const FALLBACKS: AppSettings = {
   telegram_url:         '',
   email_suporte:        '',
   youtube_url:          '',
+  // Ícones sociais customizados
+  instagram_icon_url:   '',
+  whatsapp_icon_url:    '',
+  telegram_icon_url:    '',
+  youtube_icon_url:     '',
   // Branding
   site_name:            'TigerJus',
   site_tagline:         'Estude como um Tigre.',
@@ -86,6 +99,9 @@ const FALLBACKS: AppSettings = {
   primary_color:        '#D4A843',
   secondary_color:      '#E8621A',
   background_color:     '#0a0a0a',
+  // Tema
+  background_style:     'tech',
+  card_glow_enabled:    true,
   // Manutenção
   maintenance_mode:     false,
   maintenance_message:  'Voltamos em breve.',
