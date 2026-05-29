@@ -1752,7 +1752,9 @@ export default function TigerJusApp() {
   const planoDisplay = profile?.plano?.charAt(0).toUpperCase() + (profile?.plano?.slice(1) || '') || 'Gratuito'
 
   return(
-    <div style={{background:'var(--deep-black)',minHeight:'100vh'}}>
+    <div style={{background:'var(--tj-bg, #060a12)',minHeight:'100vh',position:'relative'}}>
+      <div className="tj-grid-overlay"/>
+      <div className="tj-radial-glow" style={{zIndex:0}}/>
 
       {/* ── MAINTENANCE MODE — bloqueia usuário comum, admin passa ── */}
       {settings.maintenance_mode && !isAdmin(profile?.role) && (
@@ -1838,7 +1840,7 @@ export default function TigerJusApp() {
       )}
 
       <div style={{display:'flex',paddingTop:60,minHeight:'100vh'}}>
-        <aside className="dash-sidebar nav-desktop">
+        <aside className="dash-sidebar nav-desktop tj-sidebar">
           {SIDEBAR.map(item=>(
             <button key={item.key} className={`sidebar-item${page===item.key?' active':''}`} onClick={()=>navTo(item.key)}>
               <span style={{fontSize:17,width:24,textAlign:'center'}}>{item.icon}</span> {item.label}
@@ -1859,7 +1861,7 @@ export default function TigerJusApp() {
             </div>
           )}
           <div style={{marginTop:'auto',padding:'20px 12px 0'}}>
-            <div style={{background:'rgba(212,168,67,0.06)',border:'1px solid rgba(212,168,67,0.14)',borderRadius:12,padding:14}}>
+            <div style={{background:'var(--tj-card-bg, rgba(12,20,40,0.85))',border:'1px solid var(--tj-card-border, rgba(99,130,200,0.18))',borderRadius:12,padding:14,backdropFilter:'blur(8px)'}}>
               <div style={{fontSize:9,fontWeight:700,letterSpacing:2,textTransform:'uppercase',color:'var(--gold)',marginBottom:5}}>{planoDisplay.toUpperCase()}</div>
               <div style={{fontSize:11,color:'var(--text-muted)',marginBottom:10}}>
                 {userIsPago?'Ilimitado':`${freeQ} questões`} · {userIsPago?'IA Ilimitada':`${freeIA} perguntas IA`}
@@ -1879,7 +1881,6 @@ export default function TigerJusApp() {
         {page==='ranking'&&<RankingPage profile={profile}/>}
       </div>
 
-      <div className="grain-overlay"/>
       <style>{`
         @keyframes fadeInDown{from{opacity:0;transform:translateY(-16px)}to{opacity:1;transform:translateY(0)}}
         @keyframes fadeInUp{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:translateY(0)}}
