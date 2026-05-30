@@ -25,6 +25,7 @@ export type AdminSection =
   | 'simulados'
   | 'flashcards'
   | 'resumos'
+  | 'media'           // ← NOVO (C10.9-C)
   | 'planos'
   | 'flags'
   | 'settings'
@@ -144,6 +145,7 @@ const CMD_ITEMS: { label: string; icon: string; section?: AdminSection; action?:
   { label: 'Simulados',        icon: '📋', section: 'simulados' },
   { label: 'Flashcards',       icon: '🃏', section: 'flashcards'},
   { label: 'Resumos',          icon: '📖', section: 'resumos'   },
+  { label: 'Media Library',    icon: '🖼️', section: 'media'     },  // ← NOVO (C10.9-C)
   { label: 'Planos',           icon: '💳', section: 'planos'    },
   { label: 'Feature Flags',    icon: '🚩', section: 'flags'     },
   { label: 'Configurações',    icon: '⚙️', section: 'settings'  },
@@ -219,6 +221,7 @@ const NAV_ITEMS: { label: string; icon: string; section: AdminSection; group: st
   { label: 'Simulados',     icon: '📋', section: 'simulados',  group: 'conteudo'  },
   { label: 'Flashcards',    icon: '🃏', section: 'flashcards', group: 'conteudo'  },
   { label: 'Resumos',       icon: '📖', section: 'resumos',    group: 'conteudo'  },
+  { label: 'Media Library', icon: '🖼️', section: 'media',      group: 'conteudo'  },  // ← NOVO (C10.9-C)
   { label: 'Planos',        icon: '💳', section: 'planos',     group: 'sistema'   },
   { label: 'Feature Flags', icon: '🚩', section: 'flags',      group: 'sistema'   },
   { label: 'Configurações', icon: '⚙️', section: 'settings',   group: 'sistema'   },
@@ -314,6 +317,7 @@ function Topbar({ adminEmail }: { adminEmail: string }) {
   const SECTION_LABELS: Record<AdminSection, string> = {
     overview:'Dashboard', usuarios:'Usuários', questoes:'Questões',
     simulados:'Simulados', flashcards:'Flashcards', resumos:'Resumos',
+    media:'Media Library',  // ← NOVO (C10.9-C)
     planos:'Planos', flags:'Feature Flags', settings:'Configurações', audit:'Audit Log',
   }
 
