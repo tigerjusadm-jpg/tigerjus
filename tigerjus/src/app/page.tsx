@@ -25,12 +25,10 @@ const FEATURES = [
 function normalizeBoolean(value: unknown): boolean {
   if (value === true) return true
   if (value === 1) return true
-
   if (typeof value === 'string') {
     const normalized = value.trim().toLowerCase()
     return normalized === 'true' || normalized === '1' || normalized === 'yes' || normalized === 'on'
   }
-
   return false
 }
 
@@ -169,15 +167,30 @@ export default function HomePage() {
         </div>
       )}
 
-      {/* BANNER TOPO */}
+      {/* ── BANNER TOPO ─────────────────────────────────────────────
+          FIX: width/height explícitos na img para evitar colapso
+          no Safari/iOS antes do carregamento completo.
+      ──────────────────────────────────────────────────────────── */}
       {showBanner && (
         <div className="landing-top-banner">
           {bannerLink ? (
-            <a href={bannerLink} target="_blank" rel="noopener noreferrer" style={{display:'block',lineHeight:0}}>
-              <img src={bannerUrl} alt={bannerAlt || 'Banner TigerJus'} />
+            <a href={bannerLink} target="_blank" rel="noopener noreferrer" style={{display:'block',lineHeight:0,width:'100%'}}>
+              <img
+                src={bannerUrl}
+                alt={bannerAlt}
+                width={1920}
+                height={300}
+                style={{width:'100%',height:'auto',maxHeight:300,objectFit:'cover',display:'block'}}
+              />
             </a>
           ) : (
-            <img src={bannerUrl} alt={bannerAlt || 'Banner TigerJus'} />
+            <img
+              src={bannerUrl}
+              alt={bannerAlt}
+              width={1920}
+              height={300}
+              style={{width:'100%',height:'auto',maxHeight:300,objectFit:'cover',display:'block'}}
+            />
           )}
         </div>
       )}
@@ -245,11 +258,11 @@ export default function HomePage() {
               <Link href="/login" className="btn-secondary" style={{fontSize:15,padding:'16px 32px'}}>JÁ TENHO CONTA</Link>
             </div>
 
-            {(heroIsRight||heroIsLeft) && (
-              <div className="hero-media-mobile">
-                <HeroMedia {...heroMedia}/>
-              </div>
-            )}
+            {/* ── SLOT MOBILE DO TIGRE ─────────────────────────────────
+                FIX: removido do interior do hero-content-col e movido
+                para fora, como irmão direto do hero-two-col, evitando
+                herança de alignItems inline que colapsava o elemento.
+            ──────────────────────────────────────────────────────── */}
 
             <div style={{display:'grid',gridTemplateColumns:'repeat(2,1fr)',gap:'20px 40px',maxWidth:480,margin:'0 auto',animation:'fadeInUp 0.8s 0.4s ease both'}}>
               {[['12.400+','Estudantes Ativos'],['97%','Satisfação'],['3.200+','Aprovados OAB'],['17','Disciplinas']].map(([n,l])=>(
@@ -261,6 +274,13 @@ export default function HomePage() {
             </div>
           </div>
         </div>
+
+        {/* SLOT MOBILE DO TIGRE — fora do hero-content-col */}
+        {(heroIsRight||heroIsLeft) && (
+          <div className="hero-media-mobile">
+            <HeroMedia {...heroMedia}/>
+          </div>
+        )}
       </section>
 
       {/* FEATURES */}
