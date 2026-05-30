@@ -60,6 +60,11 @@ export interface AppSettings {
   hero_media_animation: string
   hero_media_max_width: number
   hero_media_blur:      number
+  // Landing Top Banner
+  landing_top_banner_enabled: boolean
+  landing_top_banner_url:     string
+  landing_top_banner_alt:     string
+  landing_top_banner_link:    string
   // Manutenção
   maintenance_mode:     boolean
   maintenance_message:  string
@@ -120,6 +125,11 @@ const FALLBACKS: AppSettings = {
   hero_media_animation: 'float',
   hero_media_max_width: 650,
   hero_media_blur:      0,
+  // Landing Top Banner
+  landing_top_banner_enabled: false,
+  landing_top_banner_url:     '',
+  landing_top_banner_alt:     '',
+  landing_top_banner_link:    '',
   // Manutenção
   maintenance_mode:     false,
   maintenance_message:  'Voltamos em breve.',
