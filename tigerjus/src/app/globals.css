@@ -423,13 +423,18 @@
 .hero-media-float { animation: hero-float 6s ease-in-out infinite; }
 .hero-media-pulse { animation: hero-pulse 4s ease-in-out infinite; }
 
-/* Coluna de mídia no hero */
+/* Coluna de mídia no hero — desktop */
 .hero-media-side {
   flex-shrink: 0;
   max-width: 48vw;
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+/* ← NOVO (fix mobile hero): slot mobile-only, escondido no desktop */
+.hero-media-mobile {
+  display: none;
 }
 
 /* Mobile — Mobile first */
@@ -442,12 +447,18 @@
   .tj-xp-fill::after { animation: none; }
   .tj-card:hover { transform: none; box-shadow: none; }
 
-  /* Hero media no mobile — vai abaixo do CTA */
+  /* ← ALTERADO (fix mobile hero): coluna lateral some no mobile */
   .hero-media-side {
-    width: 100%;
-    max-width: 320px;
-    max-height: 260px;
-    margin: 0 auto;
-    order: 99; /* sempre depois do conteúdo */
+    display: none;
+  }
+
+  /* ← NOVO (fix mobile hero): bloco centralizado entre CTAs e métricas */
+  .hero-media-mobile {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 78vw;
+    max-width: 340px;
+    margin: 28px auto 0;
   }
 }
