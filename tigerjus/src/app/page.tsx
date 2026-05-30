@@ -26,8 +26,8 @@ function normalizeBoolean(value: unknown): boolean {
   if (value === true) return true
   if (value === 1) return true
   if (typeof value === 'string') {
-    const normalized = value.trim().toLowerCase()
-    return normalized === 'true' || normalized === '1' || normalized === 'yes' || normalized === 'on'
+    const v = value.trim().toLowerCase()
+    return v === 'true' || v === '1' || v === 'yes' || v === 'on'
   }
   return false
 }
@@ -73,8 +73,6 @@ function UpgradeModal({ onClose }: { onClose: () => void }) {
 
 export default function HomePage() {
   const router = useRouter()
-
-  // ── GATE: só usa settings após loaded=true ─────────────────────────────────
   const { settings, loaded } = useAppSettings()
 
   const [showUpgrade, setShowUpgrade] = useState(false)
@@ -95,13 +93,11 @@ export default function HomePage() {
   const heroIsLeft  = heroMedia.enabled && heroMedia.position === 'left'
   const heroIsBg    = heroMedia.enabled && heroMedia.position === 'background'
 
-  // ── GATE: banner só renderiza após loaded=true ────────────────────────────
   const bannerEnabled = loaded ? normalizeBoolean(settings.landing_top_banner_enabled) : false
   const bannerUrl     = loaded ? String(settings.landing_top_banner_url  || '').trim() : ''
   const bannerLink    = loaded ? String(settings.landing_top_banner_link || '').trim() : ''
   const bannerAlt     = loaded ? String(settings.landing_top_banner_alt  || 'Banner TigerJus').trim() : ''
-
-  const showBanner = bannerEnabled && bannerUrl.length > 0
+  const showBanner    = bannerEnabled && bannerUrl.length > 0
 
   const navItems = [
     { label:'Plataforma', action: () => { document.getElementById('plataforma')?.scrollIntoView({behavior:'smooth'}); setMenuOpen(false) } },
@@ -170,27 +166,36 @@ export default function HomePage() {
         </div>
       )}
 
-      {/* BANNER TOPO — só monta após loaded=true E settings confirmados */}
+      {/* ── BANNER DESKTOP ── */}
       {showBanner && (
-        <div className="landing-top-banner">
+        <div className="desktop-top-banner">
           {bannerLink ? (
             <a href={bannerLink} target="_blank" rel="noopener noreferrer" style={{display:'block',lineHeight:0,width:'100%'}}>
-              <img
-                src={bannerUrl}
-                alt={bannerAlt}
-                width={1920}
-                height={300}
-                style={{width:'100%',height:'auto',maxHeight:300,objectFit:'cover',display:'block'}}
-              />
+              <img src={bannerUrl} alt={bannerAlt} width={1920} height={300}
+                style={{width:'100%',height:'auto',maxHeight:300,objectFit:'cover',display:'block'}} />
             </a>
           ) : (
-            <img
-              src={bannerUrl}
-              alt={bannerAlt}
-              width={1920}
-              height={300}
-              style={{width:'100%',height:'auto',maxHeight:300,objectFit:'cover',display:'block'}}
-            />
+            <img src={bannerUrl} alt={bannerAlt} width={1920} height={300}
+              style={{width:'100%',height:'auto',maxHeight:300,objectFit:'cover',display:'block'}} />
+          )}
+        </div>
+      )}
+
+      {/* ── BANNER MOBILE — bloco exclusivo, independente do desktop ── */}
+      {showBanner && (
+        <div className="mobile-top-banner">
+          {bannerLink ? (
+            <a href={bannerLink} target="_blank" rel="noopener noreferrer" style={{display:'block',lineHeight:0,width:'100%'}}>
+              <img src={bannerUrl} alt={bannerAlt}
+                width={1920} height={300}
+                loading="eager"
+                style={{display:'block',width:'100%',height:'auto',minHeight:60,objectFit:'cover'}} />
+            </a>
+          ) : (
+            <img src={bannerUrl} alt={bannerAlt}
+              width={1920} height={300}
+              loading="eager"
+              style={{display:'block',width:'100%',height:'auto',minHeight:60,objectFit:'cover'}} />
           )}
         </div>
       )}
@@ -222,8 +227,9 @@ export default function HomePage() {
           position:'relative',
           zIndex:2,
         }}>
+          {/* HERO MEDIA DESKTOP */}
           {(heroIsRight||heroIsLeft) && (
-            <div className="hero-media-side">
+            <div className="desktop-hero-media">
               <HeroMedia {...heroMedia}/>
             </div>
           )}
@@ -237,10 +243,7 @@ export default function HomePage() {
             <h1 style={{fontFamily:'var(--font-display)',fontSize:'clamp(38px,8vw,88px)',fontWeight:900,lineHeight:1.05,letterSpacing:-1,marginBottom:24,animation:'fadeInUp 0.8s 0.1s ease both'}}>
               {settings.hero_headline
                 ? settings.hero_headline.includes('Direito')
-                  ? <>
-                      {settings.hero_headline.split('Direito')[0]}
-                      <span style={{background:'linear-gradient(135deg,var(--gold-light) 0%,var(--gold) 50%,var(--orange) 100%)',WebkitBackgroundClip:'text',WebkitTextFillColor:'transparent'}}>Direito{settings.hero_headline.split('Direito')[1]}</span>
-                    </>
+                  ? <>{settings.hero_headline.split('Direito')[0]}<span style={{background:'linear-gradient(135deg,var(--gold-light) 0%,var(--gold) 50%,var(--orange) 100%)',WebkitBackgroundClip:'text',WebkitTextFillColor:'transparent'}}>Direito{settings.hero_headline.split('Direito')[1]}</span></>
                   : settings.hero_headline
                 : <>O jeito mais inteligente<br/><span style={{background:'linear-gradient(135deg,var(--gold-light) 0%,var(--gold) 50%,var(--orange) 100%)',WebkitBackgroundClip:'text',WebkitTextFillColor:'transparent'}}>de evoluir no Direito.</span></>
               }
@@ -269,10 +272,21 @@ export default function HomePage() {
           </div>
         </div>
 
-        {/* TIGRE MOBILE — fora do hero-content-col, só monta após loaded=true */}
-        {(heroIsRight||heroIsLeft) && (
-          <div className="hero-media-mobile">
-            <HeroMedia {...heroMedia}/>
+        {/* HERO TIGER MOBILE — img direta, sem HeroMedia, bloco exclusivo */}
+        {(heroIsRight||heroIsLeft) && heroMedia.url && (
+          <div className="mobile-hero-tiger">
+            <img
+              src={heroMedia.url}
+              alt="TigerJus Cyber Tiger"
+              loading="eager"
+              style={{
+                display:'block',
+                width:'min(78vw, 320px)',
+                height:'auto',
+                objectFit:'contain',
+                filter:'drop-shadow(0 0 32px rgba(212,168,67,0.5))',
+              }}
+            />
           </div>
         )}
       </section>
@@ -287,8 +301,8 @@ export default function HomePage() {
           <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(260px,1fr))',gap:16}}>
             {FEATURES.map(f=>(
               <div key={f.title} style={{background:'var(--tj-card-bg, rgba(12,20,40,0.85))',border:'1px solid var(--tj-card-border, rgba(99,130,200,0.18))',borderRadius:16,padding:28,transition:'all 0.3s',cursor:'default',backdropFilter:'blur(12px)',WebkitBackdropFilter:'blur(12px)'}}
-                onMouseEnter={e=>{e.currentTarget.style.borderColor='var(--tj-card-hover-border, rgba(99,130,200,0.5))';e.currentTarget.style.boxShadow='0 0 28px var(--tj-card-glow, rgba(99,130,200,0.12))';e.currentTarget.style.transform='translateY(-4px)'}}
-                onMouseLeave={e=>{e.currentTarget.style.borderColor='var(--tj-card-border, rgba(99,130,200,0.18))';e.currentTarget.style.boxShadow='none';e.currentTarget.style.transform='translateY(0)'}}>
+                onMouseEnter={e=>{e.currentTarget.style.borderColor='rgba(99,130,200,0.5)';e.currentTarget.style.transform='translateY(-4px)'}}
+                onMouseLeave={e=>{e.currentTarget.style.borderColor='rgba(99,130,200,0.18)';e.currentTarget.style.transform='translateY(0)'}}>
                 <div style={{fontSize:30,marginBottom:16}}>{f.icon}</div>
                 <div style={{fontSize:16,fontWeight:700,marginBottom:8}}>{f.title}</div>
                 <div style={{fontSize:14,color:'var(--text-muted)',lineHeight:1.7}}>{f.desc}</div>
@@ -409,12 +423,8 @@ export default function HomePage() {
 
       {/* FOOTER */}
       <footer style={{background:'var(--tj-bg, #060a12)',borderTop:'1px solid var(--tj-border, rgba(99,130,200,0.15))',padding:'36px 24px',textAlign:'center'}}>
-        <div style={{fontFamily:'var(--font-display)',fontSize:20,fontWeight:900,letterSpacing:2,color:'var(--gold)',marginBottom:10}}>
-          {settings.site_name||'TIGERJUS'}
-        </div>
-        <div style={{fontSize:13,color:'var(--text-muted)',marginBottom:14}}>
-          "{settings.hero_quote||'Não basta estudar Direito. É preciso pensar como um Tigre.'}"
-        </div>
+        <div style={{fontFamily:'var(--font-display)',fontSize:20,fontWeight:900,letterSpacing:2,color:'var(--gold)',marginBottom:10}}>{settings.site_name||'TIGERJUS'}</div>
+        <div style={{fontSize:13,color:'var(--text-muted)',marginBottom:14}}>"{settings.hero_quote||'Não basta estudar Direito. É preciso pensar como um Tigre.'}"</div>
         {sociais.length > 0 && (
           <div style={{display:'flex',gap:10,justifyContent:'center',marginBottom:16,flexWrap:'wrap'}}>
             {sociais.map(s=>(
@@ -439,14 +449,63 @@ export default function HomePage() {
       </footer>
 
       <style>{`
-        @keyframes fadeInUp { from { opacity:0; transform:translateY(24px); } to { opacity:1; transform:translateY(0); } }
+        @keyframes fadeInUp   { from { opacity:0; transform:translateY(24px); } to { opacity:1; transform:translateY(0); } }
         @keyframes fadeInDown { from { opacity:0; transform:translateY(-16px); } to { opacity:1; transform:translateY(0); } }
-        @keyframes pulse { 0%,100% { opacity:1; transform:scale(1); } 50% { opacity:0.5; transform:scale(0.9); } }
+        @keyframes pulse      { 0%,100% { opacity:1; transform:scale(1); } 50% { opacity:0.5; transform:scale(0.9); } }
+
         .landing-nav-desktop { display: flex !important; }
-        .landing-nav-mobile { display: none !important; }
+        .landing-nav-mobile  { display: none !important; }
+
+        /* ── Banner desktop: visível no desktop, oculto no mobile ── */
+        .desktop-top-banner  { display: block; width:100%; margin-top:60px; overflow:hidden; line-height:0; }
+        .mobile-top-banner   { display: none; }
+
+        /* ── Hero media desktop: visível no desktop, oculto no mobile ── */
+        .desktop-hero-media  { display: flex; flex-shrink:0; max-width:48vw; align-items:center; justify-content:center; }
+        .mobile-hero-tiger   { display: none; }
+
         @media (max-width: 768px) {
           .landing-nav-desktop { display: none !important; }
-          .landing-nav-mobile { display: flex !important; }
+          .landing-nav-mobile  { display: flex !important; }
+
+          /* Banner mobile exclusivo */
+          .desktop-top-banner { display: none !important; }
+          .mobile-top-banner  {
+            display: block !important;
+            width: 100% !important;
+            margin-top: 60px !important;
+            position: relative !important;
+            z-index: 20 !important;
+            overflow: hidden !important;
+            line-height: 0 !important;
+          }
+          .mobile-top-banner img {
+            display: block !important;
+            width: 100% !important;
+            height: auto !important;
+            min-height: 60px !important;
+            object-fit: cover !important;
+            object-position: center !important;
+          }
+
+          /* Hero tiger mobile exclusivo */
+          .desktop-hero-media { display: none !important; }
+          .mobile-hero-tiger  {
+            display: flex !important;
+            width: 100% !important;
+            justify-content: center !important;
+            align-items: center !important;
+            margin: 24px auto 32px !important;
+            position: relative !important;
+            z-index: 20 !important;
+          }
+          .mobile-hero-tiger img {
+            display: block !important;
+            width: min(78vw, 320px) !important;
+            height: auto !important;
+            object-fit: contain !important;
+            filter: drop-shadow(0 0 32px rgba(212,168,67,0.5)) !important;
+          }
         }
       `}</style>
     </div>
