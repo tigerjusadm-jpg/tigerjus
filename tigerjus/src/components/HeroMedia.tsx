@@ -3,17 +3,18 @@ import { useEffect, useRef, useState } from 'react'
 
 interface HeroMediaProps {
   enabled:   boolean
-  type:      string   // 'image' | 'video' | 'none'
+  type:      string
   url:       string
-  position:  string   // 'right' | 'left' | 'center' | 'background'
-  opacity:   number   // 0–100
-  animation: string   // 'none' | 'float' | 'pulse'
-  maxWidth:  number   // px — largura máxima da mídia
-  blur:      number   // px — blur aplicado à mídia (0 = sem blur)
+  position:  string
+  opacity:   number
+  animation: string
+  maxWidth:  number
+  blur:      number
+  alt_text?: string
 }
 
 export default function HeroMedia({
-  enabled, type, url, position, opacity, animation, maxWidth, blur,
+  enabled, type, url, position, opacity, animation, maxWidth, blur, alt_text,
 }: HeroMediaProps) {
 
   const [loaded, setLoaded] = useState(false)
@@ -138,7 +139,7 @@ export default function HeroMedia({
       ) : (
         <img
           src={url}
-          alt="TigerJus — Cyber Tiger"
+          alt={alt_text || 'TigerJus — Cyber Tiger'}
           onLoad={() => setLoaded(true)}
           onError={() => setError(true)}
           className={animClass}
