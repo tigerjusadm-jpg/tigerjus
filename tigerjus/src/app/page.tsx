@@ -64,9 +64,10 @@ function UpgradeModal({ onClose }: { onClose: () => void }) {
 export default function HomePage() {
   const router = useRouter()
   const { settings } = useAppSettings()
+  // ── Hooks primeiro — regra do React ──────────────────────────
   const [showUpgrade, setShowUpgrade] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
-
+  // ── Derivados de settings ─────────────────────────────────────
   const heroMedia = {
     enabled:   settings.hero_media_enabled,
     type:      settings.hero_media_type      || 'image',
@@ -80,13 +81,7 @@ export default function HomePage() {
   const heroIsRight = heroMedia.enabled && heroMedia.position === 'right'
   const heroIsLeft  = heroMedia.enabled && heroMedia.position === 'left'
   const heroIsBg    = heroMedia.enabled && heroMedia.position === 'background'
-
-  // Gradiente reutilizado pra destaque de "Direito"
-  const gradientStyle = {
-    background: 'linear-gradient(135deg,var(--gold-light) 0%,var(--gold) 50%,var(--orange) 100%)',
-    WebkitBackgroundClip: 'text',
-    WebkitTextFillColor: 'transparent',
-  } as const
+  const showBanner  = settings.landing_top_banner_enabled && !!settings.landing_top_banner_url
 
   const navItems = [
     { label:'Plataforma', action: () => { document.getElementById('plataforma')?.scrollIntoView({behavior:'smooth'}); setMenuOpen(false) } },
@@ -95,6 +90,7 @@ export default function HomePage() {
     { label:'Planos', action: () => { document.getElementById('planos')?.scrollIntoView({behavior:'smooth'}); setMenuOpen(false) } },
   ]
 
+  // Redes sociais ativas
   const sociais = [
     { url: settings.instagram_url, icon: '📸', label: 'Instagram', color: 'rgba(212,168,67,0.15)' },
     { url: settings.whatsapp_url,  icon: '💬', label: 'WhatsApp',  color: 'rgba(37,211,102,0.15)' },
@@ -133,6 +129,7 @@ export default function HomePage() {
         </button>
       </nav>
 
+      {/* Menu mobile */}
       {menuOpen && (
         <div style={{position:'fixed',top:60,left:0,right:0,zIndex:99,background:'rgba(8,8,8,0.98)',backdropFilter:'blur(12px)',borderBottom:'1px solid rgba(255,255,255,0.08)',display:'flex',flexDirection:'column',padding:'8px 0'}}>
           {navItems.map(item=>(
@@ -154,6 +151,19 @@ export default function HomePage() {
         </div>
       )}
 
+      {/* BANNER TOPO */}
+      {showBanner && (
+        <div className="landing-top-banner">
+          {settings.landing_top_banner_link ? (
+            <a href={settings.landing_top_banner_link} target="_blank" rel="noopener noreferrer" style={{display:'block',lineHeight:0}}>
+              <img src={settings.landing_top_banner_url} alt={settings.landing_top_banner_alt||'Banner TigerJus'} />
+            </a>
+          ) : (
+            <img src={settings.landing_top_banner_url} alt={settings.landing_top_banner_alt||'Banner TigerJus'} />
+          )}
+        </div>
+      )}
+
       {/* HERO */}
       <section style={{
         minHeight:'100vh',
@@ -166,41 +176,46 @@ export default function HomePage() {
         overflow:'hidden',
         textAlign: heroIsRight||heroIsLeft ? 'left' : 'center',
       }}>
+        {/* Background media se position=background */}
         {heroIsBg && <HeroMedia {...heroMedia}/>}
+        {/* Radial glow principal — azul+dourado */}
         <div style={{position:'absolute',inset:0,background:'radial-gradient(ellipse 90% 70% at 50% 10%, rgba(99,130,200,0.18) 0%, rgba(212,168,67,0.06) 50%, transparent 75%)',pointerEvents:'none',zIndex:1}} />
+        {/* Segundo glow — destaque central */}
         <div style={{position:'absolute',top:'20%',left:'50%',transform:'translateX(-50%)',width:600,height:400,background:'radial-gradient(ellipse at center, rgba(99,130,200,0.1) 0%, transparent 70%)',pointerEvents:'none',zIndex:1,filter:'blur(40px)'}} />
 
-        <div style={{
+        {/* Layout duas colunas quando right/left */}
+        <div className="hero-two-col" style={{
           display:'flex',
           alignItems:'center',
           gap:48,
           width:'100%',
           maxWidth: heroIsRight||heroIsLeft ? 1200 : 'none',
           flexDirection: heroIsLeft ? 'row-reverse' : 'row',
+          flexWrap:'wrap',
           position:'relative',zIndex:2,
         }}>
-        {/* Instância DESKTOP do HeroMedia — escondida no mobile via CSS .hero-media-side */}
+        {/* Coluna de mídia right/left */}
         {(heroIsRight||heroIsLeft) && (
           <div className="hero-media-side">
             <HeroMedia {...heroMedia}/>
           </div>
         )}
-        <div style={{flex:1,display:'flex',flexDirection:'column',alignItems:heroIsRight||heroIsLeft?'flex-start':'center',position:'relative',zIndex:2}}>
+        {/* Coluna de conteúdo */}
+        <div className="hero-content-col" style={{flex:1,display:'flex',flexDirection:'column',alignItems:heroIsRight||heroIsLeft?'flex-start':'center',position:'relative',zIndex:2}}>
         <div style={{display:'inline-flex',alignItems:'center',gap:8,border:'1px solid rgba(212,168,67,0.3)',borderRadius:100,padding:'8px 20px',marginBottom:40,fontSize:11,fontWeight:600,letterSpacing:2,textTransform:'uppercase',color:'var(--gold)',background:'rgba(212,168,67,0.05)',animation:'fadeInDown 0.8s ease both'}}>
           <div style={{width:6,height:6,borderRadius:'50%',background:'var(--gold)',animation:'pulse 2s infinite'}} />
           {settings.hero_badge||'Plataforma jurídica de nova geração'}
         </div>
 
-        {/* H1 unificado desktop+mobile, 3 ramos preservando setting do Admin */}
         <h1 style={{fontFamily:'var(--font-display)',fontSize:'clamp(38px,8vw,88px)',fontWeight:900,lineHeight:1.05,letterSpacing:-1,marginBottom:24,animation:'fadeInUp 0.8s 0.1s ease both'}}>
           {settings.hero_headline
             ? settings.hero_headline.includes('Direito')
               ? <>
                   {settings.hero_headline.split('Direito')[0]}
-                  <span style={gradientStyle}>Direito{settings.hero_headline.split('Direito')[1]}</span>
+                  <span style={{background:'linear-gradient(135deg,var(--gold-light) 0%,var(--gold) 50%,var(--orange) 100%)',WebkitBackgroundClip:'text',WebkitTextFillColor:'transparent'}}>Direito{settings.hero_headline.split('Direito')[1]}</span>
                 </>
               : settings.hero_headline
-            : <>O jeito mais inteligente<br/>de evoluir no <span style={gradientStyle}>Direito.</span></>
+            : <>O jeito mais inteligente<br/><span style={{background:'linear-gradient(135deg,var(--gold-light) 0%,var(--gold) 50%,var(--orange) 100%)',WebkitBackgroundClip:'text',WebkitTextFillColor:'transparent'}}>de evoluir no Direito.</span></>
           }
         </h1>
 
@@ -214,9 +229,8 @@ export default function HomePage() {
           <Link href="/login?modo=cadastro" className="btn-primary" style={{fontSize:15,padding:'16px 40px'}}>{settings.hero_cta_primary||'🐯 COMEÇAR GRÁTIS'}</Link>
           <Link href="/login" className="btn-secondary" style={{fontSize:15,padding:'16px 32px'}}>JÁ TENHO CONTA</Link>
         </div>
-
-        {/* Instância MOBILE do HeroMedia — escondida no desktop via CSS .hero-media-mobile */}
-        {(heroIsRight || heroIsLeft) && (
+        {/* Instância MOBILE do tigre — visível só no mobile via CSS */}
+        {(heroIsRight||heroIsLeft) && (
           <div className="hero-media-mobile">
             <HeroMedia {...heroMedia}/>
           </div>
@@ -229,9 +243,9 @@ export default function HomePage() {
               <div style={{fontSize:10,color:'var(--text-muted)',letterSpacing:'1.5px',textTransform:'uppercase',marginTop:4}}>{l}</div>
             </div>
           ))}
-        </div>
-        </div>
-        </div>
+        </div>{/* fim grid stats */}
+        </div>{/* fim coluna conteúdo */}
+        </div>{/* fim layout duas colunas */}
       </section>
 
       {/* FEATURES */}
@@ -373,6 +387,7 @@ export default function HomePage() {
           "{settings.hero_quote||'Não basta estudar Direito. É preciso pensar como um Tigre.'}"
         </div>
 
+        {/* Redes sociais — só aparecem se URL estiver cadastrada */}
         {sociais.length > 0 && (
           <div style={{display:'flex',gap:10,justifyContent:'center',marginBottom:16,flexWrap:'wrap'}}>
             {sociais.map(s=>(
