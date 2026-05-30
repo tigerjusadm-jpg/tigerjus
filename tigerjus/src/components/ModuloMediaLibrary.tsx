@@ -4,6 +4,7 @@ import { supabase } from '@/lib/supabase'
 import {
   uploadAsset, listAssets, updateAsset, deleteAsset,
   MEDIA_CATEGORIAS, MEDIA_CATEGORIA_LABEL,
+  TIPOS_PERMITIDOS, isImagem,
   type MediaAsset, type MediaCategoria,
 } from '@/lib/storage'
 
@@ -14,9 +15,20 @@ const CATEGORIA_COR: Record<MediaCategoria, string> = {
   mascote:'#f472b6', marketing:'#fb923c', tema:'#fbbf24', campanha:'#ef4444',
 }
 
+// Ícones por extensão real do constraint
 const TIPO_ICONE: Record<string, string> = {
-  imagem:'🖼️', video:'🎬', audio:'🎵', pdf:'📄', fonte:'🔤', outro:'📦',
+  png:'🖼️', webp:'🖼️', jpg:'🖼️', jpeg:'🖼️', svg:'🎨',
+  mp4:'🎬', webm:'🎬',
 }
+
+// Atributo accept do <input type="file"> — restringe na seleção
+const FILE_ACCEPT = [
+  '.png', '.webp', '.jpg', '.jpeg', '.svg', '.mp4', '.webm',
+  'image/png', 'image/webp', 'image/jpeg', 'image/svg+xml',
+  'video/mp4', 'video/webm',
+].join(',')
+
+const FORMATOS_HINT = TIPOS_PERMITIDOS.map(t => t.toUpperCase()).join(', ')
 
 // ─── COMPONENTES PEQUENOS ─────────────────────────────────────────────────────
 
@@ -51,7 +63,7 @@ function Skeleton() {
 
 function AssetCard({asset, onClick}:{asset:MediaAsset; onClick:()=>void}) {
   const cor = CATEGORIA_COR[asset.categoria] || '#888'
-  const isImage = asset.tipo === 'imagem'
+  const ehImagem = isImagem(asset.tipo)
   return (
     <div onClick={onClick}
       style={{
@@ -65,12 +77,12 @@ function AssetCard({asset, onClick}:{asset:MediaAsset; onClick:()=>void}) {
       onMouseLeave={e=>{e.currentTarget.style.transform='translateY(0)';e.currentTarget.style.borderColor=asset.ativo?'rgba(255,255,255,0.06)':'rgba(248,113,113,0.2)'}}>
       <div style={{
         aspectRatio:'1',
-        background:isImage
+        background:ehImagem
           ? `url(${asset.url}) center/contain no-repeat, repeating-conic-gradient(#222 0% 25%, #1a1a1a 0% 50%) 50% / 16px 16px`
           : 'rgba(255,255,255,0.03)',
         display:'flex', alignItems:'center', justifyContent:'center', position:'relative',
       }}>
-        {!isImage && <span style={{fontSize:48}}>{TIPO_ICONE[asset.tipo] || '📦'}</span>}
+        {!ehImagem && <span style={{fontSize:48}}>{TIPO_ICONE[asset.tipo] || '📦'}</span>}
         {!asset.ativo && (
           <span style={{position:'absolute',top:8,right:8,background:'rgba(248,113,113,0.95)',color:'#fff',fontSize:9,fontWeight:800,padding:'2px 8px',borderRadius:100}}>
             INATIVO
@@ -172,7 +184,8 @@ function EditorAsset({asset, adminId, onClose, onSaved}: DrawerProps) {
         target_type: 'media_asset', target_id: data.id,
         metadata: {
           nome: data.nome, categoria: data.categoria, subcategoria: data.subcategoria,
-          storage_path: data.storage_path, tamanho_kb: data.tamanho_kb, mime_type: data.mime_type,
+          storage_path: data.storage_path, tamanho_kb: data.tamanho_kb,
+          tipo: data.tipo, mime_type: data.mime_type,
         },
       })
       setMsg('✅ Asset criado!'); setTimeout(() => onSaved(), 800)
@@ -212,7 +225,7 @@ function EditorAsset({asset, adminId, onClose, onSaved}: DrawerProps) {
     await supabase.from('admin_audit_logs').insert({
       user_id: adminId, action_type: 'DELETE',
       target_type: 'media_asset', target_id: asset.id,
-      metadata: { nome: deleted?.nome, categoria: deleted?.categoria, storage_path: deleted?.storage_path },
+      metadata: { nome: deleted?.nome, categoria: deleted?.categoria, storage_path: deleted?.storage_path, tipo: deleted?.tipo },
     })
     setMsg('✅ Excluído!')
     setTimeout(() => onSaved(), 500)
@@ -244,6 +257,10 @@ function EditorAsset({asset, adminId, onClose, onSaved}: DrawerProps) {
     </select>
   )
 
+  // Ícone do arquivo selecionado (antes do upload)
+  const fileExt = file ? file.name.split('.').pop()?.toLowerCase() || '' : ''
+  const fileIcone = TIPO_ICONE[fileExt] || '📎'
+
   return (
     <>
       <div style={{position:'fixed',inset:0,zIndex:200,background:'rgba(0,0,0,0.6)',backdropFilter:'blur(2px)'}} onClick={onClose}/>
@@ -271,7 +288,7 @@ function EditorAsset({asset, adminId, onClose, onSaved}: DrawerProps) {
                 }}>
                 {file ? (
                   <>
-                    {!previewUrl && <div style={{fontSize:36}}>{TIPO_ICONE[file.type.split('/')[0]] || '📦'}</div>}
+                    {!previewUrl && <div style={{fontSize:36}}>{fileIcone}</div>}
                     <div style={{fontSize:13,fontWeight:600,color:'#D4A843',background:'rgba(0,0,0,0.7)',padding:'6px 12px',borderRadius:6}}>{file.name}</div>
                     <div style={{fontSize:11,color:'#888',background:'rgba(0,0,0,0.7)',padding:'4px 10px',borderRadius:6}}>{(file.size/1024).toFixed(1)} KB · {file.type || 'desconhecido'}</div>
                   </>
@@ -279,24 +296,24 @@ function EditorAsset({asset, adminId, onClose, onSaved}: DrawerProps) {
                   <>
                     <div style={{fontSize:36}}>📤</div>
                     <div style={{fontSize:13,fontWeight:600,color:'#aaa'}}>Clique ou arraste um arquivo</div>
-                    <div style={{fontSize:11,color:'#555'}}>Imagens, PDFs, vídeos, fontes…</div>
+                    <div style={{fontSize:11,color:'#555'}}>{FORMATOS_HINT}</div>
                   </>
                 )}
               </div>
-              <input ref={fileInputRef} type="file" style={{display:'none'}}
+              <input ref={fileInputRef} type="file" style={{display:'none'}} accept={FILE_ACCEPT}
                 onChange={e => e.target.files?.[0] && handleFileSelect(e.target.files[0])}/>
             </section>
           ) : (
             <section>
               {label('Preview')}
               <div style={{
-                background:asset?.tipo === 'imagem'
-                  ? `url(${asset.url}) center/contain no-repeat, repeating-conic-gradient(#1a1a1a 0% 25%, #0d0d0d 0% 50%) 50% / 12px 12px`
+                background:isImagem(asset?.tipo)
+                  ? `url(${asset!.url}) center/contain no-repeat, repeating-conic-gradient(#1a1a1a 0% 25%, #0d0d0d 0% 50%) 50% / 12px 12px`
                   : 'rgba(255,255,255,0.03)',
                 border:'1px solid rgba(255,255,255,0.08)', borderRadius:12,
                 minHeight:200, display:'flex', alignItems:'center', justifyContent:'center',
               }}>
-                {asset?.tipo !== 'imagem' && <span style={{fontSize:48}}>{TIPO_ICONE[asset?.tipo || 'outro']}</span>}
+                {!isImagem(asset?.tipo) && <span style={{fontSize:48}}>{TIPO_ICONE[asset?.tipo || ''] || '📦'}</span>}
               </div>
               <button onClick={copyUrl}
                 style={{marginTop:8,width:'100%',background:'rgba(255,255,255,0.04)',border:'1px solid rgba(255,255,255,0.08)',borderRadius:8,padding:'8px 12px',color:'#aaa',fontSize:11,cursor:'pointer',fontFamily:'monospace'}}>
@@ -329,7 +346,7 @@ function EditorAsset({asset, adminId, onClose, onSaved}: DrawerProps) {
             <section>
               {label('Metadados técnicos')}
               <div style={{background:'rgba(255,255,255,0.03)',border:'1px solid rgba(255,255,255,0.05)',borderRadius:10,padding:'10px 14px',display:'flex',flexDirection:'column',gap:6,fontSize:11}}>
-                <div style={{display:'flex',justifyContent:'space-between'}}><span style={{color:'#666'}}>Tipo</span><span style={{color:'#aaa'}}>{asset.tipo}</span></div>
+                <div style={{display:'flex',justifyContent:'space-between'}}><span style={{color:'#666'}}>Tipo</span><span style={{color:'#aaa',textTransform:'uppercase'}}>{asset.tipo}</span></div>
                 <div style={{display:'flex',justifyContent:'space-between'}}><span style={{color:'#666'}}>MIME</span><span style={{color:'#aaa',fontFamily:'monospace'}}>{asset.mime_type}</span></div>
                 <div style={{display:'flex',justifyContent:'space-between'}}><span style={{color:'#666'}}>Tamanho</span><span style={{color:'#aaa'}}>{asset.tamanho_kb}KB</span></div>
                 {asset.largura && asset.altura && <div style={{display:'flex',justifyContent:'space-between'}}><span style={{color:'#666'}}>Dimensões</span><span style={{color:'#aaa'}}>{asset.largura}×{asset.altura}</span></div>}
