@@ -81,6 +81,9 @@ export interface AppSettings {
 }
 
 // ─── FALLBACKS SEGUROS ────────────────────────────────────────────────────────
+// NOTA: hero_media_enabled e landing_top_banner_enabled permanecem false
+// nos fallbacks. O gate de `loaded` no page.tsx garante que esses valores
+// só são usados após o fetch completar — eliminando falso negativo no mobile.
 
 const FALLBACKS: AppSettings = {
   // Landing Page
@@ -204,59 +207,63 @@ export function AppSettingsProvider({ children }: { children: ReactNode }) {
   const [loaded, setLoaded]     = useState(false)
 
   const refresh = useCallback(async () => {
-    const { data, error } = await supabase
-      .from('app_settings')
-      .select('key, value, type')
-      .eq('ativo', true)
+    try {
+      const { data, error } = await supabase
+        .from('app_settings')
+        .select('key, value, type')
+        .eq('ativo', true)
 
-    if (error) {
-      console.error('[AppSettingsContext] Erro ao carregar app_settings:', error.message)
+      if (error) {
+        console.error('[AppSettingsContext] Erro ao carregar app_settings:', error.message)
+        setLoaded(true)
+        return
+      }
+
+      if (!data || data.length === 0) {
+        setLoaded(true)
+        return
+      }
+
+      const merged = { ...FALLBACKS }
+
+      for (const row of data) {
+        const key = row.key as keyof AppSettings
+
+        if (!(key in FALLBACKS)) continue
+
+        const raw = row.value
+        const fallbackValue = FALLBACKS[key]
+
+        if (row.type === 'boolean') {
+          ;(merged as any)[key] = normalizeBoolean(raw)
+        } else if (row.type === 'number') {
+          ;(merged as any)[key] = normalizeNumber(raw, Number(fallbackValue))
+        } else {
+          ;(merged as any)[key] = normalizeText(raw, String(fallbackValue))
+        }
+      }
+
+      setSettings(merged)
       setLoaded(true)
-      return
-    }
 
-    if (!data) {
+      // Aplica CSS variables na raiz
+      if (typeof document !== 'undefined') {
+        const root = document.documentElement
+
+        if (merged.primary_color) {
+          root.style.setProperty('--gold', merged.primary_color)
+        }
+        if (merged.secondary_color) {
+          root.style.setProperty('--orange', merged.secondary_color)
+        }
+        if (merged.background_color) {
+          root.style.setProperty('--deep-black', merged.background_color)
+        }
+      }
+    } catch (err) {
+      // Garante que loaded=true mesmo em erro inesperado — evita travamento
+      console.error('[AppSettingsContext] Erro inesperado:', err)
       setLoaded(true)
-      return
-    }
-
-    const merged = { ...FALLBACKS }
-
-    for (const row of data) {
-      const key = row.key as keyof AppSettings
-
-      if (!(key in FALLBACKS)) continue
-
-      const raw = row.value
-      const fallbackValue = FALLBACKS[key]
-
-      if (row.type === 'boolean') {
-        ;(merged as any)[key] = normalizeBoolean(raw)
-      } else if (row.type === 'number') {
-        ;(merged as any)[key] = normalizeNumber(raw, Number(fallbackValue))
-      } else {
-        ;(merged as any)[key] = normalizeText(raw, String(fallbackValue))
-      }
-    }
-
-    setSettings(merged)
-    setLoaded(true)
-
-    // Aplica CSS variables na raiz — efeito imediato na plataforma
-    if (typeof document !== 'undefined') {
-      const root = document.documentElement
-
-      if (merged.primary_color) {
-        root.style.setProperty('--gold', merged.primary_color)
-      }
-
-      if (merged.secondary_color) {
-        root.style.setProperty('--orange', merged.secondary_color)
-      }
-
-      if (merged.background_color) {
-        root.style.setProperty('--deep-black', merged.background_color)
-      }
     }
   }, [])
 
