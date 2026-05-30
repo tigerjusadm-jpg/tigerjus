@@ -6,6 +6,10 @@ export type MediaCategoria =
   | 'branding' | 'landing' | 'dashboard' | 'login'
   | 'mascote' | 'marketing' | 'tema' | 'campanha'
 
+// ⚠️ Estes valores precisam bater EXATAMENTE com o CHECK constraint do banco:
+// tipo IN ('png','webp','jpg','jpeg','svg','mp4','webm')
+export type MediaTipo = 'png' | 'webp' | 'jpg' | 'jpeg' | 'svg' | 'mp4' | 'webm'
+
 export const MEDIA_CATEGORIAS: MediaCategoria[] = [
   'branding', 'landing', 'dashboard', 'login',
   'mascote', 'marketing', 'tema', 'campanha',
@@ -22,6 +26,18 @@ export const MEDIA_CATEGORIA_LABEL: Record<MediaCategoria, string> = {
   campanha:  'Campanha',
 }
 
+export const TIPOS_PERMITIDOS: MediaTipo[] = ['png','webp','jpg','jpeg','svg','mp4','webm']
+export const TIPOS_IMAGEM: MediaTipo[] = ['png','webp','jpg','jpeg','svg']
+export const TIPOS_VIDEO: MediaTipo[] = ['mp4','webm']
+
+export function isImagem(tipo: string | null | undefined): boolean {
+  return !!tipo && (TIPOS_IMAGEM as string[]).includes(tipo)
+}
+
+export function isVideo(tipo: string | null | undefined): boolean {
+  return !!tipo && (TIPOS_VIDEO as string[]).includes(tipo)
+}
+
 export interface MediaAsset {
   id: string
   nome: string
@@ -29,7 +45,7 @@ export interface MediaAsset {
   descricao: string | null
   categoria: MediaCategoria
   subcategoria: string | null
-  tipo: string
+  tipo: MediaTipo
   mime_type: string
   url: string
   storage_path: string
@@ -80,13 +96,38 @@ function getExtension(filename: string): string {
   return m ? m[1].toLowerCase() : ''
 }
 
-function inferTipo(mime: string): string {
-  if (mime.startsWith('image/')) return 'imagem'
-  if (mime.startsWith('video/')) return 'video'
-  if (mime.startsWith('audio/')) return 'audio'
-  if (mime === 'application/pdf') return 'pdf'
-  if (mime.startsWith('font/') || mime.includes('font')) return 'fonte'
-  return 'outro'
+// Mapeamento explícito de extensão → tipo permitido
+const EXT_TO_TIPO: Record<string, MediaTipo> = {
+  png:  'png',
+  webp: 'webp',
+  jpg:  'jpg',
+  jpeg: 'jpeg',
+  svg:  'svg',
+  mp4:  'mp4',
+  webm: 'webm',
+}
+
+// Fallback via mime quando a extensão estiver ausente/atípica
+const MIME_TO_TIPO: Record<string, MediaTipo> = {
+  'image/png':       'png',
+  'image/webp':      'webp',
+  'image/jpeg':      'jpg',   // jpeg também aceita
+  'image/jpg':       'jpg',
+  'image/svg+xml':   'svg',
+  'video/mp4':       'mp4',
+  'video/webm':      'webm',
+}
+
+/**
+ * Retorna o tipo permitido (compatível com o CHECK constraint) ou null se inválido.
+ * Estratégia: extensão primeiro (mais confiável), mime como fallback.
+ */
+function inferTipo(file: File): MediaTipo | null {
+  const ext = getExtension(file.name)
+  if (ext in EXT_TO_TIPO) return EXT_TO_TIPO[ext]
+  const mime = file.type.toLowerCase()
+  if (mime in MIME_TO_TIPO) return MIME_TO_TIPO[mime]
+  return null
 }
 
 async function getImageDimensions(file: File): Promise<{ largura: number; altura: number } | null> {
@@ -119,11 +160,20 @@ export async function uploadAsset(params: UploadAssetParams): Promise<{
   if (!file) return { data: null, error: 'Nenhum arquivo fornecido.' }
   if (!MEDIA_CATEGORIAS.includes(categoria)) return { data: null, error: 'Categoria inválida.' }
 
-  const ext = getExtension(file.name)
+  // Valida tipo ANTES de subir pro Storage
+  const tipo = inferTipo(file)
+  if (!tipo) {
+    return {
+      data: null,
+      error: 'Formato não permitido. Aceitos: PNG, WEBP, JPG, JPEG, SVG, MP4, WEBM.',
+    }
+  }
+
+  const ext = getExtension(file.name) || tipo
   const baseNome = nome || file.name.replace(/\.[^.]+$/, '')
   const nomeSlug = slugify(baseNome) || 'asset'
   const subPath = subcategoria ? `${slugify(subcategoria)}/` : ''
-  const fileName = `${Date.now()}-${nomeSlug}${ext ? '.' + ext : ''}`
+  const fileName = `${Date.now()}-${nomeSlug}.${ext}`
   const storagePath = `${categoria}/${subPath}${fileName}`
 
   // 1) Upload no Storage
@@ -143,7 +193,7 @@ export async function uploadAsset(params: UploadAssetParams): Promise<{
     descricao: descricao || null,
     categoria,
     subcategoria: subcategoria || null,
-    tipo: inferTipo(file.type),
+    tipo,
     mime_type: file.type || 'application/octet-stream',
     url,
     storage_path: storagePath,
@@ -162,7 +212,7 @@ export async function uploadAsset(params: UploadAssetParams): Promise<{
     .single()
 
   if (insertError) {
-    // Rollback do storage
+    // Rollback do storage se o insert falhou
     await supabase.storage.from(BUCKET).remove([storagePath])
     return { data: null, error: `Erro ao gravar metadados: ${insertError.message}` }
   }
