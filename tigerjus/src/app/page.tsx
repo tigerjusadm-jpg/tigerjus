@@ -73,13 +73,15 @@ function UpgradeModal({ onClose }: { onClose: () => void }) {
 
 export default function HomePage() {
   const router = useRouter()
-  const { settings } = useAppSettings()
+
+  // ── GATE: só usa settings após loaded=true ─────────────────────────────────
+  const { settings, loaded } = useAppSettings()
 
   const [showUpgrade, setShowUpgrade] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
 
   const heroMedia = {
-    enabled:   normalizeBoolean(settings.hero_media_enabled),
+    enabled:   loaded ? normalizeBoolean(settings.hero_media_enabled) : false,
     type:      settings.hero_media_type      || 'image',
     url:       settings.hero_media_url       || '',
     position:  settings.hero_media_position  || 'right',
@@ -93,18 +95,19 @@ export default function HomePage() {
   const heroIsLeft  = heroMedia.enabled && heroMedia.position === 'left'
   const heroIsBg    = heroMedia.enabled && heroMedia.position === 'background'
 
-  const bannerEnabled = normalizeBoolean(settings.landing_top_banner_enabled)
-  const bannerUrl = String(settings.landing_top_banner_url || '').trim()
-  const bannerLink = String(settings.landing_top_banner_link || '').trim()
-  const bannerAlt = String(settings.landing_top_banner_alt || 'Banner TigerJus').trim()
+  // ── GATE: banner só renderiza após loaded=true ────────────────────────────
+  const bannerEnabled = loaded ? normalizeBoolean(settings.landing_top_banner_enabled) : false
+  const bannerUrl     = loaded ? String(settings.landing_top_banner_url  || '').trim() : ''
+  const bannerLink    = loaded ? String(settings.landing_top_banner_link || '').trim() : ''
+  const bannerAlt     = loaded ? String(settings.landing_top_banner_alt  || 'Banner TigerJus').trim() : ''
 
   const showBanner = bannerEnabled && bannerUrl.length > 0
 
   const navItems = [
     { label:'Plataforma', action: () => { document.getElementById('plataforma')?.scrollIntoView({behavior:'smooth'}); setMenuOpen(false) } },
     { label:'Disciplinas', action: () => { router.push('/login'); setMenuOpen(false) } },
-    { label:'Simulados', action: () => { router.push('/login'); setMenuOpen(false) } },
-    { label:'Planos', action: () => { document.getElementById('planos')?.scrollIntoView({behavior:'smooth'}); setMenuOpen(false) } },
+    { label:'Simulados',   action: () => { router.push('/login'); setMenuOpen(false) } },
+    { label:'Planos',      action: () => { document.getElementById('planos')?.scrollIntoView({behavior:'smooth'}); setMenuOpen(false) } },
   ]
 
   const sociais = [
@@ -167,10 +170,7 @@ export default function HomePage() {
         </div>
       )}
 
-      {/* ── BANNER TOPO ─────────────────────────────────────────────
-          FIX: width/height explícitos na img para evitar colapso
-          no Safari/iOS antes do carregamento completo.
-      ──────────────────────────────────────────────────────────── */}
+      {/* BANNER TOPO — só monta após loaded=true E settings confirmados */}
       {showBanner && (
         <div className="landing-top-banner">
           {bannerLink ? (
@@ -258,12 +258,6 @@ export default function HomePage() {
               <Link href="/login" className="btn-secondary" style={{fontSize:15,padding:'16px 32px'}}>JÁ TENHO CONTA</Link>
             </div>
 
-            {/* ── SLOT MOBILE DO TIGRE ─────────────────────────────────
-                FIX: removido do interior do hero-content-col e movido
-                para fora, como irmão direto do hero-two-col, evitando
-                herança de alignItems inline que colapsava o elemento.
-            ──────────────────────────────────────────────────────── */}
-
             <div style={{display:'grid',gridTemplateColumns:'repeat(2,1fr)',gap:'20px 40px',maxWidth:480,margin:'0 auto',animation:'fadeInUp 0.8s 0.4s ease both'}}>
               {[['12.400+','Estudantes Ativos'],['97%','Satisfação'],['3.200+','Aprovados OAB'],['17','Disciplinas']].map(([n,l])=>(
                 <div key={l} style={{textAlign:'center'}}>
@@ -275,7 +269,7 @@ export default function HomePage() {
           </div>
         </div>
 
-        {/* SLOT MOBILE DO TIGRE — fora do hero-content-col */}
+        {/* TIGRE MOBILE — fora do hero-content-col, só monta após loaded=true */}
         {(heroIsRight||heroIsLeft) && (
           <div className="hero-media-mobile">
             <HeroMedia {...heroMedia}/>
@@ -421,12 +415,10 @@ export default function HomePage() {
         <div style={{fontSize:13,color:'var(--text-muted)',marginBottom:14}}>
           "{settings.hero_quote||'Não basta estudar Direito. É preciso pensar como um Tigre.'}"
         </div>
-
         {sociais.length > 0 && (
           <div style={{display:'flex',gap:10,justifyContent:'center',marginBottom:16,flexWrap:'wrap'}}>
             {sociais.map(s=>(
-              <a key={s.label} href={s.url} target="_blank" rel="noopener noreferrer"
-                title={s.label}
+              <a key={s.label} href={s.url} target="_blank" rel="noopener noreferrer" title={s.label}
                 style={{width:38,height:38,borderRadius:10,background:s.color,border:'1px solid rgba(255,255,255,0.1)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:18,textDecoration:'none',transition:'transform 0.2s'}}
                 onMouseEnter={e=>(e.currentTarget.style.transform='scale(1.1)')}
                 onMouseLeave={e=>(e.currentTarget.style.transform='scale(1)')}>
@@ -435,7 +427,6 @@ export default function HomePage() {
             ))}
           </div>
         )}
-
         <div style={{display:'flex',gap:20,justifyContent:'center',flexWrap:'wrap',fontSize:12,color:'var(--text-dim)'}}>
           <span>{settings.footer_copyright||'© 2025 TigerJus'}</span>
           <Link href="/privacidade" style={{color:'var(--text-dim)',textDecoration:'none'}}>Privacidade</Link>
