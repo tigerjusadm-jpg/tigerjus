@@ -4,7 +4,6 @@
 
 @layer base {
   :root {
-    /* ── Identidade TigerJus ─────────────────────────────────── */
     --gold:        #D4A843;
     --gold-light:  #F0C96A;
     --gold-dark:   #A07820;
@@ -22,8 +21,6 @@
     --danger:      #E8421A;
     --blue:        #3A8FE8;
 
-    /* ── Tokens semânticos de tema — fallback = TECH ─────────── */
-    /* ThemeProvider sobrescreve estes valores em runtime        */
     --tj-bg:                #070b14;
     --tj-bg-secondary:      #0b1120;
     --tj-bg-tertiary:       #0f1626;
@@ -59,8 +56,6 @@
 }
 
 @layer components {
-
-  /* ── Botões ───────────────────────────────────────────────── */
   .btn-primary {
     @apply inline-flex items-center justify-center px-8 py-4 rounded-lg font-extrabold text-sm tracking-widest uppercase transition-all duration-300;
     background: linear-gradient(135deg, var(--gold), var(--orange));
@@ -102,7 +97,6 @@
     box-shadow: 0 4px 16px rgba(212,168,67,0.35);
   }
 
-  /* ── Cards legados — preservados ─────────────────────────── */
   .card {
     background: var(--tj-card-bg);
     border: 1px solid var(--tj-card-border);
@@ -126,7 +120,6 @@
     -webkit-backdrop-filter: blur(8px);
   }
 
-  /* ── TJ Card — sistema novo ───────────────────────────────── */
   .tj-card {
     background: var(--tj-card-bg);
     border: 1px solid var(--tj-card-border);
@@ -148,18 +141,13 @@
     position: absolute;
     inset: 0;
     border-radius: inherit;
-    background: linear-gradient(
-      135deg,
-      rgba(255,255,255,0.04) 0%,
-      transparent 60%
-    );
+    background: linear-gradient(135deg, rgba(255,255,255,0.04) 0%, transparent 60%);
     opacity: 0;
     transition: opacity 0.25s ease;
     pointer-events: none;
   }
   .tj-card:hover::before { opacity: 1; }
 
-  /* ── Glow do hero — luz central ───────────────────────────── */
   .tj-hero-glow {
     position: absolute;
     top: -20%;
@@ -167,19 +155,12 @@
     transform: translateX(-50%);
     width: 800px;
     height: 500px;
-    background: radial-gradient(
-      ellipse at center,
-      rgba(99,130,200,0.12) 0%,
-      rgba(212,168,67,0.05) 40%,
-      transparent 70%
-    );
+    background: radial-gradient(ellipse at center, rgba(99,130,200,0.12) 0%, rgba(212,168,67,0.05) 40%, transparent 70%);
     pointer-events: none;
     z-index: 0;
     filter: blur(30px);
   }
 
-  /* ── Grid tecnológico ─────────────────────────────────────── */
-  /* Ativado pelo ThemeProvider via --tj-grid-opacity          */
   .tj-grid-overlay {
     position: fixed;
     inset: 0;
@@ -190,12 +171,10 @@
       linear-gradient(90deg, var(--tj-grid-color) 1px, transparent 1px);
     background-size: 48px 48px;
     opacity: var(--tj-grid-opacity);
-    /* Fade nas bordas — não corta o conteúdo */
     mask-image: radial-gradient(ellipse 100% 100% at 50% 50%, black 40%, transparent 100%);
     -webkit-mask-image: radial-gradient(ellipse 100% 100% at 50% 50%, black 40%, transparent 100%);
   }
 
-  /* ── Radial glow do hero ─────────────────────────────────── */
   .tj-radial-glow {
     position: absolute;
     inset: 0;
@@ -204,7 +183,6 @@
     z-index: 0;
   }
 
-  /* ── XP Bar premium ──────────────────────────────────────── */
   .tj-xp-bar {
     background: rgba(255,255,255,0.06);
     border-radius: 100px;
@@ -229,13 +207,11 @@
     background-size: 200% 100%;
   }
 
-  /* ── Sidebar temática ────────────────────────────────────── */
   .tj-sidebar {
     background: var(--tj-sidebar-bg);
     border-right: 1px solid var(--tj-sidebar-border);
   }
 
-  /* ── Formulários ─────────────────────────────────────────── */
   .form-input {
     @apply w-full rounded-lg px-4 py-3 text-sm outline-none transition-all duration-200;
     background: rgba(255,255,255,0.04);
@@ -257,7 +233,6 @@
     font-family: var(--font-body);
   }
 
-  /* ── XP Bar legada — preservada ─────────────────────────── */
   .xp-bar {
     background: rgba(255,255,255,0.06);
     border-radius: 100px;
@@ -271,7 +246,6 @@
     transition: width 1s ease;
   }
 
-  /* ── Badges ──────────────────────────────────────────────── */
   .badge-plan {
     @apply inline-flex items-center text-xs font-bold tracking-wider uppercase px-3 py-1 rounded-full;
   }
@@ -288,7 +262,6 @@
     color: var(--orange);
   }
 
-  /* ── Seções ──────────────────────────────────────────────── */
   .section { @apply py-24 px-6; }
   .section-inner { @apply max-w-6xl mx-auto; }
   .section-tag {
@@ -302,7 +275,6 @@
     border-radius: 2px;
   }
 
-  /* ── Navbar ──────────────────────────────────────────────── */
   .navbar {
     position: fixed; top: 0; left: 0; right: 0; z-index: 100;
     display: flex; align-items: center; justify-content: space-between;
@@ -313,7 +285,6 @@
     background: rgba(7,11,20,0.88);
   }
 
-  /* ── Dashboard sidebar ───────────────────────────────────── */
   .dash-sidebar {
     width: var(--tj-sidebar-width);
     background: var(--tj-sidebar-bg);
@@ -373,7 +344,6 @@
 
   .gold-border { border-color: rgba(212,168,67,0.2); }
 
-  /* Glassmorphism controlado — uso pontual */
   .tj-glass {
     background: var(--tj-card-bg);
     backdrop-filter: blur(12px);
@@ -423,7 +393,9 @@
 .hero-media-float { animation: hero-float 6s ease-in-out infinite; }
 .hero-media-pulse { animation: hero-pulse 4s ease-in-out infinite; }
 
-/* Coluna de mídia no hero — desktop */
+/* ─── Hero Media — instâncias controladas por viewport ───────────────────── */
+
+/* Instância DESKTOP — visível em ≥769px, escondida no mobile */
 .hero-media-side {
   flex-shrink: 0;
   max-width: 48vw;
@@ -432,7 +404,7 @@
   justify-content: center;
 }
 
-/* ← NOVO (fix mobile hero): slot mobile-only, escondido no desktop */
+/* Instância MOBILE — escondida no desktop por padrão */
 .hero-media-mobile {
   display: none;
 }
@@ -447,12 +419,10 @@
   .tj-xp-fill::after { animation: none; }
   .tj-card:hover { transform: none; box-shadow: none; }
 
-  /* ← ALTERADO (fix mobile hero): coluna lateral some no mobile */
-  .hero-media-side {
-    display: none;
-  }
+  /* Esconde a instância desktop do HeroMedia */
+  .hero-media-side { display: none; }
 
-  /* ← NOVO (fix mobile hero): bloco centralizado entre CTAs e métricas */
+  /* Mostra e centraliza a instância mobile entre CTAs e métricas */
   .hero-media-mobile {
     display: flex;
     justify-content: center;
