@@ -38,6 +38,15 @@ const GRUPOS: { key: string; label: string; icon: string; keys: string[] }[] = [
     ],
   },
   {
+    key: 'banner_topo',
+    label: 'Banner Topo',
+    icon: '🖼️',
+    keys: [
+      'landing_top_banner_enabled', 'landing_top_banner_url',
+      'landing_top_banner_alt', 'landing_top_banner_link',
+    ],
+  },
+  {
     key: 'dashboard',
     label: 'Dashboard',
     icon: '🏠',
@@ -110,6 +119,11 @@ const DEFAULTS: Omit<AppSetting, 'id' | 'ativo'>[] = [
   { key: 'hero_media_animation', value: 'float', type: 'text',    description: 'Animação: none | float | pulse' },
   { key: 'hero_media_max_width', value: '650',   type: 'number',  description: 'Largura máxima da mídia em px (ex: 650)' },
   { key: 'hero_media_blur',      value: '0',     type: 'number',  description: 'Blur aplicado à mídia em px (0 = sem blur)' },
+  // Banner Topo
+  { key: 'landing_top_banner_enabled', value: 'false', type: 'boolean', description: 'Ativa banner no topo da landing (abaixo da navbar)' },
+  { key: 'landing_top_banner_url',     value: '',      type: 'text',    description: 'URL da imagem do banner (recomendado 1800×300px)' },
+  { key: 'landing_top_banner_alt',     value: '',      type: 'text',    description: 'Texto alternativo do banner (acessibilidade)' },
+  { key: 'landing_top_banner_link',    value: '',      type: 'text',    description: 'Link ao clicar no banner (opcional)' },
   // Dashboard
   { key: 'welcome_message',      value: '🔥 Bem-vindo de volta! Continue sua jornada jurídica.', type: 'text', description: 'Notificação de boas-vindas no dashboard' },
   { key: 'dashboard_subtitle',   value: 'Comece seus estudos hoje.',                             type: 'text', description: 'Subtítulo abaixo do "Olá, [Nome]!"' },
