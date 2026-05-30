@@ -179,7 +179,7 @@ export default function HomePage() {
           flexDirection: heroIsLeft ? 'row-reverse' : 'row',
           position:'relative',zIndex:2,
         }}>
-        {/* Coluna de mídia right/left */}
+        {/* Coluna de mídia right/left — desktop only (escondida via CSS no mobile) */}
         {(heroIsRight||heroIsLeft) && (
           <div className="hero-media-side">
             <HeroMedia {...heroMedia}/>
@@ -214,6 +214,14 @@ export default function HomePage() {
           <Link href="/login?modo=cadastro" className="btn-primary" style={{fontSize:15,padding:'16px 40px'}}>{settings.hero_cta_primary||'🐯 COMEÇAR GRÁTIS'}</Link>
           <Link href="/login" className="btn-secondary" style={{fontSize:15,padding:'16px 32px'}}>JÁ TENHO CONTA</Link>
         </div>
+
+        {/* ← NOVO (fix mobile hero): slot mobile-only entre CTAs e métricas */}
+        {(heroIsRight || heroIsLeft) && (
+          <div className="hero-media-mobile">
+            <HeroMedia {...heroMedia}/>
+          </div>
+        )}
+
         <div style={{display:'grid',gridTemplateColumns:'repeat(2,1fr)',gap:'20px 40px',maxWidth:480,margin:'0 auto',animation:'fadeInUp 0.8s 0.4s ease both'}}>
           {[['12.400+','Estudantes Ativos'],['97%','Satisfação'],['3.200+','Aprovados OAB'],['17','Disciplinas']].map(([n,l])=>(
             <div key={l} style={{textAlign:'center'}}>
