@@ -19,38 +19,46 @@ export interface AppSettings {
   final_cta_button:     string
   final_cta_footer:     string
   footer_copyright:     string
+
   // Dashboard
   welcome_message:      string
   dashboard_subtitle:   string
   ia_welcome_message:   string
   upgrade_footer_text:  string
   cta_downgrade_button: string
+
   // CTAs e Upgrade
   cta_upgrade_title:    string
   cta_upgrade_subtitle: string
   cta_upgrade_button:   string
+
   // Social e Suporte
   whatsapp_url:         string
   instagram_url:        string
   telegram_url:         string
   email_suporte:        string
   youtube_url:          string
+
   // Ícones sociais customizados
   instagram_icon_url:   string
   whatsapp_icon_url:    string
   telegram_icon_url:    string
   youtube_icon_url:     string
+
   // Branding
   site_name:            string
   site_tagline:         string
   logo_url:             string
+
   // Visual
   primary_color:        string
   secondary_color:      string
   background_color:     string
+
   // Tema
   background_style:     string
   card_glow_enabled:    boolean
+
   // Hero Media
   hero_media_enabled:   boolean
   hero_media_type:      string
@@ -60,11 +68,13 @@ export interface AppSettings {
   hero_media_animation: string
   hero_media_max_width: number
   hero_media_blur:      number
+
   // Landing Top Banner
   landing_top_banner_enabled: boolean
   landing_top_banner_url:     string
   landing_top_banner_alt:     string
   landing_top_banner_link:    string
+
   // Manutenção
   maintenance_mode:     boolean
   maintenance_message:  string
@@ -84,38 +94,46 @@ const FALLBACKS: AppSettings = {
   final_cta_button:     'COMEÇAR AGORA',
   final_cta_footer:     'Sem cartão de crédito · Acesso imediato · 3 dias grátis',
   footer_copyright:     '© 2025 TigerJus',
+
   // Dashboard
   welcome_message:      '🔥 Bem-vindo de volta! Continue sua jornada jurídica.',
   dashboard_subtitle:   'Comece seus estudos hoje.',
   ia_welcome_message:   'Olá! Sou o TigerJus AI — seu tutor jurídico de alta performance. 🐯⚖️\n\nPosso te ajudar com dúvidas de Direito, explicar artigos, resumir temas e te preparar para a OAB.\n\nO que você quer aprender hoje?',
   upgrade_footer_text:  'A partir de R$1,99/mês · Cancele quando quiser',
   cta_downgrade_button: 'Continuar no plano gratuito',
+
   // CTAs e Upgrade
   cta_upgrade_title:    'Desbloqueie o TigerJus Premium',
   cta_upgrade_subtitle: 'Acesse conteúdo ilimitado.',
   cta_upgrade_button:   'DESBLOQUEAR AGORA',
+
   // Social e Suporte
   whatsapp_url:         '',
   instagram_url:        '',
   telegram_url:         '',
   email_suporte:        '',
   youtube_url:          '',
+
   // Ícones sociais customizados
   instagram_icon_url:   '',
   whatsapp_icon_url:    '',
   telegram_icon_url:    '',
   youtube_icon_url:     '',
+
   // Branding
   site_name:            'TigerJus',
   site_tagline:         'Estude como um Tigre.',
   logo_url:             '',
+
   // Visual
   primary_color:        '#D4A843',
   secondary_color:      '#E8621A',
   background_color:     '#0a0a0a',
+
   // Tema
   background_style:     'tech',
   card_glow_enabled:    true,
+
   // Hero Media
   hero_media_enabled:   false,
   hero_media_type:      'image',
@@ -125,14 +143,40 @@ const FALLBACKS: AppSettings = {
   hero_media_animation: 'float',
   hero_media_max_width: 650,
   hero_media_blur:      0,
+
   // Landing Top Banner
   landing_top_banner_enabled: false,
   landing_top_banner_url:     '',
   landing_top_banner_alt:     '',
   landing_top_banner_link:    '',
+
   // Manutenção
   maintenance_mode:     false,
   maintenance_message:  'Voltamos em breve.',
+}
+
+// ─── NORMALIZAÇÃO DE VALORES ──────────────────────────────────────────────────
+
+function normalizeBoolean(value: unknown): boolean {
+  if (value === true) return true
+  if (value === 1) return true
+
+  if (typeof value === 'string') {
+    const normalized = value.trim().toLowerCase()
+    return normalized === 'true' || normalized === '1' || normalized === 'yes' || normalized === 'on'
+  }
+
+  return false
+}
+
+function normalizeNumber(value: unknown, fallback: number): number {
+  const n = typeof value === 'number' ? value : parseFloat(String(value ?? ''))
+  return Number.isFinite(n) ? n : fallback
+}
+
+function normalizeText(value: unknown, fallback: string): string {
+  const text = String(value ?? '')
+  return text || fallback
 }
 
 // ─── CONTEXT ──────────────────────────────────────────────────────────────────
@@ -160,26 +204,38 @@ export function AppSettingsProvider({ children }: { children: ReactNode }) {
   const [loaded, setLoaded]     = useState(false)
 
   const refresh = useCallback(async () => {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('app_settings')
       .select('key, value, type')
       .eq('ativo', true)
 
-    if (!data) return
+    if (error) {
+      console.error('[AppSettingsContext] Erro ao carregar app_settings:', error.message)
+      setLoaded(true)
+      return
+    }
+
+    if (!data) {
+      setLoaded(true)
+      return
+    }
 
     const merged = { ...FALLBACKS }
+
     for (const row of data) {
       const key = row.key as keyof AppSettings
+
       if (!(key in FALLBACKS)) continue
 
-      const raw = row.value ?? ''
+      const raw = row.value
+      const fallbackValue = FALLBACKS[key]
+
       if (row.type === 'boolean') {
-        (merged as any)[key] = raw === 'true'
+        ;(merged as any)[key] = normalizeBoolean(raw)
       } else if (row.type === 'number') {
-        const n = parseFloat(raw)
-        ;(merged as any)[key] = isNaN(n) ? (FALLBACKS as any)[key] : n
+        ;(merged as any)[key] = normalizeNumber(raw, Number(fallbackValue))
       } else {
-        (merged as any)[key] = raw || (FALLBACKS as any)[key]
+        ;(merged as any)[key] = normalizeText(raw, String(fallbackValue))
       }
     }
 
@@ -189,13 +245,24 @@ export function AppSettingsProvider({ children }: { children: ReactNode }) {
     // Aplica CSS variables na raiz — efeito imediato na plataforma
     if (typeof document !== 'undefined') {
       const root = document.documentElement
-      if (merged.primary_color)    root.style.setProperty('--gold',        merged.primary_color)
-      if (merged.secondary_color)  root.style.setProperty('--orange',      merged.secondary_color)
-      if (merged.background_color) root.style.setProperty('--deep-black',  merged.background_color)
+
+      if (merged.primary_color) {
+        root.style.setProperty('--gold', merged.primary_color)
+      }
+
+      if (merged.secondary_color) {
+        root.style.setProperty('--orange', merged.secondary_color)
+      }
+
+      if (merged.background_color) {
+        root.style.setProperty('--deep-black', merged.background_color)
+      }
     }
   }, [])
 
-  useEffect(() => { refresh() }, [refresh])
+  useEffect(() => {
+    refresh()
+  }, [refresh])
 
   return (
     <AppSettingsContext.Provider value={{ settings, loaded, refresh }}>
