@@ -8,6 +8,7 @@ import ModuloUsuarios from '@/components/ModuloUsuarios'
 import ModuloFlags from '@/components/ModuloFlags'
 import ModuloQuestoes from '@/components/ModuloQuestoes'
 import ModuloConfiguracoes from '@/components/ModuloConfiguracoes'
+import ModuloMediaLibrary from '@/components/ModuloMediaLibrary'  // ← NOVO (C10.9-C)
 
 // ─── Seção Overview ───────────────────────────────────────────────────────────
 
@@ -104,8 +105,9 @@ function renderSection(section: AdminSection, adminId?: string) {
     case 'resumos':  return <ModuloResumos adminId={adminId} />
     case 'usuarios': return <ModuloUsuarios adminId={adminId} />
     case 'flags':    return <ModuloFlags adminId={adminId} />
-    case 'questoes':  return <ModuloQuestoes adminId={adminId} />
-    case 'settings':  return <ModuloConfiguracoes adminId={adminId} />
+    case 'questoes': return <ModuloQuestoes adminId={adminId} />
+    case 'settings': return <ModuloConfiguracoes adminId={adminId} />
+    case 'media':    return <ModuloMediaLibrary adminId={adminId} />  // ← NOVO (C10.9-C)
     default:         return <SectionPlaceholder section={section} />
   }
 }
