@@ -22,6 +22,18 @@ const FEATURES = [
   {icon:'🎯',title:'Radar TigerJus',desc:'Saiba quais temas têm maior probabilidade de cair na próxima prova da OAB.'},
 ]
 
+function normalizeBoolean(value: unknown): boolean {
+  if (value === true) return true
+  if (value === 1) return true
+
+  if (typeof value === 'string') {
+    const normalized = value.trim().toLowerCase()
+    return normalized === 'true' || normalized === '1' || normalized === 'yes' || normalized === 'on'
+  }
+
+  return false
+}
+
 function UpgradeModal({ onClose }: { onClose: () => void }) {
   return (
     <div style={{position:'fixed',inset:0,zIndex:300,background:'rgba(0,0,0,0.95)',backdropFilter:'blur(10px)',display:'flex',alignItems:'center',justifyContent:'center',padding:20,overflowY:'auto'}}>
@@ -64,12 +76,12 @@ function UpgradeModal({ onClose }: { onClose: () => void }) {
 export default function HomePage() {
   const router = useRouter()
   const { settings } = useAppSettings()
-  // ── Hooks primeiro — regra do React ──────────────────────────
+
   const [showUpgrade, setShowUpgrade] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
-  // ── Derivados de settings ─────────────────────────────────────
+
   const heroMedia = {
-    enabled:   settings.hero_media_enabled,
+    enabled:   normalizeBoolean(settings.hero_media_enabled),
     type:      settings.hero_media_type      || 'image',
     url:       settings.hero_media_url       || '',
     position:  settings.hero_media_position  || 'right',
@@ -78,10 +90,17 @@ export default function HomePage() {
     maxWidth:  settings.hero_media_max_width ?? 650,
     blur:      settings.hero_media_blur      ?? 0,
   }
+
   const heroIsRight = heroMedia.enabled && heroMedia.position === 'right'
   const heroIsLeft  = heroMedia.enabled && heroMedia.position === 'left'
   const heroIsBg    = heroMedia.enabled && heroMedia.position === 'background'
-  const showBanner  = settings.landing_top_banner_enabled && !!settings.landing_top_banner_url
+
+  const bannerEnabled = normalizeBoolean(settings.landing_top_banner_enabled)
+  const bannerUrl = String(settings.landing_top_banner_url || '').trim()
+  const bannerLink = String(settings.landing_top_banner_link || '').trim()
+  const bannerAlt = String(settings.landing_top_banner_alt || 'Banner TigerJus').trim()
+
+  const showBanner = bannerEnabled && bannerUrl.length > 0
 
   const navItems = [
     { label:'Plataforma', action: () => { document.getElementById('plataforma')?.scrollIntoView({behavior:'smooth'}); setMenuOpen(false) } },
@@ -90,7 +109,6 @@ export default function HomePage() {
     { label:'Planos', action: () => { document.getElementById('planos')?.scrollIntoView({behavior:'smooth'}); setMenuOpen(false) } },
   ]
 
-  // Redes sociais ativas
   const sociais = [
     { url: settings.instagram_url, icon: '📸', label: 'Instagram', color: 'rgba(212,168,67,0.15)' },
     { url: settings.whatsapp_url,  icon: '💬', label: 'WhatsApp',  color: 'rgba(37,211,102,0.15)' },
@@ -129,7 +147,7 @@ export default function HomePage() {
         </button>
       </nav>
 
-      {/* Menu mobile */}
+      {/* MENU MOBILE */}
       {menuOpen && (
         <div style={{position:'fixed',top:60,left:0,right:0,zIndex:99,background:'rgba(8,8,8,0.98)',backdropFilter:'blur(12px)',borderBottom:'1px solid rgba(255,255,255,0.08)',display:'flex',flexDirection:'column',padding:'8px 0'}}>
           {navItems.map(item=>(
@@ -154,12 +172,12 @@ export default function HomePage() {
       {/* BANNER TOPO */}
       {showBanner && (
         <div className="landing-top-banner">
-          {settings.landing_top_banner_link ? (
-            <a href={settings.landing_top_banner_link} target="_blank" rel="noopener noreferrer" style={{display:'block',lineHeight:0}}>
-              <img src={settings.landing_top_banner_url} alt={settings.landing_top_banner_alt||'Banner TigerJus'} />
+          {bannerLink ? (
+            <a href={bannerLink} target="_blank" rel="noopener noreferrer" style={{display:'block',lineHeight:0}}>
+              <img src={bannerUrl} alt={bannerAlt || 'Banner TigerJus'} />
             </a>
           ) : (
-            <img src={settings.landing_top_banner_url} alt={settings.landing_top_banner_alt||'Banner TigerJus'} />
+            <img src={bannerUrl} alt={bannerAlt || 'Banner TigerJus'} />
           )}
         </div>
       )}
@@ -176,14 +194,10 @@ export default function HomePage() {
         overflow:'hidden',
         textAlign: heroIsRight||heroIsLeft ? 'left' : 'center',
       }}>
-        {/* Background media se position=background */}
         {heroIsBg && <HeroMedia {...heroMedia}/>}
-        {/* Radial glow principal — azul+dourado */}
         <div style={{position:'absolute',inset:0,background:'radial-gradient(ellipse 90% 70% at 50% 10%, rgba(99,130,200,0.18) 0%, rgba(212,168,67,0.06) 50%, transparent 75%)',pointerEvents:'none',zIndex:1}} />
-        {/* Segundo glow — destaque central */}
         <div style={{position:'absolute',top:'20%',left:'50%',transform:'translateX(-50%)',width:600,height:400,background:'radial-gradient(ellipse at center, rgba(99,130,200,0.1) 0%, transparent 70%)',pointerEvents:'none',zIndex:1,filter:'blur(40px)'}} />
 
-        {/* Layout duas colunas quando right/left */}
         <div className="hero-two-col" style={{
           display:'flex',
           alignItems:'center',
@@ -192,60 +206,61 @@ export default function HomePage() {
           maxWidth: heroIsRight||heroIsLeft ? 1200 : 'none',
           flexDirection: heroIsLeft ? 'row-reverse' : 'row',
           flexWrap:'wrap',
-          position:'relative',zIndex:2,
+          position:'relative',
+          zIndex:2,
         }}>
-        {/* Coluna de mídia right/left */}
-        {(heroIsRight||heroIsLeft) && (
-          <div className="hero-media-side">
-            <HeroMedia {...heroMedia}/>
-          </div>
-        )}
-        {/* Coluna de conteúdo */}
-        <div className="hero-content-col" style={{flex:1,display:'flex',flexDirection:'column',alignItems:heroIsRight||heroIsLeft?'flex-start':'center',position:'relative',zIndex:2}}>
-        <div style={{display:'inline-flex',alignItems:'center',gap:8,border:'1px solid rgba(212,168,67,0.3)',borderRadius:100,padding:'8px 20px',marginBottom:40,fontSize:11,fontWeight:600,letterSpacing:2,textTransform:'uppercase',color:'var(--gold)',background:'rgba(212,168,67,0.05)',animation:'fadeInDown 0.8s ease both'}}>
-          <div style={{width:6,height:6,borderRadius:'50%',background:'var(--gold)',animation:'pulse 2s infinite'}} />
-          {settings.hero_badge||'Plataforma jurídica de nova geração'}
-        </div>
-
-        <h1 style={{fontFamily:'var(--font-display)',fontSize:'clamp(38px,8vw,88px)',fontWeight:900,lineHeight:1.05,letterSpacing:-1,marginBottom:24,animation:'fadeInUp 0.8s 0.1s ease both'}}>
-          {settings.hero_headline
-            ? settings.hero_headline.includes('Direito')
-              ? <>
-                  {settings.hero_headline.split('Direito')[0]}
-                  <span style={{background:'linear-gradient(135deg,var(--gold-light) 0%,var(--gold) 50%,var(--orange) 100%)',WebkitBackgroundClip:'text',WebkitTextFillColor:'transparent'}}>Direito{settings.hero_headline.split('Direito')[1]}</span>
-                </>
-              : settings.hero_headline
-            : <>O jeito mais inteligente<br/><span style={{background:'linear-gradient(135deg,var(--gold-light) 0%,var(--gold) 50%,var(--orange) 100%)',WebkitBackgroundClip:'text',WebkitTextFillColor:'transparent'}}>de evoluir no Direito.</span></>
-          }
-        </h1>
-
-        <p style={{fontSize:'clamp(15px,2vw,20px)',color:'var(--text-muted)',maxWidth:580,lineHeight:1.7,marginBottom:16,animation:'fadeInUp 0.8s 0.2s ease both'}}>
-          {settings.hero_subtitle||'Estude com IA, gamificação e metodologia de alta performance. Aprovação na OAB com método e inteligência.'}
-        </p>
-        <p style={{fontSize:13,color:'var(--gold-dark)',fontStyle:'italic',letterSpacing:1,marginBottom:40,animation:'fadeInUp 0.8s 0.25s ease both'}}>
-          ✦ "{settings.hero_quote||'Não basta estudar Direito. É preciso pensar como um Tigre.'}"
-        </p>
-        <div style={{display:'flex',gap:14,justifyContent:'center',flexWrap:'wrap',marginBottom:60,animation:'fadeInUp 0.8s 0.3s ease both'}}>
-          <Link href="/login?modo=cadastro" className="btn-primary" style={{fontSize:15,padding:'16px 40px'}}>{settings.hero_cta_primary||'🐯 COMEÇAR GRÁTIS'}</Link>
-          <Link href="/login" className="btn-secondary" style={{fontSize:15,padding:'16px 32px'}}>JÁ TENHO CONTA</Link>
-        </div>
-        {/* Instância MOBILE do tigre — visível só no mobile via CSS */}
-        {(heroIsRight||heroIsLeft) && (
-          <div className="hero-media-mobile">
-            <HeroMedia {...heroMedia}/>
-          </div>
-        )}
-
-        <div style={{display:'grid',gridTemplateColumns:'repeat(2,1fr)',gap:'20px 40px',maxWidth:480,margin:'0 auto',animation:'fadeInUp 0.8s 0.4s ease both'}}>
-          {[['12.400+','Estudantes Ativos'],['97%','Satisfação'],['3.200+','Aprovados OAB'],['17','Disciplinas']].map(([n,l])=>(
-            <div key={l} style={{textAlign:'center'}}>
-              <div style={{fontFamily:'var(--font-display)',fontSize:'clamp(28px,6vw,36px)',fontWeight:900,background:'linear-gradient(135deg,var(--gold-light),var(--gold))',WebkitBackgroundClip:'text',WebkitTextFillColor:'transparent'}}>{n}</div>
-              <div style={{fontSize:10,color:'var(--text-muted)',letterSpacing:'1.5px',textTransform:'uppercase',marginTop:4}}>{l}</div>
+          {(heroIsRight||heroIsLeft) && (
+            <div className="hero-media-side">
+              <HeroMedia {...heroMedia}/>
             </div>
-          ))}
-        </div>{/* fim grid stats */}
-        </div>{/* fim coluna conteúdo */}
-        </div>{/* fim layout duas colunas */}
+          )}
+
+          <div className="hero-content-col" style={{flex:1,display:'flex',flexDirection:'column',alignItems:heroIsRight||heroIsLeft?'flex-start':'center',position:'relative',zIndex:2}}>
+            <div style={{display:'inline-flex',alignItems:'center',gap:8,border:'1px solid rgba(212,168,67,0.3)',borderRadius:100,padding:'8px 20px',marginBottom:40,fontSize:11,fontWeight:600,letterSpacing:2,textTransform:'uppercase',color:'var(--gold)',background:'rgba(212,168,67,0.05)',animation:'fadeInDown 0.8s ease both'}}>
+              <div style={{width:6,height:6,borderRadius:'50%',background:'var(--gold)',animation:'pulse 2s infinite'}} />
+              {settings.hero_badge||'Plataforma jurídica de nova geração'}
+            </div>
+
+            <h1 style={{fontFamily:'var(--font-display)',fontSize:'clamp(38px,8vw,88px)',fontWeight:900,lineHeight:1.05,letterSpacing:-1,marginBottom:24,animation:'fadeInUp 0.8s 0.1s ease both'}}>
+              {settings.hero_headline
+                ? settings.hero_headline.includes('Direito')
+                  ? <>
+                      {settings.hero_headline.split('Direito')[0]}
+                      <span style={{background:'linear-gradient(135deg,var(--gold-light) 0%,var(--gold) 50%,var(--orange) 100%)',WebkitBackgroundClip:'text',WebkitTextFillColor:'transparent'}}>Direito{settings.hero_headline.split('Direito')[1]}</span>
+                    </>
+                  : settings.hero_headline
+                : <>O jeito mais inteligente<br/><span style={{background:'linear-gradient(135deg,var(--gold-light) 0%,var(--gold) 50%,var(--orange) 100%)',WebkitBackgroundClip:'text',WebkitTextFillColor:'transparent'}}>de evoluir no Direito.</span></>
+              }
+            </h1>
+
+            <p style={{fontSize:'clamp(15px,2vw,20px)',color:'var(--text-muted)',maxWidth:580,lineHeight:1.7,marginBottom:16,animation:'fadeInUp 0.8s 0.2s ease both'}}>
+              {settings.hero_subtitle||'Estude com IA, gamificação e metodologia de alta performance. Aprovação na OAB com método e inteligência.'}
+            </p>
+            <p style={{fontSize:13,color:'var(--gold-dark)',fontStyle:'italic',letterSpacing:1,marginBottom:40,animation:'fadeInUp 0.8s 0.25s ease both'}}>
+              ✦ "{settings.hero_quote||'Não basta estudar Direito. É preciso pensar como um Tigre.'}"
+            </p>
+
+            <div style={{display:'flex',gap:14,justifyContent:'center',flexWrap:'wrap',marginBottom:60,animation:'fadeInUp 0.8s 0.3s ease both'}}>
+              <Link href="/login?modo=cadastro" className="btn-primary" style={{fontSize:15,padding:'16px 40px'}}>{settings.hero_cta_primary||'🐯 COMEÇAR GRÁTIS'}</Link>
+              <Link href="/login" className="btn-secondary" style={{fontSize:15,padding:'16px 32px'}}>JÁ TENHO CONTA</Link>
+            </div>
+
+            {(heroIsRight||heroIsLeft) && (
+              <div className="hero-media-mobile">
+                <HeroMedia {...heroMedia}/>
+              </div>
+            )}
+
+            <div style={{display:'grid',gridTemplateColumns:'repeat(2,1fr)',gap:'20px 40px',maxWidth:480,margin:'0 auto',animation:'fadeInUp 0.8s 0.4s ease both'}}>
+              {[['12.400+','Estudantes Ativos'],['97%','Satisfação'],['3.200+','Aprovados OAB'],['17','Disciplinas']].map(([n,l])=>(
+                <div key={l} style={{textAlign:'center'}}>
+                  <div style={{fontFamily:'var(--font-display)',fontSize:'clamp(28px,6vw,36px)',fontWeight:900,background:'linear-gradient(135deg,var(--gold-light),var(--gold))',WebkitBackgroundClip:'text',WebkitTextFillColor:'transparent'}}>{n}</div>
+                  <div style={{fontSize:10,color:'var(--text-muted)',letterSpacing:'1.5px',textTransform:'uppercase',marginTop:4}}>{l}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
       </section>
 
       {/* FEATURES */}
@@ -387,7 +402,6 @@ export default function HomePage() {
           "{settings.hero_quote||'Não basta estudar Direito. É preciso pensar como um Tigre.'}"
         </div>
 
-        {/* Redes sociais — só aparecem se URL estiver cadastrada */}
         {sociais.length > 0 && (
           <div style={{display:'flex',gap:10,justifyContent:'center',marginBottom:16,flexWrap:'wrap'}}>
             {sociais.map(s=>(
