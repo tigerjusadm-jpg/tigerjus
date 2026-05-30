@@ -37,7 +37,6 @@ export default function HeroMedia({
     animation === 'float' ? 'hero-media-float' :
     animation === 'pulse' ? 'hero-media-pulse' : ''
 
-  // Filtro CSS combinando blur e drop-shadow
   const filterStyle = [
     blurValue > 0 ? `blur(${blurValue}px)` : '',
     'drop-shadow(0 0 50px rgba(99,130,200,0.35))',
@@ -105,8 +104,8 @@ export default function HeroMedia({
         } : {
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           flexShrink: 0,
-          width: maxW,
-          maxWidth: '100%',
+          width: '100%',      // ← responsivo — respeita container pai
+          maxWidth: maxW,     // ← limita largura no desktop
         }),
       }}
     >
