@@ -165,14 +165,9 @@ export default function HomePage() {
         </div>
       )}
 
-      {/* ── TESTE MOBILE BANNER — BLOCO VERMELHO ── */}
-      <div className="teste-mobile-banner">
-        TESTE MOBILE BANNER
-      </div>
-
-      {/* BANNER DESKTOP */}
+      {/* ── BANNER DESKTOP — visível só no desktop ── */}
       {showBanner && (
-        <div className="desktop-top-banner">
+        <div className="tj-banner-desktop">
           {bannerLink ? (
             <a href={bannerLink} target="_blank" rel="noopener noreferrer" style={{display:'block',lineHeight:0,width:'100%'}}>
               <img src={bannerUrl} alt={bannerAlt} width={1920} height={300}
@@ -185,17 +180,17 @@ export default function HomePage() {
         </div>
       )}
 
-      {/* BANNER MOBILE */}
+      {/* ── BANNER MOBILE — visível só no mobile, mesmos dados ── */}
       {showBanner && (
-        <div className="mobile-top-banner">
+        <div className="tj-banner-mobile">
           {bannerLink ? (
             <a href={bannerLink} target="_blank" rel="noopener noreferrer" style={{display:'block',lineHeight:0,width:'100%'}}>
-              <img src={bannerUrl} alt={bannerAlt} width={1920} height={300} loading="eager"
-                style={{display:'block',width:'100%',height:'auto',minHeight:60,objectFit:'cover'}} />
+              <img src={bannerUrl} alt={bannerAlt} loading="eager"
+                style={{display:'block',width:'100%',height:'auto',objectFit:'cover'}} />
             </a>
           ) : (
-            <img src={bannerUrl} alt={bannerAlt} width={1920} height={300} loading="eager"
-              style={{display:'block',width:'100%',height:'auto',minHeight:60,objectFit:'cover'}} />
+            <img src={bannerUrl} alt={bannerAlt} loading="eager"
+              style={{display:'block',width:'100%',height:'auto',objectFit:'cover'}} />
           )}
         </div>
       )}
@@ -227,8 +222,9 @@ export default function HomePage() {
           position:'relative',
           zIndex:2,
         }}>
+          {/* HERO MEDIA DESKTOP */}
           {(heroIsRight||heroIsLeft) && (
-            <div className="desktop-hero-media">
+            <div className="tj-hero-desktop">
               <HeroMedia {...heroMedia}/>
             </div>
           )}
@@ -260,10 +256,17 @@ export default function HomePage() {
               <Link href="/login" className="btn-secondary" style={{fontSize:15,padding:'16px 32px'}}>JÁ TENHO CONTA</Link>
             </div>
 
-            {/* ── TESTE MOBILE TIGRE — BLOCO AZUL ── */}
-            <div className="teste-mobile-tigre">
-              🐯 TESTE MOBILE TIGRE
-            </div>
+            {/* TIGRE MOBILE — img direta, mesmos dados do desktop */}
+            {(heroIsRight||heroIsLeft) && heroMedia.url && (
+              <div className="tj-hero-mobile">
+                <img
+                  src={heroMedia.url}
+                  alt="TigerJus Cyber Tiger"
+                  loading="eager"
+                  style={{display:'block',width:'min(78vw, 300px)',height:'auto',objectFit:'contain',filter:'drop-shadow(0 0 32px rgba(212,168,67,0.5))'}}
+                />
+              </div>
+            )}
 
             <div style={{display:'grid',gridTemplateColumns:'repeat(2,1fr)',gap:'20px 40px',maxWidth:480,margin:'0 auto',animation:'fadeInUp 0.8s 0.4s ease both'}}>
               {[['12.400+','Estudantes Ativos'],['97%','Satisfação'],['3.200+','Aprovados OAB'],['17','Disciplinas']].map(([n,l])=>(
@@ -275,14 +278,6 @@ export default function HomePage() {
             </div>
           </div>
         </div>
-
-        {/* TIGER MOBILE */}
-        {(heroIsRight||heroIsLeft) && heroMedia.url && (
-          <div className="mobile-hero-tiger">
-            <img src={heroMedia.url} alt="TigerJus Cyber Tiger" loading="eager"
-              style={{display:'block',width:'min(78vw, 320px)',height:'auto',objectFit:'contain',filter:'drop-shadow(0 0 32px rgba(212,168,67,0.5))'}} />
-          </div>
-        )}
       </section>
 
       {/* FEATURES */}
@@ -446,80 +441,50 @@ export default function HomePage() {
         .landing-nav-desktop { display: flex !important; }
         .landing-nav-mobile  { display: none !important; }
 
-        /* Blocos de teste — ocultos no desktop */
-        .teste-mobile-banner { display: none; }
-        .teste-mobile-tigre  { display: none; }
+        /* Banner: desktop visível, mobile oculto */
+        .tj-banner-desktop { display:block; width:100%; margin-top:60px; overflow:hidden; line-height:0; }
+        .tj-banner-mobile  { display:none; }
 
-        /* Banners e hero — desktop */
-        .desktop-top-banner  { display:block; width:100%; margin-top:60px; overflow:hidden; line-height:0; }
-        .mobile-top-banner   { display:none; }
-        .desktop-hero-media  { display:flex; flex-shrink:0; max-width:48vw; align-items:center; justify-content:center; }
-        .mobile-hero-tiger   { display:none; }
+        /* Hero tiger: desktop visível, mobile oculto */
+        .tj-hero-desktop { display:flex; flex-shrink:0; max-width:48vw; align-items:center; justify-content:center; }
+        .tj-hero-mobile  { display:none; }
 
         @media (max-width: 768px) {
           .landing-nav-desktop { display: none !important; }
           .landing-nav-mobile  { display: flex !important; }
 
-          /* BLOCO VERMELHO — teste mobile banner */
-          .teste-mobile-banner {
-            display: block !important;
-            position: relative;
-            z-index: 9999;
-            width: 100%;
-            margin-top: 60px;
-            padding: 24px;
-            background: #cc0000 !important;
-            color: #ffffff !important;
-            font-size: 22px;
-            font-weight: 900;
-            text-align: center;
-          }
-
-          /* BLOCO AZUL — teste mobile tigre */
-          .teste-mobile-tigre {
-            display: block !important;
-            position: relative;
-            z-index: 9999;
-            width: 100%;
-            padding: 24px;
-            margin: 24px 0;
-            background: #0000cc !important;
-            color: #ffffff !important;
-            font-size: 22px;
-            font-weight: 900;
-            text-align: center;
-          }
-
           /* Banner mobile */
-          .desktop-top-banner { display: none !important; }
-          .mobile-top-banner  {
+          .tj-banner-desktop { display: none !important; }
+          .tj-banner-mobile {
             display: block !important;
             width: 100% !important;
+            margin-top: 60px !important;
+            position: relative !important;
+            z-index: 20 !important;
             overflow: hidden !important;
             line-height: 0 !important;
           }
-          .mobile-top-banner img {
+          .tj-banner-mobile img {
             display: block !important;
             width: 100% !important;
             height: auto !important;
-            min-height: 60px !important;
             object-fit: cover !important;
           }
 
           /* Hero tiger mobile */
-          .desktop-hero-media { display: none !important; }
-          .mobile-hero-tiger  {
+          .tj-hero-desktop { display: none !important; }
+          .tj-hero-mobile {
             display: flex !important;
             width: 100% !important;
             justify-content: center !important;
             align-items: center !important;
-            margin: 24px auto 32px !important;
+            margin: 24px 0 32px !important;
             position: relative !important;
             z-index: 20 !important;
           }
-          .mobile-hero-tiger img {
+          .tj-hero-mobile img {
             display: block !important;
-            width: min(78vw, 320px) !important;
+            width: min(78vw, 300px) !important;
             height: auto !important;
             object-fit: contain !important;
           }
