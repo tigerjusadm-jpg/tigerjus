@@ -165,12 +165,22 @@ export default function HomePage() {
         </div>
       )}
 
-      {/* ── TESTE MOBILE BANNER — BLOCO VERMELHO ── */}
+      {/* SLOT MOBILE BANNER — mesmo slot da tarja vermelha, agora com imagem real */}
       <div className="teste-mobile-banner">
-        TESTE MOBILE BANNER
+        {showBanner && (
+          bannerLink ? (
+            <a href={bannerLink} target="_blank" rel="noopener noreferrer" style={{display:'block',lineHeight:0,width:'100%'}}>
+              <img src={bannerUrl} alt={bannerAlt} loading="eager"
+                style={{display:'block',width:'100%',height:'auto',objectFit:'cover'}} />
+            </a>
+          ) : (
+            <img src={bannerUrl} alt={bannerAlt} loading="eager"
+              style={{display:'block',width:'100%',height:'auto',objectFit:'cover'}} />
+          )
+        )}
       </div>
 
-      {/* BANNER DESKTOP */}
+      {/* BANNER DESKTOP — preservado intacto */}
       {showBanner && (
         <div className="desktop-top-banner">
           {bannerLink ? (
@@ -181,21 +191,6 @@ export default function HomePage() {
           ) : (
             <img src={bannerUrl} alt={bannerAlt} width={1920} height={300}
               style={{width:'100%',height:'auto',maxHeight:300,objectFit:'cover',display:'block'}} />
-          )}
-        </div>
-      )}
-
-      {/* BANNER MOBILE */}
-      {showBanner && (
-        <div className="mobile-top-banner">
-          {bannerLink ? (
-            <a href={bannerLink} target="_blank" rel="noopener noreferrer" style={{display:'block',lineHeight:0,width:'100%'}}>
-              <img src={bannerUrl} alt={bannerAlt} width={1920} height={300} loading="eager"
-                style={{display:'block',width:'100%',height:'auto',minHeight:60,objectFit:'cover'}} />
-            </a>
-          ) : (
-            <img src={bannerUrl} alt={bannerAlt} width={1920} height={300} loading="eager"
-              style={{display:'block',width:'100%',height:'auto',minHeight:60,objectFit:'cover'}} />
           )}
         </div>
       )}
@@ -260,9 +255,16 @@ export default function HomePage() {
               <Link href="/login" className="btn-secondary" style={{fontSize:15,padding:'16px 32px'}}>JÁ TENHO CONTA</Link>
             </div>
 
-            {/* ── TESTE MOBILE TIGRE — BLOCO AZUL ── */}
+            {/* SLOT MOBILE TIGRE — mesmo slot da tarja azul, agora com imagem real */}
             <div className="teste-mobile-tigre">
-              🐯 TESTE MOBILE TIGRE
+              {heroMedia.enabled && heroMedia.url && (
+                <img
+                  src={heroMedia.url}
+                  alt="TigerJus Cyber Tiger"
+                  loading="eager"
+                  style={{display:'block',margin:'0 auto',width:'min(78vw, 300px)',height:'auto',objectFit:'contain',filter:'drop-shadow(0 0 32px rgba(212,168,67,0.5))'}}
+                />
+              )}
             </div>
 
             <div style={{display:'grid',gridTemplateColumns:'repeat(2,1fr)',gap:'20px 40px',maxWidth:480,margin:'0 auto',animation:'fadeInUp 0.8s 0.4s ease both'}}>
@@ -446,7 +448,7 @@ export default function HomePage() {
         .landing-nav-desktop { display: flex !important; }
         .landing-nav-mobile  { display: none !important; }
 
-        /* Blocos de teste — ocultos no desktop */
+        /* Blocos mobile — ocultos no desktop */
         .teste-mobile-banner { display: none; }
         .teste-mobile-tigre  { display: none; }
 
@@ -460,34 +462,39 @@ export default function HomePage() {
           .landing-nav-desktop { display: none !important; }
           .landing-nav-mobile  { display: flex !important; }
 
-          /* BLOCO VERMELHO — teste mobile banner */
+          /* SLOT MOBILE BANNER — mesmo CSS da tarja vermelha */
           .teste-mobile-banner {
             display: block !important;
             position: relative;
             z-index: 9999;
             width: 100%;
             margin-top: 60px;
-            padding: 24px;
-            background: #cc0000 !important;
-            color: #ffffff !important;
-            font-size: 22px;
-            font-weight: 900;
-            text-align: center;
+            overflow: hidden;
+            line-height: 0;
+          }
+          .teste-mobile-banner img {
+            display: block !important;
+            width: 100% !important;
+            height: auto !important;
+            object-fit: cover !important;
           }
 
-          /* BLOCO AZUL — teste mobile tigre */
+          /* SLOT MOBILE TIGRE — mesmo CSS da tarja azul */
           .teste-mobile-tigre {
             display: block !important;
             position: relative;
             z-index: 9999;
             width: 100%;
-            padding: 24px;
+            padding: 0;
             margin: 24px 0;
-            background: #0000cc !important;
-            color: #ffffff !important;
-            font-size: 22px;
-            font-weight: 900;
             text-align: center;
+          }
+          .teste-mobile-tigre img {
+            display: block !important;
+            margin: 0 auto !important;
+            width: min(78vw, 300px) !important;
+            height: auto !important;
+            object-fit: contain !important;
           }
 
           /* Banner mobile */
