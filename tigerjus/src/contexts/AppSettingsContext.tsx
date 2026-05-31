@@ -55,6 +55,15 @@ export interface AppSettings {
   landing_top_banner_url:     string
   landing_top_banner_alt:     string
   landing_top_banner_link:    string
+  // ── controles de posicionamento/estilo do banner topo ──
+  landing_top_banner_height:        number
+  landing_top_banner_position:      string
+  landing_top_banner_opacity:       number
+  landing_top_banner_fit:           string
+  landing_top_banner_margin_top:    number
+  landing_top_banner_margin_bottom: number
+  landing_top_banner_radius:        number
+  landing_top_banner_max_width:     number
   maintenance_mode:     boolean
   maintenance_message:  string
 }
@@ -109,6 +118,15 @@ const FALLBACKS: AppSettings = {
   landing_top_banner_url:     '',
   landing_top_banner_alt:     '',
   landing_top_banner_link:    '',
+  // ── controles de posicionamento/estilo do banner topo ──
+  landing_top_banner_height:        300,
+  landing_top_banner_position:      'center',
+  landing_top_banner_opacity:       100,
+  landing_top_banner_fit:           'cover',
+  landing_top_banner_margin_top:    60,
+  landing_top_banner_margin_bottom: 0,
+  landing_top_banner_radius:        0,
+  landing_top_banner_max_width:     0,
   maintenance_mode:     false,
   maintenance_message:  'Voltamos em breve.',
 }
