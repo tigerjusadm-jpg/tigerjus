@@ -171,20 +171,13 @@ export default function HomePage() {
           style={{display:'block',width:'100%',height:'auto',objectFit:'cover'}} />
       </div>
 
-      {/* BANNER DESKTOP — preservado intacto */}
-      {showBanner && (
-        <div className="desktop-top-banner">
-          {bannerLink ? (
-            <a href={bannerLink} target="_blank" rel="noopener noreferrer" style={{display:'block',lineHeight:0,width:'100%'}}>
-              <img src={bannerUrl} alt={bannerAlt} width={1920} height={300}
-                style={{width:'100%',height:'auto',maxHeight:300,objectFit:'cover',display:'block'}} />
-            </a>
-          ) : (
-            <img src={bannerUrl} alt={bannerAlt} width={1920} height={300}
-              style={{width:'100%',height:'auto',maxHeight:300,objectFit:'cover',display:'block'}} />
-          )}
-        </div>
-      )}
+      {/* BANNER DESKTOP — img direta sem condicional */}
+      <div className="desktop-top-banner">
+        <a href={settings.landing_top_banner_link || '#'} target="_blank" rel="noopener noreferrer" style={{display:'block',lineHeight:0,width:'100%'}}>
+          <img src={settings.landing_top_banner_url || ''} alt={settings.landing_top_banner_alt || 'Banner TigerJus'} width={1920} height={300}
+            style={{width:'100%',height:'auto',maxHeight:300,objectFit:'cover',display:'block'}} />
+        </a>
+      </div>
 
       {/* HERO */}
       <section style={{
