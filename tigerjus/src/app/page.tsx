@@ -165,20 +165,24 @@ export default function HomePage() {
         </div>
       )}
 
-      {/* SLOT MOBILE BANNER — img direta, controlada pela URL do Admin */}
+      {/* SLOT MOBILE BANNER — só monta a tag quando a URL já existe (nasce com src correto) */}
       <div className="teste-mobile-banner">
-        <a href={settings.landing_top_banner_link || '#'} target="_blank" rel="noopener noreferrer" style={{display:'block',lineHeight:0,width:'100%'}}>
-          <img key={settings.landing_top_banner_url} src={settings.landing_top_banner_url || ''} alt={settings.landing_top_banner_alt || 'Banner TigerJus'} loading="eager"
-            style={{display:'block',width:'100%',height:'auto',objectFit:'cover'}} />
-        </a>
+        {settings.landing_top_banner_url ? (
+          <a href={settings.landing_top_banner_link || '#'} target="_blank" rel="noopener noreferrer" style={{display:'block',lineHeight:0,width:'100%'}}>
+            <img src={settings.landing_top_banner_url} alt={settings.landing_top_banner_alt || 'Banner TigerJus'} loading="eager"
+              style={{display:'block',width:'100%',height:'auto',objectFit:'cover'}} />
+          </a>
+        ) : null}
       </div>
 
-      {/* BANNER DESKTOP — img direta, controlada pela URL do Admin */}
+      {/* BANNER DESKTOP — só monta a tag quando a URL já existe (nasce com src correto) */}
       <div className="desktop-top-banner">
-        <a href={settings.landing_top_banner_link || '#'} target="_blank" rel="noopener noreferrer" style={{display:'block',lineHeight:0,width:'100%'}}>
-          <img key={settings.landing_top_banner_url} src={settings.landing_top_banner_url || ''} alt={settings.landing_top_banner_alt || 'Banner TigerJus'} width={1920} height={300}
-            style={{width:'100%',height:'auto',maxHeight:300,objectFit:'cover',display:'block'}} />
-        </a>
+        {settings.landing_top_banner_url ? (
+          <a href={settings.landing_top_banner_link || '#'} target="_blank" rel="noopener noreferrer" style={{display:'block',lineHeight:0,width:'100%'}}>
+            <img src={settings.landing_top_banner_url} alt={settings.landing_top_banner_alt || 'Banner TigerJus'} width={1920} height={300}
+              style={{width:'100%',height:'auto',maxHeight:300,objectFit:'cover',display:'block'}} />
+          </a>
+        ) : null}
       </div>
 
       {/* HERO */}
