@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAppSettings } from '@/contexts/AppSettingsContext'
 import HeroMedia from '@/components/HeroMedia'
+import LandingTopBanner from '@/components/LandingTopBanner'
 
 const PLANS = [
   { id:'free', name:'Plano Generosidade', price:'0', period:'3 dias grátis', color:'var(--text-muted)', features:[{ok:true,txt:'15 questões'},{ok:true,txt:'5 perguntas IA'},{ok:true,txt:'1 mini simulado'},{ok:false,txt:'Simulados completos'},{ok:false,txt:'IA avançada'},{ok:false,txt:'Ranking'}] },
@@ -165,25 +166,8 @@ export default function HomePage() {
         </div>
       )}
 
-      {/* SLOT MOBILE BANNER — só monta a tag quando a URL já existe (nasce com src correto) */}
-      <div className="teste-mobile-banner">
-        {settings.landing_top_banner_url ? (
-          <a href={settings.landing_top_banner_link || '#'} target="_blank" rel="noopener noreferrer" style={{display:'block',lineHeight:0,width:'100%'}}>
-            <img src={settings.landing_top_banner_url} alt={settings.landing_top_banner_alt || 'Banner TigerJus'} loading="eager"
-              style={{display:'block',width:'100%',height:'auto',objectFit:'cover'}} />
-          </a>
-        ) : null}
-      </div>
-
-      {/* BANNER DESKTOP — só monta a tag quando a URL já existe (nasce com src correto) */}
-      <div className="desktop-top-banner">
-        {settings.landing_top_banner_url ? (
-          <a href={settings.landing_top_banner_link || '#'} target="_blank" rel="noopener noreferrer" style={{display:'block',lineHeight:0,width:'100%'}}>
-            <img src={settings.landing_top_banner_url} alt={settings.landing_top_banner_alt || 'Banner TigerJus'} width={1920} height={300}
-              style={{width:'100%',height:'auto',maxHeight:300,objectFit:'cover',display:'block'}} />
-          </a>
-        ) : null}
-      </div>
+      {/* BANNER DO TOPO — componente isolado (desktop + mobile) */}
+      <LandingTopBanner />
 
       {/* HERO */}
       <section style={{
