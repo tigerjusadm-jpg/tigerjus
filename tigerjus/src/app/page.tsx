@@ -92,10 +92,11 @@ export default function HomePage() {
   const heroIsLeft  = heroMedia.enabled && heroMedia.position === 'left'
   const heroIsBg    = heroMedia.enabled && heroMedia.position === 'background'
 
-  const bannerUrl     = String(settings.landing_top_banner_url  || '').trim()
-  const bannerLink    = String(settings.landing_top_banner_link || '').trim()
-  const bannerAlt     = String(settings.landing_top_banner_alt  || 'Banner TigerJus').trim()
-  const showBanner    = bannerUrl.length > 0
+  const bannerEnabled = loaded ? normalizeBoolean(settings.landing_top_banner_enabled) : false
+  const bannerUrl     = loaded ? String(settings.landing_top_banner_url  || '').trim() : ''
+  const bannerLink    = loaded ? String(settings.landing_top_banner_link || '').trim() : ''
+  const bannerAlt     = loaded ? String(settings.landing_top_banner_alt  || 'Banner TigerJus').trim() : ''
+  const showBanner    = bannerEnabled && bannerUrl.length > 0
 
   const navItems = [
     { label:'Plataforma', action: () => { document.getElementById('plataforma')?.scrollIntoView({behavior:'smooth'}); setMenuOpen(false) } },
@@ -165,20 +166,20 @@ export default function HomePage() {
       )}
 
       {/* SLOT MOBILE BANNER — img direta, controlada pela URL do Admin */}
-      {showBanner && <div className="teste-mobile-banner">
-        <a href={bannerLink || '#'} target="_blank" rel="noopener noreferrer" style={{display:'block',lineHeight:0,width:'100%'}}>
-          <img key={`mobile-banner-${bannerUrl}`} src={bannerUrl} alt={bannerAlt || 'Banner TigerJus'} loading="eager"
+      <div className="teste-mobile-banner">
+        <a href={settings.landing_top_banner_link || '#'} target="_blank" rel="noopener noreferrer" style={{display:'block',lineHeight:0,width:'100%'}}>
+          <img src={settings.landing_top_banner_url || ''} alt={settings.landing_top_banner_alt || 'Banner TigerJus'} loading="eager"
             style={{display:'block',width:'100%',height:'auto',objectFit:'cover'}} />
         </a>
-      </div>}
+      </div>
 
       {/* BANNER DESKTOP — img direta, controlada pela URL do Admin */}
-      {showBanner && <div className="desktop-top-banner">
-        <a href={bannerLink || '#'} target="_blank" rel="noopener noreferrer" style={{display:'block',lineHeight:0,width:'100%'}}>
-          <img key={`desktop-banner-${bannerUrl}`} src={bannerUrl} alt={bannerAlt || 'Banner TigerJus'} width={1920} height={300}
+      <div className="desktop-top-banner">
+        <a href={settings.landing_top_banner_link || '#'} target="_blank" rel="noopener noreferrer" style={{display:'block',lineHeight:0,width:'100%'}}>
+          <img src={settings.landing_top_banner_url || ''} alt={settings.landing_top_banner_alt || 'Banner TigerJus'} width={1920} height={300}
             style={{width:'100%',height:'auto',maxHeight:300,objectFit:'cover',display:'block'}} />
         </a>
-      </div>}
+      </div>
 
       {/* HERO */}
       <section style={{
