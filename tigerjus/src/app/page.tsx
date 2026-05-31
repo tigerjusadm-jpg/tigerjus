@@ -165,19 +165,10 @@ export default function HomePage() {
         </div>
       )}
 
-      {/* SLOT MOBILE BANNER — mesmo slot da tarja vermelha, agora com imagem real */}
+      {/* SLOT MOBILE BANNER — sem condicional, img direta */}
       <div className="teste-mobile-banner">
-        {showBanner && (
-          bannerLink ? (
-            <a href={bannerLink} target="_blank" rel="noopener noreferrer" style={{display:'block',lineHeight:0,width:'100%'}}>
-              <img src={bannerUrl} alt={bannerAlt} loading="eager"
-                style={{display:'block',width:'100%',height:'auto',objectFit:'cover'}} />
-            </a>
-          ) : (
-            <img src={bannerUrl} alt={bannerAlt} loading="eager"
-              style={{display:'block',width:'100%',height:'auto',objectFit:'cover'}} />
-          )
-        )}
+        <img src={settings.landing_top_banner_url || ''} alt={settings.landing_top_banner_alt || 'Banner TigerJus'} loading="eager"
+          style={{display:'block',width:'100%',height:'auto',objectFit:'cover'}} />
       </div>
 
       {/* BANNER DESKTOP — preservado intacto */}
@@ -255,16 +246,10 @@ export default function HomePage() {
               <Link href="/login" className="btn-secondary" style={{fontSize:15,padding:'16px 32px'}}>JÁ TENHO CONTA</Link>
             </div>
 
-            {/* SLOT MOBILE TIGRE — mesmo slot da tarja azul, agora com imagem real */}
+            {/* SLOT MOBILE TIGRE — sem condicional, img direta */}
             <div className="teste-mobile-tigre">
-              {heroMedia.enabled && heroMedia.url && (
-                <img
-                  src={heroMedia.url}
-                  alt="TigerJus Cyber Tiger"
-                  loading="eager"
-                  style={{display:'block',margin:'0 auto',width:'min(78vw, 300px)',height:'auto',objectFit:'contain',filter:'drop-shadow(0 0 32px rgba(212,168,67,0.5))'}}
-                />
-              )}
+              <img src={settings.hero_media_url || ''} alt="TigerJus Cyber Tiger" loading="eager"
+                style={{display:'block',margin:'0 auto',width:'min(78vw, 300px)',height:'auto',objectFit:'contain',filter:'drop-shadow(0 0 32px rgba(212,168,67,0.5))'}} />
             </div>
 
             <div style={{display:'grid',gridTemplateColumns:'repeat(2,1fr)',gap:'20px 40px',maxWidth:480,margin:'0 auto',animation:'fadeInUp 0.8s 0.4s ease both'}}>
@@ -448,11 +433,9 @@ export default function HomePage() {
         .landing-nav-desktop { display: flex !important; }
         .landing-nav-mobile  { display: none !important; }
 
-        /* Blocos mobile — ocultos no desktop */
         .teste-mobile-banner { display: none; }
         .teste-mobile-tigre  { display: none; }
 
-        /* Banners e hero — desktop */
         .desktop-top-banner  { display:block; width:100%; margin-top:60px; overflow:hidden; line-height:0; }
         .mobile-top-banner   { display:none; }
         .desktop-hero-media  { display:flex; flex-shrink:0; max-width:48vw; align-items:center; justify-content:center; }
@@ -462,7 +445,6 @@ export default function HomePage() {
           .landing-nav-desktop { display: none !important; }
           .landing-nav-mobile  { display: flex !important; }
 
-          /* SLOT MOBILE BANNER — mesmo CSS da tarja vermelha */
           .teste-mobile-banner {
             display: block !important;
             position: relative;
@@ -479,7 +461,6 @@ export default function HomePage() {
             object-fit: cover !important;
           }
 
-          /* SLOT MOBILE TIGRE — mesmo CSS da tarja azul */
           .teste-mobile-tigre {
             display: block !important;
             position: relative;
@@ -497,39 +478,12 @@ export default function HomePage() {
             object-fit: contain !important;
           }
 
-          /* Banner mobile */
           .desktop-top-banner { display: none !important; }
-          .mobile-top-banner  {
-            display: block !important;
-            width: 100% !important;
-            overflow: hidden !important;
-            line-height: 0 !important;
-          }
-          .mobile-top-banner img {
-            display: block !important;
-            width: 100% !important;
-            height: auto !important;
-            min-height: 60px !important;
-            object-fit: cover !important;
-          }
-
-          /* Hero tiger mobile */
+          .mobile-top-banner  { display: block !important; width: 100% !important; overflow: hidden !important; line-height: 0 !important; }
+          .mobile-top-banner img { display: block !important; width: 100% !important; height: auto !important; min-height: 60px !important; object-fit: cover !important; }
           .desktop-hero-media { display: none !important; }
-          .mobile-hero-tiger  {
-            display: flex !important;
-            width: 100% !important;
-            justify-content: center !important;
-            align-items: center !important;
-            margin: 24px auto 32px !important;
-            position: relative !important;
-            z-index: 20 !important;
-          }
-          .mobile-hero-tiger img {
-            display: block !important;
-            width: min(78vw, 320px) !important;
-            height: auto !important;
-            object-fit: contain !important;
-          }
+          .mobile-hero-tiger  { display: flex !important; width: 100% !important; justify-content: center !important; align-items: center !important; margin: 24px auto 32px !important; position: relative !important; z-index: 20 !important; }
+          .mobile-hero-tiger img { display: block !important; width: min(78vw, 320px) !important; height: auto !important; object-fit: contain !important; }
         }
       `}</style>
     </div>
