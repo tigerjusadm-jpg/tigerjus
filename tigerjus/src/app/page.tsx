@@ -74,7 +74,6 @@ function UpgradeModal({ onClose }: { onClose: () => void }) {
 export default function HomePage() {
   const router = useRouter()
   const { settings, loaded } = useAppSettings()
-
   const [showUpgrade, setShowUpgrade] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
 
@@ -166,7 +165,12 @@ export default function HomePage() {
         </div>
       )}
 
-      {/* ── BANNER DESKTOP ── */}
+      {/* ── TESTE MOBILE BANNER — BLOCO VERMELHO ── */}
+      <div className="teste-mobile-banner">
+        TESTE MOBILE BANNER
+      </div>
+
+      {/* BANNER DESKTOP */}
       {showBanner && (
         <div className="desktop-top-banner">
           {bannerLink ? (
@@ -181,20 +185,16 @@ export default function HomePage() {
         </div>
       )}
 
-      {/* ── BANNER MOBILE — bloco exclusivo, independente do desktop ── */}
+      {/* BANNER MOBILE */}
       {showBanner && (
         <div className="mobile-top-banner">
           {bannerLink ? (
             <a href={bannerLink} target="_blank" rel="noopener noreferrer" style={{display:'block',lineHeight:0,width:'100%'}}>
-              <img src={bannerUrl} alt={bannerAlt}
-                width={1920} height={300}
-                loading="eager"
+              <img src={bannerUrl} alt={bannerAlt} width={1920} height={300} loading="eager"
                 style={{display:'block',width:'100%',height:'auto',minHeight:60,objectFit:'cover'}} />
             </a>
           ) : (
-            <img src={bannerUrl} alt={bannerAlt}
-              width={1920} height={300}
-              loading="eager"
+            <img src={bannerUrl} alt={bannerAlt} width={1920} height={300} loading="eager"
               style={{display:'block',width:'100%',height:'auto',minHeight:60,objectFit:'cover'}} />
           )}
         </div>
@@ -227,7 +227,6 @@ export default function HomePage() {
           position:'relative',
           zIndex:2,
         }}>
-          {/* HERO MEDIA DESKTOP */}
           {(heroIsRight||heroIsLeft) && (
             <div className="desktop-hero-media">
               <HeroMedia {...heroMedia}/>
@@ -261,6 +260,11 @@ export default function HomePage() {
               <Link href="/login" className="btn-secondary" style={{fontSize:15,padding:'16px 32px'}}>JÁ TENHO CONTA</Link>
             </div>
 
+            {/* ── TESTE MOBILE TIGRE — BLOCO AZUL ── */}
+            <div className="teste-mobile-tigre">
+              🐯 TESTE MOBILE TIGRE
+            </div>
+
             <div style={{display:'grid',gridTemplateColumns:'repeat(2,1fr)',gap:'20px 40px',maxWidth:480,margin:'0 auto',animation:'fadeInUp 0.8s 0.4s ease both'}}>
               {[['12.400+','Estudantes Ativos'],['97%','Satisfação'],['3.200+','Aprovados OAB'],['17','Disciplinas']].map(([n,l])=>(
                 <div key={l} style={{textAlign:'center'}}>
@@ -272,21 +276,11 @@ export default function HomePage() {
           </div>
         </div>
 
-        {/* HERO TIGER MOBILE — img direta, sem HeroMedia, bloco exclusivo */}
+        {/* TIGER MOBILE */}
         {(heroIsRight||heroIsLeft) && heroMedia.url && (
           <div className="mobile-hero-tiger">
-            <img
-              src={heroMedia.url}
-              alt="TigerJus Cyber Tiger"
-              loading="eager"
-              style={{
-                display:'block',
-                width:'min(78vw, 320px)',
-                height:'auto',
-                objectFit:'contain',
-                filter:'drop-shadow(0 0 32px rgba(212,168,67,0.5))',
-              }}
-            />
+            <img src={heroMedia.url} alt="TigerJus Cyber Tiger" loading="eager"
+              style={{display:'block',width:'min(78vw, 320px)',height:'auto',objectFit:'contain',filter:'drop-shadow(0 0 32px rgba(212,168,67,0.5))'}} />
           </div>
         )}
       </section>
@@ -300,9 +294,7 @@ export default function HomePage() {
           <p style={{fontSize:16,color:'var(--text-muted)',maxWidth:540,lineHeight:1.7,marginBottom:40}}>Uma experiência completa que combina tecnologia, disciplina e performance jurídica.</p>
           <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(260px,1fr))',gap:16}}>
             {FEATURES.map(f=>(
-              <div key={f.title} style={{background:'var(--tj-card-bg, rgba(12,20,40,0.85))',border:'1px solid var(--tj-card-border, rgba(99,130,200,0.18))',borderRadius:16,padding:28,transition:'all 0.3s',cursor:'default',backdropFilter:'blur(12px)',WebkitBackdropFilter:'blur(12px)'}}
-                onMouseEnter={e=>{e.currentTarget.style.borderColor='rgba(99,130,200,0.5)';e.currentTarget.style.transform='translateY(-4px)'}}
-                onMouseLeave={e=>{e.currentTarget.style.borderColor='rgba(99,130,200,0.18)';e.currentTarget.style.transform='translateY(0)'}}>
+              <div key={f.title} style={{background:'var(--tj-card-bg, rgba(12,20,40,0.85))',border:'1px solid var(--tj-card-border, rgba(99,130,200,0.18))',borderRadius:16,padding:28,transition:'all 0.3s',cursor:'default',backdropFilter:'blur(12px)',WebkitBackdropFilter:'blur(12px)'}}>
                 <div style={{fontSize:30,marginBottom:16}}>{f.icon}</div>
                 <div style={{fontSize:16,fontWeight:700,marginBottom:8}}>{f.title}</div>
                 <div style={{fontSize:14,color:'var(--text-muted)',lineHeight:1.7}}>{f.desc}</div>
@@ -429,9 +421,7 @@ export default function HomePage() {
           <div style={{display:'flex',gap:10,justifyContent:'center',marginBottom:16,flexWrap:'wrap'}}>
             {sociais.map(s=>(
               <a key={s.label} href={s.url} target="_blank" rel="noopener noreferrer" title={s.label}
-                style={{width:38,height:38,borderRadius:10,background:s.color,border:'1px solid rgba(255,255,255,0.1)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:18,textDecoration:'none',transition:'transform 0.2s'}}
-                onMouseEnter={e=>(e.currentTarget.style.transform='scale(1.1)')}
-                onMouseLeave={e=>(e.currentTarget.style.transform='scale(1)')}>
+                style={{width:38,height:38,borderRadius:10,background:s.color,border:'1px solid rgba(255,255,255,0.1)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:18,textDecoration:'none'}}>
                 {s.icon}
               </a>
             ))}
@@ -449,33 +439,62 @@ export default function HomePage() {
       </footer>
 
       <style>{`
-        @keyframes fadeInUp   { from { opacity:0; transform:translateY(24px); } to { opacity:1; transform:translateY(0); } }
-        @keyframes fadeInDown { from { opacity:0; transform:translateY(-16px); } to { opacity:1; transform:translateY(0); } }
-        @keyframes pulse      { 0%,100% { opacity:1; transform:scale(1); } 50% { opacity:0.5; transform:scale(0.9); } }
+        @keyframes fadeInUp   { from{opacity:0;transform:translateY(24px);}to{opacity:1;transform:translateY(0);} }
+        @keyframes fadeInDown { from{opacity:0;transform:translateY(-16px);}to{opacity:1;transform:translateY(0);} }
+        @keyframes pulse      { 0%,100%{opacity:1;transform:scale(1);}50%{opacity:0.5;transform:scale(0.9);} }
 
         .landing-nav-desktop { display: flex !important; }
         .landing-nav-mobile  { display: none !important; }
 
-        /* ── Banner desktop: visível no desktop, oculto no mobile ── */
-        .desktop-top-banner  { display: block; width:100%; margin-top:60px; overflow:hidden; line-height:0; }
-        .mobile-top-banner   { display: none; }
+        /* Blocos de teste — ocultos no desktop */
+        .teste-mobile-banner { display: none; }
+        .teste-mobile-tigre  { display: none; }
 
-        /* ── Hero media desktop: visível no desktop, oculto no mobile ── */
-        .desktop-hero-media  { display: flex; flex-shrink:0; max-width:48vw; align-items:center; justify-content:center; }
-        .mobile-hero-tiger   { display: none; }
+        /* Banners e hero — desktop */
+        .desktop-top-banner  { display:block; width:100%; margin-top:60px; overflow:hidden; line-height:0; }
+        .mobile-top-banner   { display:none; }
+        .desktop-hero-media  { display:flex; flex-shrink:0; max-width:48vw; align-items:center; justify-content:center; }
+        .mobile-hero-tiger   { display:none; }
 
         @media (max-width: 768px) {
           .landing-nav-desktop { display: none !important; }
           .landing-nav-mobile  { display: flex !important; }
 
-          /* Banner mobile exclusivo */
+          /* BLOCO VERMELHO — teste mobile banner */
+          .teste-mobile-banner {
+            display: block !important;
+            position: relative;
+            z-index: 9999;
+            width: 100%;
+            margin-top: 60px;
+            padding: 24px;
+            background: #cc0000 !important;
+            color: #ffffff !important;
+            font-size: 22px;
+            font-weight: 900;
+            text-align: center;
+          }
+
+          /* BLOCO AZUL — teste mobile tigre */
+          .teste-mobile-tigre {
+            display: block !important;
+            position: relative;
+            z-index: 9999;
+            width: 100%;
+            padding: 24px;
+            margin: 24px 0;
+            background: #0000cc !important;
+            color: #ffffff !important;
+            font-size: 22px;
+            font-weight: 900;
+            text-align: center;
+          }
+
+          /* Banner mobile */
           .desktop-top-banner { display: none !important; }
           .mobile-top-banner  {
             display: block !important;
             width: 100% !important;
-            margin-top: 60px !important;
-            position: relative !important;
-            z-index: 20 !important;
             overflow: hidden !important;
             line-height: 0 !important;
           }
@@ -485,10 +504,9 @@ export default function HomePage() {
             height: auto !important;
             min-height: 60px !important;
             object-fit: cover !important;
-            object-position: center !important;
           }
 
-          /* Hero tiger mobile exclusivo */
+          /* Hero tiger mobile */
           .desktop-hero-media { display: none !important; }
           .mobile-hero-tiger  {
             display: flex !important;
@@ -504,7 +522,6 @@ export default function HomePage() {
             width: min(78vw, 320px) !important;
             height: auto !important;
             object-fit: contain !important;
-            filter: drop-shadow(0 0 32px rgba(212,168,67,0.5)) !important;
           }
         }
       `}</style>
