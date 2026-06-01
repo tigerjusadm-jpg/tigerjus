@@ -1,230 +1,276 @@
 'use client'
-import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
-import { supabase } from '@/lib/supabase'
+import { useState, useEffect, Suspense } from 'react'
+import { useSearchParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { supabase } from '@/lib/supabase'
 
-type Mode = 'login' | 'cadastro' | 'reset'
+const PLANS: Record<string, any> = {
+  start: { name:'Tiger Start', price:'1,99', amount:1.99, color:'var(--success)', features:['Questões ilimitadas','IA intermediária','Mais simulados','Streak + ranking'] },
+  plus:  { name:'Tiger Plus',  price:'5,99', amount:5.99, color:'var(--blue)',    features:['Simulados completos','Mapas mentais','PDFs premium','IA ampliada'] },
+  pro:   { name:'Tiger Pro',   price:'9,99', amount:9.99, color:'var(--gold)',    features:['IA avançada ilimitada','Radar jurídico','Trilhas personalizadas','Previsão de aprovação'] },
+  elite: { name:'Tiger Elite', price:'19,99',amount:19.99,color:'var(--orange)', features:['Tudo ilimitado','IA prioritária','Conteúdos exclusivos','Simulados inéditos'] },
+}
 
-export default function LoginPage() {
+function CheckoutContent() {
+  const params = useSearchParams()
   const router = useRouter()
-  const [mode, setMode] = useState<Mode>('login')
-  const [email, setEmail] = useState('')
-  const [senha, setSenha] = useState('')
-  const [nome, setNome] = useState('')
-  const [lembrar, setLembrar] = useState(false)
+  const planId = params.get('plan') || 'pro'
+  const plan = PLANS[planId]
+
+  const [tab, setTab] = useState<'pix'|'card'>('pix')
+  const [pixData, setPixData] = useState<any>(null)
+  const [pixTimer, setPixTimer] = useState(600)
+  const [pixDone, setPixDone] = useState(false)
+  const [card, setCard] = useState({ number:'', name:'', expiry:'', cvv:'' })
+  const [cardLoading, setCardLoading] = useState(false)
+  const [cardDone, setCardDone] = useState(false)
   const [loading, setLoading] = useState(false)
-  const [erro, setErro] = useState('')
-  const [sucesso, setSucesso] = useState('')
+  const [user, setUser] = useState<any>(null)
+  const [authChecked, setAuthChecked] = useState(false)
+  const [copied, setCopied] = useState(false)
+
+  // 🔒 TRAVA (gate): exige login ANTES de mostrar o checkout.
+  // Se não estiver logado, manda pro /login guardando este checkout no ?redirect=,
+  // pra trazer a pessoa de volta ao plano que ela escolheu depois de entrar/cadastrar.
+  useEffect(() => {
+    if (!plan) return
+    let active = true
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (!active) return
+      if (!user) {
+        const back = `/checkout?plan=${planId}`
+        router.replace(`/login?redirect=${encodeURIComponent(back)}`)
+        return
+      }
+      setUser(user)
+      setAuthChecked(true)
+    })
+    return () => { active = false }
+  }, [plan, planId, router])
 
   useEffect(() => {
-    const emailSalvo = localStorage.getItem('tigerjus_email')
-    const lembrarSalvo = localStorage.getItem('tigerjus_lembrar')
-    if (emailSalvo && lembrarSalvo === 'true') {
-      setEmail(emailSalvo)
-      setLembrar(true)
-    }
-  }, [])
+    if (!pixData || pixDone) return
+    const t = setInterval(() => setPixTimer(p => { if(p<=1){clearInterval(t);return 0;} return p-1 }), 1000)
+    return () => clearInterval(t)
+  }, [pixData, pixDone])
 
-  const handleLogin = async () => {
-    if (!email || !senha) { setErro('Preencha email e senha.'); return }
-    setLoading(true); setErro('')
-    if (lembrar) {
-      localStorage.setItem('tigerjus_email', email)
-      localStorage.setItem('tigerjus_lembrar', 'true')
-    } else {
-      localStorage.removeItem('tigerjus_email')
-      localStorage.removeItem('tigerjus_lembrar')
-    }
-    const { error } = await supabase.auth.signInWithPassword({ email, password: senha })
-    if (error) {
-      if (error.message.includes('Email not confirmed')) {
-        setErro('Confirme seu email antes de entrar. Verifique sua caixa de entrada.')
-      } else if (error.message.includes('Invalid login credentials')) {
-        setErro('Email ou senha incorretos.')
-      } else {
-        setErro('Erro ao entrar. Tente novamente.')
-      }
-    } else {
-      router.push('/plataforma')
-    }
-    setLoading(false)
+  const fmt = (s: number) => `${String(Math.floor(s/60)).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`
+
+  const createPixPayment = async () => {
+    if (!user?.id) return // segurança: nunca cria pagamento sem dono
+    setLoading(true)
+    try {
+      const res = await fetch('/api/payment/create', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ plan:planId, method:'pix', userId:user?.id, email:user?.email, name:user?.user_metadata?.name }),
+      })
+      const data = await res.json()
+      if (data.pix) setPixData(data.pix)
+      const poll = setInterval(async () => {
+        const { data: payment } = await supabase.from('payments').select('status').eq('provider_payment_id', String(data.payment_id)).single()
+        if (payment?.status === 'approved') { clearInterval(poll); setPixDone(true) }
+      }, 3000)
+    } catch (e) { console.error(e) }
+    finally { setLoading(false) }
   }
 
-  const handleCadastro = async () => {
-    if (!email || !senha || !nome) { setErro('Preencha todos os campos.'); return }
-    if (senha.length < 6) { setErro('Senha deve ter pelo menos 6 caracteres.'); return }
-    setLoading(true); setErro('')
-
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password: senha,
-      options: {
-        data: { nome },
-        emailRedirectTo: `${window.location.origin}/auth/callback`,
-      }
-    })
-
-    if (error) {
-      if (error.message.includes('already registered') || error.message.includes('User already registered')) {
-        setErro('Este email já está cadastrado. Tente fazer login.')
-      } else {
-        setErro(`Erro ao criar conta: ${error.message}`)
-      }
-      setLoading(false)
-      return
-    }
-
-    if (data?.user) {
-      if (data.user.identities && data.user.identities.length === 0) {
-        setErro('Este email já está cadastrado. Verifique sua caixa de entrada para confirmar.')
-      } else if (!data.session) {
-        setSucesso('✅ Conta criada! Enviamos um link de confirmação para seu email. Verifique sua caixa de entrada e clique no link para ativar sua conta.')
-      } else {
-        router.push('/plataforma')
-      }
-    }
-
-    setLoading(false)
+  const handleCard = async () => {
+    if (!user?.id) return // segurança: nunca cria pagamento sem dono
+    setCardLoading(true)
+    try {
+      const res = await fetch('/api/payment/create', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ plan:planId, method:'credit_card', userId:user?.id, email:user?.email, name:card.name, card }),
+      })
+      const data = await res.json()
+      if (data.status === 'approved' || data.payment_id) setCardDone(true)
+    } catch (e) { console.error(e) }
+    finally { setCardLoading(false) }
   }
 
-  const handleReset = async () => {
-    if (!email) { setErro('Digite seu email.'); return }
-    setLoading(true); setErro('')
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      // ✅ CORREÇÃO: vai direto para /reset-password com o token no hash
-      redirectTo: `${window.location.origin}/reset-password`,
-    })
-    if (error) { setErro('Erro ao enviar email. Tente novamente.') }
-    else { setSucesso('Email enviado! Verifique sua caixa de entrada e clique no link para redefinir sua senha.') }
-    setLoading(false)
-  }
+  const onSuccess = () => router.push('/dashboard')
 
-  const handleSubmit = () => {
-    if (mode === 'login') handleLogin()
-    else if (mode === 'cadastro') handleCadastro()
-    else handleReset()
-  }
+  if (!plan) return (
+    <div style={{minHeight:'100vh',background:'var(--deep-black)',display:'flex',alignItems:'center',justifyContent:'center',color:'var(--white)'}}>
+      Plano inválido
+    </div>
+  )
+
+  // Enquanto verifica o login (ou redireciona pro login), não mostra o formulário de pagamento.
+  if (!authChecked) return (
+    <div style={{minHeight:'100vh',background:'var(--deep-black)',display:'flex',alignItems:'center',justifyContent:'center'}}>
+      <div style={{textAlign:'center'}}>
+        <div style={{fontSize:48,marginBottom:16}}>🐯</div>
+        <div style={{fontFamily:'var(--font-display)',fontSize:18,fontWeight:900,color:'var(--gold)'}}>Verificando sua conta...</div>
+      </div>
+    </div>
+  )
 
   return (
-    <div style={{minHeight:'100vh',background:'var(--deep-black)',display:'flex',alignItems:'center',justifyContent:'center',padding:24,position:'relative'}}>
-      <div style={{position:'absolute',inset:0,background:'radial-gradient(ellipse 60% 50% at 50% 30%, rgba(212,168,67,0.06), transparent)',pointerEvents:'none'}} />
-      <div style={{width:'100%',maxWidth:440,position:'relative'}}>
-        <div style={{textAlign:'center',marginBottom:40}}>
-          <Link href="/" style={{display:'inline-flex',alignItems:'center',gap:10,textDecoration:'none'}}>
-            <div style={{width:48,height:48,background:'linear-gradient(135deg,var(--gold),var(--orange))',borderRadius:12,display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'var(--font-display)',fontSize:24,fontWeight:900,color:'var(--deep-black)'}}>T</div>
-            <span style={{fontFamily:'var(--font-display)',fontSize:28,fontWeight:900,letterSpacing:2,background:'linear-gradient(135deg,#F5D78E,#D4A843)',WebkitBackgroundClip:'text',WebkitTextFillColor:'transparent'}}>TIGERJUS</span>
-          </Link>
+    <div style={{minHeight:'100vh',background:'var(--deep-black)',padding:'24px 16px',position:'relative'}}>
+      <div style={{position:'absolute',inset:0,background:'radial-gradient(ellipse 60% 50% at 50% 50%, rgba(212,168,67,0.05), transparent)',pointerEvents:'none'}} />
+
+      {/* Header mobile */}
+      <div style={{maxWidth:960,margin:'0 auto',marginBottom:24}}>
+        <Link href="/" style={{display:'inline-flex',alignItems:'center',gap:8,color:'var(--text-muted)',fontSize:13,textDecoration:'none',marginBottom:20}}>← Voltar</Link>
+        <div style={{display:'flex',alignItems:'center',gap:10}}>
+          <div style={{width:36,height:36,background:'linear-gradient(135deg,var(--gold),var(--orange))',borderRadius:8,display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'var(--font-display)',fontSize:18,fontWeight:900,color:'var(--deep-black)',flexShrink:0}}>T</div>
+          <span style={{fontFamily:'var(--font-display)',fontSize:20,fontWeight:900,letterSpacing:2,background:'linear-gradient(135deg,var(--gold-light),var(--gold))',WebkitBackgroundClip:'text',WebkitTextFillColor:'transparent'}}>TIGERJUS</span>
+        </div>
+      </div>
+
+      <div style={{maxWidth:960,margin:'0 auto',display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(300px,1fr))',gap:24,position:'relative'}}>
+
+        {/* Resumo do plano */}
+        <div>
+          <div style={{background:'linear-gradient(135deg,rgba(212,168,67,0.08),rgba(232,98,26,0.04))',border:'1px solid rgba(212,168,67,0.2)',borderRadius:20,padding:28,marginBottom:16}}>
+            <div style={{fontSize:10,fontWeight:700,letterSpacing:'2.5px',textTransform:'uppercase',color:'var(--text-muted)',marginBottom:8}}>{plan.name}</div>
+            <div style={{fontFamily:'var(--font-display)',fontSize:'clamp(40px,8vw,52px)',fontWeight:900,color:plan.color,marginBottom:4}}>
+              <sup style={{fontSize:18,verticalAlign:'super',color:'var(--text-muted)'}}>R$</sup>{plan.price}
+              <span style={{fontSize:15,color:'var(--text-muted)'}}>/mês</span>
+            </div>
+            <p style={{fontSize:13,color:'var(--text-muted)',marginBottom:20}}>Renovação automática mensal · Cancele quando quiser</p>
+            <ul style={{listStyle:'none',display:'flex',flexDirection:'column',gap:10}}>
+              {plan.features.map((f: string) => (
+                <li key={f} style={{display:'flex',alignItems:'center',gap:10,fontSize:14}}>
+                  <span style={{color:'var(--success)',flexShrink:0}}>✓</span>{f}
+                </li>
+              ))}
+            </ul>
+          </div>
+          <div style={{background:'rgba(76,175,125,0.06)',border:'1px solid rgba(76,175,125,0.15)',borderRadius:12,padding:'14px 16px',fontSize:13,color:'var(--text-muted)'}}>
+            🔒 Pagamento 100% seguro · Via Mercado Pago · Dados criptografados
+          </div>
         </div>
 
-        <div style={{background:'var(--gray)',border:'1px solid rgba(212,168,67,0.15)',borderRadius:24,padding:40}}>
-          <h1 style={{fontFamily:'var(--font-display)',fontSize:28,fontWeight:900,marginBottom:8,textAlign:'center'}}>
-            {mode === 'login' ? 'Bem-vindo de volta' : mode === 'cadastro' ? 'Criar conta grátis' : 'Recuperar senha'}
-          </h1>
-          <p style={{fontSize:14,color:'var(--text-muted)',marginBottom:32,textAlign:'center'}}>
-            {mode === 'login' ? 'Continue sua jornada jurídica.' : mode === 'cadastro' ? '3 dias grátis. Sem cartão.' : 'Enviaremos um link para seu email.'}
-          </p>
-
-          {erro && (
-            <div style={{background:'rgba(232,66,26,0.1)',border:'1px solid rgba(232,66,26,0.25)',borderRadius:10,padding:'12px 16px',marginBottom:20,fontSize:13,color:'#E8421A'}}>
-              ❌ {erro}
-            </div>
-          )}
-          {sucesso && (
-            <div style={{background:'rgba(76,175,125,0.1)',border:'1px solid rgba(76,175,125,0.25)',borderRadius:10,padding:'12px 16px',marginBottom:20,fontSize:13,color:'var(--success)',lineHeight:1.6}}>
-              {sucesso}
-            </div>
-          )}
-
-          {mode === 'cadastro' && !sucesso && (
-            <div style={{marginBottom:16}}>
-              <label style={{fontSize:11,fontWeight:700,letterSpacing:'1.5px',textTransform:'uppercase',color:'var(--text-muted)',display:'block',marginBottom:8}}>Nome completo</label>
-              <input className="form-input" placeholder="Seu nome" value={nome} onChange={e => setNome(e.target.value)} onKeyDown={e => e.key==='Enter'&&handleSubmit()} />
-            </div>
-          )}
-
-          {!sucesso && (
-            <>
-              <div style={{marginBottom:16}}>
-                <label style={{fontSize:11,fontWeight:700,letterSpacing:'1.5px',textTransform:'uppercase',color:'var(--text-muted)',display:'block',marginBottom:8}}>E-mail</label>
-                <input className="form-input" type="email" placeholder="seu@email.com" value={email} onChange={e => setEmail(e.target.value)} onKeyDown={e => e.key==='Enter'&&handleSubmit()} />
-              </div>
-
-              {mode !== 'reset' && (
-                <div style={{marginBottom: mode === 'login' ? 16 : 24}}>
-                  <label style={{fontSize:11,fontWeight:700,letterSpacing:'1.5px',textTransform:'uppercase',color:'var(--text-muted)',display:'block',marginBottom:8}}>Senha</label>
-                  <input className="form-input" type="password" placeholder="••••••••" value={senha} onChange={e => setSenha(e.target.value)} onKeyDown={e => e.key==='Enter'&&handleSubmit()} />
-                </div>
-              )}
-
-              {mode === 'login' && (
-                <div style={{marginBottom:24}}>
-                  <label style={{display:'flex',alignItems:'center',gap:10,cursor:'pointer',userSelect:'none'}} onClick={() => setLembrar(l => !l)}>
-                    <div style={{width:20,height:20,borderRadius:6,border:lembrar?'2px solid var(--gold)':'2px solid rgba(255,255,255,0.2)',background:lembrar?'rgba(212,168,67,0.15)':'transparent',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,transition:'all 0.2s'}}>
-                      {lembrar && (
-                        <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-                          <path d="M2 6l3 3 5-5" stroke="#D4A843" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                        </svg>
-                      )}
-                    </div>
-                    <span style={{fontSize:13,color:lembrar?'var(--gold)':'var(--text-muted)',transition:'color 0.2s',fontWeight:lembrar?600:400}}>
-                      Lembrar meu email neste dispositivo
-                    </span>
-                  </label>
-                </div>
-              )}
-
-              <button
-                className="btn-primary"
-                style={{width:'100%',marginBottom:16,fontSize:15,padding:16,opacity:loading?0.7:1}}
-                onClick={handleSubmit}
-                disabled={loading}
-              >
-                {loading ? '⏳ Aguarde...' : mode === 'login' ? 'ENTRAR' : mode === 'cadastro' ? 'CRIAR CONTA' : 'ENVIAR LINK'}
-              </button>
-            </>
-          )}
-
-          {sucesso && mode === 'cadastro' && (
-            <button
-              className="btn-primary"
-              style={{width:'100%',fontSize:15,padding:16}}
-              onClick={() => { setMode('login'); setSucesso(''); setErro('') }}
-            >
-              IR PARA O LOGIN
-            </button>
-          )}
-
-          <div style={{marginTop:24,textAlign:'center',fontSize:13,color:'var(--text-muted)'}}>
-            {mode === 'login' && (
-              <>
-                <span>Não tem conta? </span>
-                <button onClick={() => {setMode('cadastro');setErro('');setSucesso('')}} style={{color:'var(--gold)',background:'none',border:'none',cursor:'pointer',fontSize:13,fontFamily:'var(--font-body)'}}>
-                  Criar agora
+        {/* Formulário de pagamento */}
+        <div style={{background:'var(--gray)',border:'1px solid rgba(212,168,67,0.15)',borderRadius:20,overflow:'hidden'}}>
+          <div style={{background:'linear-gradient(135deg,rgba(212,168,67,0.1),rgba(232,98,26,0.06))',padding:'20px 24px',borderBottom:'1px solid rgba(212,168,67,0.12)'}}>
+            <div style={{fontFamily:'var(--font-display)',fontSize:20,fontWeight:900}}>Finalizar Assinatura</div>
+            <div style={{fontSize:13,color:'var(--text-muted)',marginTop:4}}>TigerJus {plan.name} — R${plan.price}/mês</div>
+          </div>
+          <div style={{padding:24}}>
+            {/* Tabs PIX / Cartão */}
+            <div style={{display:'flex',gap:8,marginBottom:24}}>
+              {(['pix','card'] as const).map(t=>(
+                <button key={t} onClick={()=>setTab(t)} style={{flex:1,padding:'11px 8px',borderRadius:8,border:tab===t?'1px solid rgba(212,168,67,0.3)':'1px solid rgba(255,255,255,0.08)',background:tab===t?'rgba(212,168,67,0.1)':'transparent',color:tab===t?'var(--gold)':'var(--text-muted)',fontSize:13,fontWeight:600,cursor:'pointer',fontFamily:'var(--font-body)',transition:'all 0.2s'}}>
+                  {t==='pix'?'⚡ PIX':'💳 Cartão'}
                 </button>
-                <div style={{marginTop:12}}>
-                  <button onClick={() => {setMode('reset');setErro('');setSucesso('')}} style={{color:'var(--text-muted)',background:'none',border:'none',cursor:'pointer',fontSize:13,fontFamily:'var(--font-body)'}}>
-                    Esqueci minha senha
+              ))}
+            </div>
+
+            {/* PIX */}
+            {tab==='pix' && (
+              pixDone ? (
+                <div style={{textAlign:'center',background:'rgba(76,175,125,0.1)',border:'1px solid rgba(76,175,125,0.25)',borderRadius:16,padding:32}}>
+                  <div style={{fontSize:52,marginBottom:14}}>✅</div>
+                  <div style={{fontFamily:'var(--font-display)',fontSize:22,fontWeight:900,color:'var(--success)',marginBottom:10}}>Pagamento Confirmado!</div>
+                  <div style={{fontSize:14,color:'var(--text-muted)',marginBottom:20}}>Acesso liberado automaticamente.</div>
+                  <button className="btn-primary" style={{width:'100%'}} onClick={onSuccess}>ACESSAR PLATAFORMA →</button>
+                </div>
+              ) : pixData ? (
+                <div style={{textAlign:'center'}}>
+                  <div style={{fontSize:13,color:'var(--text-muted)',marginBottom:16}}>Escaneie o QR Code com seu banco:</div>
+                  {pixData.qr_code_base64 && (
+                    <img src={`data:image/png;base64,${pixData.qr_code_base64}`} alt="QR Code PIX"
+                      style={{width:180,height:180,borderRadius:16,background:'white',padding:10,margin:'0 auto 16px',display:'block'}} />
+                  )}
+                  <div style={{fontSize:12,color:'var(--text-muted)',marginBottom:10}}>
+                    Valor: <strong style={{color:'var(--gold)'}}>R${plan.price}/mês</strong>
+                  </div>
+                  <div
+                    style={{background:'var(--gray-mid)',border:'1px solid rgba(255,255,255,0.08)',borderRadius:8,padding:'12px 14px',fontSize:11,fontFamily:'var(--font-mono)',color:'var(--text-muted)',cursor:'pointer',marginBottom:16,wordBreak:'break-all',transition:'all 0.2s',textAlign:'left'}}
+                    onClick={()=>{navigator.clipboard.writeText(pixData.copy_paste||'');setCopied(true)}}>
+                    {copied?'✅ Código copiado!':pixData.copy_paste?.slice(0,60)+'...'}
+                  </div>
+                  <div style={{fontSize:12,color:'var(--text-muted)'}}>Expira em:</div>
+                  <div style={{fontFamily:'var(--font-mono)',fontSize:32,fontWeight:700,color:pixTimer<60?'var(--danger)':'var(--gold)',marginBottom:12}}>{fmt(pixTimer)}</div>
+                  <div style={{display:'flex',alignItems:'center',justifyContent:'center',gap:8,fontSize:13,color:'var(--text-muted)'}}>
+                    <div style={{width:8,height:8,borderRadius:'50%',background:'var(--gold)',animation:'pulse 1.5s infinite',flexShrink:0}} />
+                    Aguardando confirmação...
+                  </div>
+                </div>
+              ) : (
+                <div style={{textAlign:'center'}}>
+                  <div style={{fontSize:56,marginBottom:16}}>⚡</div>
+                  <p style={{fontSize:14,color:'var(--text-muted)',marginBottom:24,lineHeight:1.7}}>
+                    Gere o QR Code PIX e pague em segundos. O acesso é liberado automaticamente.
+                  </p>
+                  <button className="btn-primary" style={{width:'100%'}} onClick={createPixPayment} disabled={loading}>
+                    {loading?'⏳ Gerando PIX...':'GERAR QR CODE PIX'}
                   </button>
                 </div>
-              </>
+              )
             )}
-            {mode === 'cadastro' && !sucesso && (
-              <span>Já tem conta? <button onClick={() => {setMode('login');setErro('');setSucesso('')}} style={{color:'var(--gold)',background:'none',border:'none',cursor:'pointer',fontSize:13,fontFamily:'var(--font-body)'}}>Entrar</button></span>
-            )}
-            {mode === 'reset' && (
-              <button onClick={() => {setMode('login');setErro('');setSucesso('')}} style={{color:'var(--gold)',background:'none',border:'none',cursor:'pointer',fontSize:13,fontFamily:'var(--font-body)'}}>
-                ← Voltar ao login
-              </button>
-            )}
-          </div>
 
-          <div style={{marginTop:20,textAlign:'center'}}>
-            <Link href="/" style={{color:'var(--text-muted)',fontSize:12,textDecoration:'none'}}>← Voltar ao início</Link>
+            {/* Cartão */}
+            {tab==='card' && (
+              cardDone ? (
+                <div style={{textAlign:'center',background:'rgba(76,175,125,0.1)',border:'1px solid rgba(76,175,125,0.25)',borderRadius:16,padding:32}}>
+                  <div style={{fontSize:52,marginBottom:14}}>✅</div>
+                  <div style={{fontFamily:'var(--font-display)',fontSize:22,fontWeight:900,color:'var(--success)',marginBottom:10}}>Pagamento Aprovado!</div>
+                  <div style={{fontSize:14,color:'var(--text-muted)',marginBottom:20}}>Acesso liberado automaticamente.</div>
+                  <button className="btn-primary" style={{width:'100%'}} onClick={onSuccess}>ACESSAR PLATAFORMA →</button>
+                </div>
+              ) : (
+                <div>
+                  <div style={{marginBottom:16}}>
+                    <label style={{fontSize:11,fontWeight:700,letterSpacing:'1.5px',textTransform:'uppercase',color:'var(--text-muted)',display:'block',marginBottom:8}}>Número do Cartão</label>
+                    <input className="form-input" placeholder="0000 0000 0000 0000" maxLength={19}
+                      value={card.number}
+                      onChange={e=>setCard(p=>({...p,number:e.target.value.replace(/\D/g,'').replace(/(.{4})/g,'$1 ').trim()}))} />
+                  </div>
+                  <div style={{marginBottom:16}}>
+                    <label style={{fontSize:11,fontWeight:700,letterSpacing:'1.5px',textTransform:'uppercase',color:'var(--text-muted)',display:'block',marginBottom:8}}>Nome no Cartão</label>
+                    <input className="form-input" placeholder="NOME SOBRENOME"
+                      value={card.name}
+                      onChange={e=>setCard(p=>({...p,name:e.target.value.toUpperCase()}))} />
+                  </div>
+                  <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12,marginBottom:24}}>
+                    <div>
+                      <label style={{fontSize:11,fontWeight:700,letterSpacing:'1.5px',textTransform:'uppercase',color:'var(--text-muted)',display:'block',marginBottom:8}}>Validade</label>
+                      <input className="form-input" placeholder="MM/AA" maxLength={5}
+                        value={card.expiry}
+                        onChange={e=>setCard(p=>({...p,expiry:e.target.value}))} />
+                    </div>
+                    <div>
+                      <label style={{fontSize:11,fontWeight:700,letterSpacing:'1.5px',textTransform:'uppercase',color:'var(--text-muted)',display:'block',marginBottom:8}}>CVV</label>
+                      <input className="form-input" placeholder="•••" maxLength={4} type="password"
+                        value={card.cvv}
+                        onChange={e=>setCard(p=>({...p,cvv:e.target.value.replace(/\D/g,'')}))} />
+                    </div>
+                  </div>
+                  <button className="btn-primary" style={{width:'100%'}} onClick={handleCard} disabled={cardLoading}>
+                    {cardLoading?'⏳ Processando...':`PAGAR R$${plan.price}/mês`}
+                  </button>
+                  <div style={{marginTop:12,fontSize:11,color:'var(--text-dim)',textAlign:'center'}}>
+                    🔒 Pagamento criptografado via Mercado Pago · Cancele quando quiser
+                  </div>
+                </div>
+              )
+            )}
           </div>
         </div>
       </div>
       <div className="grain-overlay" />
+      <style>{`
+        @keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.5;transform:scale(0.9)}}
+      `}</style>
     </div>
+  )
+}
+
+export default function CheckoutPage() {
+  return (
+    <Suspense fallback={
+      <div style={{minHeight:'100vh',background:'var(--deep-black)',display:'flex',alignItems:'center',justifyContent:'center'}}>
+        <div style={{textAlign:'center'}}>
+          <div style={{fontSize:48,marginBottom:16}}>🐯</div>
+          <div style={{fontFamily:'var(--font-display)',fontSize:20,fontWeight:900,color:'var(--gold)'}}>Carregando...</div>
+        </div>
+      </div>
+    }>
+      <CheckoutContent />
+    </Suspense>
   )
 }
