@@ -64,6 +64,14 @@ export interface AppSettings {
   landing_top_banner_margin_bottom: number
   landing_top_banner_radius:        number
   landing_top_banner_max_width:     number
+  // ── carrossel: slides 2 e 3 + intervalo ──
+  landing_top_banner_url_2:   string
+  landing_top_banner_link_2:  string
+  landing_top_banner_alt_2:   string
+  landing_top_banner_url_3:   string
+  landing_top_banner_link_3:  string
+  landing_top_banner_alt_3:   string
+  landing_top_banner_interval: number
   maintenance_mode:     boolean
   maintenance_message:  string
 }
@@ -127,6 +135,14 @@ const FALLBACKS: AppSettings = {
   landing_top_banner_margin_bottom: 0,
   landing_top_banner_radius:        0,
   landing_top_banner_max_width:     0,
+  // ── carrossel: slides 2 e 3 + intervalo ──
+  landing_top_banner_url_2:   '',
+  landing_top_banner_link_2:  '',
+  landing_top_banner_alt_2:   '',
+  landing_top_banner_url_3:   '',
+  landing_top_banner_link_3:  '',
+  landing_top_banner_alt_3:   '',
+  landing_top_banner_interval: 5,
   maintenance_mode:     false,
   maintenance_message:  'Voltamos em breve.',
 }
