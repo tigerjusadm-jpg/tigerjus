@@ -139,7 +139,7 @@ export default function LandingTopBanner() {
           src={slides[Math.min(current, total - 1)].url}
           alt=""
           aria-hidden="true"
-          style={{ display: 'none', width: '100%', height: 'auto', visibility: 'hidden', position: 'relative', zIndex: 0 }}
+          style={{ display: 'block', width: '100%', height: 'auto', visibility: 'hidden', position: 'relative', zIndex: 0 }}
         />
 
         {/* Setas + bolinhas — só quando há 2+ slides */}
@@ -171,8 +171,8 @@ export default function LandingTopBanner() {
       </div>
 
       <style>{`
-        /* Frame e slides — DESKTOP */
-        .tj-top-banner-frame { height: var(--tj-banner-height, 300px); }
+        /* Frame e slides — altura automática (imagem inteira, sem corte), igual em desktop e mobile */
+        .tj-top-banner-frame { height: auto; }
         .tj-top-banner-slide {
           position: absolute;
           inset: 0;
@@ -184,8 +184,8 @@ export default function LandingTopBanner() {
         .tj-top-banner-img {
           display: block;
           width: 100%;
-          height: 100%;
-          object-fit: var(--tj-banner-fit, cover);
+          height: auto;
+          object-fit: contain;
           object-position: var(--tj-banner-position, center center);
         }
 
@@ -239,18 +239,9 @@ export default function LandingTopBanner() {
           transform: scale(1.25);
         }
 
-        /* MOBILE — imagem inteira, altura automática (não corta) */
+        /* MOBILE — apenas setas menores (a imagem inteira já é o padrão acima) */
         @media (max-width: 768px) {
-          .tj-top-banner-frame { height: auto !important; }
-          .tj-top-banner-img {
-            width: 100% !important;
-            height: auto !important;
-            object-fit: contain !important;
-            object-position: center center !important;
-          }
           .tj-top-banner-arrow { width: 30px; height: 30px; font-size: 20px; }
-          /* O espaçador (slide ativo clonado) dá altura ao frame; os slides reais ficam absolutos sobre ele */
-          .tj-banner-spacer { display: block !important; }
         }
       `}</style>
     </div>
