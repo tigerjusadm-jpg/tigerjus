@@ -1,40 +1,46 @@
 'use client'
 
+import { useState, useEffect, useCallback } from 'react'
 import { useAppSettings } from '@/contexts/AppSettingsContext'
 
 /**
- * Banner do topo da landing page.
+ * Banner do topo da landing page — agora com carrossel (até 3 slides).
  *
- * Lê de app_settings (controlável pelo Admin):
- *  - landing_top_banner_url            → imagem (obrigatória; sem ela o banner não aparece)
- *  - landing_top_banner_link           → link de clique (opcional)
- *  - landing_top_banner_alt            → texto alternativo
- *  - landing_top_banner_height         → altura do banner em px (DESKTOP)
- *  - landing_top_banner_position       → posição vertical da imagem: top | center | bottom
- *  - landing_top_banner_opacity        → opacidade 0–100
- *  - landing_top_banner_fit            → ajuste: cover | contain (DESKTOP)
- *  - landing_top_banner_margin_top     → margem acima em px
- *  - landing_top_banner_margin_bottom  → margem abaixo em px
- *  - landing_top_banner_radius         → cantos arredondados em px
- *  - landing_top_banner_max_width      → largura máxima em px (0 = largura total)
+ * Controlável pelo Admin (app_settings):
+ *  Slide 1: landing_top_banner_url   / _link   / _alt
+ *  Slide 2: landing_top_banner_url_2 / _link_2 / _alt_2
+ *  Slide 3: landing_top_banner_url_3 / _link_3 / _alt_3
+ *  Intervalo: landing_top_banner_interval (segundos entre trocas)
  *
- * DESKTOP: respeita altura/fit/posição definidos no Admin.
- * MOBILE (≤768px): mostra a imagem INTEIRA, altura automática (não corta).
+ *  Estilo (aplicado a todos os slides):
+ *  _height, _position, _opacity, _fit, _margin_top, _margin_bottom, _radius, _max_width
+ *
+ * Comportamento:
+ *  - 1 slide preenchido  → banner único (sem troca, sem bolinhas)
+ *  - 2+ slides           → carrossel com fade automático + bolinhas + setas
+ *  - cada slide pode ter seu próprio link de anunciante
+ * DESKTOP: respeita altura/fit/posição. MOBILE (≤768px): imagem inteira, altura automática.
  */
 export default function LandingTopBanner() {
   const { settings, loaded } = useAppSettings()
+  const [current, setCurrent] = useState(0)
 
-  // Aguarda os settings carregarem antes de decidir (evita estado vazio piscando)
-  if (!loaded) return null
+  // ── Monta a lista de slides com URL preenchida ──
+  const slides = ([
+    { url: settings.landing_top_banner_url,   link: settings.landing_top_banner_link,   alt: settings.landing_top_banner_alt },
+    { url: settings.landing_top_banner_url_2, link: settings.landing_top_banner_link_2, alt: settings.landing_top_banner_alt_2 },
+    { url: settings.landing_top_banner_url_3, link: settings.landing_top_banner_link_3, alt: settings.landing_top_banner_alt_3 },
+  ] as { url: string; link: string; alt: string }[])
+    .map(s => ({
+      url:  String(s.url  || '').trim(),
+      link: String(s.link || '').trim(),
+      alt:  String(s.alt  || 'Banner TigerJus').trim(),
+    }))
+    .filter(s => s.url.length > 0)
 
-  const url  = String(settings.landing_top_banner_url  || '').trim()
-  const link = String(settings.landing_top_banner_link || '').trim()
-  const alt  = String(settings.landing_top_banner_alt  || 'Banner TigerJus').trim()
+  const total = slides.length
 
-  // Sem URL configurada no Admin → não mostra banner
-  if (!url) return null
-
-  // ── Controles (com defaults seguros) ──
+  // ── Controles de estilo (defaults seguros) ──
   const height       = Number(settings.landing_top_banner_height)        || 300
   const positionRaw  = String(settings.landing_top_banner_position || 'center').toLowerCase()
   const position     = ['top', 'center', 'bottom'].includes(positionRaw) ? positionRaw : 'center'
@@ -46,22 +52,35 @@ export default function LandingTopBanner() {
   const marginBottom = Number.isFinite(Number(settings.landing_top_banner_margin_bottom)) ? Number(settings.landing_top_banner_margin_bottom) : 0
   const radius       = Number(settings.landing_top_banner_radius)    || 0
   const maxWidth     = Number(settings.landing_top_banner_max_width)  || 0
+  const intervalSec  = Number(settings.landing_top_banner_interval)   || 5
 
-  const linkProps = {
-    href: link || undefined,
-    target: link ? '_blank' : undefined,
-    rel: link ? 'noopener noreferrer' : undefined,
-  }
+  // ── Troca automática (só quando há 2+ slides) ──
+  const next = useCallback(() => {
+    setCurrent(c => (c + 1) % total)
+  }, [total])
 
-  const Wrapper: React.ElementType = link ? 'a' : 'div'
+  useEffect(() => {
+    if (total < 2) return
+    const ms = Math.max(2, intervalSec) * 1000
+    const timer = setInterval(next, ms)
+    return () => clearInterval(timer)
+  }, [total, intervalSec, next, current])
+
+  // Garante que o índice atual nunca passe do total (ex: se um slide for removido)
+  useEffect(() => {
+    if (current >= total && total > 0) setCurrent(0)
+  }, [current, total])
+
+  if (!loaded) return null
+  if (total === 0) return null
 
   return (
     <div
       className="tj-top-banner-wrap"
       style={{
         width: '100%',
-        marginTop: marginTop,
-        marginBottom: marginBottom,
+        marginTop,
+        marginBottom,
         display: 'flex',
         justifyContent: 'center',
         position: 'relative',
@@ -71,32 +90,97 @@ export default function LandingTopBanner() {
       <div
         className="tj-top-banner-frame"
         style={{
+          position: 'relative',
           width: '100%',
           maxWidth: maxWidth > 0 ? maxWidth : '100%',
           overflow: 'hidden',
           borderRadius: radius,
           lineHeight: 0,
-          // variáveis usadas pelo CSS (desktop usa altura/fit; mobile sobrescreve)
           ['--tj-banner-height' as any]: `${height}px`,
           ['--tj-banner-fit' as any]: fit,
           ['--tj-banner-position' as any]: `center ${position}`,
         }}
       >
-        <Wrapper {...linkProps} className="tj-top-banner-link" style={{ display: 'block', width: '100%', lineHeight: 0 }}>
-          <img
-            className="tj-top-banner-img"
-            src={url}
-            alt={alt}
-            loading="eager"
-            style={{ opacity }}
-          />
-        </Wrapper>
+        {/* Slides empilhados — o ativo fica visível (fade) */}
+        {slides.map((slide, i) => {
+          const isActive = i === current
+          const img = (
+            <img
+              className="tj-top-banner-img"
+              src={slide.url}
+              alt={slide.alt}
+              loading={i === 0 ? 'eager' : 'lazy'}
+              style={{ opacity }}
+            />
+          )
+          return (
+            <div
+              key={i}
+              className="tj-top-banner-slide"
+              style={{
+                opacity: isActive ? 1 : 0,
+                pointerEvents: isActive ? 'auto' : 'none',
+                zIndex: isActive ? 2 : 1,
+              }}
+            >
+              {slide.link ? (
+                <a href={slide.link} target="_blank" rel="noopener noreferrer"
+                   className="tj-top-banner-link" style={{ display: 'block', width: '100%', height: '100%', lineHeight: 0 }}>
+                  {img}
+                </a>
+              ) : img}
+            </div>
+          )
+        })}
+
+        {/* Espaçador (só mobile via CSS) — dá altura ao frame com base no slide ativo */}
+        <img
+          className="tj-banner-spacer"
+          src={slides[Math.min(current, total - 1)].url}
+          alt=""
+          aria-hidden="true"
+          style={{ display: 'none', width: '100%', height: 'auto', visibility: 'hidden', position: 'relative', zIndex: 0 }}
+        />
+
+        {/* Setas + bolinhas — só quando há 2+ slides */}
+        {total > 1 && (
+          <>
+            <button
+              aria-label="Anterior"
+              onClick={(e) => { e.preventDefault(); setCurrent(c => (c - 1 + total) % total) }}
+              className="tj-top-banner-arrow tj-arrow-left"
+            >‹</button>
+            <button
+              aria-label="Próximo"
+              onClick={(e) => { e.preventDefault(); setCurrent(c => (c + 1) % total) }}
+              className="tj-top-banner-arrow tj-arrow-right"
+            >›</button>
+
+            <div className="tj-top-banner-dots">
+              {slides.map((_, i) => (
+                <button
+                  key={i}
+                  aria-label={`Ir para slide ${i + 1}`}
+                  onClick={(e) => { e.preventDefault(); setCurrent(i) }}
+                  className={`tj-dot ${i === current ? 'tj-dot-active' : ''}`}
+                />
+              ))}
+            </div>
+          </>
+        )}
       </div>
 
       <style>{`
-        /* DESKTOP — respeita altura e ajuste definidos no Admin */
+        /* Frame e slides — DESKTOP */
         .tj-top-banner-frame { height: var(--tj-banner-height, 300px); }
-        .tj-top-banner-link  { height: 100%; }
+        .tj-top-banner-slide {
+          position: absolute;
+          inset: 0;
+          width: 100%;
+          height: 100%;
+          transition: opacity 0.8s ease-in-out;
+        }
+        .tj-top-banner-link { height: 100%; }
         .tj-top-banner-img {
           display: block;
           width: 100%;
@@ -105,16 +189,68 @@ export default function LandingTopBanner() {
           object-position: var(--tj-banner-position, center center);
         }
 
+        /* Setas */
+        .tj-top-banner-arrow {
+          position: absolute;
+          top: 50%;
+          transform: translateY(-50%);
+          z-index: 5;
+          width: 38px;
+          height: 38px;
+          border: none;
+          border-radius: 50%;
+          background: rgba(0,0,0,0.4);
+          color: #fff;
+          font-size: 24px;
+          line-height: 1;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          backdrop-filter: blur(4px);
+          transition: background 0.2s;
+        }
+        .tj-top-banner-arrow:hover { background: rgba(0,0,0,0.65); }
+        .tj-arrow-left  { left: 12px; }
+        .tj-arrow-right { right: 12px; }
+
+        /* Bolinhas */
+        .tj-top-banner-dots {
+          position: absolute;
+          bottom: 12px;
+          left: 50%;
+          transform: translateX(-50%);
+          z-index: 5;
+          display: flex;
+          gap: 8px;
+        }
+        .tj-dot {
+          width: 10px;
+          height: 10px;
+          border-radius: 50%;
+          border: none;
+          background: rgba(255,255,255,0.5);
+          cursor: pointer;
+          padding: 0;
+          transition: background 0.2s, transform 0.2s;
+        }
+        .tj-dot-active {
+          background: #fff;
+          transform: scale(1.25);
+        }
+
         /* MOBILE — imagem inteira, altura automática (não corta) */
         @media (max-width: 768px) {
           .tj-top-banner-frame { height: auto !important; }
-          .tj-top-banner-link  { height: auto !important; }
           .tj-top-banner-img {
             width: 100% !important;
             height: auto !important;
             object-fit: contain !important;
             object-position: center center !important;
           }
+          .tj-top-banner-arrow { width: 30px; height: 30px; font-size: 20px; }
+          /* O espaçador (slide ativo clonado) dá altura ao frame; os slides reais ficam absolutos sobre ele */
+          .tj-banner-spacer { display: block !important; }
         }
       `}</style>
     </div>
