@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { useAppSettings } from '@/contexts/AppSettingsContext'
 import RadarOAB from '@/components/RadarOAB'
+import DashboardTopBanner from '@/components/DashboardTopBanner'
 import { canAccess, isAdmin, getLimites, isPago, PLANOS_DISPLAY, type Plano } from '@/lib/planos'
 
 interface Profile {
@@ -135,38 +136,6 @@ const ADS_BANNER = [
   {id:3,url:'https://grancursosonline.com.br',bg:'linear-gradient(135deg,#1b5e20,#2e7d32)',logo:'🏆',titulo:'Gran Cursos Online',subtitulo:'Simulados ilimitados para OAB. Comece grátis e seja aprovado.',cta:'Começar grátis',ctaBg:'#fff',ctaColor:'#1b5e20',badge:'RECOMENDADO',badgeBg:'rgba(255,255,255,0.15)'},
 ]
 
-function AdBannerRotativo({ }: { isPremium: boolean }) {
-  const [idx, setIdx] = useState(0)
-  const [fade, setFade] = useState(true)
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setFade(false)
-      setTimeout(() => { setIdx(i => (i + 1) % ADS_BANNER.length); setFade(true) }, 400)
-    }, 10000)
-    return () => clearInterval(interval)
-  }, [])
-  const ad = ADS_BANNER[idx]
-  return (
-    <div style={{marginBottom:20}}>
-      <div style={{fontSize:9,fontWeight:700,letterSpacing:'2px',textTransform:'uppercase',color:'var(--text-dim)',marginBottom:6,textAlign:'right'}}>PUBLICIDADE</div>
-      <div onClick={() => window.open(ad.url,'_blank')} style={{background:ad.bg,borderRadius:14,padding:'16px 20px',cursor:'pointer',transition:'opacity 0.4s ease, transform 0.2s',opacity:fade?1:0,display:'flex',alignItems:'center',gap:16,flexWrap:'wrap',boxShadow:'0 4px 20px rgba(0,0,0,0.3)'}} onMouseEnter={e=>e.currentTarget.style.transform='scale(1.01)'} onMouseLeave={e=>e.currentTarget.style.transform='scale(1)'}>
-        <div style={{width:48,height:48,borderRadius:12,background:'rgba(255,255,255,0.15)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:24,flexShrink:0}}>{ad.logo}</div>
-        <div style={{flex:1,minWidth:0}}>
-          <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:4,flexWrap:'wrap'}}>
-            <span style={{fontSize:14,fontWeight:800,color:'#fff'}}>{ad.titulo}</span>
-            <span style={{fontSize:9,fontWeight:800,letterSpacing:'1.5px',background:ad.badgeBg,color:'#fff',padding:'2px 8px',borderRadius:100,border:'1px solid rgba(255,255,255,0.3)'}}>{ad.badge}</span>
-          </div>
-          <div style={{fontSize:12,color:'rgba(255,255,255,0.8)',lineHeight:1.5}}>{ad.subtitulo}</div>
-        </div>
-        <button style={{background:ad.ctaBg,color:ad.ctaColor,border:'none',borderRadius:10,padding:'10px 18px',fontSize:12,fontWeight:800,cursor:'pointer',whiteSpace:'nowrap',flexShrink:0}}>{ad.cta} →</button>
-        <div style={{width:'100%',display:'flex',gap:5,justifyContent:'center',marginTop:4}}>
-          {ADS_BANNER.map((_,i) => (<button key={i} onClick={e=>{e.stopPropagation();setFade(false);setTimeout(()=>{setIdx(i);setFade(true)},300)}} style={{width:i===idx?20:6,height:6,borderRadius:3,background:i===idx?'rgba(255,255,255,0.9)':'rgba(255,255,255,0.3)',border:'none',cursor:'pointer',transition:'all 0.3s',padding:0}}/>))}
-        </div>
-      </div>
-    </div>
-  )
-}
-
 function AdCardFeed() {
   const ad = ADS_BANNER[1]
   return (
@@ -198,10 +167,8 @@ function UpgradeModal({ onClose, onSelect }: { onClose: () => void; onSelect: (p
     <div style={{position:'fixed',inset:0,zIndex:300,background:'rgba(0,0,0,0.95)',backdropFilter:'blur(10px)',display:'flex',alignItems:'center',justifyContent:'center',padding:20,overflowY:'auto'}}>
       <div style={{width:'100%',maxWidth:900,position:'relative',padding:'20px 0'}}>
 
-        {/* Botão X — mantido */}
         <button onClick={onClose} style={{position:'absolute',top:-10,right:0,background:'none',border:'none',color:'#888',fontSize:24,cursor:'pointer',zIndex:10}}>✕</button>
 
-        {/* Botão de retorno — topo esquerdo, visível em mobile */}
         <button onClick={onClose} style={{display:'flex',alignItems:'center',gap:6,background:'none',border:'none',color:'var(--text-muted)',fontSize:13,cursor:'pointer',fontFamily:'var(--font-body)',marginBottom:20,padding:0,transition:'color 0.2s'}}
           onMouseEnter={e=>e.currentTarget.style.color='var(--gold)'}
           onMouseLeave={e=>e.currentTarget.style.color='var(--text-muted)'}>
@@ -229,7 +196,6 @@ function UpgradeModal({ onClose, onSelect }: { onClose: () => void; onSelect: (p
           ))}
         </div>
 
-        {/* Rodapé com retorno explícito */}
         <div style={{marginTop:28,display:'flex',flexDirection:'column',alignItems:'center',gap:12}}>
           <div style={{fontSize:13,color:'var(--text-muted)'}}>💳 PIX ou Cartão · 🔒 Pagamento seguro · Cancele quando quiser</div>
           <div style={{display:'flex',gap:12,flexWrap:'wrap',justifyContent:'center'}}>
@@ -299,7 +265,7 @@ function PremiumGate({ onClose, onUpgrade }: { onClose:()=>void; onUpgrade:()=>v
           🚀 {settings.cta_upgrade_button || 'VER PLANOS'}
         </button>
         <button className="btn-secondary" style={{width:'100%',fontSize:12}} onClick={onClose}>{settings.cta_downgrade_button||'Continuar no plano gratuito'}</button>
-        <div style={{marginTop:16,fontSize:11,color:'var(--text-dim)'}}>{settings.upgrade_footer_text||'A partir de R\$1,99/mês · Cancele quando quiser'}</div>
+        <div style={{marginTop:16,fontSize:11,color:'var(--text-dim)'}}>{settings.upgrade_footer_text||'A partir de R$1,99/mês · Cancele quando quiser'}</div>
       </div>
     </div>
   )
@@ -319,7 +285,7 @@ function DashHome({ profile, onNav, showUpgrade, isPago, canAccessPremium, onOpe
 
   return(
     <div style={{padding:'24px 20px',flex:1,overflowY:'auto',maxWidth:'100%'}}>
-      <AdBannerRotativo isPremium={canAccessPremium}/>
+      <DashboardTopBanner/>
       <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',flexWrap:'wrap',gap:12,marginBottom:20}}>
         <div>
           <h1 style={{fontFamily:'var(--font-display)',fontSize:'clamp(22px,5vw,32px)',fontWeight:900,marginBottom:6}}>Olá, {profile?.nome?.split(' ')[0]||levelName}! 🔥</h1>
@@ -606,19 +572,15 @@ function IAPage({ freeIA, setFreeIA, showUpgrade, profile, isPago }: any) {
   )
 }
 
-// ─── RESUMO RENDERER — markdown-light ────────────────────────────────────────
 function ResumoRenderer({ texto }: { texto: string }) {
   const linhas = texto.split('\n')
   return (
     <div style={{fontSize:14, lineHeight:1.9, color:'var(--text-muted)'}}>
       {linhas.map((linha, i) => {
         const trim = linha.trim()
-        // Linha vazia → espaço
         if (!trim) return <div key={i} style={{height:8}}/>
-        // TÍTULO — linha toda maiúscula com mais de 4 chars
         if (trim === trim.toUpperCase() && trim.length > 4 && !trim.startsWith('-') && !trim.startsWith('•'))
           return <div key={i} style={{fontFamily:'var(--font-display)',fontSize:16,fontWeight:900,color:'var(--white)',marginTop:i>0?20:0,marginBottom:8,letterSpacing:0.3}}>{trim}</div>
-        // BULLET — começa com - ou •
         if (trim.startsWith('- ') || trim.startsWith('• '))
           return (
             <div key={i} style={{display:'flex',gap:8,marginBottom:4,paddingLeft:4}}>
@@ -626,14 +588,12 @@ function ResumoRenderer({ texto }: { texto: string }) {
               <span>{trim.replace(/^[-•]\s/,'')}</span>
             </div>
           )
-        // Parágrafo normal
         return <div key={i} style={{marginBottom:4}}>{trim}</div>
       })}
     </div>
   )
 }
 
-// ─── RESUMO SECTION — busca banco + cache + fallback ─────────────────────────
 function ResumoSection({ disc, onNav }: { disc: any; onNav: (tab: string) => void }) {
   const [estado, setEstado] = useState<'loading'|'banco'|'local'|'vazio'>('loading')
   const [texto, setTexto] = useState('')
@@ -652,7 +612,6 @@ function ResumoSection({ disc, onNav }: { disc: any; onNav: (tab: string) => voi
 
     const carregar = async () => {
       try {
-        // 1. Tenta banco
         const { data } = await supabase
           .from('discipline_summaries')
           .select('resumo, resumo_curto, tipo, tags, nivel_dificuldade')
@@ -667,7 +626,6 @@ function ResumoSection({ disc, onNav }: { disc: any; onNav: (tab: string) => voi
           return
         }
 
-        // 2. Fallback local (RESUMOS hardcoded)
         const local = RESUMOS[disc.slug]
         if (local) {
           const entry = { texto: local, curto: '', fonte: 'local' as const }
@@ -676,7 +634,6 @@ function ResumoSection({ disc, onNav }: { disc: any; onNav: (tab: string) => voi
           return
         }
 
-        // 3. Vazio
         cacheRef.current.set(disc.slug, { texto:'', curto:'', fonte:'vazio' })
         setEstado('vazio')
       } catch {
@@ -688,7 +645,6 @@ function ResumoSection({ disc, onNav }: { disc: any; onNav: (tab: string) => voi
     carregar()
   }, [disc.slug])
 
-  // Loading skeleton
   if (estado === 'loading') return (
     <div style={{background:'var(--gray)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:20,padding:24}}>
       {[90,70,80,60,75].map((w,i) => (
@@ -698,7 +654,6 @@ function ResumoSection({ disc, onNav }: { disc: any; onNav: (tab: string) => voi
     </div>
   )
 
-  // Vazio — empty state com CTA
   if (estado === 'vazio') return (
     <div style={{background:'var(--gray)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:20,padding:32,textAlign:'center'}}>
       <div style={{fontSize:40,marginBottom:14}}>📖</div>
@@ -723,7 +678,6 @@ function ResumoSection({ disc, onNav }: { disc: any; onNav: (tab: string) => voi
     </div>
   )
 
-  // Banco ou local — exibe resumo
   return (
     <div>
       {resumoCurto && (
@@ -743,7 +697,6 @@ function ResumoSection({ disc, onNav }: { disc: any; onNav: (tab: string) => voi
   )
 }
 
-// ─── DISCIPLINES PAGE ─────────────────────────────────────────────────────────
 function DisciplinesPage({ showUpgrade, profile, isPago, canAccessPremium }: any) {
   const [selected,setSelected]=useState<any>(null)
   const [subTab,setSubTab]=useState<'resumo'|'quiz'|'flash'|'pdf'>('resumo')
@@ -759,9 +712,8 @@ function DisciplinesPage({ showUpgrade, profile, isPago, canAccessPremium }: any
     }finally{setGerandoPDF(false)}
   }
 
-  // Navegar para aba e opcionalmente para IA (no menu principal)
   const navTab = (tab: string) => {
-    if (tab === 'ia') { /* handled by parent via setPage — não temos acesso aqui, IA está no menu */ return }
+    if (tab === 'ia') { return }
     setSubTab(tab as any)
   }
 
@@ -833,8 +785,6 @@ function DisciplinesPage({ showUpgrade, profile, isPago, canAccessPremium }: any
   )
 }
 
-// ─── ALIASES DE DISCIPLINA ────────────────────────────────────────────────────
-// Mapeia o nome exibido na UI para possíveis valores no banco (questoes_oab / flashcards)
 const DISCIPLINA_ALIASES: Record<string, string[]> = {
   'Constitucional':   ['Direito Constitucional', 'Constitucional'],
   'Administrativo':   ['Direito Administrativo', 'Administrativo'],
@@ -855,19 +805,13 @@ const DISCIPLINA_ALIASES: Record<string, string[]> = {
   'ECA':              ['Direito da Criança e do Adolescente', 'ECA', 'Estatuto da Criança e do Adolescente', 'Direito da Criança'],
 }
 
-/**
- * Retorna os termos de busca para uma disciplina:
- * 1º o nome exato da UI, 2º os aliases, 3º o primeiro token como fallback ilike
- */
 function getDisciplinaAliases(disciplina: string): string[] {
   return DISCIPLINA_ALIASES[disciplina] ?? [disciplina]
 }
 
-// ─── FLASHCARDS PAGE — tela geral do menu lateral ────────────────────────────
 function FlashCardsPage() {
   const [disciplinaAtiva, setDisciplinaAtiva] = useState<string|null>(null)
 
-  // Grid de disciplinas
   if (!disciplinaAtiva) return (
     <div style={{padding:'24px 20px', flex:1}}>
       <h1 style={{fontFamily:'var(--font-display)', fontSize:'clamp(22px,5vw,32px)', fontWeight:900, marginBottom:6}}>
@@ -897,7 +841,6 @@ function FlashCardsPage() {
     </div>
   )
 
-  // Tela de flashcards da disciplina selecionada
   return (
     <div style={{padding:'24px 20px', flex:1}}>
       <button
@@ -917,13 +860,11 @@ function FlashCardsPage() {
           <p style={{fontSize:12, color:'var(--text-muted)'}}>Flashcards gerados das questões OAB</p>
         </div>
       </div>
-      {/* Reaproveitamento direto do componente FlashCards existente */}
       <FlashCards disciplina={disciplinaAtiva}/>
     </div>
   )
 }
 
-// ─── QUIZ POR DISCIPLINA — busca real do banco filtrada por disciplina ────────
 function QuizDisciplina({disciplina}:{disciplina:string}) {
   const [questions, setQuestions] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
@@ -938,7 +879,6 @@ function QuizDisciplina({disciplina}:{disciplina:string}) {
   const fetchingRef = useRef(false)
   const cacheRef = useRef<Map<string, any[]>>(new Map())
 
-  // Busca questões ao montar ou trocar disciplina
   useEffect(() => {
     setStarted(false); setDone(false); setScore(0); setCur(0)
     setSel(null); setAnswered(false); setErro(false)
@@ -956,7 +896,6 @@ function QuizDisciplina({disciplina}:{disciplina:string}) {
         let data: any[] | null = null
         let error: any = null
 
-        // Tentativa 1: match exato em cada alias
         for (const alias of aliases) {
           const res = await supabase
             .from('questoes_oab')
@@ -969,7 +908,6 @@ function QuizDisciplina({disciplina}:{disciplina:string}) {
           error = res.error
         }
 
-        // Tentativa 2: ilike com primeiro token se aliases falharam
         if (!error && (!data || data.length === 0)) {
           const token = aliases[0].split(' ')[0]
           const fb = await supabase
@@ -982,7 +920,6 @@ function QuizDisciplina({disciplina}:{disciplina:string}) {
 
         if (error) { setErro(true); return }
 
-        // Embaralha e limita (provisório — futuramente virá de plan_settings.mini_simulado_qtd)
         const shuffled = [...(data||[])].sort(() => Math.random() - 0.5).slice(0, 20)
         const formatted = shuffled.map((q:any) => ({
           id: q.id, disc: q.disciplina, q: q.enunciado,
@@ -998,7 +935,6 @@ function QuizDisciplina({disciplina}:{disciplina:string}) {
     carregar()
   }, [disciplina])
 
-  // Timer por questão
   useEffect(() => {
     if (!started || answered || done) return
     const t = setInterval(() => setTime(p => {
@@ -1020,12 +956,10 @@ function QuizDisciplina({disciplina}:{disciplina:string}) {
   }
 
   const restart = () => {
-    // Limpa cache para embaralhar novamente
     cacheRef.current.delete(disciplina)
     fetchingRef.current = false
     setStarted(false); setDone(false); setScore(0); setCur(0)
     setSel(null); setAnswered(false); setLoading(true); setErro(false)
-    // Re-dispara o useEffect
     const carregar = async () => {
       try {
         const aliases = getDisciplinaAliases(disciplina)
@@ -1062,7 +996,6 @@ function QuizDisciplina({disciplina}:{disciplina:string}) {
     carregar()
   }
 
-  // ── Loading ────────────────────────────────────────────────────────────────
   if (loading) return (
     <div style={{padding:'40px 0', textAlign:'center'}}>
       <div style={{fontSize:36, marginBottom:12}}>⏳</div>
@@ -1072,7 +1005,6 @@ function QuizDisciplina({disciplina}:{disciplina:string}) {
     </div>
   )
 
-  // ── Erro ───────────────────────────────────────────────────────────────────
   if (erro) return (
     <div style={{padding:'40px 0', textAlign:'center'}}>
       <div style={{fontSize:36, marginBottom:12}}>⚠️</div>
@@ -1085,7 +1017,6 @@ function QuizDisciplina({disciplina}:{disciplina:string}) {
     </div>
   )
 
-  // ── Vazio ──────────────────────────────────────────────────────────────────
   if (questions.length === 0) return (
     <div style={{padding:'40px 0', textAlign:'center'}}>
       <div style={{fontSize:40, marginBottom:12}}>📝</div>
@@ -1096,7 +1027,6 @@ function QuizDisciplina({disciplina}:{disciplina:string}) {
     </div>
   )
 
-  // ── Tela inicial ───────────────────────────────────────────────────────────
   if (!started) return (
     <div style={{maxWidth:560}}>
       <div style={{background:'var(--gray)', border:'1px solid rgba(255,255,255,0.06)', borderRadius:20, padding:24}}>
@@ -1116,7 +1046,6 @@ function QuizDisciplina({disciplina}:{disciplina:string}) {
     </div>
   )
 
-  // ── Resultado ──────────────────────────────────────────────────────────────
   if (done) {
     const rate = Math.round((score / questions.length) * 100)
     const aprovado = score >= Math.ceil(questions.length * 0.625)
@@ -1142,7 +1071,6 @@ function QuizDisciplina({disciplina}:{disciplina:string}) {
     )
   }
 
-  // ── Questão ────────────────────────────────────────────────────────────────
   const q = questions[cur]
   const pct = Math.round(((cur + (answered ? 1 : 0)) / questions.length) * 100)
 
@@ -1194,7 +1122,6 @@ function QuizDisciplina({disciplina}:{disciplina:string}) {
   )
 }
 
-// ─── FLASHCARDS — busca real do banco por disciplina ──────────────────────────
 function FlashCards({disciplina}:{disciplina:string}) {
   const [cards, setCards] = useState<{id:string; frente:string; verso:string}[]>([])
   const [loading, setLoading] = useState(true)
@@ -1220,7 +1147,6 @@ function FlashCards({disciplina}:{disciplina:string}) {
         let data: any[] | null = null
         let error: any = null
 
-        // Tentativa 1: match exato em cada alias
         for (const alias of aliases) {
           const res = await supabase
             .from('flashcards')
@@ -1235,7 +1161,6 @@ function FlashCards({disciplina}:{disciplina:string}) {
           error = res.error
         }
 
-        // Tentativa 2: ilike com primeiro token se aliases falharam
         if (!error && (!data || data.length === 0)) {
           const token = aliases[0].split(' ')[0]
           const fb = await supabase
@@ -1298,11 +1223,9 @@ function FlashCards({disciplina}:{disciplina:string}) {
         <div style={{fontSize:11, color:'var(--text-muted)'}}>{flipped ? '👁️ Resposta' : '❓ Pergunta'}</div>
       </div>
 
-      {/* Card flip — altura dinâmica, sem overflow */}
       <div style={{perspective:1000, marginBottom:20, cursor:'pointer'}} onClick={() => setFlipped(f => !f)}>
         <div style={{position:'relative', transformStyle:'preserve-3d', transition:'transform 0.6s', transform: flipped ? 'rotateY(180deg)' : 'rotateY(0)'}}>
 
-          {/* Frente */}
           <div style={{
             backfaceVisibility:'hidden',
             background:'var(--gray)', border:'1px solid rgba(212,168,67,0.2)',
@@ -1319,7 +1242,6 @@ function FlashCards({disciplina}:{disciplina:string}) {
             <div style={{marginTop:14, fontSize:11, color:'var(--text-muted)', flexShrink:0}}>Toque para ver a resposta</div>
           </div>
 
-          {/* Verso */}
           <div style={{
             position:'absolute', top:0, left:0, right:0,
             backfaceVisibility:'hidden', transform:'rotateY(180deg)',
@@ -1339,7 +1261,6 @@ function FlashCards({disciplina}:{disciplina:string}) {
         </div>
       </div>
 
-      {/* Botões — sempre abaixo do card */}
       <div style={{display:'flex', gap:10, justifyContent:'center'}}>
         <button className="btn-secondary" onClick={() => { setIdx(i => Math.max(0, i-1)); setFlipped(false) }} disabled={idx === 0}>← Anterior</button>
         <button className="btn-secondary" onClick={() => setFlipped(f => !f)}>Virar</button>
@@ -1348,7 +1269,6 @@ function FlashCards({disciplina}:{disciplina:string}) {
     </div>
   )
 }
-
 
 function SimuladosPage({ showUpgrade, freeQ, setFreeQ, onXp, profile, isPago, canAccessElite }: any) {
   const [running,setRunning]=useState(false)
@@ -1363,7 +1283,6 @@ function SimuladosPage({ showUpgrade, freeQ, setFreeQ, onXp, profile, isPago, ca
   const [loadingProva,setLoadingProva]=useState(false)
   const [tab,setTab]=useState<'oficiais'|'pratica'>('oficiais')
 
-  // ── Regra escalável por número de exame ──────────────────────────────────
   function planoMinimoParaSimulado(numeroExame: number): 'start'|'plus'|'pro'|'elite' {
     if (numeroExame <= 42) return 'start'
     if (numeroExame <= 43) return 'plus'
@@ -1383,8 +1302,6 @@ function SimuladosPage({ showUpgrade, freeQ, setFreeQ, onXp, profile, isPago, ca
     const planoMin = planoMinimoParaSimulado(prova.numero_exame)
     return canAccess(profile?.plano, planoMin)
   }
-
-  // ─────────────────────────────────────────────────────────────────────────
 
   const SIMULADOS_PRATICA=[
     {icon:'⚡',t:'Mini Simulado — Constitucional',info:'5 questões · 15min · Grátis',tags:['Grátis'],lock:false},
@@ -1453,7 +1370,7 @@ function SimuladosPage({ showUpgrade, freeQ, setFreeQ, onXp, profile, isPago, ca
         <div style={{maxWidth:680,margin:'0 auto'}}>
           <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:12}}>
             <div style={{fontSize:12,color:'var(--text-muted)'}}>{selectedSimulado.edicao||selectedSimulado.t} · Q{cur+1}/{selectedSimulado.questions.length}</div>
-            <div style={{fontFamily:'var(--font-mono)',fontSize:16,fontWeight:700,color:time<600?'var(--danger)':'var(--gold)'}}>{h>0?`${String(h).padStart(2,'0')}:`:''}${String(m).padStart(2,'0')}:{String(s).padStart(2,'0')}</div>
+            <div style={{fontFamily:'var(--font-mono)',fontSize:16,fontWeight:700,color:time<600?'var(--danger)':'var(--gold)'}}>{h>0?`${String(h).padStart(2,'0')}:`:''}{String(m).padStart(2,'0')}:{String(s).padStart(2,'0')}</div>
           </div>
           <div style={{background:'rgba(255,255,255,0.06)',borderRadius:100,height:4,marginBottom:22,overflow:'hidden'}}><div style={{width:`${pct}%`,height:'100%',background:'linear-gradient(90deg,var(--gold),var(--orange))',borderRadius:100,transition:'width 0.4s'}}/></div>
           <div style={{background:'var(--gray)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:20,padding:'22px'}}>
@@ -1555,7 +1472,6 @@ function SimuladosPage({ showUpgrade, freeQ, setFreeQ, onXp, profile, isPago, ca
                       <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:4,flexWrap:'wrap'}}>
                         <span style={{fontSize:14,fontWeight:700}}>{prova.edicao}</span>
                         {i===0&&<span style={{fontSize:9,fontWeight:900,background:'linear-gradient(135deg,var(--gold),var(--orange))',color:'#000',padding:'2px 8px',borderRadius:100}}>RECENTE</span>}
-                        {/* Badge do plano mínimo */}
                         <span style={{fontSize:9,fontWeight:800,background:badge.bg,color:badge.color,padding:'2px 8px',borderRadius:100,border:`1px solid ${badge.color}44`}}>
                           {liberado?'✓ ':''}{badge.label}
                         </span>
@@ -1654,7 +1570,6 @@ function RankingPage({profile}:any) {
   )
 }
 
-// ─── MAIN ─────────────────────────────────────────────────────────────────────
 export default function TigerJusApp() {
   const router=useRouter()
   const { settings } = useAppSettings()
@@ -1669,7 +1584,6 @@ export default function TigerJusApp() {
   const [loading,setLoading]=useState(true)
   const [menuOpen,setMenuOpen]=useState(false)
 
-  // ── Permissões centralizadas ──────────────────────────────────────────────
   const plano = profile?.plano
   const userIsPago = !!(isAdmin(profile?.role) || isPago(plano))
   const canAccessPremium = !!(isAdmin(profile?.role) || canAccess(plano, 'pro'))
@@ -1756,7 +1670,6 @@ export default function TigerJusApp() {
       <div className="tj-grid-overlay"/>
       <div className="tj-radial-glow" style={{zIndex:0}}/>
 
-      {/* ── MAINTENANCE MODE — bloqueia usuário comum, admin passa ── */}
       {settings.maintenance_mode && !isAdmin(profile?.role) && (
         <div style={{position:'fixed',inset:0,zIndex:9999,background:'var(--deep-black)',display:'flex',alignItems:'center',justifyContent:'center',padding:24}}>
           <div style={{textAlign:'center',maxWidth:420}}>
@@ -1782,7 +1695,6 @@ export default function TigerJusApp() {
       {showUpgradeModal&&<UpgradeModal onClose={()=>setShowUpgradeModal(false)} onSelect={handleUpgradeSelect}/>}
       {showRadar&&<RadarModal onClose={()=>setShowRadar(false)}/>}
 
-      {/* ── BOTÃO FLUTUANTE WHATSAPP — só aparece se URL estiver cadastrada ── */}
       {settings.whatsapp_url && !settings.maintenance_mode && (
         <a href={settings.whatsapp_url} target="_blank" rel="noopener noreferrer"
           title="Falar com suporte"
