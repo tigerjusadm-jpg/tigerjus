@@ -1,12 +1,13 @@
 import { NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
-
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url)
   const code = searchParams.get('code')
-  const next = searchParams.get('next') ?? '/plataforma'
-
+  // Só aceitamos caminhos internos (começam com "/" e não com "//"),
+  // pra evitar redirecionamento pra sites externos via ?next=.
+  const rawNext = searchParams.get('next') ?? '/plataforma'
+  const next = rawNext.startsWith('/') && !rawNext.startsWith('//') ? rawNext : '/plataforma'
   if (code) {
     const cookieStore = await cookies()
     const supabase = createServerClient(
@@ -29,9 +30,7 @@ export async function GET(request: Request) {
         },
       }
     )
-
     const { data, error } = await supabase.auth.exchangeCodeForSession(code)
-
     if (!error) {
       // Safety net defensivo.
       // Fonte primária do profile = trigger handle_new_user em auth.users (SECURITY DEFINER).
@@ -46,7 +45,6 @@ export async function GET(request: Request) {
           .select('id')
           .eq('id', data.user.id)
           .maybeSingle()
-
         if (!existing) {
           await supabase.from('profiles').insert({
             id: data.user.id,
@@ -58,7 +56,6 @@ export async function GET(request: Request) {
           })
         }
       }
-
       const forwardedHost = request.headers.get('x-forwarded-host')
       const isLocalEnv = process.env.NODE_ENV === 'development'
       if (isLocalEnv) {
