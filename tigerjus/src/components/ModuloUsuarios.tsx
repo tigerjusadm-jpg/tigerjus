@@ -52,6 +52,18 @@ function Badge({ label, color, bg }: { label: string; color: string; bg: string 
   )
 }
 
+// Chama a rota segura de admin no servidor (usa service role lá dentro).
+async function callAdminApi(payload: object): Promise<{ ok: boolean; error?: string }> {
+  const { data: { session } } = await supabase.auth.getSession()
+  const res = await fetch('/api/admin/update-user', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session?.access_token ?? ''}` },
+    body: JSON.stringify(payload),
+  })
+  const data = await res.json().catch(() => ({}))
+  return { ok: res.ok && data?.ok === true, error: data?.error }
+}
+
 // ─── DRAWER DE EDIÇÃO ─────────────────────────────────────────────────────────
 
 interface DrawerProps {
@@ -74,16 +86,6 @@ function UserDrawer({ user, adminId, onClose, onSaved }: DrawerProps) {
     ? Math.round(((user.questoes_corretas || 0) / user.questoes_respondidas) * 100)
     : 0
 
-  const logAudit = async (action_type: string, target_id: string, metadata: object) => {
-    await supabase.from('admin_audit_logs').insert({
-      user_id: adminId,
-      action_type,
-      target_type: 'user',
-      target_id,
-      metadata,
-    })
-  }
-
   const salvar = async () => {
     // Proteção: admin tentando se auto-remover
     if (isSelf && role !== 'admin' && !confirmRole) {
@@ -92,30 +94,24 @@ function UserDrawer({ user, adminId, onClose, onSaved }: DrawerProps) {
     }
 
     setSaving(true); setMsg('')
-    const { error } = await supabase
-      .from('profiles')
-      .update({ plano, role, updated_at: new Date().toISOString() } as any)
-      .eq('id', user.id)
-
-    if (!error) {
-      await logAudit('UPDATE', user.id, {
-        campos: { plano: { de: user.plano, para: plano }, role: { de: user.role, para: role } }
-      })
+    const { ok, error } = await callAdminApi({ action: 'update', targetId: user.id, plano, role })
+    if (ok) {
       setMsg('✅ Salvo com sucesso!')
       setTimeout(() => { setMsg(''); onSaved() }, 1500)
     } else {
-      setMsg('❌ Erro ao salvar. Tente novamente.')
+      setMsg(`❌ ${error || 'Erro ao salvar. Tente novamente.'}`)
     }
     setSaving(false)
   }
 
   const resetar = async (campo: 'free_questions_used' | 'free_ia_used' | 'streak') => {
     setResetConfirm(null)
-    const { error } = await supabase.from('profiles').update({ [campo]: 0 } as any).eq('id', user.id)
-    if (!error) {
-      await logAudit('RESET', user.id, { campo, valor_anterior: user[campo] })
+    const { ok, error } = await callAdminApi({ action: 'reset', targetId: user.id, field: campo })
+    if (ok) {
       setMsg(`✅ ${campo} resetado!`)
       setTimeout(() => { setMsg(''); onSaved() }, 1500)
+    } else {
+      setMsg(`❌ ${error || 'Erro ao resetar.'}`)
     }
   }
 
