@@ -26,11 +26,27 @@ function CheckoutContent() {
   const [cardDone, setCardDone] = useState(false)
   const [loading, setLoading] = useState(false)
   const [user, setUser] = useState<any>(null)
+  const [authChecked, setAuthChecked] = useState(false)
   const [copied, setCopied] = useState(false)
 
+  // 🔒 TRAVA (gate): exige login ANTES de mostrar o checkout.
+  // Se não estiver logado, manda pro /login guardando este checkout no ?redirect=,
+  // pra trazer a pessoa de volta ao plano que ela escolheu depois de entrar/cadastrar.
   useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user } }) => setUser(user))
-  }, [])
+    if (!plan) return
+    let active = true
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (!active) return
+      if (!user) {
+        const back = `/checkout?plan=${planId}`
+        router.replace(`/login?redirect=${encodeURIComponent(back)}`)
+        return
+      }
+      setUser(user)
+      setAuthChecked(true)
+    })
+    return () => { active = false }
+  }, [plan, planId, router])
 
   useEffect(() => {
     if (!pixData || pixDone) return
@@ -41,6 +57,7 @@ function CheckoutContent() {
   const fmt = (s: number) => `${String(Math.floor(s/60)).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`
 
   const createPixPayment = async () => {
+    if (!user?.id) return // segurança: nunca cria pagamento sem dono
     setLoading(true)
     try {
       const res = await fetch('/api/payment/create', {
@@ -58,6 +75,7 @@ function CheckoutContent() {
   }
 
   const handleCard = async () => {
+    if (!user?.id) return // segurança: nunca cria pagamento sem dono
     setCardLoading(true)
     try {
       const res = await fetch('/api/payment/create', {
@@ -75,6 +93,16 @@ function CheckoutContent() {
   if (!plan) return (
     <div style={{minHeight:'100vh',background:'var(--deep-black)',display:'flex',alignItems:'center',justifyContent:'center',color:'var(--white)'}}>
       Plano inválido
+    </div>
+  )
+
+  // Enquanto verifica o login (ou redireciona pro login), não mostra o formulário de pagamento.
+  if (!authChecked) return (
+    <div style={{minHeight:'100vh',background:'var(--deep-black)',display:'flex',alignItems:'center',justifyContent:'center'}}>
+      <div style={{textAlign:'center'}}>
+        <div style={{fontSize:48,marginBottom:16}}>🐯</div>
+        <div style={{fontFamily:'var(--font-display)',fontSize:18,fontWeight:900,color:'var(--gold)'}}>Verificando sua conta...</div>
+      </div>
     </div>
   )
 
