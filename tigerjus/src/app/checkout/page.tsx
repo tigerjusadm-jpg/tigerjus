@@ -17,13 +17,9 @@ function CheckoutContent() {
   const planId = params.get('plan') || 'pro'
   const plan = PLANS[planId]
 
-  const [tab, setTab] = useState<'pix'|'card'>('pix')
   const [pixData, setPixData] = useState<any>(null)
   const [pixTimer, setPixTimer] = useState(600)
   const [pixDone, setPixDone] = useState(false)
-  const [card, setCard] = useState({ number:'', name:'', expiry:'', cvv:'' })
-  const [cardLoading, setCardLoading] = useState(false)
-  const [cardDone, setCardDone] = useState(false)
   const [loading, setLoading] = useState(false)
   const [user, setUser] = useState<any>(null)
   const [authChecked, setAuthChecked] = useState(false)
@@ -66,26 +62,19 @@ function CheckoutContent() {
       })
       const data = await res.json()
       if (data.pix) setPixData(data.pix)
+      // O acesso é liberado pelo webhook do Mercado Pago, que atualiza profiles.plano.
+      // Então vigiamos o NOSSO perfil: quando o plano virar o que foi comprado,
+      // o pagamento foi aprovado e o acesso liberado.
       const poll = setInterval(async () => {
-        const { data: payment } = await supabase.from('payments').select('status').eq('provider_payment_id', String(data.payment_id)).single()
-        if (payment?.status === 'approved') { clearInterval(poll); setPixDone(true) }
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('plano')
+          .eq('id', user.id)
+          .single()
+        if (profile?.plano === planId) { clearInterval(poll); setPixDone(true) }
       }, 3000)
     } catch (e) { console.error(e) }
     finally { setLoading(false) }
-  }
-
-  const handleCard = async () => {
-    if (!user?.id) return // segurança: nunca cria pagamento sem dono
-    setCardLoading(true)
-    try {
-      const res = await fetch('/api/payment/create', {
-        method:'POST', headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({ plan:planId, method:'credit_card', userId:user?.id, email:user?.email, name:card.name, card }),
-      })
-      const data = await res.json()
-      if (data.status === 'approved' || data.payment_id) setCardDone(true)
-    } catch (e) { console.error(e) }
-    finally { setCardLoading(false) }
   }
 
   const onSuccess = () => router.push('/dashboard')
@@ -150,18 +139,7 @@ function CheckoutContent() {
             <div style={{fontSize:13,color:'var(--text-muted)',marginTop:4}}>TigerJus {plan.name} — R${plan.price}/mês</div>
           </div>
           <div style={{padding:24}}>
-            {/* Tabs PIX / Cartão */}
-            <div style={{display:'flex',gap:8,marginBottom:24}}>
-              {(['pix','card'] as const).map(t=>(
-                <button key={t} onClick={()=>setTab(t)} style={{flex:1,padding:'11px 8px',borderRadius:8,border:tab===t?'1px solid rgba(212,168,67,0.3)':'1px solid rgba(255,255,255,0.08)',background:tab===t?'rgba(212,168,67,0.1)':'transparent',color:tab===t?'var(--gold)':'var(--text-muted)',fontSize:13,fontWeight:600,cursor:'pointer',fontFamily:'var(--font-body)',transition:'all 0.2s'}}>
-                  {t==='pix'?'⚡ PIX':'💳 Cartão'}
-                </button>
-              ))}
-            </div>
-
-            {/* PIX */}
-            {tab==='pix' && (
-              pixDone ? (
+            {pixDone ? (
                 <div style={{textAlign:'center',background:'rgba(76,175,125,0.1)',border:'1px solid rgba(76,175,125,0.25)',borderRadius:16,padding:32}}>
                   <div style={{fontSize:52,marginBottom:14}}>✅</div>
                   <div style={{fontFamily:'var(--font-display)',fontSize:22,fontWeight:900,color:'var(--success)',marginBottom:10}}>Pagamento Confirmado!</div>
@@ -200,55 +178,7 @@ function CheckoutContent() {
                     {loading?'⏳ Gerando PIX...':'GERAR QR CODE PIX'}
                   </button>
                 </div>
-              )
-            )}
-
-            {/* Cartão */}
-            {tab==='card' && (
-              cardDone ? (
-                <div style={{textAlign:'center',background:'rgba(76,175,125,0.1)',border:'1px solid rgba(76,175,125,0.25)',borderRadius:16,padding:32}}>
-                  <div style={{fontSize:52,marginBottom:14}}>✅</div>
-                  <div style={{fontFamily:'var(--font-display)',fontSize:22,fontWeight:900,color:'var(--success)',marginBottom:10}}>Pagamento Aprovado!</div>
-                  <div style={{fontSize:14,color:'var(--text-muted)',marginBottom:20}}>Acesso liberado automaticamente.</div>
-                  <button className="btn-primary" style={{width:'100%'}} onClick={onSuccess}>ACESSAR PLATAFORMA →</button>
-                </div>
-              ) : (
-                <div>
-                  <div style={{marginBottom:16}}>
-                    <label style={{fontSize:11,fontWeight:700,letterSpacing:'1.5px',textTransform:'uppercase',color:'var(--text-muted)',display:'block',marginBottom:8}}>Número do Cartão</label>
-                    <input className="form-input" placeholder="0000 0000 0000 0000" maxLength={19}
-                      value={card.number}
-                      onChange={e=>setCard(p=>({...p,number:e.target.value.replace(/\D/g,'').replace(/(.{4})/g,'$1 ').trim()}))} />
-                  </div>
-                  <div style={{marginBottom:16}}>
-                    <label style={{fontSize:11,fontWeight:700,letterSpacing:'1.5px',textTransform:'uppercase',color:'var(--text-muted)',display:'block',marginBottom:8}}>Nome no Cartão</label>
-                    <input className="form-input" placeholder="NOME SOBRENOME"
-                      value={card.name}
-                      onChange={e=>setCard(p=>({...p,name:e.target.value.toUpperCase()}))} />
-                  </div>
-                  <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12,marginBottom:24}}>
-                    <div>
-                      <label style={{fontSize:11,fontWeight:700,letterSpacing:'1.5px',textTransform:'uppercase',color:'var(--text-muted)',display:'block',marginBottom:8}}>Validade</label>
-                      <input className="form-input" placeholder="MM/AA" maxLength={5}
-                        value={card.expiry}
-                        onChange={e=>setCard(p=>({...p,expiry:e.target.value}))} />
-                    </div>
-                    <div>
-                      <label style={{fontSize:11,fontWeight:700,letterSpacing:'1.5px',textTransform:'uppercase',color:'var(--text-muted)',display:'block',marginBottom:8}}>CVV</label>
-                      <input className="form-input" placeholder="•••" maxLength={4} type="password"
-                        value={card.cvv}
-                        onChange={e=>setCard(p=>({...p,cvv:e.target.value.replace(/\D/g,'')}))} />
-                    </div>
-                  </div>
-                  <button className="btn-primary" style={{width:'100%'}} onClick={handleCard} disabled={cardLoading}>
-                    {cardLoading?'⏳ Processando...':`PAGAR R$${plan.price}/mês`}
-                  </button>
-                  <div style={{marginTop:12,fontSize:11,color:'var(--text-dim)',textAlign:'center'}}>
-                    🔒 Pagamento criptografado via Mercado Pago · Cancele quando quiser
-                  </div>
-                </div>
-              )
-            )}
+              )}
           </div>
         </div>
       </div>
