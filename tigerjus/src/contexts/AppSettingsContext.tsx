@@ -55,7 +55,6 @@ export interface AppSettings {
   landing_top_banner_url:     string
   landing_top_banner_alt:     string
   landing_top_banner_link:    string
-  // ── controles de posicionamento/estilo do banner topo ──
   landing_top_banner_height:        number
   landing_top_banner_position:      string
   landing_top_banner_opacity:       number
@@ -64,7 +63,6 @@ export interface AppSettings {
   landing_top_banner_margin_bottom: number
   landing_top_banner_radius:        number
   landing_top_banner_max_width:     number
-  // ── carrossel: slides 2 e 3 + intervalo ──
   landing_top_banner_url_2:   string
   landing_top_banner_link_2:  string
   landing_top_banner_alt_2:   string
@@ -72,6 +70,23 @@ export interface AppSettings {
   landing_top_banner_link_3:  string
   landing_top_banner_alt_3:   string
   landing_top_banner_interval: number
+  // ── banner do dashboard (área logada) — independente ──
+  dashboard_banner_url:        string
+  dashboard_banner_link:       string
+  dashboard_banner_alt:        string
+  dashboard_banner_url_2:      string
+  dashboard_banner_link_2:     string
+  dashboard_banner_alt_2:      string
+  dashboard_banner_url_3:      string
+  dashboard_banner_link_3:     string
+  dashboard_banner_alt_3:      string
+  dashboard_banner_interval:   number
+  dashboard_banner_height:     number
+  dashboard_banner_position:   string
+  dashboard_banner_opacity:    number
+  dashboard_banner_fit:        string
+  dashboard_banner_radius:     number
+  dashboard_banner_max_width:  number
   maintenance_mode:     boolean
   maintenance_message:  string
 }
@@ -126,7 +141,6 @@ const FALLBACKS: AppSettings = {
   landing_top_banner_url:     '',
   landing_top_banner_alt:     '',
   landing_top_banner_link:    '',
-  // ── controles de posicionamento/estilo do banner topo ──
   landing_top_banner_height:        300,
   landing_top_banner_position:      'center',
   landing_top_banner_opacity:       100,
@@ -135,7 +149,6 @@ const FALLBACKS: AppSettings = {
   landing_top_banner_margin_bottom: 0,
   landing_top_banner_radius:        0,
   landing_top_banner_max_width:     0,
-  // ── carrossel: slides 2 e 3 + intervalo ──
   landing_top_banner_url_2:   '',
   landing_top_banner_link_2:  '',
   landing_top_banner_alt_2:   '',
@@ -143,6 +156,23 @@ const FALLBACKS: AppSettings = {
   landing_top_banner_link_3:  '',
   landing_top_banner_alt_3:   '',
   landing_top_banner_interval: 5,
+  // ── banner do dashboard (área logada) — independente ──
+  dashboard_banner_url:        '',
+  dashboard_banner_link:       '',
+  dashboard_banner_alt:        '',
+  dashboard_banner_url_2:      '',
+  dashboard_banner_link_2:     '',
+  dashboard_banner_alt_2:      '',
+  dashboard_banner_url_3:      '',
+  dashboard_banner_link_3:     '',
+  dashboard_banner_alt_3:      '',
+  dashboard_banner_interval:   5,
+  dashboard_banner_height:     120,
+  dashboard_banner_position:   'center',
+  dashboard_banner_opacity:    100,
+  dashboard_banner_fit:        'cover',
+  dashboard_banner_radius:     14,
+  dashboard_banner_max_width:  0,
   maintenance_mode:     false,
   maintenance_message:  'Voltamos em breve.',
 }
@@ -195,8 +225,6 @@ export function AppSettingsProvider({ children }: { children: ReactNode }) {
 
   const refresh = useCallback(async () => {
     try {
-      // Usa supabasePublic — sem auth, sem persistSession, sem detectSessionInUrl
-      // Elimina delay/falha silenciosa no mobile causada pela inicialização do auth
       const { data, error } = await supabasePublic
         .from('app_settings')
         .select('key, value, type')
