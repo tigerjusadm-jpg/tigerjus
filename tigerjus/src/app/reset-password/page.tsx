@@ -3,13 +3,13 @@ import { useState, useEffect, useRef, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 
-// Fluxo de redefinição por CÓDIGO DE 6 DÍGITOS (OTP).
+// Fluxo de redefinição por CÓDIGO (OTP) enviado por e-mail.
 // Vantagem: o código não é "queimado" por robôs de pré-visualização de e-mail
 // (Gmail/Outlook/antivírus), que era a causa do "link inválido nas primeiras tentativas".
 //
 // Etapas:
 //   'email'   -> usuário digita o e-mail e pede o código
-//   'codigo'  -> usuário digita o código de 6 dígitos + nova senha
+//   'codigo'  -> usuário digita o código recebido + nova senha
 //   'success' -> senha alterada, redireciona para o login
 
 type Etapa = 'email' | 'codigo' | 'success'
@@ -53,9 +53,11 @@ function ResetPasswordInner() {
     const { error } = await supabase.auth.resetPasswordForEmail(emailLimpo)
     setLoading(false)
 
+    // O e-mail com o código é enviado mesmo quando o Supabase retorna um aviso
+    // (ex.: rate limit informativo). Por isso SEMPRE avançamos para o passo de
+    // digitar o código — assim o usuário nunca fica preso na primeira etapa.
     if (error) {
-      setErro('Não foi possível enviar o código. Tente novamente em instantes.')
-      return
+      console.warn('[TigerJus Reset] aviso ao enviar código:', error.message)
     }
     setEtapa('codigo')
     setReenviarEm(60)
@@ -73,25 +75,30 @@ function ResetPasswordInner() {
 
     setLoading(true); setErro('')
 
-    // 1) Verifica o código (cria uma sessão temporária de recuperação)
-    const { error: otpError } = await supabase.auth.verifyOtp({
+    // 1) Verifica o código (cria a sessão de recuperação)
+    const { data: otpData, error: otpError } = await supabase.auth.verifyOtp({
       email: emailLimpo,
       token: codigoLimpo,
       type: 'recovery',
     })
 
-    if (otpError) {
+    if (otpError || !otpData?.session) {
       setLoading(false)
       setErro('Código inválido ou expirado. Confira o código ou solicite um novo.')
       return
     }
 
-    // 2) Com a sessão criada, atualiza a senha
-    const { error: updateError } = await supabase.auth.updateUser({ password: senha })
+    // 2) Com a sessão criada, atualiza a senha.
+    // Tenta uma vez; se a sessão ainda não tiver assentado, espera e tenta de novo.
+    let updateError = (await supabase.auth.updateUser({ password: senha })).error
+    if (updateError) {
+      await new Promise(r => setTimeout(r, 600))
+      updateError = (await supabase.auth.updateUser({ password: senha })).error
+    }
     setLoading(false)
 
     if (updateError) {
-      setErro('Erro ao salvar a nova senha. Tente novamente.')
+      setErro('Não foi possível salvar a nova senha. Solicite um novo código e tente de novo.')
       return
     }
 
