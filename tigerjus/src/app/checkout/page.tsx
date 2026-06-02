@@ -17,32 +17,20 @@ function CheckoutContent() {
   const planId = params.get('plan') || 'pro'
   const plan = PLANS[planId]
 
+  const [tab, setTab] = useState<'pix'|'card'>('pix')
   const [pixData, setPixData] = useState<any>(null)
   const [pixTimer, setPixTimer] = useState(600)
   const [pixDone, setPixDone] = useState(false)
+  const [card, setCard] = useState({ number:'', name:'', expiry:'', cvv:'' })
+  const [cardLoading, setCardLoading] = useState(false)
+  const [cardDone, setCardDone] = useState(false)
   const [loading, setLoading] = useState(false)
   const [user, setUser] = useState<any>(null)
-  const [authChecked, setAuthChecked] = useState(false)
   const [copied, setCopied] = useState(false)
 
-  // 🔒 TRAVA (gate): exige login ANTES de mostrar o checkout.
-  // Se não estiver logado, manda pro /login guardando este checkout no ?redirect=,
-  // pra trazer a pessoa de volta ao plano que ela escolheu depois de entrar/cadastrar.
   useEffect(() => {
-    if (!plan) return
-    let active = true
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      if (!active) return
-      if (!user) {
-        const back = `/checkout?plan=${planId}`
-        router.replace(`/login?redirect=${encodeURIComponent(back)}`)
-        return
-      }
-      setUser(user)
-      setAuthChecked(true)
-    })
-    return () => { active = false }
-  }, [plan, planId, router])
+    supabase.auth.getUser().then(({ data: { user } }) => setUser(user))
+  }, [])
 
   useEffect(() => {
     if (!pixData || pixDone) return
@@ -53,7 +41,6 @@ function CheckoutContent() {
   const fmt = (s: number) => `${String(Math.floor(s/60)).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`
 
   const createPixPayment = async () => {
-    if (!user?.id) return // segurança: nunca cria pagamento sem dono
     setLoading(true)
     try {
       const res = await fetch('/api/payment/create', {
@@ -62,19 +49,39 @@ function CheckoutContent() {
       })
       const data = await res.json()
       if (data.pix) setPixData(data.pix)
-      // O acesso é liberado pelo webhook do Mercado Pago, que atualiza profiles.plano.
-      // Então vigiamos o NOSSO perfil: quando o plano virar o que foi comprado,
-      // o pagamento foi aprovado e o acesso liberado.
-      const poll = setInterval(async () => {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('plano')
-          .eq('id', user.id)
-          .single()
-        if (profile?.plano === planId) { clearInterval(poll); setPixDone(true) }
-      }, 3000)
+
+      // Verifica a confirmação na MESMA tabela onde a API grava (assinaturas / mp_payment_id).
+      // O webhook do Mercado Pago marca status='ativo' quando o pagamento é aprovado.
+      const paymentId = String(data.payment_id || '')
+      if (paymentId) {
+        const poll = setInterval(async () => {
+          const { data: assinatura } = await supabase
+            .from('assinaturas')
+            .select('status')
+            .eq('mp_payment_id', paymentId)
+            .maybeSingle()
+          if (assinatura?.status === 'ativo') {
+            clearInterval(poll)
+            setPixDone(true)
+          }
+        }, 3000)
+      }
     } catch (e) { console.error(e) }
     finally { setLoading(false) }
+  }
+
+  const handleCard = async () => {
+    setCardLoading(true)
+    try {
+      const res = await fetch('/api/payment/create', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ plan:planId, method:'credit_card', userId:user?.id, email:user?.email, name:card.name, card }),
+      })
+      const data = await res.json()
+      if (data.checkout_url) { window.location.href = data.checkout_url; return }
+      if (data.status === 'approved' || data.payment_id) setCardDone(true)
+    } catch (e) { console.error(e) }
+    finally { setCardLoading(false) }
   }
 
   const onSuccess = () => router.push('/dashboard')
@@ -82,16 +89,6 @@ function CheckoutContent() {
   if (!plan) return (
     <div style={{minHeight:'100vh',background:'var(--deep-black)',display:'flex',alignItems:'center',justifyContent:'center',color:'var(--white)'}}>
       Plano inválido
-    </div>
-  )
-
-  // Enquanto verifica o login (ou redireciona pro login), não mostra o formulário de pagamento.
-  if (!authChecked) return (
-    <div style={{minHeight:'100vh',background:'var(--deep-black)',display:'flex',alignItems:'center',justifyContent:'center'}}>
-      <div style={{textAlign:'center'}}>
-        <div style={{fontSize:48,marginBottom:16}}>🐯</div>
-        <div style={{fontFamily:'var(--font-display)',fontSize:18,fontWeight:900,color:'var(--gold)'}}>Verificando sua conta...</div>
-      </div>
     </div>
   )
 
@@ -139,7 +136,18 @@ function CheckoutContent() {
             <div style={{fontSize:13,color:'var(--text-muted)',marginTop:4}}>TigerJus {plan.name} — R${plan.price}/mês</div>
           </div>
           <div style={{padding:24}}>
-            {pixDone ? (
+            {/* Tabs PIX / Cartão */}
+            <div style={{display:'flex',gap:8,marginBottom:24}}>
+              {(['pix','card'] as const).map(t=>(
+                <button key={t} onClick={()=>setTab(t)} style={{flex:1,padding:'11px 8px',borderRadius:8,border:tab===t?'1px solid rgba(212,168,67,0.3)':'1px solid rgba(255,255,255,0.08)',background:tab===t?'rgba(212,168,67,0.1)':'transparent',color:tab===t?'var(--gold)':'var(--text-muted)',fontSize:13,fontWeight:600,cursor:'pointer',fontFamily:'var(--font-body)',transition:'all 0.2s'}}>
+                  {t==='pix'?'⚡ PIX':'💳 Cartão'}
+                </button>
+              ))}
+            </div>
+
+            {/* PIX */}
+            {tab==='pix' && (
+              pixDone ? (
                 <div style={{textAlign:'center',background:'rgba(76,175,125,0.1)',border:'1px solid rgba(76,175,125,0.25)',borderRadius:16,padding:32}}>
                   <div style={{fontSize:52,marginBottom:14}}>✅</div>
                   <div style={{fontFamily:'var(--font-display)',fontSize:22,fontWeight:900,color:'var(--success)',marginBottom:10}}>Pagamento Confirmado!</div>
@@ -178,7 +186,32 @@ function CheckoutContent() {
                     {loading?'⏳ Gerando PIX...':'GERAR QR CODE PIX'}
                   </button>
                 </div>
-              )}
+              )
+            )}
+
+            {/* Cartão */}
+            {tab==='card' && (
+              cardDone ? (
+                <div style={{textAlign:'center',background:'rgba(76,175,125,0.1)',border:'1px solid rgba(76,175,125,0.25)',borderRadius:16,padding:32}}>
+                  <div style={{fontSize:52,marginBottom:14}}>✅</div>
+                  <div style={{fontFamily:'var(--font-display)',fontSize:22,fontWeight:900,color:'var(--success)',marginBottom:10}}>Pagamento Aprovado!</div>
+                  <div style={{fontSize:14,color:'var(--text-muted)',marginBottom:20}}>Acesso liberado automaticamente.</div>
+                  <button className="btn-primary" style={{width:'100%'}} onClick={onSuccess}>ACESSAR PLATAFORMA →</button>
+                </div>
+              ) : (
+                <div>
+                  <div style={{background:'rgba(58,143,232,0.06)',border:'1px solid rgba(58,143,232,0.15)',borderRadius:10,padding:'12px 14px',marginBottom:16,fontSize:12,color:'var(--text-muted)',lineHeight:1.6}}>
+                    💳 Você será levado ao ambiente seguro do Mercado Pago para concluir o pagamento com cartão.
+                  </div>
+                  <button className="btn-primary" style={{width:'100%'}} onClick={handleCard} disabled={cardLoading}>
+                    {cardLoading?'⏳ Redirecionando...':`PAGAR R$${plan.price}/mês COM CARTÃO`}
+                  </button>
+                  <div style={{marginTop:12,fontSize:11,color:'var(--text-dim)',textAlign:'center'}}>
+                    🔒 Pagamento processado pelo Mercado Pago · Cancele quando quiser
+                  </div>
+                </div>
+              )
+            )}
           </div>
         </div>
       </div>
