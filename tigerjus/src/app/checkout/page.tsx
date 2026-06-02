@@ -40,6 +40,47 @@ function CheckoutContent() {
 
   const fmt = (s: number) => `${String(Math.floor(s/60)).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`
 
+  // Cópia robusta para mobile: tenta a API moderna; se falhar (comum em iOS/Safari/
+  // navegadores in-app), usa um <textarea> temporário + execCommand. SEMPRE copia
+  // o código COMPLETO (nunca o texto truncado exibido na tela).
+  const copiarPix = async () => {
+    const codigo = pixData?.copy_paste || ''
+    if (!codigo) return
+    let ok = false
+    try {
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(codigo)
+        ok = true
+      }
+    } catch { ok = false }
+
+    if (!ok) {
+      try {
+        const ta = document.createElement('textarea')
+        ta.value = codigo
+        ta.setAttribute('readonly', '')
+        ta.style.position = 'fixed'
+        ta.style.top = '0'
+        ta.style.left = '0'
+        ta.style.opacity = '0'
+        document.body.appendChild(ta)
+        ta.focus()
+        ta.select()
+        ta.setSelectionRange(0, codigo.length)
+        ok = document.execCommand('copy')
+        document.body.removeChild(ta)
+      } catch { ok = false }
+    }
+
+    if (ok) {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2500)
+    } else {
+      // Último recurso: avisa o usuário para copiar manualmente.
+      alert('Não foi possível copiar automaticamente. Selecione o código e copie manualmente.')
+    }
+  }
+
   const createPixPayment = async () => {
     setLoading(true)
     try {
@@ -161,14 +202,24 @@ function CheckoutContent() {
                     <img src={`data:image/png;base64,${pixData.qr_code_base64}`} alt="QR Code PIX"
                       style={{width:180,height:180,borderRadius:16,background:'white',padding:10,margin:'0 auto 16px',display:'block'}} />
                   )}
-                  <div style={{fontSize:12,color:'var(--text-muted)',marginBottom:10}}>
+                  <div style={{fontSize:12,color:'var(--text-muted)',marginBottom:14}}>
                     Valor: <strong style={{color:'var(--gold)'}}>R${plan.price}/mês</strong>
                   </div>
-                  <div
-                    style={{background:'var(--gray-mid)',border:'1px solid rgba(255,255,255,0.08)',borderRadius:8,padding:'12px 14px',fontSize:11,fontFamily:'var(--font-mono)',color:'var(--text-muted)',cursor:'pointer',marginBottom:16,wordBreak:'break-all',transition:'all 0.2s',textAlign:'left'}}
-                    onClick={()=>{navigator.clipboard.writeText(pixData.copy_paste||'');setCopied(true)}}>
-                    {copied?'✅ Código copiado!':pixData.copy_paste?.slice(0,60)+'...'}
+
+                  {/* PIX Copia e Cola — código completo + botão dedicado (mobile-safe) */}
+                  <div style={{fontSize:11,fontWeight:700,letterSpacing:'1px',textTransform:'uppercase',color:'var(--text-muted)',marginBottom:8,textAlign:'left'}}>
+                    PIX Copia e Cola
                   </div>
+                  <div style={{background:'var(--gray-mid)',border:'1px solid rgba(255,255,255,0.08)',borderRadius:8,padding:'12px 14px',fontSize:11,fontFamily:'var(--font-mono)',color:'var(--text-muted)',marginBottom:10,wordBreak:'break-all',textAlign:'left',maxHeight:72,overflowY:'auto',lineHeight:1.5}}>
+                    {pixData.copy_paste || ''}
+                  </div>
+                  <button
+                    onClick={copiarPix}
+                    className="btn-primary"
+                    style={{width:'100%',fontSize:14,padding:14,marginBottom:16,background:copied?'var(--success)':undefined}}>
+                    {copied ? '✅ Código copiado!' : '📋 COPIAR CÓDIGO PIX'}
+                  </button>
+
                   <div style={{fontSize:12,color:'var(--text-muted)'}}>Expira em:</div>
                   <div style={{fontFamily:'var(--font-mono)',fontSize:32,fontWeight:700,color:pixTimer<60?'var(--danger)':'var(--gold)',marginBottom:12}}>{fmt(pixTimer)}</div>
                   <div style={{display:'flex',alignItems:'center',justifyContent:'center',gap:8,fontSize:13,color:'var(--text-muted)'}}>
