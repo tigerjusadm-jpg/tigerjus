@@ -303,7 +303,7 @@ export default function HomePage() {
           <div className="section-tag">💎 PLANOS</div>
           <h2 style={{fontFamily:'var(--font-display)',fontSize:'clamp(28px,5vw,54px)',fontWeight:900,lineHeight:1.1,marginBottom:16}}>Invista no seu <span style={{color:'var(--gold)'}}>futuro jurídico.</span></h2>
           <div className="divider" />
-          <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(190px,1fr))',gap:14}}>
+          <div className="planos-grid">
             {PLANS.map(plan=>(
               <div key={plan.id} style={{background:(plan as any).featured?'linear-gradient(160deg,rgba(212,168,67,0.08),var(--gray))':(plan as any).elite?'linear-gradient(160deg,rgba(232,98,26,0.08),var(--gray))':'var(--gray)',border:(plan as any).featured?'1px solid var(--gold)':(plan as any).elite?'1px solid var(--orange-light)':'1px solid rgba(255,255,255,0.06)',borderRadius:16,padding:24,position:'relative',transition:'transform 0.3s'}}>
                 {(plan as any).badge&&<div style={{position:'absolute',top:16,right:16,background:'linear-gradient(135deg,var(--gold),var(--orange))',color:'var(--deep-black)',fontSize:9,fontWeight:900,letterSpacing:'1.5px',padding:'4px 10px',borderRadius:100}}>{(plan as any).badge}</div>}
@@ -412,6 +412,20 @@ export default function HomePage() {
         @keyframes fadeInUp   { from{opacity:0;transform:translateY(24px);}to{opacity:1;transform:translateY(0);} }
         @keyframes fadeInDown { from{opacity:0;transform:translateY(-16px);}to{opacity:1;transform:translateY(0);} }
         @keyframes pulse      { 0%,100%{opacity:1;transform:scale(1);}50%{opacity:0.5;transform:scale(0.9);} }
+
+        /* === Grade de planos — robusta no mobile (5 cards sempre visíveis) === */
+        .planos-grid {
+          display: grid;
+          grid-template-columns: repeat(5, 1fr);
+          gap: 14px;
+          align-items: stretch;
+        }
+        @media (max-width: 1100px) {
+          .planos-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+        @media (max-width: 640px) {
+          .planos-grid { grid-template-columns: 1fr; }
+        }
 
         .landing-nav-desktop { display: flex !important; }
         .landing-nav-mobile  { display: none !important; }
