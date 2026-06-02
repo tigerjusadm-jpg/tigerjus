@@ -511,7 +511,7 @@ function QuizPage({ freeQ, setFreeQ, showUpgrade, onXp, profile, isPago }: any) 
   )
 }
 
-function IAPage({ freeIA, setFreeIA, showUpgrade, profile, isPago }: any) {
+function IAPage({ freeIA, setFreeIA, showUpgrade, profile, isPago, iaIlimitada }: any) {
   const { settings: iaSettings } = useAppSettings()
   const [msgs,setMsgs]=useState([{role:'assistant',text:iaSettings.ia_welcome_message||'Olá! Sou o TigerJus AI — seu tutor jurídico de alta performance. 🐯⚖️\n\nPosso te ajudar com dúvidas de Direito, explicar artigos, resumir temas e te preparar para a OAB.\n\nO que você quer aprender hoje?'}])
   const [input,setInput]=useState('')
@@ -522,9 +522,9 @@ function IAPage({ freeIA, setFreeIA, showUpgrade, profile, isPago }: any) {
   const send=async(text?:string)=>{
     const msg=text||input.trim()
     if(!msg)return
-    if(!isPago && freeIA<=0){showUpgrade();return}
+    if(!iaIlimitada && freeIA<=0){showUpgrade();return}
     setInput('')
-    if(!isPago)setFreeIA((p:number)=>p-1)
+    if(!iaIlimitada)setFreeIA((p:number)=>p-1)
     const newMsgs=[...msgs,{role:'user',text:msg}]
     setMsgs(newMsgs);setLoading(true)
     try{
@@ -541,9 +541,9 @@ function IAPage({ freeIA, setFreeIA, showUpgrade, profile, isPago }: any) {
     <div style={{padding:'24px 20px',flex:1,display:'flex',flexDirection:'column'}}>
       <h1 style={{fontFamily:'var(--font-display)',fontSize:'clamp(22px,5vw,32px)',fontWeight:900,marginBottom:6}}>IA Jurídica 🤖</h1>
       <p style={{fontSize:14,color:'var(--text-muted)',marginBottom:12}}>
-        Tutor inteligente 24/7. {isPago?<span style={{color:'var(--success)',fontWeight:700}}>Ilimitado</span>:freeIA>0?<span style={{color:'var(--gold)',fontWeight:700}}>{freeIA} perguntas grátis</span>:<span style={{color:'var(--danger)'}}>🔒 Limite atingido</span>}
+        Tutor inteligente 24/7. {iaIlimitada?<span style={{color:'var(--success)',fontWeight:700}}>Ilimitado</span>:freeIA>0?<span style={{color:'var(--gold)',fontWeight:700}}>{freeIA} perguntas restantes</span>:<span style={{color:'var(--danger)'}}>🔒 Limite atingido</span>}
       </p>
-      {!isPago&&freeIA<=0&&(
+      {!iaIlimitada&&freeIA<=0&&(
         <div style={{background:'rgba(232,66,26,0.08)',border:'1px solid rgba(232,66,26,0.2)',borderRadius:12,padding:'14px 16px',marginBottom:16,fontSize:13}}>
           🔒 Você atingiu o limite de perguntas do plano gratuito.
           <button onClick={showUpgrade} style={{color:'var(--gold)',background:'none',border:'none',cursor:'pointer',fontSize:13,fontFamily:'var(--font-body)',marginLeft:8,fontWeight:700}}>Fazer upgrade →</button>
@@ -564,8 +564,8 @@ function IAPage({ freeIA, setFreeIA, showUpgrade, profile, isPago }: any) {
           <div ref={endRef}/>
         </div>
         <div style={{display:'flex',gap:10,padding:14,background:'var(--gray-mid)',borderTop:'1px solid rgba(255,255,255,0.06)'}}>
-          <textarea className="form-input" placeholder="Pergunte algo jurídico..." value={input} onChange={e=>setInput(e.target.value)} onKeyDown={e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send()}}} style={{flex:1,resize:'none',minHeight:42}} rows={1} disabled={!isPago&&freeIA<=0}/>
-          <button onClick={()=>send()} disabled={!isPago&&freeIA<=0} style={{background:'linear-gradient(135deg,var(--gold),var(--orange))',border:'none',borderRadius:10,width:42,height:42,display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',fontSize:17,color:'var(--deep-black)',opacity:(!isPago&&freeIA<=0)?0.4:1}}>➤</button>
+          <textarea className="form-input" placeholder="Pergunte algo jurídico..." value={input} onChange={e=>setInput(e.target.value)} onKeyDown={e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send()}}} style={{flex:1,resize:'none',minHeight:42}} rows={1} disabled={!iaIlimitada&&freeIA<=0}/>
+          <button onClick={()=>send()} disabled={!iaIlimitada&&freeIA<=0} style={{background:'linear-gradient(135deg,var(--gold),var(--orange))',border:'none',borderRadius:10,width:42,height:42,display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',fontSize:17,color:'var(--deep-black)',opacity:(!iaIlimitada&&freeIA<=0)?0.4:1}}>➤</button>
         </div>
       </div>
     </div>
@@ -697,13 +697,13 @@ function ResumoSection({ disc, onNav }: { disc: any; onNav: (tab: string) => voi
   )
 }
 
-function DisciplinesPage({ showUpgrade, profile, isPago, canAccessPremium }: any) {
+function DisciplinesPage({ showUpgrade, profile, isPago, canAccessPremium, podePDF }: any) {
   const [selected,setSelected]=useState<any>(null)
   const [subTab,setSubTab]=useState<'resumo'|'quiz'|'flash'|'pdf'>('resumo')
   const [gerandoPDF,setGerandoPDF]=useState(false)
 
   const handlePDF=async(disc:any)=>{
-    if(!isPago){showUpgrade();return}
+    if(!podePDF){showUpgrade();return}
     setGerandoPDF(true)
     try{
       const resumo=RESUMOS[disc.slug]||`${disc.name} — Resumo em elaboração.`
@@ -731,7 +731,7 @@ function DisciplinesPage({ showUpgrade, profile, isPago, canAccessPremium }: any
         <div style={{display:'flex',gap:8,marginBottom:20,flexWrap:'wrap'}}>
           {(['resumo','quiz','flash','pdf'] as const).map(t=>(
             <button key={t} onClick={()=>setSubTab(t)} style={{padding:'9px 18px',borderRadius:10,border:subTab===t?'1px solid rgba(212,168,67,0.4)':'1px solid rgba(255,255,255,0.08)',background:subTab===t?'rgba(212,168,67,0.1)':'transparent',color:subTab===t?'var(--gold)':'var(--text-muted)',fontSize:12,fontWeight:600,cursor:'pointer',fontFamily:'var(--font-body)'}}>
-              {t==='resumo'?'📖 Resumo':t==='quiz'?'📝 Quiz':t==='flash'?'🃏 Flashcards':isPago?'📄 PDF':'🔒 PDF'}
+              {t==='resumo'?'📖 Resumo':t==='quiz'?'📝 Quiz':t==='flash'?'🃏 Flashcards':podePDF?'📄 PDF':'🔒 PDF'}
             </button>
           ))}
         </div>
@@ -740,7 +740,7 @@ function DisciplinesPage({ showUpgrade, profile, isPago, canAccessPremium }: any
         {subTab==='flash'&&<FlashCards disciplina={selected.name}/>}
         {subTab==='pdf'&&(
           <div style={{background:'var(--gray)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:20,padding:40,textAlign:'center'}}>
-            {isPago?(
+            {podePDF?(
               <>
                 <div style={{fontSize:44,marginBottom:14}}>📄</div>
                 <h3 style={{fontFamily:'var(--font-display)',fontSize:20,fontWeight:900,marginBottom:8}}>PDF — {selected.name}</h3>
@@ -1311,6 +1311,22 @@ function SimuladosPage({ showUpgrade, freeQ, setFreeQ, onXp, profile, isPago, ca
     {icon:'🏛️',t:'Simulado Geral',info:'60 questões · 4h',tags:['Elite'],lock:true},
   ]
 
+  // Mapeia a tag do simulado temático para o plano mínimo exigido
+  function planoMinimoPratica(s:any): 'gratuito'|'start'|'plus'|'pro'|'elite' {
+    if (!s.lock) return 'gratuito'
+    const tag = (s.tags && s.tags[0] ? String(s.tags[0]) : '').toLowerCase()
+    if (tag === 'start') return 'start'
+    if (tag === 'plus')  return 'plus'
+    if (tag === 'pro')   return 'pro'
+    if (tag === 'elite') return 'elite'
+    return 'start'
+  }
+  function podeLiberarPratica(s:any): boolean {
+    if (profile?.role === 'admin') return true
+    if (!s.lock) return true
+    return canAccess(profile?.plano, planoMinimoPratica(s))
+  }
+
   useEffect(()=>{loadProvas()},[])
   const loadProvas=async()=>{
     const{data}=await supabase.from('provas_oab').select('*').eq('status','ativo').order('numero_exame',{ascending:false})
@@ -1330,7 +1346,7 @@ function SimuladosPage({ showUpgrade, freeQ, setFreeQ, onXp, profile, isPago, ca
   }
 
   const iniciarSimuladoPratica=async(s:any)=>{
-    if(s.lock&&!isPago){showUpgrade();return}
+    if(!podeLiberarPratica(s)){showUpgrade();return}
     setLoadingProva(true)
     const discMap:Record<string,string>={'Mini Simulado — Constitucional':'Constitucional','Simulado Intensivo — Penal':'Penal','Ética e Estatuto OAB':'Ética'}
     const qtdMap:Record<string,number>={'Mini Simulado — Constitucional':5,'Simulado Intensivo — Penal':30,'Ética e Estatuto OAB':20,'Simulado OAB 2ª Fase':40,'Simulado Geral':60}
@@ -1510,7 +1526,7 @@ function SimuladosPage({ showUpgrade, freeQ, setFreeQ, onXp, profile, isPago, ca
               <div style={{display:'flex',gap:5,flexWrap:'wrap',marginBottom:16}}>
                 {s.tags.map(tag=><span key={tag} style={{fontSize:10,padding:'2px 9px',borderRadius:100,fontWeight:700,background:'rgba(212,168,67,0.1)',color:'var(--gold)',border:'1px solid rgba(212,168,67,0.2)'}}>{tag}</span>)}
               </div>
-              {s.lock&&!isPago
+              {!podeLiberarPratica(s)
                 ?<button className="btn-secondary" style={{width:'100%',fontSize:12,padding:'10px'}} onClick={()=>showUpgrade()}>🔒 DESBLOQUEAR</button>
                 :<button className="btn-gold-sm" style={{width:'100%',fontSize:12}} onClick={()=>iniciarSimuladoPratica(s)} disabled={loadingProva}>{loadingProva?'⏳':'INICIAR →'}</button>
               }
@@ -1589,6 +1605,8 @@ export default function TigerJusApp() {
   const canAccessPremium = !!(isAdmin(profile?.role) || canAccess(plano, 'pro'))
   const canAccessElite = !!(isAdmin(profile?.role) || canAccess(plano, 'elite'))
   const limites = getLimites(plano)
+  const iaIlimitada = !!(isAdmin(profile?.role) || limites.ia === Infinity)
+  const podePDF = !!(isAdmin(profile?.role) || limites.permite_pdf)
 
   useEffect(()=>{
     const init=async()=>{
@@ -1776,7 +1794,7 @@ export default function TigerJusApp() {
             <div style={{background:'var(--tj-card-bg, rgba(12,20,40,0.85))',border:'1px solid var(--tj-card-border, rgba(99,130,200,0.18))',borderRadius:12,padding:14,backdropFilter:'blur(8px)'}}>
               <div style={{fontSize:9,fontWeight:700,letterSpacing:2,textTransform:'uppercase',color:'var(--gold)',marginBottom:5}}>{planoDisplay.toUpperCase()}</div>
               <div style={{fontSize:11,color:'var(--text-muted)',marginBottom:10}}>
-                {userIsPago?'Ilimitado':`${freeQ} questões`} · {userIsPago?'IA Ilimitada':`${freeIA} perguntas IA`}
+                {limites.questoes===Infinity?'Questões ilimitadas':`${freeQ} questões`} · {limites.ia===Infinity?'IA ilimitada':`${freeIA} perguntas IA`}
               </div>
               {!userIsPago&&<button className="btn-gold-sm" style={{width:'100%',fontSize:11}} onClick={()=>setShowUpgradeModal(true)}>🚀 FAZER UPGRADE</button>}
             </div>
@@ -1785,11 +1803,11 @@ export default function TigerJusApp() {
         </aside>
 
         {page==='dashboard'&&<DashHome profile={profile} onNav={navTo} showUpgrade={showUpgrade} isPago={userIsPago} canAccessPremium={canAccessPremium} onOpenRadar={()=>setShowRadar(true)}/>}
-        {page==='disciplines'&&<DisciplinesPage showUpgrade={showUpgrade} profile={profile} isPago={userIsPago} canAccessPremium={canAccessPremium}/>}
+        {page==='disciplines'&&<DisciplinesPage showUpgrade={showUpgrade} profile={profile} isPago={userIsPago} canAccessPremium={canAccessPremium} podePDF={podePDF}/>}
         {page==='quiz'&&<QuizPage freeQ={freeQ} setFreeQ={setFreeQ} showUpgrade={showUpgrade} onXp={handleXp} profile={profile} isPago={userIsPago}/>}
         {page==='flashcards'&&<FlashCardsPage/>}
         {page==='simulados'&&<SimuladosPage showUpgrade={showUpgrade} freeQ={freeQ} setFreeQ={setFreeQ} onXp={handleXp} profile={profile} isPago={userIsPago} canAccessElite={canAccessElite}/>}
-        {page==='ia'&&<IAPage freeIA={freeIA} setFreeIA={setFreeIA} showUpgrade={showUpgrade} profile={profile} isPago={userIsPago}/>}
+        {page==='ia'&&<IAPage freeIA={freeIA} setFreeIA={setFreeIA} showUpgrade={showUpgrade} profile={profile} isPago={userIsPago} iaIlimitada={iaIlimitada}/>}
         {page==='ranking'&&<RankingPage profile={profile}/>}
       </div>
 
