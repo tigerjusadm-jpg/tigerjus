@@ -66,7 +66,7 @@ function ResetPasswordInner() {
     const emailLimpo = email.trim().toLowerCase()
     const codigoLimpo = codigo.replace(/\D/g, '')
 
-    if (codigoLimpo.length !== 6) { setErro('Digite o código de 6 dígitos.'); return }
+    if (codigoLimpo.length < 6) { setErro('Digite o código que enviamos por e-mail.'); return }
     if (!senha || !confirmar) { setErro('Preencha a nova senha nos dois campos.'); return }
     if (senha !== confirmar) { setErro('As senhas não coincidem.'); return }
     if (senha.length < 6) { setErro('A senha deve ter pelo menos 6 caracteres.'); return }
@@ -133,7 +133,7 @@ function ResetPasswordInner() {
           <h1 style={{fontFamily:'var(--font-display)',fontSize:28,fontWeight:900,marginBottom:8}}>Recuperar senha</h1>
           <p style={{color:'var(--text-muted)',fontSize:14}}>
             {etapa === 'email'
-              ? 'Digite seu e-mail para receber um código de 6 dígitos.'
+              ? 'Digite seu e-mail para receber um código de verificação.'
               : 'Digite o código que enviamos e crie sua nova senha.'}
           </p>
         </div>
@@ -179,16 +179,16 @@ function ResetPasswordInner() {
             <>
               <div style={{marginBottom:16}}>
                 <label style={{fontSize:11,fontWeight:700,letterSpacing:'1.5px',textTransform:'uppercase',color:'var(--text-muted)',display:'block',marginBottom:8}}>
-                  Código de 6 dígitos
+                  Código de verificação
                 </label>
                 <input
                   className="form-input"
                   type="text"
                   inputMode="numeric"
-                  maxLength={6}
-                  placeholder="______"
+                  maxLength={8}
+                  placeholder="________"
                   value={codigo}
-                  onChange={e => setCodigo(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                  onChange={e => setCodigo(e.target.value.replace(/\D/g, '').slice(0, 8))}
                   disabled={loading}
                   style={{letterSpacing:'8px',textAlign:'center',fontSize:22,fontFamily:'var(--font-mono)'}}
                   autoComplete="one-time-code"
