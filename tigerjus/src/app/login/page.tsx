@@ -28,6 +28,11 @@ function LoginForm() {
   const [loading, setLoading] = useState(false)
   const [erro, setErro] = useState('')
   const [sucesso, setSucesso] = useState('')
+  // Fluxo de recuperação por CÓDIGO (OTP) — substep dentro do modo 'reset'
+  const [resetEtapa, setResetEtapa] = useState<'email'|'codigo'>('email')
+  const [codigo, setCodigo] = useState('')
+  const [novaSenha, setNovaSenha] = useState('')
+  const [confirmarSenha, setConfirmarSenha] = useState('')
 
   useEffect(() => {
     const emailSalvo = localStorage.getItem('tigerjus_email')
@@ -108,16 +113,46 @@ function LoginForm() {
     setLoading(false)
   }
 
+  // Etapa 1 do reset: envia o CÓDIGO para o e-mail e avança para a etapa do código.
   const handleReset = async () => {
-    if (!email) { setErro('Digite seu email.'); return }
+    const emailLimpo = email.trim().toLowerCase()
+    if (!emailLimpo) { setErro('Digite seu email.'); return }
+    if (!emailLimpo.includes('@')) { setErro('Digite um email válido.'); return }
     setLoading(true); setErro('')
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      // ✅ CORREÇÃO: vai direto para /reset-password com o token no hash
-      redirectTo: `${window.location.origin}/reset-password`,
-    })
-    if (error) { setErro('Erro ao enviar email. Tente novamente.') }
-    else { setSucesso('Email enviado! Verifique sua caixa de entrada e clique no link para redefinir sua senha.') }
+    const { error } = await supabase.auth.resetPasswordForEmail(emailLimpo)
     setLoading(false)
+    // O e-mail com o código é enviado mesmo quando o Supabase retorna um aviso.
+    // Por isso SEMPRE avançamos para a etapa do código — o usuário nunca fica preso.
+    if (error) { console.warn('[TigerJus Reset] aviso ao enviar código:', error.message) }
+    setResetEtapa('codigo')
+  }
+
+  // Etapa 2 do reset: valida o código e troca a senha.
+  const handleConfirmarCodigo = async () => {
+    const emailLimpo = email.trim().toLowerCase()
+    const codigoLimpo = codigo.replace(/\D/g, '')
+    if (codigoLimpo.length < 6) { setErro('Digite o código que enviamos por e-mail.'); return }
+    if (!novaSenha || !confirmarSenha) { setErro('Preencha a nova senha nos dois campos.'); return }
+    if (novaSenha !== confirmarSenha) { setErro('As senhas não coincidem.'); return }
+    if (novaSenha.length < 6) { setErro('A senha deve ter pelo menos 6 caracteres.'); return }
+    setLoading(true); setErro('')
+    const { data: otpData, error: otpError } = await supabase.auth.verifyOtp({
+      email: emailLimpo, token: codigoLimpo, type: 'recovery',
+    })
+    if (otpError || !otpData?.session) {
+      setLoading(false)
+      setErro('Código inválido ou expirado. Confira o código ou solicite um novo.')
+      return
+    }
+    let updErr = (await supabase.auth.updateUser({ password: novaSenha })).error
+    if (updErr) { await new Promise(r => setTimeout(r, 600)); updErr = (await supabase.auth.updateUser({ password: novaSenha })).error }
+    setLoading(false)
+    if (updErr) { setErro('Não foi possível salvar a nova senha. Solicite um novo código e tente de novo.'); return }
+    await supabase.auth.signOut()
+    setSucesso('✅ Senha atualizada! Use a nova senha para entrar.')
+    setResetEtapa('email')
+    setCodigo(''); setNovaSenha(''); setConfirmarSenha('')
+    setMode('login')
   }
 
   const handleSubmit = () => {
@@ -148,7 +183,7 @@ function LoginForm() {
             {mode === 'login' ? 'Bem-vindo de volta' : mode === 'cadastro' ? 'Criar conta grátis' : 'Recuperar senha'}
           </h1>
           <p style={{fontSize:14,color:'var(--text-muted)',marginBottom:32,textAlign:'center'}}>
-            {mode === 'login' ? 'Continue sua jornada jurídica.' : mode === 'cadastro' ? '3 dias grátis. Sem cartão.' : 'Enviaremos um link para seu email.'}
+            {mode === 'login' ? 'Continue sua jornada jurídica.' : mode === 'cadastro' ? '3 dias grátis. Sem cartão.' : resetEtapa === 'email' ? 'Enviaremos um código para seu email.' : 'Digite o código que enviamos e crie sua nova senha.'}
           </p>
 
           {erro && (
@@ -169,7 +204,7 @@ function LoginForm() {
             </div>
           )}
 
-          {!sucesso && (
+          {!sucesso && !(mode === 'reset' && resetEtapa === 'codigo') && (
             <>
               <div style={{marginBottom:16}}>
                 <label style={{fontSize:11,fontWeight:700,letterSpacing:'1.5px',textTransform:'uppercase',color:'var(--text-muted)',display:'block',marginBottom:8}}>E-mail</label>
@@ -206,8 +241,47 @@ function LoginForm() {
                 onClick={handleSubmit}
                 disabled={loading}
               >
-                {loading ? '⏳ Aguarde...' : mode === 'login' ? 'ENTRAR' : mode === 'cadastro' ? 'CRIAR CONTA' : 'ENVIAR LINK'}
+                {loading ? '⏳ Aguarde...' : mode === 'login' ? 'ENTRAR' : mode === 'cadastro' ? 'CRIAR CONTA' : 'ENVIAR CÓDIGO'}
               </button>
+            </>
+          )}
+
+          {/* ── RESET: etapa do código + nova senha ── */}
+          {!sucesso && mode === 'reset' && resetEtapa === 'codigo' && (
+            <>
+              <div style={{marginBottom:16}}>
+                <label style={{fontSize:11,fontWeight:700,letterSpacing:'1.5px',textTransform:'uppercase',color:'var(--text-muted)',display:'block',marginBottom:8}}>Código de verificação</label>
+                <input
+                  className="form-input"
+                  type="text"
+                  inputMode="numeric"
+                  maxLength={8}
+                  placeholder="________"
+                  value={codigo}
+                  onChange={e => setCodigo(e.target.value.replace(/\D/g, '').slice(0, 8))}
+                  style={{letterSpacing:'8px',textAlign:'center',fontSize:22,fontFamily:'var(--font-mono)'}}
+                  autoComplete="one-time-code"
+                />
+                <div style={{marginTop:8,fontSize:12,color:'var(--text-muted)'}}>
+                  Enviado para <strong style={{color:'var(--gold)'}}>{email.trim().toLowerCase()}</strong>. Copie o código do e-mail e cole aqui (não feche esta tela).
+                </div>
+              </div>
+              <div style={{marginBottom:16}}>
+                <label style={{fontSize:11,fontWeight:700,letterSpacing:'1.5px',textTransform:'uppercase',color:'var(--text-muted)',display:'block',marginBottom:8}}>Nova senha</label>
+                <input className="form-input" type="password" placeholder="••••••••" value={novaSenha} onChange={e => setNovaSenha(e.target.value)} autoComplete="new-password" />
+              </div>
+              <div style={{marginBottom:24}}>
+                <label style={{fontSize:11,fontWeight:700,letterSpacing:'1.5px',textTransform:'uppercase',color:'var(--text-muted)',display:'block',marginBottom:8}}>Confirmar nova senha</label>
+                <input className="form-input" type="password" placeholder="••••••••" value={confirmarSenha} onChange={e => setConfirmarSenha(e.target.value)} onKeyDown={e => e.key==='Enter'&&handleConfirmarCodigo()} autoComplete="new-password" />
+              </div>
+              <button className="btn-primary" style={{width:'100%',marginBottom:16,fontSize:15,padding:16,opacity:loading?0.7:1}} onClick={handleConfirmarCodigo} disabled={loading}>
+                {loading ? '⏳ Salvando...' : 'CONFIRMAR E SALVAR SENHA'}
+              </button>
+              <div style={{textAlign:'center',fontSize:13}}>
+                <button onClick={() => { setResetEtapa('email'); setErro(''); }} style={{background:'none',border:'none',color:'var(--text-muted)',cursor:'pointer',fontSize:13,fontFamily:'var(--font-body)'}}>
+                  ← Usar outro e-mail
+                </button>
+              </div>
             </>
           )}
 
@@ -229,7 +303,7 @@ function LoginForm() {
                   Criar agora
                 </button>
                 <div style={{marginTop:12}}>
-                  <button onClick={() => {setMode('reset');setErro('');setSucesso('')}} style={{color:'var(--text-muted)',background:'none',border:'none',cursor:'pointer',fontSize:13,fontFamily:'var(--font-body)'}}>
+                  <button onClick={() => {setMode('reset');setResetEtapa('email');setErro('');setSucesso('')}} style={{color:'var(--text-muted)',background:'none',border:'none',cursor:'pointer',fontSize:13,fontFamily:'var(--font-body)'}}>
                     Esqueci minha senha
                   </button>
                 </div>
@@ -239,7 +313,7 @@ function LoginForm() {
               <span>Já tem conta? <button onClick={() => {setMode('login');setErro('');setSucesso('')}} style={{color:'var(--gold)',background:'none',border:'none',cursor:'pointer',fontSize:13,fontFamily:'var(--font-body)'}}>Entrar</button></span>
             )}
             {mode === 'reset' && (
-              <button onClick={() => {setMode('login');setErro('');setSucesso('')}} style={{color:'var(--gold)',background:'none',border:'none',cursor:'pointer',fontSize:13,fontFamily:'var(--font-body)'}}>
+              <button onClick={() => {setMode('login');setResetEtapa('email');setErro('');setSucesso('')}} style={{color:'var(--gold)',background:'none',border:'none',cursor:'pointer',fontSize:13,fontFamily:'var(--font-body)'}}>
                 ← Voltar ao login
               </button>
             )}
