@@ -164,8 +164,8 @@ async function gerarPDF(disciplina: any, resumo: string, questoes: any[]) {
 
 function UpgradeModal({ onClose, onSelect }: { onClose: () => void; onSelect: (plan: string) => void }) {
   return (
-    <div style={{position:'fixed',inset:0,zIndex:300,background:'rgba(0,0,0,0.95)',backdropFilter:'blur(10px)',display:'flex',alignItems:'center',justifyContent:'center',padding:20,overflowY:'auto'}}>
-      <div style={{width:'100%',maxWidth:900,position:'relative',padding:'20px 0'}}>
+    <div style={{position:'fixed',inset:0,zIndex:300,background:'rgba(0,0,0,0.95)',backdropFilter:'blur(10px)',display:'flex',alignItems:'flex-start',justifyContent:'center',padding:'40px 20px',overflowY:'auto'}}>
+      <div style={{width:'100%',maxWidth:900,position:'relative',padding:'20px 0',margin:'auto'}}>
 
         <button onClick={onClose} style={{position:'absolute',top:-10,right:0,background:'none',border:'none',color:'#888',fontSize:24,cursor:'pointer',zIndex:10}}>✕</button>
 
@@ -181,7 +181,7 @@ function UpgradeModal({ onClose, onSelect }: { onClose: () => void; onSelect: (p
           <p style={{color:'var(--text-muted)',fontSize:15}}>Desbloqueie todo o potencial do TigerJus</p>
         </div>
 
-        <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(220px,1fr))',gap:16}}>
+        <div className="upgrade-planos-grid">
           {PLANS_UPGRADE.map(plan => (
             <div key={plan.id} style={{background:(plan as any).featured?'linear-gradient(160deg,rgba(212,168,67,0.1),rgba(30,30,30,1))':'rgba(20,20,20,0.9)',border:(plan as any).featured?'1px solid var(--gold)':'1px solid rgba(255,255,255,0.1)',borderRadius:16,padding:24,position:'relative',cursor:'pointer',transition:'transform 0.2s'}} onMouseEnter={e=>e.currentTarget.style.transform='translateY(-4px)'} onMouseLeave={e=>e.currentTarget.style.transform='translateY(0)'}>
               {(plan as any).badge&&<div style={{position:'absolute',top:16,right:16,background:'linear-gradient(135deg,var(--gold),var(--orange))',color:'#000',fontSize:9,fontWeight:900,letterSpacing:'1.5px',padding:'4px 10px',borderRadius:100}}>{(plan as any).badge}</div>}
@@ -1817,6 +1817,9 @@ export default function TigerJusApp() {
         @keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.5;transform:scale(0.9)}}
         .nav-desktop{display:flex !important;}
         .nav-mobile{display:none !important;}
+        .upgrade-planos-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;align-items:stretch;}
+        @media(max-width:900px){.upgrade-planos-grid{grid-template-columns:repeat(2,1fr);}}
+        @media(max-width:560px){.upgrade-planos-grid{grid-template-columns:1fr;}}
         @media(max-width:768px){
           .nav-desktop{display:none !important;}
           .nav-mobile{display:flex !important;}
