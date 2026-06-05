@@ -15,7 +15,22 @@ function CheckoutContent() {
   const params = useSearchParams()
   const router = useRouter()
   const planId = params.get('plan') || 'pro'
+  const ciclo = params.get('ciclo') === 'anual' ? 'anual' : 'mensal'
+  const ehAnual = ciclo === 'anual'
   const plan = PLANS[planId]
+
+  // Valor exibido conforme o ciclo. Anual = 12x o mensal (pagamento único PIX).
+  const [descontoPercent, setDescontoPercent] = useState(0)
+
+  const valorAnualCheio = plan ? Math.round(plan.amount * 12 * 100) / 100 : 0
+  const valorAnualFinal = Math.round(valorAnualCheio * (1 - descontoPercent / 100) * 100) / 100
+  const temDesconto = ehAnual && descontoPercent > 0
+  const precoExibido = ehAnual
+    ? valorAnualFinal.toFixed(2).replace('.', ',')
+    : plan?.price
+  const precoCheioStr = valorAnualCheio.toFixed(2).replace('.', ',')
+  const sufixoCiclo = ehAnual ? '/ano' : '/mês'
+  const labelCiclo = ehAnual ? 'Plano anual · 12 meses de acesso' : 'Renovação automática mensal · Cancele quando quiser'
 
   const [tab, setTab] = useState<'pix'|'card'>('pix')
   const [pixData, setPixData] = useState<any>(null)
@@ -32,6 +47,25 @@ function CheckoutContent() {
     supabase.auth.getUser().then(({ data: { user } }) => setUser(user))
   }, [])
 
+  // Lê o desconto anual do banco (só para EXIBIÇÃO). O valor real é recalculado
+  // e travado no servidor (api/payment/create) — aqui é apenas visual.
+  useEffect(() => {
+    if (!ehAnual) return
+    supabase
+      .from('app_settings')
+      .select('key, value')
+      .in('key', ['desconto_anual_ativo', 'desconto_anual_percent'])
+      .then(({ data }) => {
+        const map: Record<string, string> = {}
+        for (const c of (data || []) as { key: string; value: string }[]) map[c.key] = c.value
+        const ativo = map['desconto_anual_ativo'] === 'true' || map['desconto_anual_ativo'] === '1'
+        if (ativo) {
+          const bruto = Number(map['desconto_anual_percent'] || '0')
+          setDescontoPercent(Number.isFinite(bruto) ? Math.min(50, Math.max(0, bruto)) : 0)
+        }
+      })
+  }, [ehAnual])
+
   useEffect(() => {
     if (!pixData || pixDone) return
     const t = setInterval(() => setPixTimer(p => { if(p<=1){clearInterval(t);return 0;} return p-1 }), 1000)
@@ -40,9 +74,6 @@ function CheckoutContent() {
 
   const fmt = (s: number) => `${String(Math.floor(s/60)).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`
 
-  // Cópia robusta para mobile: tenta a API moderna; se falhar (comum em iOS/Safari/
-  // navegadores in-app), usa um <textarea> temporário + execCommand. SEMPRE copia
-  // o código COMPLETO (nunca o texto truncado exibido na tela).
   const copiarPix = async () => {
     const codigo = pixData?.copy_paste || ''
     if (!codigo) return
@@ -76,7 +107,6 @@ function CheckoutContent() {
       setCopied(true)
       setTimeout(() => setCopied(false), 2500)
     } else {
-      // Último recurso: avisa o usuário para copiar manualmente.
       alert('Não foi possível copiar automaticamente. Selecione o código e copie manualmente.')
     }
   }
@@ -86,13 +116,11 @@ function CheckoutContent() {
     try {
       const res = await fetch('/api/payment/create', {
         method:'POST', headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({ plan:planId, method:'pix', userId:user?.id, email:user?.email, name:user?.user_metadata?.name }),
+        body: JSON.stringify({ plan:planId, method:'pix', ciclo, userId:user?.id, email:user?.email, name:user?.user_metadata?.name }),
       })
       const data = await res.json()
       if (data.pix) setPixData(data.pix)
 
-      // Verifica a confirmação na MESMA tabela onde a API grava (assinaturas / mp_payment_id).
-      // O webhook do Mercado Pago marca status='ativo' quando o pagamento é aprovado.
       const paymentId = String(data.payment_id || '')
       if (paymentId) {
         const poll = setInterval(async () => {
@@ -116,7 +144,7 @@ function CheckoutContent() {
     try {
       const res = await fetch('/api/payment/create', {
         method:'POST', headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({ plan:planId, method:'credit_card', userId:user?.id, email:user?.email, name:card.name, card }),
+        body: JSON.stringify({ plan:planId, method:'credit_card', ciclo, userId:user?.id, email:user?.email, name:card.name, card }),
       })
       const data = await res.json()
       if (data.checkout_url) { window.location.href = data.checkout_url; return }
@@ -137,7 +165,6 @@ function CheckoutContent() {
     <div style={{minHeight:'100vh',background:'var(--deep-black)',padding:'24px 16px',position:'relative'}}>
       <div style={{position:'absolute',inset:0,background:'radial-gradient(ellipse 60% 50% at 50% 50%, rgba(212,168,67,0.05), transparent)',pointerEvents:'none'}} />
 
-      {/* Header mobile */}
       <div style={{maxWidth:960,margin:'0 auto',marginBottom:24}}>
         <Link href="/" style={{display:'inline-flex',alignItems:'center',gap:8,color:'var(--text-muted)',fontSize:13,textDecoration:'none',marginBottom:20}}>← Voltar</Link>
         <div style={{display:'flex',alignItems:'center',gap:10}}>
@@ -148,15 +175,21 @@ function CheckoutContent() {
 
       <div style={{maxWidth:960,margin:'0 auto',display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(300px,1fr))',gap:24,position:'relative'}}>
 
-        {/* Resumo do plano */}
         <div>
           <div style={{background:'linear-gradient(135deg,rgba(212,168,67,0.08),rgba(232,98,26,0.04))',border:'1px solid rgba(212,168,67,0.2)',borderRadius:20,padding:28,marginBottom:16}}>
             <div style={{fontSize:10,fontWeight:700,letterSpacing:'2.5px',textTransform:'uppercase',color:'var(--text-muted)',marginBottom:8}}>{plan.name}</div>
             <div style={{fontFamily:'var(--font-display)',fontSize:'clamp(40px,8vw,52px)',fontWeight:900,color:plan.color,marginBottom:4}}>
-              <sup style={{fontSize:18,verticalAlign:'super',color:'var(--text-muted)'}}>R$</sup>{plan.price}
-              <span style={{fontSize:15,color:'var(--text-muted)'}}>/mês</span>
+              <sup style={{fontSize:18,verticalAlign:'super',color:'var(--text-muted)'}}>R$</sup>{precoExibido}
+              <span style={{fontSize:15,color:'var(--text-muted)'}}>{sufixoCiclo}</span>
             </div>
-            <p style={{fontSize:13,color:'var(--text-muted)',marginBottom:20}}>Renovação automática mensal · Cancele quando quiser</p>
+            {temDesconto && (
+              <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:6}}>
+                <span style={{fontSize:14,color:'var(--text-dim)',textDecoration:'line-through'}}>R${precoCheioStr}</span>
+                <span style={{fontSize:11,fontWeight:800,letterSpacing:1,background:'rgba(232,98,26,0.15)',border:'1px solid rgba(232,98,26,0.35)',color:'var(--orange)',padding:'2px 8px',borderRadius:100}}>−{descontoPercent}% OFF</span>
+              </div>
+            )}
+            {ehAnual && <p style={{fontSize:12,color:'var(--success)',marginBottom:6}}>Pagamento único · 12 meses de acesso</p>}
+            <p style={{fontSize:13,color:'var(--text-muted)',marginBottom:20}}>{labelCiclo}</p>
             <ul style={{listStyle:'none',display:'flex',flexDirection:'column',gap:10}}>
               {plan.features.map((f: string) => (
                 <li key={f} style={{display:'flex',alignItems:'center',gap:10,fontSize:14}}>
@@ -170,14 +203,12 @@ function CheckoutContent() {
           </div>
         </div>
 
-        {/* Formulário de pagamento */}
         <div style={{background:'var(--gray)',border:'1px solid rgba(212,168,67,0.15)',borderRadius:20,overflow:'hidden'}}>
           <div style={{background:'linear-gradient(135deg,rgba(212,168,67,0.1),rgba(232,98,26,0.06))',padding:'20px 24px',borderBottom:'1px solid rgba(212,168,67,0.12)'}}>
             <div style={{fontFamily:'var(--font-display)',fontSize:20,fontWeight:900}}>Finalizar Assinatura</div>
-            <div style={{fontSize:13,color:'var(--text-muted)',marginTop:4}}>TigerJus {plan.name} — R${plan.price}/mês</div>
+            <div style={{fontSize:13,color:'var(--text-muted)',marginTop:4}}>TigerJus {plan.name} — R${precoExibido}{sufixoCiclo}</div>
           </div>
           <div style={{padding:24}}>
-            {/* Tabs PIX / Cartão */}
             <div style={{display:'flex',gap:8,marginBottom:24}}>
               {(['pix','card'] as const).map(t=>(
                 <button key={t} onClick={()=>setTab(t)} style={{flex:1,padding:'11px 8px',borderRadius:8,border:tab===t?'1px solid rgba(212,168,67,0.3)':'1px solid rgba(255,255,255,0.08)',background:tab===t?'rgba(212,168,67,0.1)':'transparent',color:tab===t?'var(--gold)':'var(--text-muted)',fontSize:13,fontWeight:600,cursor:'pointer',fontFamily:'var(--font-body)',transition:'all 0.2s'}}>
@@ -186,7 +217,6 @@ function CheckoutContent() {
               ))}
             </div>
 
-            {/* PIX */}
             {tab==='pix' && (
               pixDone ? (
                 <div style={{textAlign:'center',background:'rgba(76,175,125,0.1)',border:'1px solid rgba(76,175,125,0.25)',borderRadius:16,padding:32}}>
@@ -203,10 +233,9 @@ function CheckoutContent() {
                       style={{width:180,height:180,borderRadius:16,background:'white',padding:10,margin:'0 auto 16px',display:'block'}} />
                   )}
                   <div style={{fontSize:12,color:'var(--text-muted)',marginBottom:14}}>
-                    Valor: <strong style={{color:'var(--gold)'}}>R${plan.price}/mês</strong>
+                    Valor: <strong style={{color:'var(--gold)'}}>R${precoExibido}{sufixoCiclo}</strong>
                   </div>
 
-                  {/* PIX Copia e Cola — código completo + botão dedicado (mobile-safe) */}
                   <div style={{fontSize:11,fontWeight:700,letterSpacing:'1px',textTransform:'uppercase',color:'var(--text-muted)',marginBottom:8,textAlign:'left'}}>
                     PIX Copia e Cola
                   </div>
@@ -240,7 +269,6 @@ function CheckoutContent() {
               )
             )}
 
-            {/* Cartão */}
             {tab==='card' && (
               cardDone ? (
                 <div style={{textAlign:'center',background:'rgba(76,175,125,0.1)',border:'1px solid rgba(76,175,125,0.25)',borderRadius:16,padding:32}}>
@@ -255,7 +283,7 @@ function CheckoutContent() {
                     💳 Você será levado ao ambiente seguro do Mercado Pago para concluir o pagamento com cartão.
                   </div>
                   <button className="btn-primary" style={{width:'100%'}} onClick={handleCard} disabled={cardLoading}>
-                    {cardLoading?'⏳ Redirecionando...':`PAGAR R$${plan.price}/mês COM CARTÃO`}
+                    {cardLoading?'⏳ Redirecionando...':`PAGAR R$${precoExibido}${sufixoCiclo} COM CARTÃO`}
                   </button>
                   <div style={{marginTop:12,fontSize:11,color:'var(--text-dim)',textAlign:'center'}}>
                     🔒 Pagamento processado pelo Mercado Pago · Cancele quando quiser
