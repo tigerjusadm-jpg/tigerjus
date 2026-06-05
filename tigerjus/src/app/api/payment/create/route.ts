@@ -15,10 +15,40 @@ const PLAN_PRICES: Record<string, number> = {
 
 export async function POST(req: NextRequest) {
   try {
-    const { plan, method, userId, email, name, card } = await req.json()
+    const { plan, method, userId, email, name, card, ciclo } = await req.json()
 
-    const amount = PLAN_PRICES[plan]
-    if (!amount) return NextResponse.json({ error: 'Plano inválido' }, { status: 400 })
+    const precoMensal = PLAN_PRICES[plan]
+    if (!precoMensal) return NextResponse.json({ error: 'Plano inválido' }, { status: 400 })
+
+    // Ciclo: 'mensal' (padrão) ou 'anual' (12x o mensal, pagamento único via PIX).
+    // Validação estrita — qualquer outro valor cai para mensal.
+    const ehAnual = ciclo === 'anual'
+
+    // Desconto promocional — SÓ no anual. Lido do banco (app_settings), nunca do cliente.
+    // Trava de segurança: o percentual é forçado a ficar entre 0 e 50 no servidor.
+    let descontoPercent = 0
+    if (ehAnual) {
+      const { data: cfg } = await supabase
+        .from('app_settings')
+        .select('key, value')
+        .in('key', ['desconto_anual_ativo', 'desconto_anual_percent'])
+      const map: Record<string, string> = {}
+      for (const c of (cfg || []) as { key: string; value: string }[]) map[c.key] = c.value
+      const ativo = map['desconto_anual_ativo'] === 'true' || map['desconto_anual_ativo'] === '1'
+      if (ativo) {
+        const bruto = Number(map['desconto_anual_percent'] || '0')
+        // Trava: ignora valores inválidos; limita a faixa 0–50.
+        descontoPercent = Number.isFinite(bruto) ? Math.min(50, Math.max(0, bruto)) : 0
+      }
+    }
+
+    const precoAnualCheio = Math.round(precoMensal * 12 * 100) / 100
+    const precoAnualComDesconto = Math.round(precoAnualCheio * (1 - descontoPercent / 100) * 100) / 100
+    const amount = ehAnual ? precoAnualComDesconto : precoMensal
+    const rotuloCiclo = ehAnual
+      ? (descontoPercent > 0 ? `Plano anual (12 meses) - ${descontoPercent}% OFF` : 'Plano anual (12 meses)')
+      : 'Assinatura mensal'
+    const diasAcesso = ehAnual ? 365 : 30
 
     const accessToken = process.env.MERCADOPAGO_ACCESS_TOKEN
     if (!accessToken) return NextResponse.json({ error: 'Mercado Pago não configurado' }, { status: 500 })
@@ -33,7 +63,7 @@ export async function POST(req: NextRequest) {
         },
         body: JSON.stringify({
           transaction_amount: amount,
-          description: `TigerJus ${plan} - Assinatura mensal`,
+          description: `TigerJus ${plan} - ${rotuloCiclo}`,
           payment_method_id: 'pix',
           payer: {
             email: email || 'usuario@tigerjus.com.br',
@@ -41,7 +71,7 @@ export async function POST(req: NextRequest) {
             last_name: name?.split(' ').slice(1).join(' ') || 'TigerJus',
           },
           notification_url: `${process.env.NEXT_PUBLIC_APP_URL}/api/webhooks/mercadopago`,
-          metadata: { user_id: userId, plan },
+          metadata: { user_id: userId, plan, ciclo: ehAnual ? 'anual' : 'mensal' },
         }),
       })
 
@@ -59,7 +89,7 @@ export async function POST(req: NextRequest) {
         mp_payment_id: String(mpData.id),
         valor: amount,
         inicio: new Date().toISOString(),
-        fim: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+        fim: new Date(Date.now() + diasAcesso * 24 * 60 * 60 * 1000).toISOString(),
       })
 
       return NextResponse.json({
@@ -81,7 +111,7 @@ export async function POST(req: NextRequest) {
         },
         body: JSON.stringify({
           items: [{
-            title: `TigerJus ${plan} - Assinatura mensal`,
+            title: `TigerJus ${plan} - ${rotuloCiclo}`,
             quantity: 1,
             unit_price: amount,
             currency_id: 'BRL',
