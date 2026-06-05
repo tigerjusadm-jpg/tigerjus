@@ -162,9 +162,11 @@ async function gerarPDF(disciplina: any, resumo: string, questoes: any[]) {
   setTimeout(() => URL.revokeObjectURL(url), 10000)
 }
 
-function UpgradeModal({ onClose, onSelect }: { onClose: () => void; onSelect: (plan: string) => void }) {
+function UpgradeModal({ onClose, onSelect, planoAtual, ehAdmin }: { onClose: () => void; onSelect: (plan: string, ciclo: 'mensal'|'anual') => void; planoAtual?: string; ehAdmin?: boolean }) {
+  const [ciclo, setCiclo] = useState<'mensal'|'anual'>('mensal')
+  const ehAnual = ciclo === 'anual'
   return (
-    <div style={{position:'fixed',inset:0,zIndex:300,background:'rgba(0,0,0,0.95)',backdropFilter:'blur(10px)',display:'flex',alignItems:'center',justifyContent:'center',padding:20,overflowY:'auto'}}>
+    <div style={{position:'fixed',inset:0,zIndex:300,background:'rgba(0,0,0,0.95)',backdropFilter:'blur(10px)',display:'flex',alignItems:'flex-start',justifyContent:'center',padding:'40px 20px',overflowY:'auto'}}>
       <div style={{width:'100%',maxWidth:900,position:'relative',padding:'20px 0'}}>
 
         <button onClick={onClose} style={{position:'absolute',top:-10,right:0,background:'none',border:'none',color:'#888',fontSize:24,cursor:'pointer',zIndex:10}}>✕</button>
@@ -179,21 +181,32 @@ function UpgradeModal({ onClose, onSelect }: { onClose: () => void; onSelect: (p
           <div style={{fontSize:48,marginBottom:12}}>🚀</div>
           <h2 style={{fontFamily:'var(--font-display)',fontSize:36,fontWeight:900,marginBottom:8}}>Escolha seu <span style={{color:'var(--gold)'}}>plano</span></h2>
           <p style={{color:'var(--text-muted)',fontSize:15}}>Desbloqueie todo o potencial do TigerJus</p>
+          <div style={{display:'inline-flex',marginTop:18,background:'rgba(255,255,255,0.05)',border:'1px solid rgba(255,255,255,0.1)',borderRadius:100,padding:4,gap:4}}>
+            <button onClick={()=>setCiclo('mensal')} style={{padding:'8px 20px',borderRadius:100,border:'none',cursor:'pointer',fontFamily:'var(--font-body)',fontSize:13,fontWeight:700,background:!ehAnual?'linear-gradient(135deg,var(--gold),var(--orange))':'transparent',color:!ehAnual?'#000':'var(--text-muted)',transition:'all 0.2s'}}>Mensal</button>
+            <button onClick={()=>setCiclo('anual')} style={{padding:'8px 20px',borderRadius:100,border:'none',cursor:'pointer',fontFamily:'var(--font-body)',fontSize:13,fontWeight:700,background:ehAnual?'linear-gradient(135deg,var(--gold),var(--orange))':'transparent',color:ehAnual?'#000':'var(--text-muted)',transition:'all 0.2s'}}>Anual</button>
+          </div>
+          {ehAnual && <p style={{color:'var(--success)',fontSize:12,marginTop:10}}>💎 Pague uma vez por ano · 12 meses de acesso</p>}
         </div>
 
         <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(220px,1fr))',gap:16}}>
-          {PLANS_UPGRADE.map(plan => (
-            <div key={plan.id} style={{background:(plan as any).featured?'linear-gradient(160deg,rgba(212,168,67,0.1),rgba(30,30,30,1))':'rgba(20,20,20,0.9)',border:(plan as any).featured?'1px solid var(--gold)':'1px solid rgba(255,255,255,0.1)',borderRadius:16,padding:24,position:'relative',cursor:'pointer',transition:'transform 0.2s'}} onMouseEnter={e=>e.currentTarget.style.transform='translateY(-4px)'} onMouseLeave={e=>e.currentTarget.style.transform='translateY(0)'}>
-              {(plan as any).badge&&<div style={{position:'absolute',top:16,right:16,background:'linear-gradient(135deg,var(--gold),var(--orange))',color:'#000',fontSize:9,fontWeight:900,letterSpacing:'1.5px',padding:'4px 10px',borderRadius:100}}>{(plan as any).badge}</div>}
+          {PLANS_UPGRADE.map(plan => {
+            const jaPossui = ehAdmin || canAccess(planoAtual, plan.id as any)
+            return (
+            <div key={plan.id} style={{background:(plan as any).featured?'linear-gradient(160deg,rgba(212,168,67,0.1),rgba(30,30,30,1))':'rgba(20,20,20,0.9)',border:jaPossui?'1px solid rgba(76,175,125,0.4)':(plan as any).featured?'1px solid var(--gold)':'1px solid rgba(255,255,255,0.1)',borderRadius:16,padding:24,position:'relative',opacity:jaPossui?0.7:1,transition:'transform 0.2s'}}>
+              {jaPossui
+                ?<div style={{position:'absolute',top:16,right:16,background:'rgba(76,175,125,0.18)',border:'1px solid rgba(76,175,125,0.4)',color:'var(--success)',fontSize:9,fontWeight:900,letterSpacing:'1.5px',padding:'4px 10px',borderRadius:100}}>✓ SEU PLANO</div>
+                :(plan as any).badge&&<div style={{position:'absolute',top:16,right:16,background:'linear-gradient(135deg,var(--gold),var(--orange))',color:'#000',fontSize:9,fontWeight:900,letterSpacing:'1.5px',padding:'4px 10px',borderRadius:100}}>{(plan as any).badge}</div>}
               <div style={{fontSize:10,fontWeight:700,letterSpacing:'2.5px',textTransform:'uppercase',color:'var(--text-muted)',marginBottom:8}}>{plan.name}</div>
-              <div style={{fontFamily:'var(--font-display)',fontSize:38,fontWeight:900,color:plan.color,marginBottom:4}}><sup style={{fontSize:15,color:'var(--text-muted)',verticalAlign:'super'}}>R$</sup>{plan.price}</div>
-              <div style={{fontSize:12,color:'var(--text-muted)',marginBottom:20}}>/mês</div>
+              <div style={{fontFamily:'var(--font-display)',fontSize:38,fontWeight:900,color:plan.color,marginBottom:4}}><sup style={{fontSize:15,color:'var(--text-muted)',verticalAlign:'super'}}>R$</sup>{ehAnual ? (Math.round(parseFloat(plan.price.replace(',','.'))*12*100)/100).toFixed(2).replace('.',',') : plan.price}</div>
+              <div style={{fontSize:12,color:'var(--text-muted)',marginBottom:20}}>{ehAnual ? '/ano' : '/mês'}</div>
               <ul style={{listStyle:'none',display:'flex',flexDirection:'column',gap:8,marginBottom:20}}>
                 {plan.features.map((f,i)=><li key={i} style={{display:'flex',alignItems:'center',gap:8,fontSize:12,color:'var(--white)'}}><span style={{color:'var(--success)'}}>✓</span>{f}</li>)}
               </ul>
-              <button onClick={()=>onSelect(plan.id)} className={(plan as any).featured?'btn-primary':'btn-secondary'} style={{width:'100%',fontSize:13,padding:'12px'}}>{(plan as any).featured?'ASSINAR AGORA':'ASSINAR'}</button>
+              {jaPossui
+                ?<button disabled style={{width:'100%',fontSize:13,padding:'12px',borderRadius:10,border:'1px solid rgba(76,175,125,0.3)',background:'rgba(76,175,125,0.08)',color:'var(--success)',fontWeight:700,cursor:'default',fontFamily:'var(--font-body)'}}>✓ PLANO ATUAL</button>
+                :<button onClick={()=>onSelect(plan.id, ciclo)} className={(plan as any).featured?'btn-primary':'btn-secondary'} style={{width:'100%',fontSize:13,padding:'12px',cursor:'pointer'}}>{(plan as any).featured?'ASSINAR AGORA':'ASSINAR'}</button>}
             </div>
-          ))}
+          )})}
         </div>
 
         <div style={{marginTop:28,display:'flex',flexDirection:'column',alignItems:'center',gap:12}}>
@@ -1658,7 +1671,7 @@ export default function TigerJusApp() {
   }
 
   const handleLogout=async()=>{await supabase.auth.signOut();router.push('/')}
-  const handleUpgradeSelect=(planId:string)=>{setShowUpgradeModal(false);router.push(`/checkout?plan=${planId}`)}
+  const handleUpgradeSelect=(planId:string,ciclo:'mensal'|'anual'='mensal')=>{setShowUpgradeModal(false);router.push(`/checkout?plan=${planId}&ciclo=${ciclo}`)}
   const showUpgrade=()=>{setShowPremiumGate(false);setShowUpgradeModal(true)}
   const navTo=(key:string)=>{setPage(key);setMenuOpen(false)}
 
@@ -1710,7 +1723,7 @@ export default function TigerJusApp() {
 
       {notif&&<Notification msg={notif} onClose={()=>setNotif(null)}/>}
       {showPremiumGate&&<PremiumGate onClose={()=>setShowPremiumGate(false)} onUpgrade={showUpgrade}/>}
-      {showUpgradeModal&&<UpgradeModal onClose={()=>setShowUpgradeModal(false)} onSelect={handleUpgradeSelect}/>}
+      {showUpgradeModal&&<UpgradeModal onClose={()=>setShowUpgradeModal(false)} onSelect={handleUpgradeSelect} planoAtual={profile?.plano} ehAdmin={isAdmin(profile?.role)}/>}
       {showRadar&&<RadarModal onClose={()=>setShowRadar(false)}/>}
 
       {settings.whatsapp_url && !settings.maintenance_mode && (
@@ -1762,11 +1775,6 @@ export default function TigerJusApp() {
               <span style={{fontSize:18,width:24,textAlign:'center'}}>{item.icon}</span>{item.label}
             </button>
           ))}
-          {isAdmin(profile?.role)&&(
-            <button onClick={()=>{router.push('/admin');setMenuOpen(false)}} style={{display:'flex',alignItems:'center',gap:14,padding:'14px 20px',background:'none',border:'none',cursor:'pointer',fontFamily:'var(--font-body)',fontSize:15,color:'var(--white)',textAlign:'left',borderLeft:'3px solid transparent'}}>
-              <span style={{fontSize:18,width:24,textAlign:'center'}}>⚙️</span>Admin Panel
-            </button>
-          )}
           <div style={{borderTop:'1px solid rgba(255,255,255,0.06)',margin:'8px 0',padding:'8px 20px',display:'flex',gap:10}}>
             <button className="btn-gold-sm" style={{flex:1,fontSize:12}} onClick={()=>{setShowUpgradeModal(true);setMenuOpen(false)}}>🚀 UPGRADE</button>
             <button onClick={()=>{handleLogout();setMenuOpen(false)}} style={{color:'var(--text-muted)',fontSize:12,border:'1px solid rgba(255,255,255,0.08)',borderRadius:8,padding:'8px 14px',background:'none',cursor:'pointer',fontFamily:'var(--font-body)'}}>Sair</button>
