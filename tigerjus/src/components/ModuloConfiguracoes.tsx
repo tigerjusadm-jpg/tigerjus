@@ -65,6 +65,12 @@ const GRUPOS: { key: string; label: string; icon: string; keys: string[] }[] = [
     ],
   },
   {
+    key: 'plano_anual',
+    label: 'Plano Anual',
+    icon: '📅',
+    keys: ['desconto_anual_ativo', 'desconto_anual_percent'],
+  },
+  {
     key: 'social',
     label: 'Social e Suporte',
     icon: '💬',
@@ -134,6 +140,9 @@ const DEFAULTS: Omit<AppSetting, 'id' | 'ativo'>[] = [
   { key: 'cta_upgrade_title',    value: 'Desbloqueie o TigerJus Premium', type: 'text', description: 'Título do modal de upgrade' },
   { key: 'cta_upgrade_subtitle', value: 'Acesse conteúdo ilimitado.',     type: 'text', description: 'Subtítulo do modal de upgrade' },
   { key: 'cta_upgrade_button',   value: 'DESBLOQUEAR AGORA',              type: 'text', description: 'Texto do botão de upgrade' },
+  // Plano Anual
+  { key: 'desconto_anual_ativo',   value: 'false', type: 'boolean', description: 'Ativa desconto promocional no plano anual' },
+  { key: 'desconto_anual_percent', value: '0',     type: 'number',  description: 'Percentual de desconto do anual (0 a 50). Aplicado só no anual.' },
   // Social e Suporte
   { key: 'whatsapp_url',       value: '', type: 'text', description: 'Link do WhatsApp (ex: https://wa.me/5511999999999)' },
   { key: 'instagram_url',      value: '', type: 'text', description: 'Link do Instagram (ex: https://instagram.com/tigerjus)' },
