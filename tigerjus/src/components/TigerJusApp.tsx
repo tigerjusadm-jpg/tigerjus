@@ -168,59 +168,47 @@ function UpgradeModal({ onClose, onSelect, planoAtual, ehAdmin }: { onClose: () 
   return (
     <div style={{position:'fixed',inset:0,zIndex:300,background:'rgba(0,0,0,0.95)',backdropFilter:'blur(10px)',display:'flex',alignItems:'flex-start',justifyContent:'center',padding:'40px 20px',overflowY:'auto'}}>
       <div style={{width:'100%',maxWidth:900,position:'relative',padding:'20px 0'}}>
-
         <button onClick={onClose} style={{position:'absolute',top:-10,right:0,background:'none',border:'none',color:'#888',fontSize:24,cursor:'pointer',zIndex:10}}>✕</button>
-
-        <button onClick={onClose} style={{display:'flex',alignItems:'center',gap:6,background:'none',border:'none',color:'var(--text-muted)',fontSize:13,cursor:'pointer',fontFamily:'var(--font-body)',marginBottom:20,padding:0,transition:'color 0.2s'}}
+        <button onClick={onClose} style={{display:'flex',alignItems:'center',gap:6,background:'none',border:'none',color:'var(--text-muted)',fontSize:13,cursor:'pointer',fontFamily:'var(--font-body)',marginBottom:20,padding:0}}
           onMouseEnter={e=>e.currentTarget.style.color='var(--gold)'}
-          onMouseLeave={e=>e.currentTarget.style.color='var(--text-muted)'}>
-          ← Voltar para a plataforma
-        </button>
-
+          onMouseLeave={e=>e.currentTarget.style.color='var(--text-muted)'}>← Voltar para a plataforma</button>
         <div style={{textAlign:'center',marginBottom:32}}>
           <div style={{fontSize:48,marginBottom:12}}>🚀</div>
           <h2 style={{fontFamily:'var(--font-display)',fontSize:36,fontWeight:900,marginBottom:8}}>Escolha seu <span style={{color:'var(--gold)'}}>plano</span></h2>
           <p style={{color:'var(--text-muted)',fontSize:15}}>Desbloqueie todo o potencial do TigerJus</p>
           <div style={{display:'inline-flex',marginTop:18,background:'rgba(255,255,255,0.05)',border:'1px solid rgba(255,255,255,0.1)',borderRadius:100,padding:4,gap:4}}>
-            <button onClick={()=>setCiclo('mensal')} style={{padding:'8px 20px',borderRadius:100,border:'none',cursor:'pointer',fontFamily:'var(--font-body)',fontSize:13,fontWeight:700,background:!ehAnual?'linear-gradient(135deg,var(--gold),var(--orange))':'transparent',color:!ehAnual?'#000':'var(--text-muted)',transition:'all 0.2s'}}>Mensal</button>
-            <button onClick={()=>setCiclo('anual')} style={{padding:'8px 20px',borderRadius:100,border:'none',cursor:'pointer',fontFamily:'var(--font-body)',fontSize:13,fontWeight:700,background:ehAnual?'linear-gradient(135deg,var(--gold),var(--orange))':'transparent',color:ehAnual?'#000':'var(--text-muted)',transition:'all 0.2s'}}>Anual</button>
+            <button onClick={()=>setCiclo('mensal')} style={{padding:'8px 20px',borderRadius:100,border:'none',cursor:'pointer',fontFamily:'var(--font-body)',fontSize:13,fontWeight:700,background:!ehAnual?'linear-gradient(135deg,var(--gold),var(--orange))':'transparent',color:!ehAnual?'#000':'var(--text-muted)'}}>Mensal</button>
+            <button onClick={()=>setCiclo('anual')} style={{padding:'8px 20px',borderRadius:100,border:'none',cursor:'pointer',fontFamily:'var(--font-body)',fontSize:13,fontWeight:700,background:ehAnual?'linear-gradient(135deg,var(--gold),var(--orange))':'transparent',color:ehAnual?'#000':'var(--text-muted)'}}>Anual</button>
           </div>
           {ehAnual && <p style={{color:'var(--success)',fontSize:12,marginTop:10}}>💎 Pague uma vez por ano · 12 meses de acesso</p>}
         </div>
-
         <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(220px,1fr))',gap:16}}>
           {PLANS_UPGRADE.map(plan => {
             const jaPossui = ehAdmin || canAccess(planoAtual, plan.id as any)
             return (
-            <div key={plan.id} style={{background:(plan as any).featured?'linear-gradient(160deg,rgba(212,168,67,0.1),rgba(30,30,30,1))':'rgba(20,20,20,0.9)',border:jaPossui?'1px solid rgba(76,175,125,0.4)':(plan as any).featured?'1px solid var(--gold)':'1px solid rgba(255,255,255,0.1)',borderRadius:16,padding:24,position:'relative',opacity:jaPossui?0.7:1,transition:'transform 0.2s'}}>
+            <div key={plan.id} style={{background:(plan as any).featured?'linear-gradient(160deg,rgba(212,168,67,0.1),rgba(30,30,30,1))':'rgba(20,20,20,0.9)',border:jaPossui?'1px solid rgba(76,175,125,0.4)':(plan as any).featured?'1px solid var(--gold)':'1px solid rgba(255,255,255,0.1)',borderRadius:16,padding:24,position:'relative',opacity:jaPossui?0.7:1}}>
               {jaPossui
                 ?<div style={{position:'absolute',top:16,right:16,background:'rgba(76,175,125,0.18)',border:'1px solid rgba(76,175,125,0.4)',color:'var(--success)',fontSize:9,fontWeight:900,letterSpacing:'1.5px',padding:'4px 10px',borderRadius:100}}>✓ SEU PLANO</div>
                 :(plan as any).badge&&<div style={{position:'absolute',top:16,right:16,background:'linear-gradient(135deg,var(--gold),var(--orange))',color:'#000',fontSize:9,fontWeight:900,letterSpacing:'1.5px',padding:'4px 10px',borderRadius:100}}>{(plan as any).badge}</div>}
               <div style={{fontSize:10,fontWeight:700,letterSpacing:'2.5px',textTransform:'uppercase',color:'var(--text-muted)',marginBottom:8}}>{plan.name}</div>
-              <div style={{fontFamily:'var(--font-display)',fontSize:38,fontWeight:900,color:plan.color,marginBottom:4}}><sup style={{fontSize:15,color:'var(--text-muted)',verticalAlign:'super'}}>R$</sup>{ehAnual ? (Math.round(parseFloat(plan.price.replace(',','.'))*12*100)/100).toFixed(2).replace('.',',') : plan.price}</div>
-              <div style={{fontSize:12,color:'var(--text-muted)',marginBottom:20}}>{ehAnual ? '/ano' : '/mês'}</div>
+              <div style={{fontFamily:'var(--font-display)',fontSize:38,fontWeight:900,color:plan.color,marginBottom:4}}><sup style={{fontSize:15,color:'var(--text-muted)',verticalAlign:'super'}}>R$</sup>{ehAnual?(Math.round(parseFloat(plan.price.replace(',','.'))*12*100)/100).toFixed(2).replace('.',','):plan.price}</div>
+              <div style={{fontSize:12,color:'var(--text-muted)',marginBottom:20}}>{ehAnual?'/ano':'/mês'}</div>
               <ul style={{listStyle:'none',display:'flex',flexDirection:'column',gap:8,marginBottom:20}}>
-                {plan.features.map((f,i)=><li key={i} style={{display:'flex',alignItems:'center',gap:8,fontSize:12,color:'var(--white)'}}><span style={{color:'var(--success)'}}>✓</span>{f}</li>)}
+                {plan.features.map((f,i)=><li key={i} style={{display:'flex',alignItems:'center',gap:8,fontSize:12}}><span style={{color:'var(--success)'}}>✓</span>{f}</li>)}
               </ul>
               {jaPossui
                 ?<button disabled style={{width:'100%',fontSize:13,padding:'12px',borderRadius:10,border:'1px solid rgba(76,175,125,0.3)',background:'rgba(76,175,125,0.08)',color:'var(--success)',fontWeight:700,cursor:'default',fontFamily:'var(--font-body)'}}>✓ PLANO ATUAL</button>
-                :<button onClick={()=>onSelect(plan.id, ciclo)} className={(plan as any).featured?'btn-primary':'btn-secondary'} style={{width:'100%',fontSize:13,padding:'12px',cursor:'pointer'}}>{(plan as any).featured?'ASSINAR AGORA':'ASSINAR'}</button>}
+                :<button onClick={()=>onSelect(plan.id,ciclo)} className={(plan as any).featured?'btn-primary':'btn-secondary'} style={{width:'100%',fontSize:13,padding:'12px',cursor:'pointer'}}>{(plan as any).featured?'ASSINAR AGORA':'ASSINAR'}</button>}
             </div>
           )})}
         </div>
-
         <div style={{marginTop:28,display:'flex',flexDirection:'column',alignItems:'center',gap:12}}>
           <div style={{fontSize:13,color:'var(--text-muted)'}}>💳 PIX ou Cartão · 🔒 Pagamento seguro · Cancele quando quiser</div>
           <div style={{display:'flex',gap:12,flexWrap:'wrap',justifyContent:'center'}}>
-            <button onClick={onClose} className="btn-secondary" style={{fontSize:13,padding:'10px 24px'}}>
-              ← Voltar para a plataforma
-            </button>
-            <button onClick={onClose} style={{background:'none',border:'none',color:'var(--text-muted)',fontSize:13,cursor:'pointer',fontFamily:'var(--font-body)',textDecoration:'underline',textDecorationColor:'rgba(255,255,255,0.2)',padding:'10px 0'}}>
-              Continuar estudando agora
-            </button>
+            <button onClick={onClose} className="btn-secondary" style={{fontSize:13,padding:'10px 24px'}}>← Voltar para a plataforma</button>
+            <button onClick={onClose} style={{background:'none',border:'none',color:'var(--text-muted)',fontSize:13,cursor:'pointer',fontFamily:'var(--font-body)',textDecoration:'underline',padding:'10px 0'}}>Continuar estudando agora</button>
           </div>
         </div>
-
       </div>
     </div>
   )
@@ -262,11 +250,9 @@ function PremiumGate({ onClose, onUpgrade }: { onClose:()=>void; onUpgrade:()=>v
       <div style={{background:'var(--gray)',border:'1px solid rgba(212,168,67,0.22)',borderRadius:24,padding:'48px 40px',textAlign:'center',maxWidth:480,width:'100%'}}>
         <div style={{fontSize:54,marginBottom:18}}>🔒</div>
         <h2 style={{fontFamily:'var(--font-display)',fontSize:30,fontWeight:900,lineHeight:1.2,marginBottom:14}}>
-          {settings.cta_upgrade_title || 'Recurso'} <span style={{color:'var(--gold)'}}>premium.</span>
+          {settings.cta_upgrade_title||'Recurso'} <span style={{color:'var(--gold)'}}>premium.</span>
         </h2>
-        <p style={{fontSize:15,color:'var(--text-muted)',marginBottom:28,lineHeight:1.7}}>
-          {settings.cta_upgrade_subtitle || 'Faça upgrade para desbloquear este recurso.'}
-        </p>
+        <p style={{fontSize:15,color:'var(--text-muted)',marginBottom:28,lineHeight:1.7}}>{settings.cta_upgrade_subtitle||'Faça upgrade para desbloquear este recurso.'}</p>
         <div style={{display:'flex',flexDirection:'column',gap:10,marginBottom:28,textAlign:'left'}}>
           {['IA ilimitada','Simulados completos OAB','Radar TigerJus','Trilhas personalizadas','Mapas mentais e PDFs'].map((l,i)=>(
             <div key={i} style={{display:'flex',alignItems:'center',gap:12,background:'rgba(212,168,67,0.06)',border:'1px solid rgba(212,168,67,0.12)',borderRadius:10,padding:'12px 16px',fontSize:13}}>
@@ -274,9 +260,7 @@ function PremiumGate({ onClose, onUpgrade }: { onClose:()=>void; onUpgrade:()=>v
             </div>
           ))}
         </div>
-        <button className="btn-primary" style={{width:'100%',marginBottom:12,fontSize:15,padding:16}} onClick={onUpgrade}>
-          🚀 {settings.cta_upgrade_button || 'VER PLANOS'}
-        </button>
+        <button className="btn-primary" style={{width:'100%',marginBottom:12,fontSize:15,padding:16}} onClick={onUpgrade}>🚀 {settings.cta_upgrade_button||'VER PLANOS'}</button>
         <button className="btn-secondary" style={{width:'100%',fontSize:12}} onClick={onClose}>{settings.cta_downgrade_button||'Continuar no plano gratuito'}</button>
         <div style={{marginTop:16,fontSize:11,color:'var(--text-dim)'}}>{settings.upgrade_footer_text||'A partir de R$1,99/mês · Cancele quando quiser'}</div>
       </div>
@@ -286,49 +270,31 @@ function PremiumGate({ onClose, onUpgrade }: { onClose:()=>void; onUpgrade:()=>v
 
 function DashHome({ profile, onNav, showUpgrade, isPago, canAccessPremium, onOpenRadar }: any) {
   const { settings: dashSettings } = useAppSettings()
-  const xp=profile?.xp||0
-  const levelName=(profile?.level_name||'Filhote') as LevelName
-  const streak=profile?.streak||0
-  const xpNext=XP_NEXT[levelName]||1000
-  const xpPrev=XP_PREV[levelName]||0
+  const xp=profile?.xp||0; const levelName=(profile?.level_name||'Filhote') as LevelName
+  const streak=profile?.streak||0; const xpNext=XP_NEXT[levelName]||1000; const xpPrev=XP_PREV[levelName]||0
   const pct=Math.min(100,Math.round(((xp-xpPrev)/(xpNext-xpPrev))*100))
-  const questoes=profile?.questoes_respondidas||0
-  const corretas=profile?.questoes_corretas||0
+  const questoes=profile?.questoes_respondidas||0; const corretas=profile?.questoes_corretas||0
   const taxa=questoes>0?Math.round((corretas/questoes)*100):0
-
   return(
     <div style={{padding:'24px 20px',flex:1,overflowY:'auto',maxWidth:'100%'}}>
       <DashboardTopBanner/>
       <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',flexWrap:'wrap',gap:12,marginBottom:20}}>
         <div>
           <h1 style={{fontFamily:'var(--font-display)',fontSize:'clamp(22px,5vw,32px)',fontWeight:900,marginBottom:6}}>Olá, {profile?.nome?.split(' ')[0]||levelName}! 🔥</h1>
-          <p style={{fontSize:14,color:'var(--text-muted)'}}>
-            {streak>0?<>Sequência de <span style={{color:'var(--gold)'}}>{streak} dias</span>. Continue!</>:(dashSettings.dashboard_subtitle||'Comece seus estudos hoje.')}
-          </p>
+          <p style={{fontSize:14,color:'var(--text-muted)'}}>{streak>0?<>Sequência de <span style={{color:'var(--gold)'}}>{streak} dias</span>. Continue!</>:(dashSettings.dashboard_subtitle||'Comece seus estudos hoje.')}</p>
         </div>
         {streak>0&&<div style={{display:'inline-flex',alignItems:'center',gap:6,background:'rgba(232,98,26,0.1)',border:'1px solid rgba(232,98,26,0.25)',borderRadius:100,padding:'8px 16px',fontSize:13,fontWeight:700,color:'var(--orange)'}}>🔥 {streak} dias</div>}
       </div>
-
       <div style={{background:'linear-gradient(135deg,rgba(212,168,67,0.12),rgba(232,98,26,0.06))',border:'1px solid rgba(212,168,67,0.2)',borderRadius:20,padding:'24px',marginBottom:20,position:'relative',overflow:'hidden'}}>
         <div style={{position:'absolute',right:-16,top:-16,fontSize:100,opacity:0.04,pointerEvents:'none'}}>🐯</div>
         <div style={{fontSize:10,fontWeight:700,letterSpacing:'2.5px',textTransform:'uppercase',color:'var(--gold)',marginBottom:6}}>NÍVEL — {levelName.toUpperCase()}</div>
         <div style={{fontFamily:'var(--font-display)',fontSize:'clamp(20px,5vw,32px)',fontWeight:900,marginBottom:4}}><XPTooltip xp={xp} levelName={levelName}/></div>
         <div style={{fontSize:13,color:'var(--text-muted)',marginBottom:16}}>{xp<xpNext?`${(xpNext-xp).toLocaleString()} XP para o próximo nível 🏆`:'Nível máximo! 👑'}</div>
-        <div style={{background:'rgba(255,255,255,0.08)',borderRadius:100,height:8,overflow:'hidden'}}>
-          <div style={{width:`${pct}%`,height:'100%',background:'linear-gradient(90deg,var(--gold),var(--orange))',borderRadius:100,transition:'width 1s ease'}}/>
-        </div>
-        <div style={{display:'flex',justifyContent:'space-between',marginTop:6,fontSize:11,color:'var(--text-muted)'}}>
-          <span>{levelName}</span><span>{pct}%</span><span>Próximo</span>
-        </div>
+        <div style={{background:'rgba(255,255,255,0.08)',borderRadius:100,height:8,overflow:'hidden'}}><div style={{width:`${pct}%`,height:'100%',background:'linear-gradient(90deg,var(--gold),var(--orange))',borderRadius:100,transition:'width 1s ease'}}/></div>
+        <div style={{display:'flex',justifyContent:'space-between',marginTop:6,fontSize:11,color:'var(--text-muted)'}}><span>{levelName}</span><span>{pct}%</span><span>Próximo</span></div>
       </div>
-
       <div style={{display:'grid',gridTemplateColumns:'repeat(2,1fr)',gap:12,marginBottom:20}}>
-        {[
-          {label:'Questões',value:questoes.toLocaleString(),cls:'var(--gold)',sub:'respondidas'},
-          {label:'Taxa Acerto',value:`${taxa}%`,cls:'var(--success)',sub:'aproveitamento'},
-          {label:'Streak',value:`${streak} 🔥`,cls:'var(--orange)',sub:'dias seguidos'},
-          {label:'XP Total',value:xp.toLocaleString(),cls:'var(--gold)',sub:'pontos ganhos'},
-        ].map(s=>(
+        {[{label:'Questões',value:questoes.toLocaleString(),cls:'var(--gold)',sub:'respondidas'},{label:'Taxa Acerto',value:`${taxa}%`,cls:'var(--success)',sub:'aproveitamento'},{label:'Streak',value:`${streak} 🔥`,cls:'var(--orange)',sub:'dias seguidos'},{label:'XP Total',value:xp.toLocaleString(),cls:'var(--gold)',sub:'pontos ganhos'}].map(s=>(
           <div key={s.label} style={{background:'var(--gray)',border:'1px solid rgba(255,255,255,0.05)',borderRadius:14,padding:16}}>
             <div style={{fontSize:10,fontWeight:600,letterSpacing:'1.5px',textTransform:'uppercase',color:'var(--text-muted)',marginBottom:8}}>{s.label}</div>
             <div style={{fontFamily:'var(--font-display)',fontSize:'clamp(20px,5vw,28px)',fontWeight:900,color:s.cls}}>{s.value}</div>
@@ -336,20 +302,13 @@ function DashHome({ profile, onNav, showUpgrade, isPago, canAccessPremium, onOpe
           </div>
         ))}
       </div>
-
       <AdCardFeed/>
-
       <div style={{background:'linear-gradient(135deg,rgba(212,168,67,0.1),rgba(232,98,26,0.06))',border:'1px solid rgba(212,168,67,0.2)',borderRadius:16,padding:18,marginBottom:16,cursor:'pointer'}} onClick={()=>onNav('quiz')}>
         <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',flexWrap:'wrap',gap:10}}>
-          <div>
-            <div style={{fontSize:10,fontWeight:700,letterSpacing:2,textTransform:'uppercase',color:'var(--gold)',marginBottom:4}}>⚡ QUESTÃO DO DIA</div>
-            <div style={{fontWeight:700,fontSize:15}}>Penal — Teoria do Crime: Tipicidade</div>
-            <div style={{fontSize:12,color:'var(--text-muted)',marginTop:4}}>+150 XP bônus ao responder hoje</div>
-          </div>
+          <div><div style={{fontSize:10,fontWeight:700,letterSpacing:2,textTransform:'uppercase',color:'var(--gold)',marginBottom:4}}>⚡ QUESTÃO DO DIA</div><div style={{fontWeight:700,fontSize:15}}>Penal — Teoria do Crime: Tipicidade</div><div style={{fontSize:12,color:'var(--text-muted)',marginTop:4}}>+150 XP bônus ao responder hoje</div></div>
           <button className="btn-gold-sm">+150 XP</button>
         </div>
       </div>
-
       <div style={{background:canAccessPremium?'linear-gradient(135deg,rgba(58,143,232,0.1),rgba(212,168,67,0.06))':'linear-gradient(135deg,rgba(58,143,232,0.08),rgba(212,168,67,0.06))',border:`1px solid ${canAccessPremium?'rgba(58,143,232,0.25)':'rgba(58,143,232,0.2)'}`,borderRadius:16,padding:20,marginBottom:20,cursor:'pointer',transition:'all 0.2s'}}
         onClick={canAccessPremium?onOpenRadar:showUpgrade}
         onMouseEnter={e=>{e.currentTarget.style.transform='translateY(-2px)';e.currentTarget.style.boxShadow='0 8px 24px rgba(0,0,0,0.3)'}}
@@ -357,16 +316,10 @@ function DashHome({ profile, onNav, showUpgrade, isPago, canAccessPremium, onOpe
         <div style={{display:'flex',alignItems:'center',gap:12,marginBottom:8}}>
           <span style={{fontSize:20}}>🎯</span>
           <div style={{fontSize:16,fontWeight:700,flex:1}}>Radar TigerJus</div>
-          {canAccessPremium
-            ?<div style={{fontSize:9,fontWeight:800,letterSpacing:'1.5px',textTransform:'uppercase',background:'rgba(76,175,125,0.15)',border:'1px solid rgba(76,175,125,0.3)',color:'var(--success)',padding:'4px 10px',borderRadius:100}}>✓ ATIVO — CLIQUE</div>
-            :<div style={{fontSize:9,fontWeight:800,letterSpacing:'1.5px',textTransform:'uppercase',background:'rgba(212,168,67,0.1)',border:'1px solid rgba(212,168,67,0.2)',color:'var(--gold)',padding:'4px 10px',borderRadius:100}}>🔒 Premium</div>
-          }
+          {canAccessPremium?<div style={{fontSize:9,fontWeight:800,letterSpacing:'1.5px',textTransform:'uppercase',background:'rgba(76,175,125,0.15)',border:'1px solid rgba(76,175,125,0.3)',color:'var(--success)',padding:'4px 10px',borderRadius:100}}>✓ ATIVO — CLIQUE</div>:<div style={{fontSize:9,fontWeight:800,letterSpacing:'1.5px',textTransform:'uppercase',background:'rgba(212,168,67,0.1)',border:'1px solid rgba(212,168,67,0.2)',color:'var(--gold)',padding:'4px 10px',borderRadius:100}}>🔒 Premium</div>}
         </div>
-        <div style={{fontSize:13,color:'var(--text-muted)'}}>
-          {canAccessPremium?'Veja os 6 temas com maior probabilidade de cair no 47º Exame OAB →':'Temas com maior probabilidade de cair na próxima OAB.'}
-        </div>
+        <div style={{fontSize:13,color:'var(--text-muted)'}}>{canAccessPremium?'Veja os 6 temas com maior probabilidade de cair no 47º Exame OAB →':'Temas com maior probabilidade de cair na próxima OAB.'}</div>
       </div>
-
       <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:14}}>
         <h2 style={{fontFamily:'var(--font-display)',fontSize:'clamp(18px,4vw,22px)',fontWeight:900}}>Disciplinas em destaque</h2>
         <button style={{color:'var(--gold)',fontSize:13,border:'none',background:'none',cursor:'pointer'}} onClick={()=>onNav('disciplines')}>Ver todas →</button>
@@ -390,7 +343,7 @@ function DashHome({ profile, onNav, showUpgrade, isPago, canAccessPremium, onOpe
 }
 
 function QuizPage({ freeQ, setFreeQ, showUpgrade, onXp, profile, isPago }: any) {
-  const [disciplina,setDisciplina]=useState<string>('')
+  const [disciplina,setDisciplina]=useState('')
   const [modo,setModo]=useState<'Fácil'|'Médio'|'Difícil'>('Fácil')
   const [started,setStarted]=useState(false)
   const [questions,setQuestions]=useState<any[]>([])
@@ -406,7 +359,7 @@ function QuizPage({ freeQ, setFreeQ, showUpgrade, onXp, profile, isPago }: any) 
 
   useEffect(()=>{
     if(!started||answered||done)return
-    const t=setInterval(()=>setTime(p=>{if(p<=1){clearInterval(t);setAnswered(true);return 0;}return p-1}),1000)
+    const t=setInterval(()=>setTime(p=>{if(p<=1){clearInterval(t);setAnswered(true);return 0}return p-1}),1000)
     return()=>clearInterval(t)
   },[started,answered,done,cur])
 
@@ -423,7 +376,7 @@ function QuizPage({ freeQ, setFreeQ, showUpgrade, onXp, profile, isPago }: any) 
 
   const pick=(i:number)=>{
     if(answered)return
-    if(!isPago && freeQ<=0){showUpgrade();return}
+    if(!isPago&&freeQ<=0){showUpgrade();return}
     setSel(i);setAnswered(true)
     if(!isPago)setFreeQ((p:number)=>p-1)
     if(i===questions[cur].correct){setScore(p=>p+1);onXp('question_correct')}else onXp('question_wrong')
@@ -431,16 +384,12 @@ function QuizPage({ freeQ, setFreeQ, showUpgrade, onXp, profile, isPago }: any) 
   const next=()=>{if(cur+1>=questions.length){setDone(true);return}setCur(p=>p+1);setSel(null);setAnswered(false);setTime(MODO_TEMPO[modo])}
   const restart=()=>{setStarted(false);setDone(false);setScore(0);setCur(0)}
 
-  if(!started)return(
+  if(!started) return(
     <div style={{padding:'24px 20px',flex:1}}>
       <h1 style={{fontFamily:'var(--font-display)',fontSize:'clamp(22px,5vw,32px)',fontWeight:900,marginBottom:6}}>Quiz OAB 📝</h1>
       <p style={{fontSize:14,color:'var(--text-muted)',marginBottom:6}}>Questões reais dos exames 42º ao 46º da OAB.</p>
       <div style={{display:'inline-flex',alignItems:'center',gap:6,background:'rgba(212,168,67,0.08)',border:'1px solid rgba(212,168,67,0.2)',borderRadius:100,padding:'5px 12px',fontSize:11,color:'var(--gold)',marginBottom:24}}>📋 400 questões reais no banco</div>
-      {!isPago&&(
-        <div style={{background:'rgba(212,168,67,0.06)',border:'1px solid rgba(212,168,67,0.15)',borderRadius:12,padding:'12px 16px',marginBottom:20,fontSize:13,color:'var(--gold)'}}>
-          ⚡ Plano gratuito: <strong>{freeQ} questões restantes</strong>. Faça upgrade para questões ilimitadas.
-        </div>
-      )}
+      {!isPago&&<div style={{background:'rgba(212,168,67,0.06)',border:'1px solid rgba(212,168,67,0.15)',borderRadius:12,padding:'12px 16px',marginBottom:20,fontSize:13,color:'var(--gold)'}}>⚡ Plano gratuito: <strong>{freeQ} questões restantes</strong>. Faça upgrade para ilimitadas.</div>}
       <div style={{maxWidth:560,background:'var(--gray)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:20,padding:'24px'}}>
         <div style={{marginBottom:20}}>
           <label style={{fontSize:11,fontWeight:700,letterSpacing:'1.5px',textTransform:'uppercase',color:'var(--text-muted)',display:'block',marginBottom:10}}>Disciplina (opcional)</label>
@@ -450,22 +399,18 @@ function QuizPage({ freeQ, setFreeQ, showUpgrade, onXp, profile, isPago }: any) 
           </select>
         </div>
         <div style={{marginBottom:28}}>
-          <label style={{fontSize:11,fontWeight:700,letterSpacing:'1.5px',textTransform:'uppercase',color:'var(--text-muted)',display:'block',marginBottom:10}}>Modo — <span style={{color:'var(--gold)'}}>{modo} ({MODO_QTD[modo]} questões · {MODO_TEMPO[modo]}s por questão)</span></label>
+          <label style={{fontSize:11,fontWeight:700,letterSpacing:'1.5px',textTransform:'uppercase',color:'var(--text-muted)',display:'block',marginBottom:10}}>Modo — <span style={{color:'var(--gold)'}}>{modo} ({MODO_QTD[modo]} questões · {MODO_TEMPO[modo]}s/questão)</span></label>
           <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:8}}>
             {(['Fácil','Médio','Difícil'] as const).map(m=>(
-              <button key={m} onClick={()=>{if(m!=='Fácil'&&!isPago){showUpgrade();return}setModo(m)}} style={{padding:'12px 8px',borderRadius:10,border:modo===m?'1px solid rgba(212,168,67,0.5)':'1px solid rgba(255,255,255,0.08)',background:modo===m?'rgba(212,168,67,0.1)':'transparent',color:modo===m?'var(--gold)':m!=='Fácil'&&!isPago?'var(--text-dim)':'var(--text-muted)',fontSize:12,fontWeight:700,cursor:'pointer',fontFamily:'var(--font-body)',textAlign:'center',position:'relative'}}>
+              <button key={m} onClick={()=>{if(m!=='Fácil'&&!isPago){showUpgrade();return}setModo(m)}} style={{padding:'12px 8px',borderRadius:10,border:modo===m?'1px solid rgba(212,168,67,0.5)':'1px solid rgba(255,255,255,0.08)',background:modo===m?'rgba(212,168,67,0.1)':'transparent',color:modo===m?'var(--gold)':m!=='Fácil'&&!isPago?'var(--text-dim)':'var(--text-muted)',fontSize:12,fontWeight:700,cursor:'pointer',fontFamily:'var(--font-body)',textAlign:'center'}}>
                 <div>{m} {m!=='Fácil'&&!isPago&&'🔒'}</div>
                 <div style={{fontSize:10,marginTop:3,opacity:0.7}}>{MODO_QTD[m]}q · {MODO_TEMPO[m]}s/q</div>
               </button>
             ))}
           </div>
         </div>
-        <button className="btn-primary" style={{width:'100%',fontSize:15,padding:16}} onClick={startQuiz} disabled={loadingQ}>
-          {loadingQ?'⏳ Carregando...':'INICIAR QUIZ →'}
-        </button>
-        <div style={{marginTop:10,textAlign:'center',fontSize:12,color:'var(--text-muted)'}}>
-          {isPago?'✓ Ilimitado':freeQ>0?`${freeQ} grátis restantes`:'🔒 Limite atingido'}
-        </div>
+        <button className="btn-primary" style={{width:'100%',fontSize:15,padding:16}} onClick={startQuiz} disabled={loadingQ}>{loadingQ?'⏳ Carregando...':'INICIAR QUIZ →'}</button>
+        <div style={{marginTop:10,textAlign:'center',fontSize:12,color:'var(--text-muted)'}}>{isPago?'✓ Ilimitado':freeQ>0?`${freeQ} grátis restantes`:'🔒 Limite atingido'}</div>
       </div>
     </div>
   )
@@ -486,10 +431,7 @@ function QuizPage({ freeQ, setFreeQ, showUpgrade, onXp, profile, isPago }: any) 
             <div style={{fontSize:18,fontWeight:900,color:aprovado?'var(--success)':'var(--orange)',marginBottom:6}}>{aprovado?'✅ Na média OAB!':'❌ Abaixo da média OAB'}</div>
             <div style={{fontSize:13,color:'var(--text-muted)'}}>{aprovado?`${rate}% — acima dos 62,5% exigidos.`:`Precisa de ${Math.ceil(questions.length*0.625)} acertos.`}</div>
           </div>
-          <div style={{display:'flex',gap:12,justifyContent:'center'}}>
-            <button className="btn-primary" onClick={restart}>NOVO QUIZ</button>
-            <button className="btn-secondary" onClick={restart}>MUDAR MODO</button>
-          </div>
+          <div style={{display:'flex',gap:12,justifyContent:'center'}}><button className="btn-primary" onClick={restart}>NOVO QUIZ</button><button className="btn-secondary" onClick={restart}>MUDAR MODO</button></div>
         </div>
       </div>
     )
@@ -535,7 +477,7 @@ function IAPage({ freeIA, setFreeIA, showUpgrade, profile, isPago, iaIlimitada }
   const send=async(text?:string)=>{
     const msg=text||input.trim()
     if(!msg)return
-    if(!iaIlimitada && freeIA<=0){showUpgrade();return}
+    if(!iaIlimitada&&freeIA<=0){showUpgrade();return}
     setInput('')
     if(!iaIlimitada)setFreeIA((p:number)=>p-1)
     const newMsgs=[...msgs,{role:'user',text:msg}]
@@ -553,18 +495,9 @@ function IAPage({ freeIA, setFreeIA, showUpgrade, profile, isPago, iaIlimitada }
   return(
     <div style={{padding:'24px 20px',flex:1,display:'flex',flexDirection:'column'}}>
       <h1 style={{fontFamily:'var(--font-display)',fontSize:'clamp(22px,5vw,32px)',fontWeight:900,marginBottom:6}}>IA Jurídica 🤖</h1>
-      <p style={{fontSize:14,color:'var(--text-muted)',marginBottom:12}}>
-        Tutor inteligente 24/7. {iaIlimitada?<span style={{color:'var(--success)',fontWeight:700}}>Ilimitado</span>:freeIA>0?<span style={{color:'var(--gold)',fontWeight:700}}>{freeIA} perguntas restantes</span>:<span style={{color:'var(--danger)'}}>🔒 Limite atingido</span>}
-      </p>
-      {!iaIlimitada&&freeIA<=0&&(
-        <div style={{background:'rgba(232,66,26,0.08)',border:'1px solid rgba(232,66,26,0.2)',borderRadius:12,padding:'14px 16px',marginBottom:16,fontSize:13}}>
-          🔒 Você atingiu o limite de perguntas do plano gratuito.
-          <button onClick={showUpgrade} style={{color:'var(--gold)',background:'none',border:'none',cursor:'pointer',fontSize:13,fontFamily:'var(--font-body)',marginLeft:8,fontWeight:700}}>Fazer upgrade →</button>
-        </div>
-      )}
-      <div style={{display:'flex',gap:6,flexWrap:'wrap',marginBottom:14}}>
-        {chips.map(c=><button key={c} onClick={()=>send(c)} style={{background:'rgba(212,168,67,0.06)',border:'1px solid rgba(212,168,67,0.14)',borderRadius:100,padding:'5px 12px',fontSize:11,color:'var(--text-muted)',cursor:'pointer',fontFamily:'var(--font-body)'}}>{c}</button>)}
-      </div>
+      <p style={{fontSize:14,color:'var(--text-muted)',marginBottom:12}}>Tutor inteligente 24/7. {iaIlimitada?<span style={{color:'var(--success)',fontWeight:700}}>Ilimitado</span>:freeIA>0?<span style={{color:'var(--gold)',fontWeight:700}}>{freeIA} perguntas restantes</span>:<span style={{color:'var(--danger)'}}>🔒 Limite atingido</span>}</p>
+      {!iaIlimitada&&freeIA<=0&&(<div style={{background:'rgba(232,66,26,0.08)',border:'1px solid rgba(232,66,26,0.2)',borderRadius:12,padding:'14px 16px',marginBottom:16,fontSize:13}}>🔒 Limite atingido.<button onClick={showUpgrade} style={{color:'var(--gold)',background:'none',border:'none',cursor:'pointer',fontSize:13,fontFamily:'var(--font-body)',marginLeft:8,fontWeight:700}}>Fazer upgrade →</button></div>)}
+      <div style={{display:'flex',gap:6,flexWrap:'wrap',marginBottom:14}}>{chips.map(c=><button key={c} onClick={()=>send(c)} style={{background:'rgba(212,168,67,0.06)',border:'1px solid rgba(212,168,67,0.14)',borderRadius:100,padding:'5px 12px',fontSize:11,color:'var(--text-muted)',cursor:'pointer',fontFamily:'var(--font-body)'}}>{c}</button>)}</div>
       <div style={{flex:1,background:'var(--gray)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:20,overflow:'hidden',display:'flex',flexDirection:'column',minHeight:350}}>
         <div style={{flex:1,overflowY:'auto',display:'flex',flexDirection:'column',gap:14,padding:20}}>
           {msgs.map((m,i)=>(
@@ -588,131 +521,159 @@ function IAPage({ freeIA, setFreeIA, showUpgrade, profile, isPago, iaIlimitada }
 function ResumoRenderer({ texto }: { texto: string }) {
   const linhas = texto.split('\n')
   return (
-    <div style={{fontSize:14, lineHeight:1.9, color:'var(--text-muted)'}}>
-      {linhas.map((linha, i) => {
+    <div style={{fontSize:14,lineHeight:1.9,color:'var(--text-muted)'}}>
+      {linhas.map((linha,i) => {
         const trim = linha.trim()
         if (!trim) return <div key={i} style={{height:8}}/>
         if (trim === trim.toUpperCase() && trim.length > 4 && !trim.startsWith('-') && !trim.startsWith('•'))
           return <div key={i} style={{fontFamily:'var(--font-display)',fontSize:16,fontWeight:900,color:'var(--white)',marginTop:i>0?20:0,marginBottom:8,letterSpacing:0.3}}>{trim}</div>
         if (trim.startsWith('- ') || trim.startsWith('• '))
-          return (
-            <div key={i} style={{display:'flex',gap:8,marginBottom:4,paddingLeft:4}}>
-              <span style={{color:'var(--gold)',flexShrink:0,marginTop:2}}>▸</span>
-              <span>{trim.replace(/^[-•]\s/,'')}</span>
-            </div>
-          )
+          return (<div key={i} style={{display:'flex',gap:8,marginBottom:4,paddingLeft:4}}><span style={{color:'var(--gold)',flexShrink:0,marginTop:2}}>▸</span><span>{trim.replace(/^[-•]\s/,'')}</span></div>)
         return <div key={i} style={{marginBottom:4}}>{trim}</div>
       })}
     </div>
   )
 }
 
-function ResumoSection({ disc, onNav }: { disc: any; onNav: (tab: string) => void }) {
-  const [estado, setEstado] = useState<'loading'|'banco'|'local'|'vazio'>('loading')
-  const [texto, setTexto] = useState('')
-  const [resumoCurto, setResumoCurto] = useState('')
-  const fetchingRef = useRef(false)
-  const cacheRef = useRef<Map<string, {texto:string; curto:string; fonte:'banco'|'local'|'vazio'}>>(new Map())
+// CHANGE 1 & 2: ResumoSection — isPago/showUpgrade props + blur gate para usuários free
+function ResumoSection({ disc, onNav, isPago = false, showUpgrade }: { disc: any; onNav: (tab: string) => void; isPago?: boolean; showUpgrade?: () => void }) {
+  const [estado,setEstado]=useState<'loading'|'banco'|'local'|'vazio'>('loading')
+  const [texto,setTexto]=useState('')
+  const [resumoCurto,setResumoCurto]=useState('')
+  const fetchingRef=useRef(false)
+  const cacheRef=useRef<Map<string,{texto:string;curto:string;fonte:'banco'|'local'|'vazio'}>>(new Map())
 
-  useEffect(() => {
-    setEstado('loading'); setTexto(''); setResumoCurto('')
-
-    const cached = cacheRef.current.get(disc.slug)
-    if (cached) { setTexto(cached.texto); setResumoCurto(cached.curto); setEstado(cached.fonte); return }
-
-    if (fetchingRef.current) return
-    fetchingRef.current = true
-
-    const carregar = async () => {
-      try {
-        const { data } = await supabase
-          .from('discipline_summaries')
-          .select('resumo, resumo_curto, tipo, tags, nivel_dificuldade')
-          .eq('disciplina_slug', disc.slug)
-          .eq('ativo', true)
-          .maybeSingle()
-
-        if (data?.resumo) {
-          const entry = { texto: data.resumo, curto: data.resumo_curto || '', fonte: 'banco' as const }
-          cacheRef.current.set(disc.slug, entry)
-          setTexto(entry.texto); setResumoCurto(entry.curto); setEstado('banco')
-          return
+  useEffect(()=>{
+    setEstado('loading');setTexto('');setResumoCurto('')
+    const cached=cacheRef.current.get(disc.slug)
+    if(cached){setTexto(cached.texto);setResumoCurto(cached.curto);setEstado(cached.fonte);return}
+    if(fetchingRef.current)return
+    fetchingRef.current=true
+    const carregar=async()=>{
+      try{
+        const{data}=await supabase.from('discipline_summaries').select('resumo,resumo_curto,tipo,tags,nivel_dificuldade').eq('disciplina_slug',disc.slug).eq('ativo',true).maybeSingle()
+        if(data?.resumo){
+          const entry={texto:data.resumo,curto:data.resumo_curto||'',fonte:'banco' as const}
+          cacheRef.current.set(disc.slug,entry);setTexto(entry.texto);setResumoCurto(entry.curto);setEstado('banco');return
         }
-
-        const local = RESUMOS[disc.slug]
-        if (local) {
-          const entry = { texto: local, curto: '', fonte: 'local' as const }
-          cacheRef.current.set(disc.slug, entry)
-          setTexto(local); setResumoCurto(''); setEstado('local')
-          return
+        const local=RESUMOS[disc.slug]
+        if(local){
+          const entry={texto:local,curto:'',fonte:'local' as const}
+          cacheRef.current.set(disc.slug,entry);setTexto(local);setResumoCurto('');setEstado('local');return
         }
-
-        cacheRef.current.set(disc.slug, { texto:'', curto:'', fonte:'vazio' })
-        setEstado('vazio')
-      } catch {
-        setEstado('vazio')
-      } finally {
-        fetchingRef.current = false
-      }
+        cacheRef.current.set(disc.slug,{texto:'',curto:'',fonte:'vazio'});setEstado('vazio')
+      }catch{setEstado('vazio')}
+      finally{fetchingRef.current=false}
     }
     carregar()
-  }, [disc.slug])
+  },[disc.slug])
 
-  if (estado === 'loading') return (
+  if(estado==='loading') return(
     <div style={{background:'var(--gray)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:20,padding:24}}>
-      {[90,70,80,60,75].map((w,i) => (
-        <div key={i} style={{height:14,borderRadius:6,marginBottom:12,background:'rgba(255,255,255,0.06)',width:`${w}%`,animation:'pulse 1.5s infinite'}}/>
-      ))}
+      {[90,70,80,60,75].map((w,i)=><div key={i} style={{height:14,borderRadius:6,marginBottom:12,background:'rgba(255,255,255,0.06)',width:`${w}%`,animation:'pulse 1.5s infinite'}}/>)}
       <style>{`@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}`}</style>
     </div>
   )
 
-  if (estado === 'vazio') return (
+  if(estado==='vazio') return(
     <div style={{background:'var(--gray)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:20,padding:32,textAlign:'center'}}>
       <div style={{fontSize:40,marginBottom:14}}>📖</div>
-      <h3 style={{fontFamily:'var(--font-display)',fontSize:18,fontWeight:900,marginBottom:8,color:'var(--white)'}}>
-        Resumo em preparação
-      </h3>
-      <p style={{fontSize:13,color:'var(--text-muted)',lineHeight:1.7,marginBottom:24,maxWidth:380,margin:'0 auto 24px'}}>
-        O resumo de <strong style={{color:'var(--gold)'}}>{disc.name}</strong> ainda está sendo elaborado.
-        Enquanto isso, pratique com as questões disponíveis.
-      </p>
+      <h3 style={{fontFamily:'var(--font-display)',fontSize:18,fontWeight:900,marginBottom:8,color:'var(--white)'}}>Resumo em preparação</h3>
+      <p style={{fontSize:13,color:'var(--text-muted)',lineHeight:1.7,marginBottom:24,maxWidth:380,margin:'0 auto 24px'}}>O resumo de <strong style={{color:'var(--gold)'}}>{disc.name}</strong> ainda está sendo elaborado.</p>
       <div style={{display:'flex',gap:10,justifyContent:'center',flexWrap:'wrap'}}>
-        <button className="btn-primary" style={{fontSize:13}} onClick={() => onNav('quiz')}>
-          📝 Fazer Quiz
-        </button>
-        <button className="btn-secondary" style={{fontSize:13}} onClick={() => onNav('flash')}>
-          🃏 Ver Flashcards
-        </button>
-        <button className="btn-secondary" style={{fontSize:13}} onClick={() => onNav('ia')}>
-          🤖 Perguntar à IA
-        </button>
+        <button className="btn-primary" style={{fontSize:13}} onClick={()=>onNav('quiz')}>📝 Fazer Quiz</button>
+        <button className="btn-secondary" style={{fontSize:13}} onClick={()=>onNav('flash')}>🃏 Ver Flashcards</button>
+        <button className="btn-secondary" style={{fontSize:13}} onClick={()=>onNav('ia')}>🤖 Perguntar à IA</button>
       </div>
     </div>
   )
 
-  return (
+  return(
     <div>
-      {resumoCurto && (
-        <div style={{background:'rgba(212,168,67,0.06)',border:'1px solid rgba(212,168,67,0.15)',borderRadius:12,padding:'12px 16px',marginBottom:16,fontSize:13,color:'var(--gold)',lineHeight:1.6}}>
-          {resumoCurto}
-        </div>
-      )}
+      {resumoCurto&&<div style={{background:'rgba(212,168,67,0.06)',border:'1px solid rgba(212,168,67,0.15)',borderRadius:12,padding:'12px 16px',marginBottom:16,fontSize:13,color:'var(--gold)',lineHeight:1.6}}>{resumoCurto}</div>}
       <div style={{background:'var(--gray)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:20,padding:'24px'}}>
-        <ResumoRenderer texto={texto} />
-        {estado === 'local' && (
-          <div style={{marginTop:16,paddingTop:14,borderTop:'1px solid rgba(255,255,255,0.06)',fontSize:11,color:'var(--text-dim)'}}>
-            📌 Resumo base · Atualizado conforme novas provas são adicionadas.
+        {!isPago?(
+          <div style={{position:'relative'}}>
+            <div style={{maxHeight:300,overflow:'hidden'}}><ResumoRenderer texto={texto}/></div>
+            <div style={{position:'absolute',bottom:0,left:0,right:0,height:160,background:'linear-gradient(to bottom,transparent,var(--gray))',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'flex-end',padding:'0 16px 20px'}}>
+              <p style={{fontSize:11,color:'var(--text-muted)',marginBottom:10,textAlign:'center'}}>Resumo completo disponível a partir de R$1,99/mês</p>
+              <button className="btn-primary" style={{fontSize:12,padding:'10px 22px'}} onClick={showUpgrade}>🔒 Desbloquear resumo completo</button>
+            </div>
           </div>
+        ):(
+          <ResumoRenderer texto={texto}/>
         )}
+        {estado==='local'&&isPago&&<div style={{marginTop:16,paddingTop:14,borderTop:'1px solid rgba(255,255,255,0.06)',fontSize:11,color:'var(--text-dim)'}}>📌 Resumo base · Atualizado conforme novas provas são adicionadas.</div>}
       </div>
     </div>
   )
 }
 
+// CHANGE 3: LeisecaSection — novo componente, gratuito para todos
+function LeisecaSection({ disc, onNav }: { disc: any; onNav?: (tab: string) => void }) {
+  const [estado,setEstado]=useState<'loading'|'ok'|'vazio'>('loading')
+  const [texto,setTexto]=useState('')
+  const fetchingRef=useRef(false)
+  const cacheRef=useRef<Map<string,string>>(new Map())
+
+  useEffect(()=>{
+    setEstado('loading');setTexto('')
+    const cached=cacheRef.current.get(disc.slug)
+    if(cached!==undefined){setTexto(cached);setEstado(cached?'ok':'vazio');return}
+    if(fetchingRef.current)return
+    fetchingRef.current=true
+    const carregar=async()=>{
+      try{
+        const{data}=await supabase.from('discipline_summaries').select('resumo_memorizacao').eq('disciplina_slug',disc.slug).eq('ativo',true).maybeSingle()
+        const text=data?.resumo_memorizacao||''
+        cacheRef.current.set(disc.slug,text);setTexto(text);setEstado(text?'ok':'vazio')
+      }catch{setEstado('vazio')}
+      finally{fetchingRef.current=false}
+    }
+    carregar()
+  },[disc.slug])
+
+  if(estado==='loading') return(
+    <div style={{background:'var(--gray)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:20,padding:24}}>
+      {[90,70,80,60,75].map((w,i)=><div key={i} style={{height:14,borderRadius:6,marginBottom:12,background:'rgba(255,255,255,0.06)',width:`${w}%`,animation:'pulse 1.5s infinite'}}/>)}
+    </div>
+  )
+
+  if(estado==='vazio') return(
+    <div style={{background:'var(--gray)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:20,padding:32,textAlign:'center'}}>
+      <div style={{fontSize:40,marginBottom:14}}>📌</div>
+      <h3 style={{fontFamily:'var(--font-display)',fontSize:18,fontWeight:900,marginBottom:8,color:'var(--white)'}}>Lei Seca em preparação</h3>
+      <p style={{fontSize:13,color:'var(--text-muted)',lineHeight:1.7,maxWidth:360,margin:'0 auto 24px'}}>O resumo de memorização de <strong style={{color:'var(--gold)'}}>{disc.name}</strong> está sendo elaborado. Em breve disponível.</p>
+      <div style={{display:'flex',gap:10,justifyContent:'center',flexWrap:'wrap'}}>
+        <button className="btn-primary" style={{fontSize:12}} onClick={()=>onNav?.('quiz')}>📝 Fazer Quiz</button>
+        <button className="btn-secondary" style={{fontSize:12}} onClick={()=>onNav?.('ia')}>🤖 Perguntar à IA</button>
+      </div>
+    </div>
+  )
+
+  return(
+    <div>
+      <div style={{background:'linear-gradient(135deg,rgba(212,168,67,0.1),rgba(232,98,26,0.05))',border:'1px solid rgba(212,168,67,0.2)',borderRadius:12,padding:'10px 16px',marginBottom:14,display:'flex',alignItems:'center',justifyContent:'space-between',flexWrap:'wrap',gap:8}}>
+        <div style={{display:'flex',alignItems:'center',gap:10}}>
+          <span style={{fontSize:18}}>📌</span>
+          <div>
+            <div style={{fontSize:10,fontWeight:800,letterSpacing:'2.5px',textTransform:'uppercase',color:'var(--gold)'}}>RESUMO TIGERJUS — LEI SECA</div>
+            <div style={{fontSize:11,color:'var(--text-muted)'}}>Fixação rápida · Artigos e lei seca</div>
+          </div>
+        </div>
+        <div style={{fontSize:9,fontWeight:900,letterSpacing:'1.5px',background:'rgba(76,175,125,0.15)',border:'1px solid rgba(76,175,125,0.3)',color:'var(--success)',padding:'4px 10px',borderRadius:100}}>✓ GRÁTIS</div>
+      </div>
+      <div style={{background:'var(--gray)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:20,padding:'24px'}}>
+        <ResumoRenderer texto={texto}/>
+      </div>
+    </div>
+  )
+}
+
+// CHANGE 4: DisciplinesPage — aba 'leiseca' adicionada, isPago/showUpgrade passados para ResumoSection
 function DisciplinesPage({ showUpgrade, profile, isPago, canAccessPremium, podePDF }: any) {
   const [selected,setSelected]=useState<any>(null)
-  const [subTab,setSubTab]=useState<'resumo'|'quiz'|'flash'|'pdf'>('resumo')
+  const [subTab,setSubTab]=useState<'resumo'|'quiz'|'flash'|'pdf'|'leiseca'>('resumo')
   const [gerandoPDF,setGerandoPDF]=useState(false)
 
   const handlePDF=async(disc:any)=>{
@@ -725,56 +686,40 @@ function DisciplinesPage({ showUpgrade, profile, isPago, canAccessPremium, podeP
     }finally{setGerandoPDF(false)}
   }
 
-  const navTab = (tab: string) => {
-    if (tab === 'ia') { return }
-    setSubTab(tab as any)
-  }
+  const navTab=(tab:string)=>{if(tab==='ia'){return}setSubTab(tab as any)}
 
-  if(selected){
-    return(
-      <div style={{padding:'24px 20px',flex:1}}>
-        <button onClick={()=>setSelected(null)} style={{display:'flex',alignItems:'center',gap:8,color:'var(--text-muted)',fontSize:13,border:'none',background:'none',cursor:'pointer',marginBottom:20,fontFamily:'var(--font-body)'}}>← Voltar</button>
-        <div style={{display:'flex',alignItems:'center',gap:14,marginBottom:20}}>
-          <span style={{fontSize:36}}>{selected.icon}</span>
-          <div>
-            <h1 style={{fontFamily:'var(--font-display)',fontSize:'clamp(20px,5vw,28px)',fontWeight:900}}>{selected.name}</h1>
-            <p style={{fontSize:12,color:'var(--text-muted)'}}>{selected.q} questões · {selected.progress}% concluído</p>
-          </div>
+  if(selected) return(
+    <div style={{padding:'24px 20px',flex:1}}>
+      <button onClick={()=>setSelected(null)} style={{display:'flex',alignItems:'center',gap:8,color:'var(--text-muted)',fontSize:13,border:'none',background:'none',cursor:'pointer',marginBottom:20,fontFamily:'var(--font-body)'}}>← Voltar</button>
+      <div style={{display:'flex',alignItems:'center',gap:14,marginBottom:20}}>
+        <span style={{fontSize:36}}>{selected.icon}</span>
+        <div>
+          <h1 style={{fontFamily:'var(--font-display)',fontSize:'clamp(20px,5vw,28px)',fontWeight:900}}>{selected.name}</h1>
+          <p style={{fontSize:12,color:'var(--text-muted)'}}>{selected.q} questões · {selected.progress}% concluído</p>
         </div>
-        <div style={{display:'flex',gap:8,marginBottom:20,flexWrap:'wrap'}}>
-          {(['resumo','quiz','flash','pdf'] as const).map(t=>(
-            <button key={t} onClick={()=>setSubTab(t)} style={{padding:'9px 18px',borderRadius:10,border:subTab===t?'1px solid rgba(212,168,67,0.4)':'1px solid rgba(255,255,255,0.08)',background:subTab===t?'rgba(212,168,67,0.1)':'transparent',color:subTab===t?'var(--gold)':'var(--text-muted)',fontSize:12,fontWeight:600,cursor:'pointer',fontFamily:'var(--font-body)'}}>
-              {t==='resumo'?'📖 Resumo':t==='quiz'?'📝 Quiz':t==='flash'?'🃏 Flashcards':podePDF?'📄 PDF':'🔒 PDF'}
-            </button>
-          ))}
-        </div>
-        {subTab==='resumo'&&<ResumoSection disc={selected} onNav={navTab}/>}
-        {subTab==='quiz'&&<QuizDisciplina disciplina={selected.name}/>}
-        {subTab==='flash'&&<FlashCards disciplina={selected.name}/>}
-        {subTab==='pdf'&&(
-          <div style={{background:'var(--gray)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:20,padding:40,textAlign:'center'}}>
-            {podePDF?(
-              <>
-                <div style={{fontSize:44,marginBottom:14}}>📄</div>
-                <h3 style={{fontFamily:'var(--font-display)',fontSize:20,fontWeight:900,marginBottom:8}}>PDF — {selected.name}</h3>
-                <p style={{color:'var(--text-muted)',marginBottom:24,fontSize:14}}>Resumo essencial + questões OAB reais com gabarito comentado.</p>
-                <button className="btn-primary" onClick={()=>handlePDF(selected)} disabled={gerandoPDF} style={{minWidth:220,fontSize:14}}>
-                  {gerandoPDF?'⏳ Gerando PDF...':'📄 GERAR E BAIXAR PDF'}
-                </button>
-              </>
-            ):(
-              <>
-                <div style={{fontSize:44,marginBottom:14}}>🔒</div>
-                <h3 style={{fontFamily:'var(--font-display)',fontSize:20,fontWeight:900,marginBottom:8}}>PDF — Recurso Pago</h3>
-                <p style={{color:'var(--text-muted)',marginBottom:24,fontSize:14}}>Faça upgrade para gerar PDFs com resumos e questões OAB.</p>
-                <button className="btn-primary" onClick={showUpgrade} style={{minWidth:220,fontSize:14}}>🚀 VER PLANOS</button>
-              </>
-            )}
-          </div>
-        )}
       </div>
-    )
-  }
+      <div style={{display:'flex',gap:8,marginBottom:20,flexWrap:'wrap'}}>
+        {(['leiseca','resumo','quiz','flash','pdf'] as const).map(t=>(
+          <button key={t} onClick={()=>setSubTab(t)} style={{padding:'9px 18px',borderRadius:10,border:subTab===t?'1px solid rgba(212,168,67,0.4)':'1px solid rgba(255,255,255,0.08)',background:subTab===t?'rgba(212,168,67,0.1)':'transparent',color:subTab===t?'var(--gold)':'var(--text-muted)',fontSize:12,fontWeight:600,cursor:'pointer',fontFamily:'var(--font-body)'}}>
+            {t==='leiseca'?'⚡ Lei Seca':t==='resumo'?'📖 Resumo':t==='quiz'?'📝 Quiz':t==='flash'?'🃏 Flashcards':podePDF?'📄 PDF':'🔒 PDF'}
+          </button>
+        ))}
+      </div>
+      {subTab==='leiseca'&&<LeisecaSection disc={selected} onNav={navTab}/>}
+      {subTab==='resumo'&&<ResumoSection disc={selected} onNav={navTab} isPago={isPago} showUpgrade={showUpgrade}/>}
+      {subTab==='quiz'&&<QuizDisciplina disciplina={selected.name}/>}
+      {subTab==='flash'&&<FlashCards disciplina={selected.name}/>}
+      {subTab==='pdf'&&(
+        <div style={{background:'var(--gray)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:20,padding:40,textAlign:'center'}}>
+          {podePDF?(
+            <><div style={{fontSize:44,marginBottom:14}}>📄</div><h3 style={{fontFamily:'var(--font-display)',fontSize:20,fontWeight:900,marginBottom:8}}>PDF — {selected.name}</h3><p style={{color:'var(--text-muted)',marginBottom:24,fontSize:14}}>Resumo essencial + questões OAB reais com gabarito comentado.</p><button className="btn-primary" onClick={()=>handlePDF(selected)} disabled={gerandoPDF} style={{minWidth:220,fontSize:14}}>{gerandoPDF?'⏳ Gerando PDF...':'📄 GERAR E BAIXAR PDF'}</button></>
+          ):(
+            <><div style={{fontSize:44,marginBottom:14}}>🔒</div><h3 style={{fontFamily:'var(--font-display)',fontSize:20,fontWeight:900,marginBottom:8}}>PDF — Recurso Pago</h3><p style={{color:'var(--text-muted)',marginBottom:24,fontSize:14}}>Faça upgrade para gerar PDFs com resumos e questões OAB.</p><button className="btn-primary" onClick={showUpgrade} style={{minWidth:220,fontSize:14}}>🚀 VER PLANOS</button></>
+          )}
+        </div>
+      )}
+    </div>
+  )
 
   return(
     <div style={{padding:'24px 20px',flex:1}}>
@@ -799,485 +744,214 @@ function DisciplinesPage({ showUpgrade, profile, isPago, canAccessPremium, podeP
 }
 
 const DISCIPLINA_ALIASES: Record<string, string[]> = {
-  'Constitucional':   ['Direito Constitucional', 'Constitucional'],
-  'Administrativo':   ['Direito Administrativo', 'Administrativo'],
-  'Penal':            ['Direito Penal', 'Penal'],
-  'Processo Penal':   ['Direito Processual Penal', 'Processo Penal', 'Processual Penal'],
-  'Civil':            ['Direito Civil', 'Civil'],
-  'Processo Civil':   ['Direito Processual Civil', 'Processo Civil', 'Processual Civil'],
-  'Trabalho':         ['Direito do Trabalho', 'Trabalho', 'Direito Trabalhista'],
-  'Proc. Trabalho':   ['Direito Processual do Trabalho', 'Processo do Trabalho', 'Proc. Trabalho', 'Processual do Trabalho'],
-  'Tributário':       ['Direito Tributário', 'Tributário'],
-  'Empresarial':      ['Direito Empresarial', 'Empresarial', 'Direito Comercial'],
-  'Ética OAB':        ['Ética e Estatuto da OAB', 'Ética OAB', 'Ética', 'Estatuto da OAB', 'Ética Profissional'],
-  'Consumidor':       ['Direito do Consumidor', 'Consumidor', 'CDC'],
-  'Direitos Humanos': ['Direitos Humanos', 'Direito Internacional dos Direitos Humanos'],
-  'Ambiental':        ['Direito Ambiental', 'Ambiental'],
-  'Filosofia':        ['Filosofia do Direito', 'Filosofia', 'Sociologia Jurídica'],
-  'Internacional':    ['Direito Internacional', 'Direito Internacional Público', 'Direito Internacional Privado', 'Internacional'],
-  'ECA':              ['Direito da Criança e do Adolescente', 'ECA', 'Estatuto da Criança e do Adolescente', 'Direito da Criança'],
+  'Constitucional':['Direito Constitucional','Constitucional'],
+  'Administrativo':['Direito Administrativo','Administrativo'],
+  'Penal':['Direito Penal','Penal'],
+  'Processo Penal':['Direito Processual Penal','Processo Penal','Processual Penal'],
+  'Civil':['Direito Civil','Civil'],
+  'Processo Civil':['Direito Processual Civil','Processo Civil','Processual Civil'],
+  'Trabalho':['Direito do Trabalho','Trabalho','Direito Trabalhista'],
+  'Proc. Trabalho':['Direito Processual do Trabalho','Processo do Trabalho','Proc. Trabalho','Processual do Trabalho'],
+  'Tributário':['Direito Tributário','Tributário'],
+  'Empresarial':['Direito Empresarial','Empresarial','Direito Comercial'],
+  'Ética OAB':['Ética e Estatuto da OAB','Ética OAB','Ética','Estatuto da OAB','Ética Profissional'],
+  'Consumidor':['Direito do Consumidor','Consumidor','CDC'],
+  'Direitos Humanos':['Direitos Humanos','Direito Internacional dos Direitos Humanos'],
+  'Ambiental':['Direito Ambiental','Ambiental'],
+  'Filosofia':['Filosofia do Direito','Filosofia','Sociologia Jurídica'],
+  'Internacional':['Direito Internacional','Direito Internacional Público','Direito Internacional Privado','Internacional'],
+  'ECA':['Direito da Criança e do Adolescente','ECA','Estatuto da Criança e do Adolescente','Direito da Criança'],
 }
+function getDisciplinaAliases(disciplina:string):string[]{return DISCIPLINA_ALIASES[disciplina]??[disciplina]}
 
-function getDisciplinaAliases(disciplina: string): string[] {
-  return DISCIPLINA_ALIASES[disciplina] ?? [disciplina]
-}
-
-function FlashCardsPage() {
-  const [disciplinaAtiva, setDisciplinaAtiva] = useState<string|null>(null)
-
-  if (!disciplinaAtiva) return (
-    <div style={{padding:'24px 20px', flex:1}}>
-      <h1 style={{fontFamily:'var(--font-display)', fontSize:'clamp(22px,5vw,32px)', fontWeight:900, marginBottom:6}}>
-        Flashcards 🃏
-      </h1>
-      <p style={{fontSize:14, color:'var(--text-muted)', marginBottom:24}}>
-        Escolha uma disciplina para revisar com flashcards gerados das questões reais da OAB.
-      </p>
-      <div style={{display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(160px,1fr))', gap:12}}>
-        {DISCIPLINES.map(d => (
-          <div
-            key={d.id}
-            style={{background:'var(--gray)', border:'1px solid rgba(255,255,255,0.05)', borderRadius:14, padding:16, cursor:'pointer', transition:'all 0.2s'}}
-            onClick={() => setDisciplinaAtiva(d.name)}
-            onMouseEnter={e => { e.currentTarget.style.borderColor='rgba(212,168,67,0.2)'; e.currentTarget.style.transform='translateY(-2px)' }}
-            onMouseLeave={e => { e.currentTarget.style.borderColor='rgba(255,255,255,0.05)'; e.currentTarget.style.transform='translateY(0)' }}
-          >
-            <div style={{fontSize:28, marginBottom:10}}>{d.icon}</div>
-            <div style={{fontSize:13, fontWeight:700, marginBottom:4}}>{d.name}</div>
-            <div style={{fontSize:11, color:'var(--text-muted)', marginBottom:10}}>{d.q} questões</div>
-            <div style={{display:'inline-flex', alignItems:'center', gap:5, fontSize:11, color:'var(--gold)', fontWeight:600}}>
-              🃏 Ver flashcards →
-            </div>
+function FlashCardsPage(){
+  const [disciplinaAtiva,setDisciplinaAtiva]=useState<string|null>(null)
+  if(!disciplinaAtiva) return(
+    <div style={{padding:'24px 20px',flex:1}}>
+      <h1 style={{fontFamily:'var(--font-display)',fontSize:'clamp(22px,5vw,32px)',fontWeight:900,marginBottom:6}}>Flashcards 🃏</h1>
+      <p style={{fontSize:14,color:'var(--text-muted)',marginBottom:24}}>Escolha uma disciplina para revisar com flashcards gerados das questões reais da OAB.</p>
+      <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(160px,1fr))',gap:12}}>
+        {DISCIPLINES.map(d=>(
+          <div key={d.id} style={{background:'var(--gray)',border:'1px solid rgba(255,255,255,0.05)',borderRadius:14,padding:16,cursor:'pointer',transition:'all 0.2s'}}
+            onClick={()=>setDisciplinaAtiva(d.name)}
+            onMouseEnter={e=>{e.currentTarget.style.borderColor='rgba(212,168,67,0.2)';e.currentTarget.style.transform='translateY(-2px)'}}
+            onMouseLeave={e=>{e.currentTarget.style.borderColor='rgba(255,255,255,0.05)';e.currentTarget.style.transform='translateY(0)'}}>
+            <div style={{fontSize:28,marginBottom:10}}>{d.icon}</div>
+            <div style={{fontSize:13,fontWeight:700,marginBottom:4}}>{d.name}</div>
+            <div style={{fontSize:11,color:'var(--text-muted)',marginBottom:10}}>{d.q} questões</div>
+            <div style={{display:'inline-flex',alignItems:'center',gap:5,fontSize:11,color:'var(--gold)',fontWeight:600}}>🃏 Ver flashcards →</div>
           </div>
         ))}
       </div>
     </div>
   )
-
-  return (
-    <div style={{padding:'24px 20px', flex:1}}>
-      <button
-        onClick={() => setDisciplinaAtiva(null)}
-        style={{display:'flex', alignItems:'center', gap:8, color:'var(--text-muted)', fontSize:13, border:'none', background:'none', cursor:'pointer', marginBottom:20, fontFamily:'var(--font-body)'}}
-      >
-        ← Voltar às disciplinas
-      </button>
-      <div style={{display:'flex', alignItems:'center', gap:14, marginBottom:24}}>
-        <span style={{fontSize:36}}>
-          {DISCIPLINES.find(d => d.name === disciplinaAtiva)?.icon || '🃏'}
-        </span>
-        <div>
-          <h1 style={{fontFamily:'var(--font-display)', fontSize:'clamp(20px,5vw,28px)', fontWeight:900}}>
-            {disciplinaAtiva}
-          </h1>
-          <p style={{fontSize:12, color:'var(--text-muted)'}}>Flashcards gerados das questões OAB</p>
-        </div>
+  return(
+    <div style={{padding:'24px 20px',flex:1}}>
+      <button onClick={()=>setDisciplinaAtiva(null)} style={{display:'flex',alignItems:'center',gap:8,color:'var(--text-muted)',fontSize:13,border:'none',background:'none',cursor:'pointer',marginBottom:20,fontFamily:'var(--font-body)'}}>← Voltar às disciplinas</button>
+      <div style={{display:'flex',alignItems:'center',gap:14,marginBottom:24}}>
+        <span style={{fontSize:36}}>{DISCIPLINES.find(d=>d.name===disciplinaAtiva)?.icon||'🃏'}</span>
+        <div><h1 style={{fontFamily:'var(--font-display)',fontSize:'clamp(20px,5vw,28px)',fontWeight:900}}>{disciplinaAtiva}</h1><p style={{fontSize:12,color:'var(--text-muted)'}}>Flashcards gerados das questões OAB</p></div>
       </div>
       <FlashCards disciplina={disciplinaAtiva}/>
     </div>
   )
 }
 
-function QuizDisciplina({disciplina}:{disciplina:string}) {
-  const [questions, setQuestions] = useState<any[]>([])
-  const [loading, setLoading] = useState(true)
-  const [erro, setErro] = useState(false)
-  const [started, setStarted] = useState(false)
-  const [cur, setCur] = useState(0)
-  const [sel, setSel] = useState<number|null>(null)
-  const [answered, setAnswered] = useState(false)
-  const [score, setScore] = useState(0)
-  const [done, setDone] = useState(false)
-  const [time, setTime] = useState(90)
-  const fetchingRef = useRef(false)
-  const cacheRef = useRef<Map<string, any[]>>(new Map())
+function QuizDisciplina({disciplina}:{disciplina:string}){
+  const [questions,setQuestions]=useState<any[]>([])
+  const [loading,setLoading]=useState(true)
+  const [erro,setErro]=useState(false)
+  const [started,setStarted]=useState(false)
+  const [cur,setCur]=useState(0)
+  const [sel,setSel]=useState<number|null>(null)
+  const [answered,setAnswered]=useState(false)
+  const [score,setScore]=useState(0)
+  const [done,setDone]=useState(false)
+  const [time,setTime]=useState(90)
+  const fetchingRef=useRef(false)
+  const cacheRef=useRef<Map<string,any[]>>(new Map())
 
-  useEffect(() => {
-    setStarted(false); setDone(false); setScore(0); setCur(0)
-    setSel(null); setAnswered(false); setErro(false)
-
-    const cached = cacheRef.current.get(disciplina)
-    if (cached) { setQuestions(cached); setLoading(false); return }
-
-    if (fetchingRef.current) return
-    fetchingRef.current = true
-    setLoading(true)
-
-    const carregar = async () => {
-      try {
-        const aliases = getDisciplinaAliases(disciplina)
-        let data: any[] | null = null
-        let error: any = null
-
-        for (const alias of aliases) {
-          const res = await supabase
-            .from('questoes_oab')
-            .select('id,disciplina,enunciado,opcao_a,opcao_b,opcao_c,opcao_d,resposta_correta,comentario')
-            .eq('disciplina', alias)
-            .neq('resposta_correta', '*')
-          if (!res.error && res.data && res.data.length > 0) {
-            data = res.data; error = null; break
-          }
-          error = res.error
+  useEffect(()=>{
+    setStarted(false);setDone(false);setScore(0);setCur(0);setSel(null);setAnswered(false);setErro(false)
+    const cached=cacheRef.current.get(disciplina)
+    if(cached){setQuestions(cached);setLoading(false);return}
+    if(fetchingRef.current)return
+    fetchingRef.current=true;setLoading(true)
+    const carregar=async()=>{
+      try{
+        const aliases=getDisciplinaAliases(disciplina);let data:any[]=[];let error:any=null
+        for(const alias of aliases){
+          const res=await supabase.from('questoes_oab').select('id,disciplina,enunciado,opcao_a,opcao_b,opcao_c,opcao_d,resposta_correta,comentario').eq('disciplina',alias).neq('resposta_correta','*')
+          if(!res.error&&res.data&&res.data.length>0){data=res.data;error=null;break}
+          error=res.error
         }
-
-        if (!error && (!data || data.length === 0)) {
-          const token = aliases[0].split(' ')[0]
-          const fb = await supabase
-            .from('questoes_oab')
-            .select('id,disciplina,enunciado,opcao_a,opcao_b,opcao_c,opcao_d,resposta_correta,comentario')
-            .ilike('disciplina', `%${token}%`)
-            .neq('resposta_correta', '*')
-          data = fb.data; error = fb.error
+        if(!error&&data.length===0){
+          const token=aliases[0].split(' ')[0]
+          const fb=await supabase.from('questoes_oab').select('id,disciplina,enunciado,opcao_a,opcao_b,opcao_c,opcao_d,resposta_correta,comentario').ilike('disciplina',`%${token}%`).neq('resposta_correta','*')
+          data=fb.data||[];error=fb.error
         }
-
-        if (error) { setErro(true); return }
-
-        const shuffled = [...(data||[])].sort(() => Math.random() - 0.5).slice(0, 20)
-        const formatted = shuffled.map((q:any) => ({
-          id: q.id, disc: q.disciplina, q: q.enunciado,
-          opts: [q.opcao_a, q.opcao_b, q.opcao_c, q.opcao_d],
-          correct: ['A','B','C','D'].indexOf(q.resposta_correta),
-          exp: q.comentario || '',
-        }))
-        cacheRef.current.set(disciplina, formatted)
-        setQuestions(formatted)
-      } catch { setErro(true) }
-      finally { setLoading(false); fetchingRef.current = false }
+        if(error){setErro(true);return}
+        const shuffled=[...data].sort(()=>Math.random()-0.5).slice(0,20)
+        const formatted=shuffled.map((q:any)=>({id:q.id,disc:q.disciplina,q:q.enunciado,opts:[q.opcao_a,q.opcao_b,q.opcao_c,q.opcao_d],correct:['A','B','C','D'].indexOf(q.resposta_correta),exp:q.comentario||''}))
+        cacheRef.current.set(disciplina,formatted);setQuestions(formatted)
+      }catch{setErro(true)}
+      finally{setLoading(false);fetchingRef.current=false}
     }
     carregar()
-  }, [disciplina])
+  },[disciplina])
 
-  useEffect(() => {
-    if (!started || answered || done) return
-    const t = setInterval(() => setTime(p => {
-      if (p <= 1) { clearInterval(t); setAnswered(true); return 0 }
-      return p - 1
-    }), 1000)
-    return () => clearInterval(t)
-  }, [started, answered, done, cur])
+  useEffect(()=>{
+    if(!started||answered||done)return
+    const t=setInterval(()=>setTime(p=>{if(p<=1){clearInterval(t);setAnswered(true);return 0}return p-1}),1000)
+    return()=>clearInterval(t)
+  },[started,answered,done,cur])
 
-  const pick = (i: number) => {
-    if (answered) return
-    setSel(i); setAnswered(true)
-    if (i === questions[cur].correct) setScore(p => p + 1)
-  }
+  const pick=(i:number)=>{if(answered)return;setSel(i);setAnswered(true);if(i===questions[cur].correct)setScore(p=>p+1)}
+  const next=()=>{if(cur+1>=questions.length){setDone(true);return}setCur(p=>p+1);setSel(null);setAnswered(false);setTime(90)}
 
-  const next = () => {
-    if (cur + 1 >= questions.length) { setDone(true); return }
-    setCur(p => p + 1); setSel(null); setAnswered(false); setTime(90)
-  }
+  if(loading) return(<div style={{padding:'40px 0',textAlign:'center'}}><div style={{fontSize:36,marginBottom:12}}>⏳</div><div style={{fontSize:13,color:'var(--text-muted)'}}>Carregando questões de <strong style={{color:'var(--gold)'}}>{disciplina}</strong>...</div></div>)
+  if(erro) return(<div style={{padding:'40px 0',textAlign:'center'}}><div style={{fontSize:36,marginBottom:12}}>⚠️</div><div style={{fontSize:14,fontWeight:700,marginBottom:8}}>Não foi possível carregar.</div><button className="btn-secondary" style={{fontSize:12}} onClick={()=>{cacheRef.current.delete(disciplina);fetchingRef.current=false;setErro(false);setLoading(true)}}>🔄 Tentar novamente</button></div>)
+  if(questions.length===0) return(<div style={{padding:'40px 0',textAlign:'center'}}><div style={{fontSize:40,marginBottom:12}}>📝</div><div style={{fontSize:14,fontWeight:700,marginBottom:8}}>Nenhuma questão disponível</div><div style={{fontSize:12,color:'var(--text-muted)'}}>As questões de <strong style={{color:'var(--gold)'}}>{disciplina}</strong> estão sendo preparadas.</div></div>)
 
-  const restart = () => {
-    cacheRef.current.delete(disciplina)
-    fetchingRef.current = false
-    setStarted(false); setDone(false); setScore(0); setCur(0)
-    setSel(null); setAnswered(false); setLoading(true); setErro(false)
-    const carregar = async () => {
-      try {
-        const aliases = getDisciplinaAliases(disciplina)
-        let data: any[] | null = null
-        let error: any = null
-        for (const alias of aliases) {
-          const res = await supabase
-            .from('questoes_oab')
-            .select('id,disciplina,enunciado,opcao_a,opcao_b,opcao_c,opcao_d,resposta_correta,comentario')
-            .eq('disciplina', alias).neq('resposta_correta', '*')
-          if (!res.error && res.data && res.data.length > 0) { data = res.data; error = null; break }
-          error = res.error
-        }
-        if (!error && (!data || data.length === 0)) {
-          const fb = await supabase
-            .from('questoes_oab')
-            .select('id,disciplina,enunciado,opcao_a,opcao_b,opcao_c,opcao_d,resposta_correta,comentario')
-            .ilike('disciplina', `%${getDisciplinaAliases(disciplina)[0].split(' ')[0]}%`).neq('resposta_correta', '*')
-          data = fb.data; error = fb.error
-        }
-        if (error) { setErro(true); return }
-        const shuffled = [...(data||[])].sort(() => Math.random() - 0.5).slice(0, 20)
-        const formatted = shuffled.map((q:any) => ({
-          id: q.id, disc: q.disciplina, q: q.enunciado,
-          opts: [q.opcao_a, q.opcao_b, q.opcao_c, q.opcao_d],
-          correct: ['A','B','C','D'].indexOf(q.resposta_correta),
-          exp: q.comentario || '',
-        }))
-        cacheRef.current.set(disciplina, formatted)
-        setQuestions(formatted)
-      } catch { setErro(true) }
-      finally { setLoading(false) }
-    }
-    carregar()
-  }
-
-  if (loading) return (
-    <div style={{padding:'40px 0', textAlign:'center'}}>
-      <div style={{fontSize:36, marginBottom:12}}>⏳</div>
-      <div style={{fontSize:13, color:'var(--text-muted)'}}>
-        Carregando questões de <strong style={{color:'var(--gold)'}}>{disciplina}</strong>...
-      </div>
-    </div>
-  )
-
-  if (erro) return (
-    <div style={{padding:'40px 0', textAlign:'center'}}>
-      <div style={{fontSize:36, marginBottom:12}}>⚠️</div>
-      <div style={{fontSize:14, fontWeight:700, marginBottom:8}}>Não foi possível carregar as questões.</div>
-      <div style={{fontSize:12, color:'var(--text-muted)', marginBottom:20}}>Verifique sua conexão e tente novamente.</div>
-      <button className="btn-secondary" style={{fontSize:12}} onClick={() => {
-        cacheRef.current.delete(disciplina); fetchingRef.current = false
-        setErro(false); setLoading(true)
-      }}>🔄 Tentar novamente</button>
-    </div>
-  )
-
-  if (questions.length === 0) return (
-    <div style={{padding:'40px 0', textAlign:'center'}}>
-      <div style={{fontSize:40, marginBottom:12}}>📝</div>
-      <div style={{fontSize:14, fontWeight:700, marginBottom:8}}>Nenhuma questão disponível</div>
-      <div style={{fontSize:12, color:'var(--text-muted)'}}>
-        As questões de <strong style={{color:'var(--gold)'}}>{disciplina}</strong> ainda estão sendo preparadas.
-      </div>
-    </div>
-  )
-
-  if (!started) return (
+  if(!started) return(
     <div style={{maxWidth:560}}>
-      <div style={{background:'var(--gray)', border:'1px solid rgba(255,255,255,0.06)', borderRadius:20, padding:24}}>
-        <div style={{fontSize:10, fontWeight:700, letterSpacing:'2px', textTransform:'uppercase', color:'var(--gold)', marginBottom:12}}>
-          📝 QUIZ — {disciplina.toUpperCase()}
-        </div>
-        <div style={{fontSize:28, fontWeight:900, fontFamily:'var(--font-display)', marginBottom:8}}>
-          {questions.length} questões
-        </div>
-        <div style={{fontSize:13, color:'var(--text-muted)', marginBottom:24, lineHeight:1.6}}>
-          Questões reais da OAB filtradas por <strong style={{color:'var(--gold)'}}>{disciplina}</strong>. 90 segundos por questão.
-        </div>
-        <button className="btn-primary" style={{width:'100%', fontSize:14, padding:14}} onClick={() => { setStarted(true); setTime(90) }}>
-          INICIAR QUIZ →
-        </button>
+      <div style={{background:'var(--gray)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:20,padding:24}}>
+        <div style={{fontSize:10,fontWeight:700,letterSpacing:'2px',textTransform:'uppercase',color:'var(--gold)',marginBottom:12}}>📝 QUIZ — {disciplina.toUpperCase()}</div>
+        <div style={{fontSize:28,fontWeight:900,fontFamily:'var(--font-display)',marginBottom:8}}>{questions.length} questões</div>
+        <div style={{fontSize:13,color:'var(--text-muted)',marginBottom:24,lineHeight:1.6}}>Questões reais da OAB de <strong style={{color:'var(--gold)'}}>{disciplina}</strong>. 90 segundos por questão.</div>
+        <button className="btn-primary" style={{width:'100%',fontSize:14,padding:14}} onClick={()=>{setStarted(true);setTime(90)}}>INICIAR QUIZ →</button>
       </div>
     </div>
   )
 
-  if (done) {
-    const rate = Math.round((score / questions.length) * 100)
-    const aprovado = score >= Math.ceil(questions.length * 0.625)
-    return (
-      <div style={{maxWidth:560, textAlign:'center'}}>
-        <div style={{fontSize:54, marginBottom:16}}>{aprovado ? '🏆' : rate >= 50 ? '📝' : '💪'}</div>
-        <h2 style={{fontFamily:'var(--font-display)', fontSize:26, fontWeight:900, marginBottom:8}}>Quiz Concluído!</h2>
-        <p style={{fontSize:13, color:'var(--text-muted)', marginBottom:20}}>
-          {score} de {questions.length} corretas · {disciplina}
-        </p>
-        <div style={{background:aprovado?'rgba(76,175,125,0.1)':'rgba(232,98,26,0.1)', border:`1px solid ${aprovado?'var(--success)':'var(--orange)'}`, borderRadius:14, padding:16, marginBottom:20}}>
-          <div style={{fontSize:16, fontWeight:900, color:aprovado?'var(--success)':'var(--orange)', marginBottom:4}}>
-            {aprovado ? '✅ Na média OAB!' : '❌ Abaixo da média OAB'}
-          </div>
-          <div style={{fontSize:12, color:'var(--text-muted)'}}>
-            {aprovado ? `${rate}% — acima dos 62,5% exigidos.` : `Precisava de ${Math.ceil(questions.length * 0.625)} acertos.`}
-          </div>
-        </div>
-        <button className="btn-primary" style={{width:'100%'}} onClick={restart}>
-          🔄 NOVO QUIZ
-        </button>
-      </div>
-    )
+  if(done){
+    const rate=Math.round((score/questions.length)*100);const aprovado=score>=Math.ceil(questions.length*0.625)
+    return(<div style={{maxWidth:560,textAlign:'center'}}><div style={{fontSize:54,marginBottom:16}}>{aprovado?'🏆':rate>=50?'📝':'💪'}</div><h2 style={{fontFamily:'var(--font-display)',fontSize:26,fontWeight:900,marginBottom:8}}>Quiz Concluído!</h2><p style={{fontSize:13,color:'var(--text-muted)',marginBottom:20}}>{score} de {questions.length} corretas · {disciplina}</p><div style={{background:aprovado?'rgba(76,175,125,0.1)':'rgba(232,98,26,0.1)',border:`1px solid ${aprovado?'var(--success)':'var(--orange)'}`,borderRadius:14,padding:16,marginBottom:20}}><div style={{fontSize:16,fontWeight:900,color:aprovado?'var(--success)':'var(--orange)',marginBottom:4}}>{aprovado?'✅ Na média OAB!':'❌ Abaixo da média OAB'}</div><div style={{fontSize:12,color:'var(--text-muted)'}}>{aprovado?`${rate}% — acima dos 62,5% exigidos.`:`Precisava de ${Math.ceil(questions.length*0.625)} acertos.`}</div></div><button className="btn-primary" style={{width:'100%'}} onClick={()=>{cacheRef.current.delete(disciplina);fetchingRef.current=false;setStarted(false);setDone(false);setScore(0);setCur(0);setSel(null);setAnswered(false);setLoading(true)}}>🔄 NOVO QUIZ</button></div>)
   }
 
-  const q = questions[cur]
-  const pct = Math.round(((cur + (answered ? 1 : 0)) / questions.length) * 100)
-
-  return (
+  const q=questions[cur];const pct=Math.round(((cur+(answered?1:0))/questions.length)*100)
+  return(
     <div style={{maxWidth:680}}>
-      <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:12}}>
-        <div style={{fontSize:12, color:'var(--text-muted)'}}>Q{cur+1}/{questions.length} · {disciplina}</div>
-        <div style={{fontFamily:'var(--font-mono)', fontSize:16, fontWeight:700, color:time<20?'var(--danger)':'var(--gold)'}}>
-          {String(Math.floor(time/60)).padStart(2,'0')}:{String(time%60).padStart(2,'0')}
-        </div>
-      </div>
-      <div style={{background:'rgba(255,255,255,0.06)', borderRadius:100, height:4, marginBottom:20, overflow:'hidden'}}>
-        <div style={{width:`${pct}%`, height:'100%', background:'linear-gradient(90deg,var(--gold),var(--orange))', borderRadius:100, transition:'width 0.4s'}}/>
-      </div>
-      <div style={{background:'var(--gray)', border:'1px solid rgba(255,255,255,0.06)', borderRadius:20, padding:'22px'}}>
-        <div style={{display:'flex', gap:8, marginBottom:14}}>
-          <span style={{fontSize:10, fontWeight:700, letterSpacing:2, textTransform:'uppercase', color:'var(--gold)'}}>{q.disc}</span>
-          <span style={{fontSize:10, color:'var(--text-muted)'}}>· OAB Oficial</span>
-        </div>
-        <div style={{fontSize:'clamp(14px,3vw,17px)', fontWeight:600, lineHeight:1.7, marginBottom:20}}>{q.q}</div>
-        <div style={{display:'flex', flexDirection:'column', gap:10}}>
-          {q.opts.map((opt:string, i:number) => {
-            let bg='rgba(255,255,255,0.03)', bc='rgba(255,255,255,0.08)', color='var(--white)'
-            if (answered) {
-              if (i === q.correct) { bg='rgba(76,175,125,0.1)'; bc='var(--success)'; color='var(--success)' }
-              else if (i === sel) { bg='rgba(232,66,26,0.1)'; bc='var(--danger)'; color='var(--danger)' }
-            }
-            return (
-              <button key={i} onClick={() => pick(i)} style={{display:'flex', alignItems:'flex-start', gap:12, background:bg, border:`1px solid ${bc}`, borderRadius:12, padding:'12px 14px', cursor:'pointer', transition:'all 0.2s', textAlign:'left', width:'100%', fontFamily:'var(--font-body)', fontSize:'clamp(13px,2.5vw,14px)', color}}>
-                <span style={{width:26, height:26, borderRadius:'50%', flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center', fontSize:11, fontWeight:800, background:'rgba(255,255,255,0.06)', color:'var(--white)'}}>{String.fromCharCode(65+i)}</span>
-                <span style={{flex:1}}>{opt}</span>
-              </button>
-            )
+      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:12}}><div style={{fontSize:12,color:'var(--text-muted)'}}>Q{cur+1}/{questions.length} · {disciplina}</div><div style={{fontFamily:'var(--font-mono)',fontSize:16,fontWeight:700,color:time<20?'var(--danger)':'var(--gold)'}}>{String(Math.floor(time/60)).padStart(2,'0')}:{String(time%60).padStart(2,'0')}</div></div>
+      <div style={{background:'rgba(255,255,255,0.06)',borderRadius:100,height:4,marginBottom:20,overflow:'hidden'}}><div style={{width:`${pct}%`,height:'100%',background:'linear-gradient(90deg,var(--gold),var(--orange))',borderRadius:100,transition:'width 0.4s'}}/></div>
+      <div style={{background:'var(--gray)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:20,padding:'22px'}}>
+        <div style={{display:'flex',gap:8,marginBottom:14}}><span style={{fontSize:10,fontWeight:700,letterSpacing:2,textTransform:'uppercase',color:'var(--gold)'}}>{q.disc}</span><span style={{fontSize:10,color:'var(--text-muted)'}}>· OAB Oficial</span></div>
+        <div style={{fontSize:'clamp(14px,3vw,17px)',fontWeight:600,lineHeight:1.7,marginBottom:20}}>{q.q}</div>
+        <div style={{display:'flex',flexDirection:'column',gap:10}}>
+          {q.opts.map((opt:string,i:number)=>{
+            let bg='rgba(255,255,255,0.03)',bc='rgba(255,255,255,0.08)',color='var(--white)'
+            if(answered){if(i===q.correct){bg='rgba(76,175,125,0.1)';bc='var(--success)';color='var(--success)'}else if(i===sel){bg='rgba(232,66,26,0.1)';bc='var(--danger)';color='var(--danger)'}}
+            return(<button key={i} onClick={()=>pick(i)} style={{display:'flex',alignItems:'flex-start',gap:12,background:bg,border:`1px solid ${bc}`,borderRadius:12,padding:'12px 14px',cursor:'pointer',transition:'all 0.2s',textAlign:'left',width:'100%',fontFamily:'var(--font-body)',fontSize:'clamp(13px,2.5vw,14px)',color}}><span style={{width:26,height:26,borderRadius:'50%',flexShrink:0,display:'flex',alignItems:'center',justifyContent:'center',fontSize:11,fontWeight:800,background:'rgba(255,255,255,0.06)',color:'var(--white)'}}>{String.fromCharCode(65+i)}</span><span style={{flex:1}}>{opt}</span></button>)
           })}
         </div>
-        {answered && q.exp && (
-          <div style={{marginTop:18, padding:14, background:'rgba(212,168,67,0.06)', border:'1px solid rgba(212,168,67,0.15)', borderRadius:12, fontSize:13, lineHeight:1.7, color:'var(--text-muted)'}}>
-            {sel === q.correct ? '✅ ' : '❌ '}
-            <strong style={{color:'var(--gold)'}}>{sel === q.correct ? 'Correto!' : 'Incorreto.'}</strong> {q.exp}
-          </div>
-        )}
-        {answered && (
-          <button className="btn-primary" style={{width:'100%', marginTop:16}} onClick={next}>
-            {cur + 1 >= questions.length ? 'VER RESULTADO' : 'PRÓXIMA →'}
-          </button>
-        )}
+        {answered&&q.exp&&<div style={{marginTop:18,padding:14,background:'rgba(212,168,67,0.06)',border:'1px solid rgba(212,168,67,0.15)',borderRadius:12,fontSize:13,lineHeight:1.7,color:'var(--text-muted)'}}>{sel===q.correct?'✅ ':'❌ '}<strong style={{color:'var(--gold)'}}>{sel===q.correct?'Correto!':'Incorreto.'}</strong> {q.exp}</div>}
+        {answered&&<button className="btn-primary" style={{width:'100%',marginTop:16}} onClick={next}>{cur+1>=questions.length?'VER RESULTADO':'PRÓXIMA →'}</button>}
       </div>
     </div>
   )
 }
 
-function FlashCards({disciplina}:{disciplina:string}) {
-  const [cards, setCards] = useState<{id:string; frente:string; verso:string}[]>([])
-  const [loading, setLoading] = useState(true)
-  const [erro, setErro] = useState(false)
-  const [idx, setIdx] = useState(0)
-  const [flipped, setFlipped] = useState(false)
-  const fetchingRef = useRef(false)
-  const cacheRef = useRef<Map<string, {id:string; frente:string; verso:string}[]>>(new Map())
+function FlashCards({disciplina}:{disciplina:string}){
+  const [cards,setCards]=useState<{id:string;frente:string;verso:string}[]>([])
+  const [loading,setLoading]=useState(true)
+  const [erro,setErro]=useState(false)
+  const [idx,setIdx]=useState(0)
+  const [flipped,setFlipped]=useState(false)
+  const fetchingRef=useRef(false)
+  const cacheRef=useRef<Map<string,{id:string;frente:string;verso:string}[]>>(new Map())
 
-  useEffect(() => {
-    setIdx(0); setFlipped(false); setErro(false)
-
-    const cached = cacheRef.current.get(disciplina)
-    if (cached) { setCards(cached); setLoading(false); return }
-
-    if (fetchingRef.current) return
-    fetchingRef.current = true
-    setLoading(true)
-
-    const carregar = async () => {
-      try {
-        const aliases = getDisciplinaAliases(disciplina)
-        let data: any[] | null = null
-        let error: any = null
-
-        for (const alias of aliases) {
-          const res = await supabase
-            .from('flashcards')
-            .select('id, frente, verso')
-            .eq('disciplina', alias)
-            .eq('ativo', true)
-            .order('created_at', { ascending: true })
-            .limit(50)
-          if (!res.error && res.data && res.data.length > 0) {
-            data = res.data; error = null; break
-          }
-          error = res.error
+  useEffect(()=>{
+    setIdx(0);setFlipped(false);setErro(false)
+    const cached=cacheRef.current.get(disciplina)
+    if(cached){setCards(cached);setLoading(false);return}
+    if(fetchingRef.current)return
+    fetchingRef.current=true;setLoading(true)
+    const carregar=async()=>{
+      try{
+        const aliases=getDisciplinaAliases(disciplina);let data:any[]=[];let error:any=null
+        for(const alias of aliases){
+          const res=await supabase.from('flashcards').select('id,frente,verso').eq('disciplina',alias).eq('ativo',true).order('created_at',{ascending:true}).limit(50)
+          if(!res.error&&res.data&&res.data.length>0){data=res.data;error=null;break}
+          error=res.error
         }
-
-        if (!error && (!data || data.length === 0)) {
-          const token = aliases[0].split(' ')[0]
-          const fb = await supabase
-            .from('flashcards')
-            .select('id, frente, verso')
-            .ilike('disciplina', `%${token}%`)
-            .eq('ativo', true)
-            .limit(50)
-          data = fb.data; error = fb.error
+        if(!error&&data.length===0){
+          const fb=await supabase.from('flashcards').select('id,frente,verso').ilike('disciplina',`%${getDisciplinaAliases(disciplina)[0].split(' ')[0]}%`).eq('ativo',true).limit(50)
+          data=fb.data||[];error=fb.error
         }
-
-        if (error) { setErro(true); return }
-        const resultado = (data || []).map((c: any) => ({ id: c.id, frente: c.frente, verso: c.verso }))
-        cacheRef.current.set(disciplina, resultado)
-        setCards(resultado)
-      } catch { setErro(true) }
-      finally { setLoading(false); fetchingRef.current = false }
+        if(error){setErro(true);return}
+        const resultado=data.map((c:any)=>({id:c.id,frente:c.frente,verso:c.verso}))
+        cacheRef.current.set(disciplina,resultado);setCards(resultado)
+      }catch{setErro(true)}
+      finally{setLoading(false);fetchingRef.current=false}
     }
     carregar()
-  }, [disciplina])
+  },[disciplina])
 
-  if (loading) return (
-    <div style={{maxWidth:560, padding:'40px 0', textAlign:'center'}}>
-      <div style={{fontSize:36, marginBottom:12}}>⏳</div>
-      <div style={{fontSize:13, color:'var(--text-muted)'}}>
-        Carregando flashcards de <strong style={{color:'var(--gold)'}}>{disciplina}</strong>...
-      </div>
-    </div>
-  )
+  if(loading) return(<div style={{maxWidth:560,padding:'40px 0',textAlign:'center'}}><div style={{fontSize:36,marginBottom:12}}>⏳</div><div style={{fontSize:13,color:'var(--text-muted)'}}>Carregando flashcards de <strong style={{color:'var(--gold)'}}>{disciplina}</strong>...</div></div>)
+  if(erro) return(<div style={{maxWidth:560,padding:'40px 0',textAlign:'center'}}><div style={{fontSize:36,marginBottom:12}}>⚠️</div><div style={{fontSize:14,fontWeight:700,marginBottom:8,color:'var(--white)'}}>Não foi possível carregar.</div><button className="btn-secondary" style={{fontSize:12}} onClick={()=>{cacheRef.current.delete(disciplina);fetchingRef.current=false;setErro(false);setLoading(true)}}>🔄 Tentar novamente</button></div>)
+  if(cards.length===0) return(<div style={{maxWidth:560,padding:'40px 0',textAlign:'center'}}><div style={{fontSize:40,marginBottom:12}}>🃏</div><div style={{fontSize:14,fontWeight:700,marginBottom:8,color:'var(--white)'}}>Nenhum flashcard disponível</div><div style={{fontSize:12,color:'var(--text-muted)',lineHeight:1.6}}>Os flashcards de <strong style={{color:'var(--gold)'}}>{disciplina}</strong> estão sendo preparados.</div></div>)
 
-  if (erro) return (
-    <div style={{maxWidth:560, padding:'40px 0', textAlign:'center'}}>
-      <div style={{fontSize:36, marginBottom:12}}>⚠️</div>
-      <div style={{fontSize:14, fontWeight:700, marginBottom:8, color:'var(--white)'}}>Não foi possível carregar os flashcards.</div>
-      <div style={{fontSize:12, color:'var(--text-muted)', marginBottom:20}}>Verifique sua conexão e tente novamente.</div>
-      <button className="btn-secondary" style={{fontSize:12}} onClick={() => {
-        cacheRef.current.delete(disciplina); fetchingRef.current = false; setErro(false); setLoading(true)
-      }}>🔄 Tentar novamente</button>
-    </div>
-  )
-
-  if (cards.length === 0) return (
-    <div style={{maxWidth:560, padding:'40px 0', textAlign:'center'}}>
-      <div style={{fontSize:40, marginBottom:12}}>🃏</div>
-      <div style={{fontSize:14, fontWeight:700, marginBottom:8, color:'var(--white)'}}>Nenhum flashcard disponível</div>
-      <div style={{fontSize:12, color:'var(--text-muted)', lineHeight:1.6}}>
-        Os flashcards de <strong style={{color:'var(--gold)'}}>{disciplina}</strong> ainda estão sendo preparados.
-      </div>
-    </div>
-  )
-
-  const card = cards[idx]
-
-  return (
+  const card=cards[idx]
+  return(
     <div style={{maxWidth:580}}>
-      <div style={{marginBottom:14, display:'flex', alignItems:'center', justifyContent:'space-between'}}>
-        <div style={{fontSize:13, color:'var(--text-muted)'}}>
-          Card {idx+1} de {cards.length} · <span style={{color:'var(--gold)'}}>{disciplina}</span>
-        </div>
-        <div style={{fontSize:11, color:'var(--text-muted)'}}>{flipped ? '👁️ Resposta' : '❓ Pergunta'}</div>
-      </div>
-
-      <div style={{perspective:1000, marginBottom:20, cursor:'pointer'}} onClick={() => setFlipped(f => !f)}>
-        <div style={{position:'relative', transformStyle:'preserve-3d', transition:'transform 0.6s', transform: flipped ? 'rotateY(180deg)' : 'rotateY(0)'}}>
-
-          <div style={{
-            backfaceVisibility:'hidden',
-            background:'var(--gray)', border:'1px solid rgba(212,168,67,0.2)',
-            borderRadius:20, padding:'24px 24px 20px',
-            minHeight:180,
-            display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', textAlign:'center',
-          }}>
-            <div style={{fontSize:10, fontWeight:700, letterSpacing:2, textTransform:'uppercase', color:'var(--gold)', marginBottom:12}}>PERGUNTA</div>
-            <div style={{
-              fontSize:14, fontWeight:600, lineHeight:1.7, color:'var(--white)',
-              whiteSpace:'pre-wrap', wordBreak:'break-word', overflowWrap:'anywhere',
-              maxHeight:280, overflowY:'auto', width:'100%',
-            }}>{card.frente}</div>
-            <div style={{marginTop:14, fontSize:11, color:'var(--text-muted)', flexShrink:0}}>Toque para ver a resposta</div>
+      <div style={{marginBottom:14,display:'flex',alignItems:'center',justifyContent:'space-between'}}><div style={{fontSize:13,color:'var(--text-muted)'}}>Card {idx+1} de {cards.length} · <span style={{color:'var(--gold)'}}>{disciplina}</span></div><div style={{fontSize:11,color:'var(--text-muted)'}}>{flipped?'👁️ Resposta':'❓ Pergunta'}</div></div>
+      <div style={{perspective:1000,marginBottom:20,cursor:'pointer'}} onClick={()=>setFlipped(f=>!f)}>
+        <div style={{position:'relative',transformStyle:'preserve-3d',transition:'transform 0.6s',transform:flipped?'rotateY(180deg)':'rotateY(0)'}}>
+          <div style={{backfaceVisibility:'hidden',background:'var(--gray)',border:'1px solid rgba(212,168,67,0.2)',borderRadius:20,padding:'24px 24px 20px',minHeight:180,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',textAlign:'center'}}>
+            <div style={{fontSize:10,fontWeight:700,letterSpacing:2,textTransform:'uppercase',color:'var(--gold)',marginBottom:12}}>PERGUNTA</div>
+            <div style={{fontSize:14,fontWeight:600,lineHeight:1.7,color:'var(--white)',whiteSpace:'pre-wrap',wordBreak:'break-word',overflowWrap:'anywhere',maxHeight:280,overflowY:'auto',width:'100%'}}>{card.frente}</div>
+            <div style={{marginTop:14,fontSize:11,color:'var(--text-muted)',flexShrink:0}}>Toque para ver a resposta</div>
           </div>
-
-          <div style={{
-            position:'absolute', top:0, left:0, right:0,
-            backfaceVisibility:'hidden', transform:'rotateY(180deg)',
-            background:'linear-gradient(135deg,rgba(212,168,67,0.1),rgba(232,98,26,0.06))',
-            border:'1px solid rgba(212,168,67,0.3)',
-            borderRadius:20, padding:'24px 24px 20px',
-            minHeight:180,
-            display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', textAlign:'center',
-          }}>
-            <div style={{fontSize:10, fontWeight:700, letterSpacing:2, textTransform:'uppercase', color:'var(--gold)', marginBottom:12}}>RESPOSTA</div>
-            <div style={{
-              fontSize:13, lineHeight:1.8, color:'var(--text-muted)',
-              whiteSpace:'pre-wrap', wordBreak:'break-word', overflowWrap:'anywhere',
-              maxHeight:300, overflowY:'auto', width:'100%',
-            }}>{card.verso}</div>
+          <div style={{position:'absolute',top:0,left:0,right:0,backfaceVisibility:'hidden',transform:'rotateY(180deg)',background:'linear-gradient(135deg,rgba(212,168,67,0.1),rgba(232,98,26,0.06))',border:'1px solid rgba(212,168,67,0.3)',borderRadius:20,padding:'24px 24px 20px',minHeight:180,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',textAlign:'center'}}>
+            <div style={{fontSize:10,fontWeight:700,letterSpacing:2,textTransform:'uppercase',color:'var(--gold)',marginBottom:12}}>RESPOSTA</div>
+            <div style={{fontSize:13,lineHeight:1.8,color:'var(--text-muted)',whiteSpace:'pre-wrap',wordBreak:'break-word',overflowWrap:'anywhere',maxHeight:300,overflowY:'auto',width:'100%'}}>{card.verso}</div>
           </div>
         </div>
       </div>
-
-      <div style={{display:'flex', gap:10, justifyContent:'center'}}>
-        <button className="btn-secondary" onClick={() => { setIdx(i => Math.max(0, i-1)); setFlipped(false) }} disabled={idx === 0}>← Anterior</button>
-        <button className="btn-secondary" onClick={() => setFlipped(f => !f)}>Virar</button>
-        <button className="btn-primary" onClick={() => { setIdx(i => Math.min(cards.length-1, i+1)); setFlipped(false) }} disabled={idx === cards.length-1}>Próximo →</button>
+      <div style={{display:'flex',gap:10,justifyContent:'center'}}>
+        <button className="btn-secondary" onClick={()=>{setIdx(i=>Math.max(0,i-1));setFlipped(false)}} disabled={idx===0}>← Anterior</button>
+        <button className="btn-secondary" onClick={()=>setFlipped(f=>!f)}>Virar</button>
+        <button className="btn-primary" onClick={()=>{setIdx(i=>Math.min(cards.length-1,i+1));setFlipped(false)}} disabled={idx===cards.length-1}>Próximo →</button>
       </div>
     </div>
   )
@@ -1296,25 +970,9 @@ function SimuladosPage({ showUpgrade, freeQ, setFreeQ, onXp, profile, isPago, ca
   const [loadingProva,setLoadingProva]=useState(false)
   const [tab,setTab]=useState<'oficiais'|'pratica'>('oficiais')
 
-  function planoMinimoParaSimulado(numeroExame: number): 'start'|'plus'|'pro'|'elite' {
-    if (numeroExame <= 42) return 'start'
-    if (numeroExame <= 43) return 'plus'
-    if (numeroExame <= 44) return 'pro'
-    return 'elite'
-  }
-
-  const BADGE_COR: Record<string,{bg:string; color:string; label:string}> = {
-    start: { bg:'rgba(59,130,246,0.15)', color:'#60a5fa', label:'START'  },
-    plus:  { bg:'rgba(139,92,246,0.15)', color:'#a78bfa', label:'PLUS'   },
-    pro:   { bg:'rgba(236,72,153,0.15)', color:'#f472b6', label:'PRO'    },
-    elite: { bg:'rgba(212,168,67,0.12)', color:'var(--gold)', label:'ELITE' },
-  }
-
-  function podeLiberarProva(prova: any): boolean {
-    if (profile?.role === 'admin') return true
-    const planoMin = planoMinimoParaSimulado(prova.numero_exame)
-    return canAccess(profile?.plano, planoMin)
-  }
+  function planoMinimoParaSimulado(numeroExame:number):'start'|'plus'|'pro'|'elite'{if(numeroExame<=42)return 'start';if(numeroExame<=43)return 'plus';if(numeroExame<=44)return 'pro';return 'elite'}
+  const BADGE_COR:Record<string,{bg:string;color:string;label:string}>={start:{bg:'rgba(59,130,246,0.15)',color:'#60a5fa',label:'START'},plus:{bg:'rgba(139,92,246,0.15)',color:'#a78bfa',label:'PLUS'},pro:{bg:'rgba(236,72,153,0.15)',color:'#f472b6',label:'PRO'},elite:{bg:'rgba(212,168,67,0.12)',color:'var(--gold)',label:'ELITE'}}
+  function podeLiberarProva(prova:any):boolean{if(profile?.role==='admin')return true;return canAccess(profile?.plano,planoMinimoParaSimulado(prova.numero_exame))}
 
   const SIMULADOS_PRATICA=[
     {icon:'⚡',t:'Mini Simulado — Constitucional',info:'5 questões · 15min · Grátis',tags:['Grátis'],lock:false},
@@ -1324,27 +982,14 @@ function SimuladosPage({ showUpgrade, freeQ, setFreeQ, onXp, profile, isPago, ca
     {icon:'🏛️',t:'Simulado Geral',info:'60 questões · 4h',tags:['Elite'],lock:true},
   ]
 
-  // Mapeia a tag do simulado temático para o plano mínimo exigido
-  function planoMinimoPratica(s:any): 'gratuito'|'start'|'plus'|'pro'|'elite' {
-    if (!s.lock) return 'gratuito'
-    const tag = (s.tags && s.tags[0] ? String(s.tags[0]) : '').toLowerCase()
-    if (tag === 'start') return 'start'
-    if (tag === 'plus')  return 'plus'
-    if (tag === 'pro')   return 'pro'
-    if (tag === 'elite') return 'elite'
-    return 'start'
-  }
-  function podeLiberarPratica(s:any): boolean {
-    if (profile?.role === 'admin') return true
-    if (!s.lock) return true
-    return canAccess(profile?.plano, planoMinimoPratica(s))
+  function podeLiberarPratica(s:any):boolean{
+    if(profile?.role==='admin')return true;if(!s.lock)return true
+    const tag=(s.tags&&s.tags[0]?String(s.tags[0]):'').toLowerCase()
+    const plano:any=tag==='start'?'start':tag==='plus'?'plus':tag==='pro'?'pro':tag==='elite'?'elite':'start'
+    return canAccess(profile?.plano,plano)
   }
 
-  useEffect(()=>{loadProvas()},[])
-  const loadProvas=async()=>{
-    const{data}=await supabase.from('provas_oab').select('*').eq('status','ativo').order('numero_exame',{ascending:false})
-    if(data)setProvasOAB(data)
-  }
+  useEffect(()=>{(async()=>{const{data}=await supabase.from('provas_oab').select('*').eq('status','ativo').order('numero_exame',{ascending:false});if(data)setProvasOAB(data)})()},[])
 
   const iniciarProvaOficial=async(prova:any)=>{
     if(!podeLiberarProva(prova)){showUpgrade();return}
@@ -1352,8 +997,7 @@ function SimuladosPage({ showUpgrade, freeQ, setFreeQ, onXp, profile, isPago, ca
     const{data}=await supabase.from('questoes_oab').select('*').eq('prova_id',prova.id).order('numero_questao')
     if(data&&data.length>0){
       const q=data.map((q:any)=>({id:q.id,disc:q.disciplina,dificuldade:'OAB Oficial',q:q.enunciado,opts:[q.opcao_a,q.opcao_b,q.opcao_c,q.opcao_d],correct:['A','B','C','D'].indexOf(q.resposta_correta),exp:q.comentario||''}))
-      setSelectedSimulado({...prova,questions:q,oficial:true})
-      setRunning(true);setCur(0);setSel(null);setAnswered(false);setScore(0);setDone(false);setTime(18000)
+      setSelectedSimulado({...prova,questions:q,oficial:true});setRunning(true);setCur(0);setSel(null);setAnswered(false);setScore(0);setDone(false);setTime(18000)
     }
     setLoadingProva(false)
   }
@@ -1370,14 +1014,13 @@ function SimuladosPage({ showUpgrade, freeQ, setFreeQ, onXp, profile, isPago, ca
     if(!data||data.length===0){setLoadingProva(false);showUpgrade();return}
     const shuffled=[...data].sort(()=>Math.random()-0.5).slice(0,qtd)
     const formatted=shuffled.map((q:any)=>({id:q.id,disc:q.disciplina,dificuldade:'OAB Oficial',q:q.enunciado,opts:[q.opcao_a,q.opcao_b,q.opcao_c,q.opcao_d],correct:['A','B','C','D'].indexOf(q.resposta_correta),exp:q.comentario||''}))
-    setSelectedSimulado({...s,questions:formatted})
-    setRunning(true);setCur(0);setSel(null);setAnswered(false);setScore(0);setDone(false);setTime(s.t.includes('Mini')?900:18000)
+    setSelectedSimulado({...s,questions:formatted});setRunning(true);setCur(0);setSel(null);setAnswered(false);setScore(0);setDone(false);setTime(s.t.includes('Mini')?900:18000)
     setLoadingProva(false)
   }
 
   useEffect(()=>{
     if(!running||answered||done)return
-    const t=setInterval(()=>setTime(p=>{if(p<=1){clearInterval(t);setDone(true);return 0;}return p-1}),1000)
+    const t=setInterval(()=>setTime(p=>{if(p<=1){clearInterval(t);setDone(true);return 0}return p-1}),1000)
     return()=>clearInterval(t)
   },[running,answered,done,cur])
 
@@ -1391,29 +1034,18 @@ function SimuladosPage({ showUpgrade, freeQ, setFreeQ, onXp, profile, isPago, ca
   const next=()=>{if(cur+1>=selectedSimulado.questions.length){setDone(true);return}setCur(p=>p+1);setSel(null);setAnswered(false)}
 
   if(running&&!done&&selectedSimulado){
-    const q=selectedSimulado.questions[cur]
-    const pct=Math.round(((cur+(answered?1:0))/selectedSimulado.questions.length)*100)
+    const q=selectedSimulado.questions[cur];const pct=Math.round(((cur+(answered?1:0))/selectedSimulado.questions.length)*100)
     const h=Math.floor(time/3600),m=Math.floor((time%3600)/60),s=time%60
     return(
       <div style={{padding:'24px 20px',flex:1}}>
         <div style={{maxWidth:680,margin:'0 auto'}}>
-          <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:12}}>
-            <div style={{fontSize:12,color:'var(--text-muted)'}}>{selectedSimulado.edicao||selectedSimulado.t} · Q{cur+1}/{selectedSimulado.questions.length}</div>
-            <div style={{fontFamily:'var(--font-mono)',fontSize:16,fontWeight:700,color:time<600?'var(--danger)':'var(--gold)'}}>{h>0?`${String(h).padStart(2,'0')}:`:''}{String(m).padStart(2,'0')}:{String(s).padStart(2,'0')}</div>
-          </div>
+          <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:12}}><div style={{fontSize:12,color:'var(--text-muted)'}}>{selectedSimulado.edicao||selectedSimulado.t} · Q{cur+1}/{selectedSimulado.questions.length}</div><div style={{fontFamily:'var(--font-mono)',fontSize:16,fontWeight:700,color:time<600?'var(--danger)':'var(--gold)'}}>{h>0?`${String(h).padStart(2,'0')}:`:''}{String(m).padStart(2,'0')}:{String(s).padStart(2,'0')}</div></div>
           <div style={{background:'rgba(255,255,255,0.06)',borderRadius:100,height:4,marginBottom:22,overflow:'hidden'}}><div style={{width:`${pct}%`,height:'100%',background:'linear-gradient(90deg,var(--gold),var(--orange))',borderRadius:100,transition:'width 0.4s'}}/></div>
           <div style={{background:'var(--gray)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:20,padding:'22px'}}>
             <div style={{display:'flex',gap:8,marginBottom:14}}><span style={{fontSize:10,fontWeight:700,letterSpacing:2,textTransform:'uppercase',color:'var(--gold)'}}>{q.disc}</span><span style={{fontSize:10,color:'var(--text-muted)'}}>· OAB Oficial</span></div>
             <div style={{fontSize:'clamp(14px,3vw,17px)',fontWeight:600,lineHeight:1.7,marginBottom:22}}>{q.q}</div>
             <div style={{display:'flex',flexDirection:'column',gap:10}}>
-              {q.opts.map((opt:string,i:number)=>{
-                let bg='rgba(255,255,255,0.03)',bc='rgba(255,255,255,0.08)',color='var(--white)'
-                if(answered){if(i===q.correct){bg='rgba(76,175,125,0.1)';bc='var(--success)';color='var(--success)'}else if(i===sel){bg='rgba(232,66,26,0.1)';bc='var(--danger)';color='var(--danger)'}}
-                return(<button key={i} onClick={()=>pick(i)} style={{display:'flex',alignItems:'flex-start',gap:12,background:bg,border:`1px solid ${bc}`,borderRadius:12,padding:'13px 15px',cursor:'pointer',transition:'all 0.2s',textAlign:'left',width:'100%',fontFamily:'var(--font-body)',fontSize:'clamp(13px,2.5vw,14px)',color}}>
-                  <span style={{width:26,height:26,borderRadius:'50%',flexShrink:0,display:'flex',alignItems:'center',justifyContent:'center',fontSize:11,fontWeight:800,background:'rgba(255,255,255,0.06)',color:'var(--white)'}}>{String.fromCharCode(65+i)}</span>
-                  <span style={{flex:1}}>{opt}</span>
-                </button>)
-              })}
+              {q.opts.map((opt:string,i:number)=>{let bg='rgba(255,255,255,0.03)',bc='rgba(255,255,255,0.08)',color='var(--white)';if(answered){if(i===q.correct){bg='rgba(76,175,125,0.1)';bc='var(--success)';color='var(--success)'}else if(i===sel){bg='rgba(232,66,26,0.1)';bc='var(--danger)';color='var(--danger)'}}return(<button key={i} onClick={()=>pick(i)} style={{display:'flex',alignItems:'flex-start',gap:12,background:bg,border:`1px solid ${bc}`,borderRadius:12,padding:'13px 15px',cursor:'pointer',transition:'all 0.2s',textAlign:'left',width:'100%',fontFamily:'var(--font-body)',fontSize:'clamp(13px,2.5vw,14px)',color}}><span style={{width:26,height:26,borderRadius:'50%',flexShrink:0,display:'flex',alignItems:'center',justifyContent:'center',fontSize:11,fontWeight:800,background:'rgba(255,255,255,0.06)',color:'var(--white)'}}>{String.fromCharCode(65+i)}</span><span style={{flex:1}}>{opt}</span></button>)})}
             </div>
             {answered&&q.exp&&<div style={{marginTop:20,padding:16,background:'rgba(212,168,67,0.06)',border:'1px solid rgba(212,168,67,0.15)',borderRadius:12,fontSize:13,lineHeight:1.7,color:'var(--text-muted)'}}>{sel===q.correct?'✅ ':'❌ '}<strong style={{color:'var(--gold)'}}>{sel===q.correct?'Correto!':'Incorreto.'}</strong> {q.exp}</div>}
             {answered&&<button className="btn-primary" style={{width:'100%',marginTop:18}} onClick={next}>{cur+1>=selectedSimulado.questions.length?'VER RESULTADO':'PRÓXIMA →'}</button>}
@@ -1424,125 +1056,53 @@ function SimuladosPage({ showUpgrade, freeQ, setFreeQ, onXp, profile, isPago, ca
   }
 
   if(done&&selectedSimulado){
-    const total=selectedSimulado.questions.length
-    const rate=Math.round((score/total)*100)
-    const aprovado=score>=Math.ceil(total*0.625)
-    return(
-      <div style={{padding:'24px 20px',flex:1}}>
-        <div style={{maxWidth:600,margin:'0 auto',textAlign:'center'}}>
-          <div style={{fontSize:60,marginBottom:18}}>{aprovado?'🏆':rate>=50?'📝':'💪'}</div>
-          <h1 style={{fontFamily:'var(--font-display)',fontSize:'clamp(22px,5vw,30px)',fontWeight:900,marginBottom:8}}>Simulado Concluído!</h1>
-          <p style={{fontSize:14,color:'var(--text-muted)',marginBottom:20}}>{score} de {total} corretas</p>
-          <div style={{background:aprovado?'rgba(76,175,125,0.1)':'rgba(232,98,26,0.1)',border:`1px solid ${aprovado?'var(--success)':'var(--orange)'}`,borderRadius:16,padding:16,marginBottom:18}}>
-            <div style={{fontSize:18,fontWeight:900,color:aprovado?'var(--success)':'var(--orange)',marginBottom:6}}>{aprovado?'✅ APROVADO!':'❌ Não aprovado'}</div>
-            <div style={{fontSize:13,color:'var(--text-muted)'}}>{aprovado?`${rate}% de acerto.`:`Precisava de ${Math.ceil(total*0.625)} acertos.`}</div>
-          </div>
-          <div style={{display:'flex',gap:10,justifyContent:'center'}}>
-            <button className="btn-primary" onClick={()=>{setRunning(false);setDone(false)}}>NOVO SIMULADO</button>
-            <button className="btn-secondary" onClick={()=>{setRunning(false);setDone(false);setTab('oficiais')}}>PROVAS OAB</button>
-          </div>
-        </div>
-      </div>
-    )
+    const total=selectedSimulado.questions.length;const rate=Math.round((score/total)*100);const aprovado=score>=Math.ceil(total*0.625)
+    return(<div style={{padding:'24px 20px',flex:1}}><div style={{maxWidth:600,margin:'0 auto',textAlign:'center'}}><div style={{fontSize:60,marginBottom:18}}>{aprovado?'🏆':rate>=50?'📝':'💪'}</div><h1 style={{fontFamily:'var(--font-display)',fontSize:'clamp(22px,5vw,30px)',fontWeight:900,marginBottom:8}}>Simulado Concluído!</h1><p style={{fontSize:14,color:'var(--text-muted)',marginBottom:20}}>{score} de {total} corretas</p><div style={{background:aprovado?'rgba(76,175,125,0.1)':'rgba(232,98,26,0.1)',border:`1px solid ${aprovado?'var(--success)':'var(--orange)'}`,borderRadius:16,padding:16,marginBottom:18}}><div style={{fontSize:18,fontWeight:900,color:aprovado?'var(--success)':'var(--orange)',marginBottom:6}}>{aprovado?'✅ APROVADO!':'❌ Não aprovado'}</div><div style={{fontSize:13,color:'var(--text-muted)'}}>{aprovado?`${rate}% de acerto.`:`Precisava de ${Math.ceil(total*0.625)} acertos.`}</div></div><div style={{display:'flex',gap:10,justifyContent:'center'}}><button className="btn-primary" onClick={()=>{setRunning(false);setDone(false)}}>NOVO SIMULADO</button><button className="btn-secondary" onClick={()=>{setRunning(false);setDone(false);setTab('oficiais')}}>PROVAS OAB</button></div></div></div>)
   }
 
   return(
     <div style={{padding:'24px 20px',flex:1}}>
       <h1 style={{fontFamily:'var(--font-display)',fontSize:'clamp(22px,5vw,32px)',fontWeight:900,marginBottom:6}}>Simulados 📋</h1>
       <p style={{fontSize:14,color:'var(--text-muted)',marginBottom:20}}>Treine com provas reais da OAB e simulados temáticos.</p>
-
-      {!isPago&&(
-        <div style={{background:'rgba(212,168,67,0.06)',border:'1px solid rgba(212,168,67,0.15)',borderRadius:12,padding:'12px 16px',marginBottom:20,fontSize:13,color:'var(--gold)'}}>
-          🔒 Plano gratuito: apenas Mini Simulados disponíveis. <button onClick={showUpgrade} style={{color:'var(--gold)',background:'none',border:'none',cursor:'pointer',fontSize:13,fontFamily:'var(--font-body)',fontWeight:700}}>Fazer upgrade →</button>
-        </div>
-      )}
-
+      {!isPago&&<div style={{background:'rgba(212,168,67,0.06)',border:'1px solid rgba(212,168,67,0.15)',borderRadius:12,padding:'12px 16px',marginBottom:20,fontSize:13,color:'var(--gold)'}}>🔒 Plano gratuito: apenas Mini Simulados disponíveis. <button onClick={showUpgrade} style={{color:'var(--gold)',background:'none',border:'none',cursor:'pointer',fontSize:13,fontFamily:'var(--font-body)',fontWeight:700}}>Fazer upgrade →</button></div>}
       <div style={{display:'flex',gap:8,marginBottom:24,flexWrap:'wrap'}}>
         {([['oficiais','🏛️ Provas OAB'],['pratica','⚡ Temáticos']] as const).map(([key,label])=>(
           <button key={key} onClick={()=>setTab(key)} style={{padding:'10px 18px',borderRadius:10,border:tab===key?'1px solid rgba(212,168,67,0.4)':'1px solid rgba(255,255,255,0.08)',background:tab===key?'rgba(212,168,67,0.1)':'transparent',color:tab===key?'var(--gold)':'var(--text-muted)',fontSize:13,fontWeight:700,cursor:'pointer',fontFamily:'var(--font-body)'}}>{label}</button>
         ))}
       </div>
-
       {tab==='oficiais'&&(
         <div>
           <div style={{background:'linear-gradient(135deg,rgba(212,168,67,0.08),rgba(232,98,26,0.04))',border:'1px solid rgba(212,168,67,0.2)',borderRadius:16,padding:18,marginBottom:20}}>
-            <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:6,flexWrap:'wrap'}}>
-              <span style={{fontSize:18}}>📋</span>
-              <div style={{fontSize:14,fontWeight:700}}>Provas Oficiais da OAB</div>
-              <span style={{fontSize:11,color:'var(--text-muted)'}}>Acesso progressivo por plano</span>
-            </div>
-            <div style={{display:'flex',gap:8,flexWrap:'wrap',marginTop:8}}>
-              {Object.entries(BADGE_COR).map(([plano,b])=>(
-                <span key={plano} style={{fontSize:10,fontWeight:800,letterSpacing:'1px',background:b.bg,color:b.color,padding:'3px 10px',borderRadius:100,border:`1px solid ${b.color}33`}}>
-                  {b.label}
-                </span>
-              ))}
-            </div>
+            <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:6,flexWrap:'wrap'}}><span style={{fontSize:18}}>📋</span><div style={{fontSize:14,fontWeight:700}}>Provas Oficiais da OAB</div><span style={{fontSize:11,color:'var(--text-muted)'}}>Acesso progressivo por plano</span></div>
+            <div style={{display:'flex',gap:8,flexWrap:'wrap',marginTop:8}}>{Object.entries(BADGE_COR).map(([plano,b])=><span key={plano} style={{fontSize:10,fontWeight:800,letterSpacing:'1px',background:b.bg,color:b.color,padding:'3px 10px',borderRadius:100,border:`1px solid ${b.color}33`}}>{b.label}</span>)}</div>
           </div>
-
           {loadingProva&&<div style={{textAlign:'center',padding:40,color:'var(--gold)'}}>⏳ Carregando...</div>}
-
           <div style={{display:'flex',flexDirection:'column',gap:14}}>
             {provasOAB.map((prova,i)=>{
-              const planoMin = planoMinimoParaSimulado(prova.numero_exame)
-              const badge = BADGE_COR[planoMin]
-              const liberado = podeLiberarProva(prova)
-              return(
-                <div key={prova.id}
-                  style={{background:'var(--gray)',border:`1px solid ${liberado?'rgba(212,168,67,0.15)':'rgba(255,255,255,0.06)'}`,borderRadius:16,padding:'18px',display:'flex',alignItems:'center',justifyContent:'space-between',flexWrap:'wrap',gap:14,transition:'border-color 0.2s'}}
-                  onMouseEnter={e=>e.currentTarget.style.borderColor='rgba(212,168,67,0.25)'}
-                  onMouseLeave={e=>e.currentTarget.style.borderColor=liberado?'rgba(212,168,67,0.15)':'rgba(255,255,255,0.06)'}>
-
-                  <div style={{display:'flex',alignItems:'center',gap:14}}>
-                    <div style={{width:44,height:44,borderRadius:12,background:i===0?'linear-gradient(135deg,var(--gold),var(--orange))':'rgba(255,255,255,0.06)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:i===0?18:13,fontWeight:900,color:i===0?'#000':'var(--text-muted)',fontFamily:'var(--font-display)',flexShrink:0}}>
-                      {i===0?'🆕':`${prova.numero_exame}º`}
-                    </div>
-                    <div>
-                      <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:4,flexWrap:'wrap'}}>
-                        <span style={{fontSize:14,fontWeight:700}}>{prova.edicao}</span>
-                        {i===0&&<span style={{fontSize:9,fontWeight:900,background:'linear-gradient(135deg,var(--gold),var(--orange))',color:'#000',padding:'2px 8px',borderRadius:100}}>RECENTE</span>}
-                        <span style={{fontSize:9,fontWeight:800,background:badge.bg,color:badge.color,padding:'2px 8px',borderRadius:100,border:`1px solid ${badge.color}44`}}>
-                          {liberado?'✓ ':''}{badge.label}
-                        </span>
-                      </div>
-                      <div style={{display:'flex',gap:12,fontSize:11,color:'var(--text-muted)',flexWrap:'wrap'}}>
-                        <span>📝 {prova.total_questoes}q</span>
-                        <span>📊 {prova.taxa_aprovacao_oficial}% aprovação</span>
-                        {!liberado&&<span style={{color:'var(--text-dim)'}}>🔒 Requer {badge.label}</span>}
-                      </div>
-                    </div>
+              const planoMin=planoMinimoParaSimulado(prova.numero_exame);const badge=BADGE_COR[planoMin];const liberado=podeLiberarProva(prova)
+              return(<div key={prova.id} style={{background:'var(--gray)',border:`1px solid ${liberado?'rgba(212,168,67,0.15)':'rgba(255,255,255,0.06)'}`,borderRadius:16,padding:'18px',display:'flex',alignItems:'center',justifyContent:'space-between',flexWrap:'wrap',gap:14,transition:'border-color 0.2s'}} onMouseEnter={e=>e.currentTarget.style.borderColor='rgba(212,168,67,0.25)'} onMouseLeave={e=>e.currentTarget.style.borderColor=liberado?'rgba(212,168,67,0.15)':'rgba(255,255,255,0.06)'}>
+                <div style={{display:'flex',alignItems:'center',gap:14}}>
+                  <div style={{width:44,height:44,borderRadius:12,background:i===0?'linear-gradient(135deg,var(--gold),var(--orange))':'rgba(255,255,255,0.06)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:i===0?18:13,fontWeight:900,color:i===0?'#000':'var(--text-muted)',fontFamily:'var(--font-display)',flexShrink:0}}>{i===0?'🆕':`${prova.numero_exame}º`}</div>
+                  <div>
+                    <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:4,flexWrap:'wrap'}}><span style={{fontSize:14,fontWeight:700}}>{prova.edicao}</span>{i===0&&<span style={{fontSize:9,fontWeight:900,background:'linear-gradient(135deg,var(--gold),var(--orange))',color:'#000',padding:'2px 8px',borderRadius:100}}>RECENTE</span>}<span style={{fontSize:9,fontWeight:800,background:badge.bg,color:badge.color,padding:'2px 8px',borderRadius:100,border:`1px solid ${badge.color}44`}}>{liberado?'✓ ':''}{badge.label}</span></div>
+                    <div style={{display:'flex',gap:12,fontSize:11,color:'var(--text-muted)',flexWrap:'wrap'}}><span>📝 {prova.total_questoes}q</span><span>📊 {prova.taxa_aprovacao_oficial}% aprovação</span>{!liberado&&<span style={{color:'var(--text-dim)'}}>🔒 Requer {badge.label}</span>}</div>
                   </div>
-
-                  <button
-                    onClick={()=>iniciarProvaOficial(prova)}
-                    className={liberado?'btn-primary':'btn-secondary'}
-                    style={{fontSize:12,padding:'10px 20px',opacity:liberado?1:0.7}}
-                    disabled={loadingProva}>
-                    {liberado?'▶ INICIAR':`🔒 ${badge.label}`}
-                  </button>
                 </div>
-              )
+                <button onClick={()=>iniciarProvaOficial(prova)} className={liberado?'btn-primary':'btn-secondary'} style={{fontSize:12,padding:'10px 20px',opacity:liberado?1:0.7}} disabled={loadingProva}>{liberado?'▶ INICIAR':`🔒 ${badge.label}`}</button>
+              </div>)
             })}
           </div>
         </div>
       )}
-
       {tab==='pratica'&&(
         <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(240px,1fr))',gap:14}}>
           {SIMULADOS_PRATICA.map(s=>(
-            <div key={s.t} style={{background:'var(--gray)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:16,padding:20,transition:'all 0.2s',cursor:'pointer'}}
-              onMouseEnter={e=>{e.currentTarget.style.borderColor='rgba(212,168,67,0.18)';e.currentTarget.style.transform='translateY(-2px)'}}
-              onMouseLeave={e=>{e.currentTarget.style.borderColor='rgba(255,255,255,0.06)';e.currentTarget.style.transform='translateY(0)'}}>
+            <div key={s.t} style={{background:'var(--gray)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:16,padding:20,transition:'all 0.2s',cursor:'pointer'}} onMouseEnter={e=>{e.currentTarget.style.borderColor='rgba(212,168,67,0.18)';e.currentTarget.style.transform='translateY(-2px)'}} onMouseLeave={e=>{e.currentTarget.style.borderColor='rgba(255,255,255,0.06)';e.currentTarget.style.transform='translateY(0)'}}>
               <div style={{fontSize:26,marginBottom:12}}>{s.icon}</div>
               <div style={{fontSize:14,fontWeight:700,marginBottom:5}}>{s.t}</div>
               <div style={{fontSize:12,color:'var(--text-muted)',marginBottom:12}}>{s.info}</div>
-              <div style={{display:'flex',gap:5,flexWrap:'wrap',marginBottom:16}}>
-                {s.tags.map(tag=><span key={tag} style={{fontSize:10,padding:'2px 9px',borderRadius:100,fontWeight:700,background:'rgba(212,168,67,0.1)',color:'var(--gold)',border:'1px solid rgba(212,168,67,0.2)'}}>{tag}</span>)}
-              </div>
-              {!podeLiberarPratica(s)
-                ?<button className="btn-secondary" style={{width:'100%',fontSize:12,padding:'10px'}} onClick={()=>showUpgrade()}>🔒 DESBLOQUEAR</button>
-                :<button className="btn-gold-sm" style={{width:'100%',fontSize:12}} onClick={()=>iniciarSimuladoPratica(s)} disabled={loadingProva}>{loadingProva?'⏳':'INICIAR →'}</button>
-              }
+              <div style={{display:'flex',gap:5,flexWrap:'wrap',marginBottom:16}}>{s.tags.map(tag=><span key={tag} style={{fontSize:10,padding:'2px 9px',borderRadius:100,fontWeight:700,background:'rgba(212,168,67,0.1)',color:'var(--gold)',border:'1px solid rgba(212,168,67,0.2)'}}>{tag}</span>)}</div>
+              {!podeLiberarPratica(s)?<button className="btn-secondary" style={{width:'100%',fontSize:12,padding:'10px'}} onClick={()=>showUpgrade()}>🔒 DESBLOQUEAR</button>:<button className="btn-gold-sm" style={{width:'100%',fontSize:12}} onClick={()=>iniciarSimuladoPratica(s)} disabled={loadingProva}>{loadingProva?'⏳':'INICIAR →'}</button>}
             </div>
           ))}
         </div>
@@ -1551,7 +1111,7 @@ function SimuladosPage({ showUpgrade, freeQ, setFreeQ, onXp, profile, isPago, ca
   )
 }
 
-function RankingPage({profile}:any) {
+function RankingPage({profile}:any){
   const [tab,setTab]=useState<'geral'|'semanal'|'disciplina'>('semanal')
   return(
     <div style={{padding:'24px 20px',flex:1}}>
@@ -1559,18 +1119,14 @@ function RankingPage({profile}:any) {
       <p style={{fontSize:14,color:'var(--text-muted)',marginBottom:20}}>Top estudantes. Compita, evolua, seja aprovado.</p>
       <div style={{display:'flex',gap:8,marginBottom:20,flexWrap:'wrap'}}>
         {(['geral','semanal','disciplina'] as const).map(t=>(
-          <button key={t} onClick={()=>setTab(t)} style={{background:tab===t?'rgba(212,168,67,0.1)':'var(--gray)',border:tab===t?'1px solid rgba(212,168,67,0.3)':'1px solid rgba(255,255,255,0.06)',borderRadius:8,padding:'8px 14px',color:tab===t?'var(--gold)':'var(--text-muted)',fontSize:12,fontWeight:700,cursor:'pointer',fontFamily:'var(--font-body)',textTransform:'capitalize'}}>
-            {t==='disciplina'?'Por Disciplina':t.charAt(0).toUpperCase()+t.slice(1)}
-          </button>
+          <button key={t} onClick={()=>setTab(t)} style={{background:tab===t?'rgba(212,168,67,0.1)':'var(--gray)',border:tab===t?'1px solid rgba(212,168,67,0.3)':'1px solid rgba(255,255,255,0.06)',borderRadius:8,padding:'8px 14px',color:tab===t?'var(--gold)':'var(--text-muted)',fontSize:12,fontWeight:700,cursor:'pointer',fontFamily:'var(--font-body)',textTransform:'capitalize'}}>{t==='disciplina'?'Por Disciplina':t.charAt(0).toUpperCase()+t.slice(1)}</button>
         ))}
       </div>
       <div style={{display:'flex',gap:10,marginBottom:24,justifyContent:'center',flexWrap:'wrap'}}>
         {[1,0,2].map(idx=>{
-          const r=RANKING_DATA[idx]
-          const heights=[110,138,90]
-          const h=heights[idx===0?1:idx===1?0:2]
+          const r=RANKING_DATA[idx];const heights=[110,138,90];const h=heights[idx===0?1:idx===1?0:2]
           return(
-            <div key={r.pos} style={{textAlign:'center',width:100}}>
+            <div key={idx} style={{textAlign:'center',width:100}}>
               <div style={{fontSize:26,marginBottom:5}}>{r.av}</div>
               <div style={{fontWeight:700,fontSize:11,marginBottom:2}}>{r.name}</div>
               <div style={{fontSize:10,color:'var(--text-muted)',marginBottom:6}}>{r.level}</div>
@@ -1613,13 +1169,13 @@ export default function TigerJusApp() {
   const [loading,setLoading]=useState(true)
   const [menuOpen,setMenuOpen]=useState(false)
 
-  const plano = profile?.plano
-  const userIsPago = !!(isAdmin(profile?.role) || isPago(plano))
-  const canAccessPremium = !!(isAdmin(profile?.role) || canAccess(plano, 'pro'))
-  const canAccessElite = !!(isAdmin(profile?.role) || canAccess(plano, 'elite'))
-  const limites = getLimites(plano)
-  const iaIlimitada = !!(isAdmin(profile?.role) || limites.ia === Infinity)
-  const podePDF = !!(isAdmin(profile?.role) || limites.permite_pdf)
+  const plano=profile?.plano
+  const userIsPago=!!(isAdmin(profile?.role)||isPago(plano))
+  const canAccessPremium=!!(isAdmin(profile?.role)||canAccess(plano,'pro'))
+  const canAccessElite=!!(isAdmin(profile?.role)||canAccess(plano,'elite'))
+  const limites=getLimites(plano)
+  const iaIlimitada=!!(isAdmin(profile?.role)||limites.ia===Infinity)
+  const podePDF=!!(isAdmin(profile?.role)||limites.permite_pdf)
 
   useEffect(()=>{
     const init=async()=>{
@@ -1638,13 +1194,9 @@ export default function TigerJusApp() {
     const{data}=await supabase.from('profiles').select('*').eq('id',userId).single()
     if(data){
       setProfile(data as Profile)
-      const l = getLimites(data.plano)
-      if(isAdmin(data.role)){
-        setFreeQ(999999);setFreeIA(999999)
-      } else {
-        setFreeQ(Math.max(0, l.questoes - (data.free_questions_used||0)))
-        setFreeIA(Math.max(0, l.ia - (data.free_ia_used||0)))
-      }
+      const l=getLimites(data.plano)
+      if(isAdmin(data.role)){setFreeQ(999999);setFreeIA(999999)}
+      else{setFreeQ(Math.max(0,l.questoes-(data.free_questions_used||0)));setFreeIA(Math.max(0,l.ia-(data.free_ia_used||0)))}
     }
     setLoading(false)
     if(data){
@@ -1664,9 +1216,7 @@ export default function TigerJusApp() {
       if(!prev)return prev
       const incR=action==='question_correct'||action==='question_wrong'
       const incC=action==='question_correct'
-      return{...prev,xp:data.total_xp??prev.xp,level_name:data.level?.name??prev.level_name,streak:data.streak??prev.streak,
-        questoes_respondidas:(prev.questoes_respondidas||0)+(incR?1:0),
-        questoes_corretas:(prev.questoes_corretas||0)+(incC?1:0)}
+      return{...prev,xp:data.total_xp??prev.xp,level_name:data.level?.name??prev.level_name,streak:data.streak??prev.streak,questoes_respondidas:(prev.questoes_respondidas||0)+(incR?1:0),questoes_corretas:(prev.questoes_corretas||0)+(incC?1:0)}
     })
   }
 
@@ -1675,86 +1225,47 @@ export default function TigerJusApp() {
   const showUpgrade=()=>{setShowPremiumGate(false);setShowUpgradeModal(true)}
   const navTo=(key:string)=>{setPage(key);setMenuOpen(false)}
 
-  if(loading)return(
+  if(loading) return(
     <div style={{minHeight:'100vh',background:'var(--deep-black)',display:'flex',alignItems:'center',justifyContent:'center'}}>
-      <div style={{textAlign:'center'}}>
-        <div style={{fontSize:48,marginBottom:16,animation:'pulse 1.5s infinite'}}>🐯</div>
-        <div style={{fontFamily:'var(--font-display)',fontSize:20,fontWeight:900,color:'var(--gold)'}}>Carregando TigerJus...</div>
-      </div>
+      <div style={{textAlign:'center'}}><div style={{fontSize:48,marginBottom:16,animation:'pulse 1.5s infinite'}}>🐯</div><div style={{fontFamily:'var(--font-display)',fontSize:20,fontWeight:900,color:'var(--gold)'}}>Carregando TigerJus...</div></div>
     </div>
   )
 
   const SIDEBAR=[
-    {icon:'🏠',label:'Dashboard',key:'dashboard'},
-    {icon:'📚',label:'Disciplinas',key:'disciplines'},
-    {icon:'📝',label:'Quiz',key:'quiz'},
-    {icon:'🃏',label:'Flashcards',key:'flashcards'},
-    {icon:'📋',label:'Simulados',key:'simulados'},
-    {icon:'🤖',label:'IA Jurídica',key:'ia'},
-    {icon:'🏆',label:'Ranking',key:'ranking'},
+    {icon:'🏠',label:'Dashboard',key:'dashboard'},{icon:'📚',label:'Disciplinas',key:'disciplines'},
+    {icon:'📝',label:'Quiz',key:'quiz'},{icon:'🃏',label:'Flashcards',key:'flashcards'},
+    {icon:'📋',label:'Simulados',key:'simulados'},{icon:'🤖',label:'IA Jurídica',key:'ia'},{icon:'🏆',label:'Ranking',key:'ranking'},
   ]
-
-  const planoDisplay = profile?.plano?.charAt(0).toUpperCase() + (profile?.plano?.slice(1) || '') || 'Gratuito'
+  const planoDisplay=profile?.plano?.charAt(0).toUpperCase()+(profile?.plano?.slice(1)||'')||'Gratuito'
 
   return(
-    <div style={{background:'var(--tj-bg, #060a12)',minHeight:'100vh',position:'relative'}}>
+    <div style={{background:'var(--tj-bg,#060a12)',minHeight:'100vh',position:'relative'}}>
       <div className="tj-grid-overlay"/>
       <div className="tj-radial-glow" style={{zIndex:0}}/>
-
-      {settings.maintenance_mode && !isAdmin(profile?.role) && (
+      {settings.maintenance_mode&&!isAdmin(profile?.role)&&(
         <div style={{position:'fixed',inset:0,zIndex:9999,background:'var(--deep-black)',display:'flex',alignItems:'center',justifyContent:'center',padding:24}}>
           <div style={{textAlign:'center',maxWidth:420}}>
             <div style={{fontSize:64,marginBottom:20}}>🔧</div>
-            <h1 style={{fontFamily:'var(--font-display)',fontSize:28,fontWeight:900,color:'var(--gold)',marginBottom:12}}>
-              Em manutenção
-            </h1>
-            <p style={{fontSize:15,color:'var(--text-muted)',lineHeight:1.7,marginBottom:28}}>
-              {settings.maintenance_message || 'Voltamos em breve. Obrigado pela paciência!'}
-            </p>
-            {settings.whatsapp_url && (
-              <a href={settings.whatsapp_url} target="_blank" rel="noopener noreferrer"
-                style={{display:'inline-flex',alignItems:'center',gap:8,background:'#25D366',border:'none',borderRadius:10,padding:'12px 24px',color:'#fff',fontSize:14,fontWeight:700,textDecoration:'none'}}>
-                💬 Falar com o suporte
-              </a>
-            )}
+            <h1 style={{fontFamily:'var(--font-display)',fontSize:28,fontWeight:900,color:'var(--gold)',marginBottom:12}}>Em manutenção</h1>
+            <p style={{fontSize:15,color:'var(--text-muted)',lineHeight:1.7,marginBottom:28}}>{settings.maintenance_message||'Voltamos em breve. Obrigado pela paciência!'}</p>
+            {settings.whatsapp_url&&<a href={settings.whatsapp_url} target="_blank" rel="noopener noreferrer" style={{display:'inline-flex',alignItems:'center',gap:8,background:'#25D366',border:'none',borderRadius:10,padding:'12px 24px',color:'#fff',fontSize:14,fontWeight:700,textDecoration:'none'}}>💬 Falar com o suporte</a>}
           </div>
         </div>
       )}
-
       {notif&&<Notification msg={notif} onClose={()=>setNotif(null)}/>}
       {showPremiumGate&&<PremiumGate onClose={()=>setShowPremiumGate(false)} onUpgrade={showUpgrade}/>}
       {showUpgradeModal&&<UpgradeModal onClose={()=>setShowUpgradeModal(false)} onSelect={handleUpgradeSelect} planoAtual={profile?.plano} ehAdmin={isAdmin(profile?.role)}/>}
       {showRadar&&<RadarModal onClose={()=>setShowRadar(false)}/>}
-
-      {settings.whatsapp_url && !settings.maintenance_mode && (
-        <a href={settings.whatsapp_url} target="_blank" rel="noopener noreferrer"
-          title="Falar com suporte"
-          style={{
-            position:'fixed', bottom:24, right:24, zIndex:150,
-            width:52, height:52, borderRadius:'50%',
-            background:'#25D366',
-            display:'flex', alignItems:'center', justifyContent:'center',
-            boxShadow:'0 4px 20px rgba(37,211,102,0.4)',
-            textDecoration:'none', fontSize:24,
-            transition:'transform 0.2s',
-          }}
-          onMouseEnter={e=>(e.currentTarget.style.transform='scale(1.1)')}
-          onMouseLeave={e=>(e.currentTarget.style.transform='scale(1)')}>
-          💬
-        </a>
+      {settings.whatsapp_url&&!settings.maintenance_mode&&(
+        <a href={settings.whatsapp_url} target="_blank" rel="noopener noreferrer" title="Falar com suporte" style={{position:'fixed',bottom:24,right:24,zIndex:150,width:52,height:52,borderRadius:'50%',background:'#25D366',display:'flex',alignItems:'center',justifyContent:'center',boxShadow:'0 4px 20px rgba(37,211,102,0.4)',textDecoration:'none',fontSize:24,transition:'transform 0.2s'}} onMouseEnter={e=>(e.currentTarget.style.transform='scale(1.1)')} onMouseLeave={e=>(e.currentTarget.style.transform='scale(1)')}>💬</a>
       )}
-
       <nav style={{position:'fixed',top:0,left:0,right:0,zIndex:100,display:'flex',alignItems:'center',justifyContent:'space-between',padding:'0 16px',height:60,background:'rgba(8,8,8,0.95)',backdropFilter:'blur(12px)',borderBottom:'1px solid rgba(255,255,255,0.06)'}}>
         <div style={{display:'flex',alignItems:'center',gap:8}}>
           <div style={{width:34,height:34,background:'linear-gradient(135deg,var(--gold),var(--orange))',borderRadius:8,display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'var(--font-display)',fontSize:16,fontWeight:900,color:'var(--deep-black)',flexShrink:0}}>T</div>
           <span style={{fontFamily:'var(--font-display)',fontSize:18,fontWeight:900,letterSpacing:2,background:'linear-gradient(135deg,var(--gold-light),var(--gold))',WebkitBackgroundClip:'text',WebkitTextFillColor:'transparent'}}>TIGERJUS</span>
         </div>
         <div className="nav-desktop" style={{display:'flex',gap:16,alignItems:'center'}}>
-          {SIDEBAR.map(i=>(
-            <button key={i.key} onClick={()=>navTo(i.key)} style={{color:page===i.key?'var(--gold)':'var(--text-muted)',fontSize:11,fontWeight:600,letterSpacing:1,textTransform:'uppercase',border:'none',background:'none',cursor:'pointer',fontFamily:'var(--font-body)',borderBottom:page===i.key?'2px solid var(--gold)':'2px solid transparent',paddingBottom:2}}>
-              {i.label}
-            </button>
-          ))}
+          {SIDEBAR.map(i=>(<button key={i.key} onClick={()=>navTo(i.key)} style={{color:page===i.key?'var(--gold)':'var(--text-muted)',fontSize:11,fontWeight:600,letterSpacing:1,textTransform:'uppercase',border:'none',background:'none',cursor:'pointer',fontFamily:'var(--font-body)',borderBottom:page===i.key?'2px solid var(--gold)':'2px solid transparent',paddingBottom:2}}>{i.label}</button>))}
         </div>
         <div style={{display:'flex',gap:8,alignItems:'center'}}>
           <span className="nav-desktop" style={{fontSize:12,color:'var(--text-muted)'}}>{profile?.nome?.split(' ')[0]||'Usuário'}</span>
@@ -1767,28 +1278,18 @@ export default function TigerJusApp() {
           </button>
         </div>
       </nav>
-
       {menuOpen&&(
         <div style={{position:'fixed',top:60,left:0,right:0,zIndex:99,background:'rgba(10,10,10,0.98)',backdropFilter:'blur(12px)',borderBottom:'1px solid rgba(255,255,255,0.08)',padding:'12px 0',display:'flex',flexDirection:'column'}}>
-          {SIDEBAR.map(item=>(
-            <button key={item.key} onClick={()=>navTo(item.key)} style={{display:'flex',alignItems:'center',gap:14,padding:'14px 20px',background:page===item.key?'rgba(212,168,67,0.08)':'none',border:'none',cursor:'pointer',fontFamily:'var(--font-body)',fontSize:15,color:page===item.key?'var(--gold)':'var(--white)',textAlign:'left',borderLeft:page===item.key?'3px solid var(--gold)':'3px solid transparent'}}>
-              <span style={{fontSize:18,width:24,textAlign:'center'}}>{item.icon}</span>{item.label}
-            </button>
-          ))}
+          {SIDEBAR.map(item=>(<button key={item.key} onClick={()=>navTo(item.key)} style={{display:'flex',alignItems:'center',gap:14,padding:'14px 20px',background:page===item.key?'rgba(212,168,67,0.08)':'none',border:'none',cursor:'pointer',fontFamily:'var(--font-body)',fontSize:15,color:page===item.key?'var(--gold)':'var(--white)',textAlign:'left',borderLeft:page===item.key?'3px solid var(--gold)':'3px solid transparent'}}><span style={{fontSize:18,width:24,textAlign:'center'}}>{item.icon}</span>{item.label}</button>))}
           <div style={{borderTop:'1px solid rgba(255,255,255,0.06)',margin:'8px 0',padding:'8px 20px',display:'flex',gap:10}}>
             <button className="btn-gold-sm" style={{flex:1,fontSize:12}} onClick={()=>{setShowUpgradeModal(true);setMenuOpen(false)}}>🚀 UPGRADE</button>
             <button onClick={()=>{handleLogout();setMenuOpen(false)}} style={{color:'var(--text-muted)',fontSize:12,border:'1px solid rgba(255,255,255,0.08)',borderRadius:8,padding:'8px 14px',background:'none',cursor:'pointer',fontFamily:'var(--font-body)'}}>Sair</button>
           </div>
         </div>
       )}
-
       <div style={{display:'flex',paddingTop:60,minHeight:'100vh'}}>
         <aside className="dash-sidebar nav-desktop tj-sidebar">
-          {SIDEBAR.map(item=>(
-            <button key={item.key} className={`sidebar-item${page===item.key?' active':''}`} onClick={()=>navTo(item.key)}>
-              <span style={{fontSize:17,width:24,textAlign:'center'}}>{item.icon}</span> {item.label}
-            </button>
-          ))}
+          {SIDEBAR.map(item=>(<button key={item.key} className={`sidebar-item${page===item.key?' active':''}`} onClick={()=>navTo(item.key)}><span style={{fontSize:17,width:24,textAlign:'center'}}>{item.icon}</span> {item.label}</button>))}
           <div style={{fontSize:10,fontWeight:700,letterSpacing:'2.5px',textTransform:'uppercase',color:'var(--text-dim)',padding:'12px 14px 6px',marginTop:8}}>CONTA</div>
           {isAdmin(profile?.role)&&<button className="sidebar-item" onClick={()=>router.push('/admin')}>⚙️ Admin Panel</button>}
           <button className="sidebar-item" onClick={handleLogout}>🚪 Sair</button>
@@ -1804,17 +1305,14 @@ export default function TigerJusApp() {
             </div>
           )}
           <div style={{marginTop:'auto',padding:'20px 12px 0'}}>
-            <div style={{background:'var(--tj-card-bg, rgba(12,20,40,0.85))',border:'1px solid var(--tj-card-border, rgba(99,130,200,0.18))',borderRadius:12,padding:14,backdropFilter:'blur(8px)'}}>
+            <div style={{background:'var(--tj-card-bg,rgba(12,20,40,0.85))',border:'1px solid var(--tj-card-border,rgba(99,130,200,0.18))',borderRadius:12,padding:14,backdropFilter:'blur(8px)'}}>
               <div style={{fontSize:9,fontWeight:700,letterSpacing:2,textTransform:'uppercase',color:'var(--gold)',marginBottom:5}}>{planoDisplay.toUpperCase()}</div>
-              <div style={{fontSize:11,color:'var(--text-muted)',marginBottom:10}}>
-                {limites.questoes===Infinity?'Questões ilimitadas':`${freeQ} questões`} · {limites.ia===Infinity?'IA ilimitada':`${freeIA} perguntas IA`}
-              </div>
+              <div style={{fontSize:11,color:'var(--text-muted)',marginBottom:10}}>{limites.questoes===Infinity?'Questões ilimitadas':`${freeQ} questões`} · {limites.ia===Infinity?'IA ilimitada':`${freeIA} perguntas IA`}</div>
               {!userIsPago&&<button className="btn-gold-sm" style={{width:'100%',fontSize:11}} onClick={()=>setShowUpgradeModal(true)}>🚀 FAZER UPGRADE</button>}
             </div>
             <RadarOAB/>
           </div>
         </aside>
-
         {page==='dashboard'&&<DashHome profile={profile} onNav={navTo} showUpgrade={showUpgrade} isPago={userIsPago} canAccessPremium={canAccessPremium} onOpenRadar={()=>setShowRadar(true)}/>}
         {page==='disciplines'&&<DisciplinesPage showUpgrade={showUpgrade} profile={profile} isPago={userIsPago} canAccessPremium={canAccessPremium} podePDF={podePDF}/>}
         {page==='quiz'&&<QuizPage freeQ={freeQ} setFreeQ={setFreeQ} showUpgrade={showUpgrade} onXp={handleXp} profile={profile} isPago={userIsPago}/>}
@@ -1823,7 +1321,6 @@ export default function TigerJusApp() {
         {page==='ia'&&<IAPage freeIA={freeIA} setFreeIA={setFreeIA} showUpgrade={showUpgrade} profile={profile} isPago={userIsPago} iaIlimitada={iaIlimitada}/>}
         {page==='ranking'&&<RankingPage profile={profile}/>}
       </div>
-
       <style>{`
         @keyframes fadeInDown{from{opacity:0;transform:translateY(-16px)}to{opacity:1;transform:translateY(0)}}
         @keyframes fadeInUp{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:translateY(0)}}
