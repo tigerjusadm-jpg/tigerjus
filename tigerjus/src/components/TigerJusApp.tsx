@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabase'
 import { useAppSettings } from '@/contexts/AppSettingsContext'
 import RadarOAB from '@/components/RadarOAB'
 import DashboardTopBanner from '@/components/DashboardTopBanner'
+import LandingTopBanner from '@/components/LandingTopBanner'
 import { canAccess, isAdmin, getLimites, isPago, PLANOS_DISPLAY, type Plano } from '@/lib/planos'
 
 interface Profile {
@@ -130,38 +131,6 @@ function RadarModal({ onClose }: { onClose: () => void }) {
   )
 }
 
-const ADS_BANNER = [
-  {id:1,url:'https://damasio.com.br',bg:'linear-gradient(135deg,#1a237e,#283593)',logo:'🎓',titulo:'Faculdade Damásio',subtitulo:'OAB 1ª e 2ª Fase — Aprovação garantida ou devolução do investimento',cta:'Conhecer agora',ctaBg:'#fff',ctaColor:'#1a237e',badge:'PARCEIRO OFICIAL',badgeBg:'rgba(255,255,255,0.15)'},
-  {id:2,url:'https://cers.com.br',bg:'linear-gradient(135deg,#b71c1c,#c62828)',logo:'⚖️',titulo:'CERS Cursos Jurídicos',subtitulo:'Mais de 1 milhão de aprovados. A maior plataforma jurídica do Brasil.',cta:'Ver cursos',ctaBg:'#fff',ctaColor:'#b71c1c',badge:'TOP PARCEIRO',badgeBg:'rgba(255,255,255,0.15)'},
-  {id:3,url:'https://grancursosonline.com.br',bg:'linear-gradient(135deg,#1b5e20,#2e7d32)',logo:'🏆',titulo:'Gran Cursos Online',subtitulo:'Simulados ilimitados para OAB. Comece grátis e seja aprovado.',cta:'Começar grátis',ctaBg:'#fff',ctaColor:'#1b5e20',badge:'RECOMENDADO',badgeBg:'rgba(255,255,255,0.15)'},
-]
-
-function AdCardFeed() {
-  const ad = ADS_BANNER[1]
-  return (
-    <div onClick={() => window.open(ad.url,'_blank')} style={{background:'rgba(183,28,28,0.08)',border:'1px solid rgba(183,28,28,0.2)',borderRadius:14,padding:'14px 18px',marginBottom:16,cursor:'pointer',display:'flex',alignItems:'center',gap:12,flexWrap:'wrap'}}>
-      <span style={{fontSize:20}}>⚖️</span>
-      <div style={{flex:1,minWidth:0}}>
-        <div style={{fontSize:9,fontWeight:700,letterSpacing:2,textTransform:'uppercase',color:'var(--text-dim)',marginBottom:2}}>PUBLICIDADE</div>
-        <div style={{fontSize:13,fontWeight:700}}>{ad.titulo}</div>
-        <div style={{fontSize:11,color:'var(--text-muted)'}}>{ad.subtitulo}</div>
-      </div>
-      <button style={{background:'rgba(183,28,28,0.15)',border:'1px solid rgba(183,28,28,0.3)',borderRadius:8,padding:'6px 12px',fontSize:11,fontWeight:700,color:'#ef5350',cursor:'pointer',whiteSpace:'nowrap'}}>Ver cursos →</button>
-    </div>
-  )
-}
-
-async function gerarPDF(disciplina: any, resumo: string, questoes: any[]) {
-  const data = new Date().toLocaleDateString('pt-BR')
-  const html = `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><title>TigerJus — ${disciplina.name}</title><style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:sans-serif;background:#fff;color:#1a1a1a;font-size:12px;line-height:1.6}.header{background:linear-gradient(135deg,#D4A843,#E8621A);padding:28px 40px;color:#000;display:flex;align-items:center;justify-content:space-between}.logo{font-size:28px;font-weight:900;letter-spacing:3px}.container{padding:32px 40px}.section-title{font-size:15px;font-weight:900;text-transform:uppercase;letter-spacing:2px;color:#D4A843;border-bottom:2px solid #D4A843;padding-bottom:8px;margin:28px 0 16px}.resumo-box{background:#fafafa;border:1px solid #eee;border-left:4px solid #D4A843;border-radius:8px;padding:20px 24px;white-space:pre-wrap;font-size:12px;line-height:1.8}.questao{border:1px solid #e0e0e0;border-radius:10px;padding:18px 20px;margin-bottom:16px}.opcao{display:flex;gap:10px;padding:8px 10px;border-radius:6px;margin-bottom:4px;font-size:12px}.opcao.correta{background:#e8f5e9;border:1px solid #4caf50;color:#1b5e20;font-weight:600}.opcao.normal{background:#fafafa;border:1px solid #eee}.footer{margin-top:40px;padding:20px 40px;background:#f5f5f5;border-top:2px solid #D4A843;display:flex;justify-content:space-between;font-size:10px;color:#888}@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}</style></head><body><div class="header"><div><div class="logo">🐯 TIGERJUS</div><div>${disciplina.icon} ${disciplina.name.toUpperCase()}</div></div><div><div>Material Premium</div><div>${data}</div></div></div><div class="container"><div class="section-title">📖 Resumo Essencial</div><div class="resumo-box">${resumo}</div>${questoes.length>0?`<div class="section-title">📝 Questões OAB</div>${questoes.slice(0,20).map((q:any,i:number)=>`<div class="questao"><div style="font-size:10px;color:#888;margin-bottom:6px">Questão ${i+1} · ${q.disciplina||disciplina.name}</div><div style="font-size:13px;font-weight:600;margin-bottom:12px">${q.enunciado}</div>${['A','B','C','D'].map((l,li)=>`<div class="opcao ${q.resposta_correta===l?'correta':'normal'}"><span>${l})</span><span>${[q.opcao_a,q.opcao_b,q.opcao_c,q.opcao_d][li]}</span>${q.resposta_correta===l?'<span style="margin-left:auto">✅</span>':''}</div>`).join('')}${q.comentario?`<div style="margin-top:10px;padding:10px;background:#fff8e1;border-radius:6px;font-size:11px">📖 ${q.comentario}</div>`:''}</div>`).join('')}`:''}
-</div><div class="footer"><div>🐯 TIGERJUS</div><div>"Não basta estudar Direito. É preciso pensar como um Tigre."</div><div>${data}</div></div><script>window.onload=()=>{window.print();window.onafterprint=()=>window.close()}</script></body></html>`
-  const blob = new Blob([html], { type: 'text/html;charset=utf-8' })
-  const url = URL.createObjectURL(blob)
-  const win = window.open(url, '_blank')
-  if (!win) { const a = document.createElement('a'); a.href=url; a.download=`TigerJus_${disciplina.slug}.html`; document.body.appendChild(a); a.click(); document.body.removeChild(a) }
-  setTimeout(() => URL.revokeObjectURL(url), 10000)
-}
-
 function UpgradeModal({ onClose, onSelect, planoAtual, ehAdmin }: { onClose: () => void; onSelect: (plan: string, ciclo: 'mensal'|'anual') => void; planoAtual?: string; ehAdmin?: boolean }) {
   const [ciclo, setCiclo] = useState<'mensal'|'anual'>('mensal')
   const ehAnual = ciclo === 'anual'
@@ -277,6 +246,11 @@ function DashHome({ profile, onNav, showUpgrade, isPago, canAccessPremium, onOpe
   const taxa=questoes>0?Math.round((corretas/questoes)*100):0
   return(
     <div style={{padding:'24px 20px',flex:1,overflowY:'auto',maxWidth:'100%'}}>
+      {/* ── Banner parceiros — mesmo da página inicial, full-width ── */}
+      <div style={{marginTop:-120,marginLeft:-20,marginRight:-20,marginBottom:12,overflowX:'hidden'}}>
+        <LandingTopBanner/>
+      </div>
+      {/* ── Banner de imagem configurável pelo admin ── */}
       <DashboardTopBanner/>
       <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',flexWrap:'wrap',gap:12,marginBottom:20}}>
         <div>
@@ -302,7 +276,6 @@ function DashHome({ profile, onNav, showUpgrade, isPago, canAccessPremium, onOpe
           </div>
         ))}
       </div>
-      <AdCardFeed/>
       <div style={{background:'linear-gradient(135deg,rgba(212,168,67,0.1),rgba(232,98,26,0.06))',border:'1px solid rgba(212,168,67,0.2)',borderRadius:16,padding:18,marginBottom:16,cursor:'pointer'}} onClick={()=>onNav('quiz')}>
         <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',flexWrap:'wrap',gap:10}}>
           <div><div style={{fontSize:10,fontWeight:700,letterSpacing:2,textTransform:'uppercase',color:'var(--gold)',marginBottom:4}}>⚡ QUESTÃO DO DIA</div><div style={{fontWeight:700,fontSize:15}}>Penal — Teoria do Crime: Tipicidade</div><div style={{fontSize:12,color:'var(--text-muted)',marginTop:4}}>+150 XP bônus ao responder hoje</div></div>
@@ -535,7 +508,6 @@ function ResumoRenderer({ texto }: { texto: string }) {
   )
 }
 
-// CHANGE 1 & 2: ResumoSection — isPago/showUpgrade props + blur gate para usuários free
 function ResumoSection({ disc, onNav, isPago = false, showUpgrade }: { disc: any; onNav: (tab: string) => void; isPago?: boolean; showUpgrade?: () => void }) {
   const [estado,setEstado]=useState<'loading'|'banco'|'local'|'vazio'>('loading')
   const [texto,setTexto]=useState('')
@@ -609,7 +581,6 @@ function ResumoSection({ disc, onNav, isPago = false, showUpgrade }: { disc: any
   )
 }
 
-// CHANGE 3: LeisecaSection — novo componente, gratuito para todos
 function LeisecaSection({ disc, onNav }: { disc: any; onNav?: (tab: string) => void }) {
   const [estado,setEstado]=useState<'loading'|'ok'|'vazio'>('loading')
   const [texto,setTexto]=useState('')
@@ -670,7 +641,17 @@ function LeisecaSection({ disc, onNav }: { disc: any; onNav?: (tab: string) => v
   )
 }
 
-// CHANGE 4: DisciplinesPage — aba 'leiseca' adicionada, isPago/showUpgrade passados para ResumoSection
+async function gerarPDF(disciplina: any, resumo: string, questoes: any[]) {
+  const data = new Date().toLocaleDateString('pt-BR')
+  const html = `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><title>TigerJus — ${disciplina.name}</title><style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:sans-serif;background:#fff;color:#1a1a1a;font-size:12px;line-height:1.6}.header{background:linear-gradient(135deg,#D4A843,#E8621A);padding:28px 40px;color:#000;display:flex;align-items:center;justify-content:space-between}.logo{font-size:28px;font-weight:900;letter-spacing:3px}.container{padding:32px 40px}.section-title{font-size:15px;font-weight:900;text-transform:uppercase;letter-spacing:2px;color:#D4A843;border-bottom:2px solid #D4A843;padding-bottom:8px;margin:28px 0 16px}.resumo-box{background:#fafafa;border:1px solid #eee;border-left:4px solid #D4A843;border-radius:8px;padding:20px 24px;white-space:pre-wrap;font-size:12px;line-height:1.8}.questao{border:1px solid #e0e0e0;border-radius:10px;padding:18px 20px;margin-bottom:16px}.opcao{display:flex;gap:10px;padding:8px 10px;border-radius:6px;margin-bottom:4px;font-size:12px}.opcao.correta{background:#e8f5e9;border:1px solid #4caf50;color:#1b5e20;font-weight:600}.opcao.normal{background:#fafafa;border:1px solid #eee}.footer{margin-top:40px;padding:20px 40px;background:#f5f5f5;border-top:2px solid #D4A843;display:flex;justify-content:space-between;font-size:10px;color:#888}@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}</style></head><body><div class="header"><div><div class="logo">🐯 TIGERJUS</div><div>${disciplina.icon} ${disciplina.name.toUpperCase()}</div></div><div><div>Material Premium</div><div>${data}</div></div></div><div class="container"><div class="section-title">📖 Resumo Essencial</div><div class="resumo-box">${resumo}</div>${questoes.length>0?`<div class="section-title">📝 Questões OAB</div>${questoes.slice(0,20).map((q:any,i:number)=>`<div class="questao"><div style="font-size:10px;color:#888;margin-bottom:6px">Questão ${i+1} · ${q.disciplina||disciplina.name}</div><div style="font-size:13px;font-weight:600;margin-bottom:12px">${q.enunciado}</div>${['A','B','C','D'].map((l,li)=>`<div class="opcao ${q.resposta_correta===l?'correta':'normal'}"><span>${l})</span><span>${[q.opcao_a,q.opcao_b,q.opcao_c,q.opcao_d][li]}</span>${q.resposta_correta===l?'<span style="margin-left:auto">✅</span>':''}</div>`).join('')}${q.comentario?`<div style="margin-top:10px;padding:10px;background:#fff8e1;border-radius:6px;font-size:11px">📖 ${q.comentario}</div>`:''}</div>`).join('')}`:''}
+</div><div class="footer"><div>🐯 TIGERJUS</div><div>"Não basta estudar Direito. É preciso pensar como um Tigre."</div><div>${data}</div></div><script>window.onload=()=>{window.print();window.onafterprint=()=>window.close()}</script></body></html>`
+  const blob = new Blob([html], { type: 'text/html;charset=utf-8' })
+  const url = URL.createObjectURL(blob)
+  const win = window.open(url, '_blank')
+  if (!win) { const a = document.createElement('a'); a.href=url; a.download=`TigerJus_${disciplina.slug}.html`; document.body.appendChild(a); a.click(); document.body.removeChild(a) }
+  setTimeout(() => URL.revokeObjectURL(url), 10000)
+}
+
 function DisciplinesPage({ showUpgrade, profile, isPago, canAccessPremium, podePDF }: any) {
   const [selected,setSelected]=useState<any>(null)
   const [subTab,setSubTab]=useState<'resumo'|'quiz'|'flash'|'pdf'|'leiseca'>('resumo')
@@ -866,7 +847,7 @@ function QuizDisciplina({disciplina}:{disciplina:string}){
 
   if(done){
     const rate=Math.round((score/questions.length)*100);const aprovado=score>=Math.ceil(questions.length*0.625)
-    return(<div style={{maxWidth:560,textAlign:'center'}}><div style={{fontSize:54,marginBottom:16}}>{aprovado?'🏆':rate>=50?'📝':'💪'}</div><h2 style={{fontFamily:'var(--font-display)',fontSize:26,fontWeight:900,marginBottom:8}}>Quiz Concluído!</h2><p style={{fontSize:13,color:'var(--text-muted)',marginBottom:20}}>{score} de {questions.length} corretas · {disciplina}</p><div style={{background:aprovado?'rgba(76,175,125,0.1)':'rgba(232,98,26,0.1)',border:`1px solid ${aprovado?'var(--success)':'var(--orange)'}`,borderRadius:14,padding:16,marginBottom:20}}><div style={{fontSize:16,fontWeight:900,color:aprovado?'var(--success)':'var(--orange)',marginBottom:4}}>{aprovado?'✅ Na média OAB!':'❌ Abaixo da média OAB'}</div><div style={{fontSize:12,color:'var(--text-muted)'}}>{aprovado?`${rate}% — acima dos 62,5% exigidos.`:`Precisava de ${Math.ceil(questions.length*0.625)} acertos.`}</div></div><button className="btn-primary" style={{width:'100%'}} onClick={()=>{cacheRef.current.delete(disciplina);fetchingRef.current=false;setStarted(false);setDone(false);setScore(0);setCur(0);setSel(null);setAnswered(false);setLoading(true)}}>🔄 NOVO QUIZ</button></div>)
+    return(<div style={{maxWidth:560,textAlign:'center'}}><div style={{fontSize:54,marginBottom:16}}>{aprovado?'🏆':rate>=50?'📝':'💪'}</div><h2 style={{fontFamily:'var(--font-display)',fontSize:26,fontWeight:900,marginBottom:8}}>Quiz Concluído!</h2><p style={{fontSize:13,color:'var(--text-muted)',marginBottom:20}}>{score} de {questions.length} corretas · {disciplina}</p><div style={{background:aprovado?'rgba(76,175,125,0.1)':'rgba(232,98,26,0.1)',border:`1px solid ${aprovado?'var(--success)':'var(--orange)'}`,borderRadius:14,padding:16,marginBottom:20}}><div style={{fontSize:16,fontWeight:900,color:aprovado?'var(--success)':'var(--orange)',marginBottom:4}}>{aprovado?'✅ Na média OAB!':'❌ Abaixo da média OAB'}</div><div style={{fontSize:12,color:'var(--text-muted)'}}>{aprovado?`${rate}% de acerto.`:`Precisava de ${Math.ceil(questions.length*0.625)} acertos.`}</div></div><button className="btn-primary" style={{width:'100%'}} onClick={()=>{cacheRef.current.delete(disciplina);fetchingRef.current=false;setStarted(false);setDone(false);setScore(0);setCur(0);setSel(null);setAnswered(false);setLoading(true)}}>🔄 NOVO QUIZ</button></div>)
   }
 
   const q=questions[cur];const pct=Math.round(((cur+(answered?1:0))/questions.length)*100)
