@@ -28,9 +28,9 @@ const XP_PREV: Record<LevelName, number> = {
 }
 
 const PLANS_UPGRADE = [
-  { id:'start', name:'Tiger Start', price:'1,99', color:'var(--success)', features:['Questões ilimitadas','IA intermediária','42º Exame OAB','Streak + ranking'] },
-  { id:'plus', name:'Tiger Plus', price:'5,99', color:'#8B5CF6', features:['PDF por disciplina','Radar TigerJus','42º e 43º Exame OAB','Mais flashcards'] },
-  { id:'pro', name:'Tiger Pro', price:'9,99', color:'var(--gold)', badge:'POPULAR', featured:true, features:['IA avançada ilimitada','42º ao 44º Exame OAB','Trilhas personalizadas','Previsão de aprovação'] },
+  { id:'start', name:'Tiger Start', price:'1,99', color:'var(--success)', features:['Questões ilimitadas','IA jurídica (20/dia)','Simulados completos','Streak + ranking'] },
+  { id:'plus', name:'Tiger Plus', price:'5,99', color:'#8B5CF6', features:['PDF por disciplina','Radar TigerJus','Simulados OAB 42º e 43º','Flashcards avançados'] },
+  { id:'pro', name:'Tiger Pro', price:'9,99', color:'var(--gold)', badge:'POPULAR', featured:true, features:['IA avançada (150/dia)','Simulados OAB 42º ao 44º','Trilhas personalizadas','Previsão de aprovação'] },
   { id:'elite', name:'Tiger Elite', price:'19,99', color:'var(--orange)', badge:'TOP', features:['Tudo ilimitado','IA prioritária','Todos os simulados OAB','Acesso total vitalício'] },
 ]
 
@@ -151,7 +151,7 @@ function UpgradeModal({ onClose, onSelect, planoAtual, ehAdmin }: { onClose: () 
           </div>
           {ehAnual && <p style={{color:'var(--success)',fontSize:12,marginTop:10}}>💎 Pague uma vez por ano · 12 meses de acesso</p>}
         </div>
-        <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(220px,1fr))',gap:16}}>
+        <div className="tj-upgrade-grid">
           {PLANS_UPGRADE.map(plan => {
             const jaPossui = ehAdmin || canAccess(planoAtual, plan.id as any)
             return (
@@ -1303,6 +1303,9 @@ export default function TigerJusApp() {
         {page==='ranking'&&<RankingPage profile={profile}/>}
       </div>
       <style>{`
+        .tj-upgrade-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;}
+        @media(max-width:720px){.tj-upgrade-grid{grid-template-columns:repeat(2,1fr);}}
+        @media(max-width:420px){.tj-upgrade-grid{grid-template-columns:1fr;}}
         @keyframes fadeInDown{from{opacity:0;transform:translateY(-16px)}to{opacity:1;transform:translateY(0)}}
         @keyframes fadeInUp{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:translateY(0)}}
         @keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.5;transform:scale(0.9)}}
