@@ -7,11 +7,11 @@ import HeroMedia from '@/components/HeroMedia'
 import LandingTopBanner from '@/components/LandingTopBanner'
 
 const PLANS = [
-  { id:'free', name:'Plano Generosidade', price:'0', period:'3 dias grátis', color:'var(--text-muted)', features:[{ok:true,txt:'15 questões'},{ok:true,txt:'5 perguntas IA'},{ok:true,txt:'1 mini simulado'},{ok:false,txt:'Simulados completos'},{ok:false,txt:'IA avançada'},{ok:false,txt:'Ranking'}] },
-  { id:'start', name:'Tiger Start', price:'1,99', period:'/mês', color:'var(--success)', features:[{ok:true,txt:'Questões ilimitadas'},{ok:true,txt:'IA intermediária'},{ok:true,txt:'Mais simulados'},{ok:true,txt:'Streak + ranking'},{ok:false,txt:'Mapas mentais'},{ok:false,txt:'IA avançada'}] },
-  { id:'plus', name:'Tiger Plus', price:'5,99', period:'/mês', color:'var(--blue)', features:[{ok:true,txt:'Simulados completos'},{ok:true,txt:'Mapas mentais'},{ok:true,txt:'PDFs premium'},{ok:true,txt:'IA ampliada'},{ok:false,txt:'Radar jurídico'},{ok:false,txt:'Trilhas personalizadas'}] },
-  { id:'pro', name:'Tiger Pro', price:'9,99', period:'/mês', badge:'POPULAR', featured:true, color:'var(--gold)', features:[{ok:true,txt:'IA avançada ilimitada'},{ok:true,txt:'Radar jurídico'},{ok:true,txt:'Trilhas personalizadas'},{ok:true,txt:'Previsão de aprovação'},{ok:true,txt:'Revisão inteligente'},{ok:true,txt:'Questões comentadas premium'}] },
-  { id:'elite', name:'Tiger Elite', price:'19,99', period:'/mês', badge:'TOP', elite:true, color:'var(--orange)', features:[{ok:true,txt:'Tudo ilimitado'},{ok:true,txt:'IA prioritária'},{ok:true,txt:'Conteúdos exclusivos'},{ok:true,txt:'Desafios especiais'},{ok:true,txt:'Simulados inéditos'},{ok:true,txt:'Ranking elite'}] },
+  { id:'free', name:'Plano Generosidade', price:'0', period:'3 dias grátis', color:'var(--text-muted)', features:[{ok:true,txt:'15 questões'},{ok:true,txt:'5 perguntas IA'},{ok:true,txt:'1 mini simulado'},{ok:false,txt:'Simulados completos'},{ok:false,txt:'PDF por disciplina'},{ok:false,txt:'Radar TigerJus'}] },
+  { id:'start', name:'Tiger Start', price:'1,99', period:'/mês', color:'var(--success)', features:[{ok:true,txt:'Questões ilimitadas'},{ok:true,txt:'IA jurídica (20/dia)'},{ok:true,txt:'Simulados completos'},{ok:true,txt:'Streak + ranking'},{ok:false,txt:'PDF por disciplina'},{ok:false,txt:'Radar TigerJus'}] },
+  { id:'plus', name:'Tiger Plus', price:'5,99', period:'/mês', color:'var(--blue)', features:[{ok:true,txt:'PDF por disciplina'},{ok:true,txt:'Radar TigerJus'},{ok:true,txt:'Simulados OAB 42º e 43º'},{ok:true,txt:'Flashcards avançados'},{ok:false,txt:'IA avançada'},{ok:false,txt:'Trilhas personalizadas'}] },
+  { id:'pro', name:'Tiger Pro', price:'9,99', period:'/mês', badge:'POPULAR', featured:true, color:'var(--gold)', features:[{ok:true,txt:'IA avançada (150/dia)'},{ok:true,txt:'Simulados OAB 42º ao 44º'},{ok:true,txt:'Trilhas personalizadas'},{ok:true,txt:'Previsão de aprovação'},{ok:false,txt:'Tudo ilimitado'},{ok:false,txt:'Acesso total vitalício'}] },
+  { id:'elite', name:'Tiger Elite', price:'19,99', period:'/mês', badge:'TOP', elite:true, color:'var(--orange)', features:[{ok:true,txt:'Tudo ilimitado'},{ok:true,txt:'IA prioritária'},{ok:true,txt:'Todos os simulados OAB'},{ok:true,txt:'Acesso total vitalício'},{ok:true,txt:'Conteúdos exclusivos'},{ok:true,txt:'Ranking elite'}] },
 ]
 
 const FEATURES = [
