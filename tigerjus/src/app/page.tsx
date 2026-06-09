@@ -33,14 +33,30 @@ function normalizeBoolean(value: unknown): boolean {
   return false
 }
 
+// Converte "1,99" → preço anual formatado "23,88"
+function precoAnual(priceStr: string): string {
+  const num = parseFloat(priceStr.replace(',', '.'))
+  if (isNaN(num)) return priceStr
+  return (Math.round(num * 12 * 100) / 100).toFixed(2).replace('.', ',')
+}
+
 function UpgradeModal({ onClose }: { onClose: () => void }) {
+  const [ciclo, setCiclo] = useState<'mensal'|'anual'>('mensal')
+  const ehAnual = ciclo === 'anual'
+
   return (
     <div style={{position:'fixed',inset:0,zIndex:300,background:'rgba(0,0,0,0.95)',backdropFilter:'blur(10px)',display:'flex',alignItems:'center',justifyContent:'center',padding:20,overflowY:'auto'}}>
       <div style={{width:'100%',maxWidth:1100,position:'relative'}}>
         <button onClick={onClose} style={{position:'absolute',top:-40,right:0,background:'none',border:'none',color:'#888',fontSize:24,cursor:'pointer'}}>✕</button>
         <div style={{textAlign:'center',marginBottom:32}}>
           <h2 style={{fontFamily:'var(--font-display)',fontSize:36,fontWeight:900,marginBottom:8}}>Escolha seu <span style={{color:'var(--gold)'}}>plano</span></h2>
-          <p style={{color:'var(--text-muted)'}}>Desbloqueie todo o potencial do TigerJus</p>
+          <p style={{color:'var(--text-muted)',marginBottom:18}}>Desbloqueie todo o potencial do TigerJus</p>
+          {/* Toggle Mensal/Anual */}
+          <div style={{display:'inline-flex',background:'rgba(255,255,255,0.05)',border:'1px solid rgba(255,255,255,0.1)',borderRadius:100,padding:4,gap:4}}>
+            <button onClick={()=>setCiclo('mensal')} style={{padding:'8px 24px',borderRadius:100,border:'none',cursor:'pointer',fontFamily:'var(--font-body)',fontSize:13,fontWeight:700,background:!ehAnual?'linear-gradient(135deg,var(--gold),var(--orange))':'transparent',color:!ehAnual?'#000':'var(--text-muted)',transition:'all 0.2s'}}>Mensal</button>
+            <button onClick={()=>setCiclo('anual')} style={{padding:'8px 24px',borderRadius:100,border:'none',cursor:'pointer',fontFamily:'var(--font-body)',fontSize:13,fontWeight:700,background:ehAnual?'linear-gradient(135deg,var(--gold),var(--orange))':'transparent',color:ehAnual?'#000':'var(--text-muted)',transition:'all 0.2s'}}>Anual</button>
+          </div>
+          {ehAnual && <p style={{color:'var(--success)',fontSize:12,marginTop:10}}>💎 Pague uma vez · 12 meses de acesso completo</p>}
         </div>
         <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(200px,1fr))',gap:16}}>
           {PLANS.filter(p => p.id !== 'free').map(plan=>(
@@ -48,9 +64,11 @@ function UpgradeModal({ onClose }: { onClose: () => void }) {
               {(plan as any).badge&&<div style={{position:'absolute',top:16,right:16,background:'linear-gradient(135deg,var(--gold),var(--orange))',color:'var(--deep-black)',fontSize:9,fontWeight:900,letterSpacing:'1.5px',padding:'4px 10px',borderRadius:100}}>{(plan as any).badge}</div>}
               <div style={{fontSize:10,fontWeight:700,letterSpacing:'2.5px',textTransform:'uppercase',color:'var(--text-muted)',marginBottom:8}}>{plan.name}</div>
               <div style={{fontFamily:'var(--font-display)',fontSize:40,fontWeight:900,color:plan.color,marginBottom:4}}>
-                <sup style={{fontSize:16,color:'var(--text-muted)',verticalAlign:'super'}}>R$</sup>{plan.price}
+                <sup style={{fontSize:16,color:'var(--text-muted)',verticalAlign:'super'}}>R$</sup>
+                {ehAnual ? precoAnual(plan.price) : plan.price}
               </div>
-              <div style={{fontSize:12,color:'var(--text-muted)',marginBottom:20}}>{plan.period}</div>
+              <div style={{fontSize:12,color:'var(--text-muted)',marginBottom: ehAnual ? 4 : 20}}>{ehAnual ? '/ano' : plan.period}</div>
+              {ehAnual && <div style={{fontSize:11,color:'var(--success)',marginBottom:16}}>Pagamento único · 12 meses</div>}
               <ul style={{listStyle:'none',display:'flex',flexDirection:'column',gap:8,marginBottom:20}}>
                 {plan.features.map((f,i)=>(
                   <li key={i} style={{display:'flex',alignItems:'flex-start',gap:8,fontSize:12,color:f.ok?'var(--white)':'var(--text-muted)'}}>
@@ -58,7 +76,7 @@ function UpgradeModal({ onClose }: { onClose: () => void }) {
                   </li>
                 ))}
               </ul>
-              <Link href={`/checkout?plan=${plan.id}`} className={(plan as any).featured?'btn-primary':'btn-secondary'} style={{display:'block',textAlign:'center',textDecoration:'none',padding:'12px',fontSize:13}} onClick={onClose}>
+              <Link href={`/checkout?plan=${plan.id}&ciclo=${ciclo}`} className={(plan as any).featured?'btn-primary':'btn-secondary'} style={{display:'block',textAlign:'center',textDecoration:'none',padding:'12px',fontSize:13}} onClick={onClose}>
                 {(plan as any).featured?'ASSINAR AGORA':'ASSINAR'}
               </Link>
             </div>
@@ -77,6 +95,8 @@ export default function HomePage() {
   const { settings, loaded } = useAppSettings()
   const [showUpgrade, setShowUpgrade] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
+  const [ciclo, setCiclo] = useState<'mensal'|'anual'>('mensal')
+  const ehAnual = ciclo === 'anual'
 
   const heroMedia = {
     enabled:   loaded ? normalizeBoolean(settings.hero_media_enabled) : false,
@@ -92,12 +112,6 @@ export default function HomePage() {
   const heroIsRight = heroMedia.enabled && heroMedia.position === 'right'
   const heroIsLeft  = heroMedia.enabled && heroMedia.position === 'left'
   const heroIsBg    = heroMedia.enabled && heroMedia.position === 'background'
-
-  const bannerEnabled = loaded ? normalizeBoolean(settings.landing_top_banner_enabled) : false
-  const bannerUrl     = loaded ? String(settings.landing_top_banner_url  || '').trim() : ''
-  const bannerLink    = loaded ? String(settings.landing_top_banner_link || '').trim() : ''
-  const bannerAlt     = loaded ? String(settings.landing_top_banner_alt  || 'Banner TigerJus').trim() : ''
-  const showBanner    = bannerEnabled && bannerUrl.length > 0
 
   const navItems = [
     { label:'Plataforma', action: () => { document.getElementById('plataforma')?.scrollIntoView({behavior:'smooth'}); setMenuOpen(false) } },
@@ -166,7 +180,7 @@ export default function HomePage() {
         </div>
       )}
 
-      {/* BANNER DO TOPO — componente isolado (desktop + mobile) */}
+      {/* BANNER DO TOPO */}
       <LandingTopBanner />
 
       {/* HERO */}
@@ -229,7 +243,6 @@ export default function HomePage() {
               <Link href="/login" className="btn-secondary" style={{fontSize:15,padding:'16px 32px'}}>JÁ TENHO CONTA</Link>
             </div>
 
-            {/* SLOT MOBILE TIGRE — sem condicional, img direta */}
             <div className="teste-mobile-tigre">
               <img src={settings.hero_media_url || ''} alt="TigerJus Cyber Tiger" loading="eager"
                 style={{display:'block',margin:'0 auto',width:'min(78vw, 300px)',height:'auto',objectFit:'contain',filter:'drop-shadow(0 0 32px rgba(212,168,67,0.5))'}} />
@@ -246,7 +259,6 @@ export default function HomePage() {
           </div>
         </div>
 
-        {/* TIGER MOBILE */}
         {(heroIsRight||heroIsLeft) && heroMedia.url && (
           <div className="mobile-hero-tiger">
             <img src={heroMedia.url} alt="TigerJus Cyber Tiger" loading="eager"
@@ -303,15 +315,43 @@ export default function HomePage() {
           <div className="section-tag">💎 PLANOS</div>
           <h2 style={{fontFamily:'var(--font-display)',fontSize:'clamp(28px,5vw,54px)',fontWeight:900,lineHeight:1.1,marginBottom:16}}>Invista no seu <span style={{color:'var(--gold)'}}>futuro jurídico.</span></h2>
           <div className="divider" />
+
+          {/* ── Toggle Mensal / Anual ── */}
+          <div style={{display:'flex',flexDirection:'column',alignItems:'center',gap:12,marginBottom:36}}>
+            <div style={{display:'inline-flex',background:'rgba(255,255,255,0.05)',border:'1px solid rgba(255,255,255,0.1)',borderRadius:100,padding:4,gap:4}}>
+              <button
+                onClick={()=>setCiclo('mensal')}
+                style={{padding:'10px 28px',borderRadius:100,border:'none',cursor:'pointer',fontFamily:'var(--font-body)',fontSize:14,fontWeight:700,background:!ehAnual?'linear-gradient(135deg,var(--gold),var(--orange))':'transparent',color:!ehAnual?'#000':'var(--text-muted)',transition:'all 0.2s'}}>
+                Mensal
+              </button>
+              <button
+                onClick={()=>setCiclo('anual')}
+                style={{padding:'10px 28px',borderRadius:100,border:'none',cursor:'pointer',fontFamily:'var(--font-body)',fontSize:14,fontWeight:700,background:ehAnual?'linear-gradient(135deg,var(--gold),var(--orange))':'transparent',color:ehAnual?'#000':'var(--text-muted)',transition:'all 0.2s'}}>
+                Anual
+              </button>
+            </div>
+            {ehAnual && (
+              <div style={{display:'inline-flex',alignItems:'center',gap:8,background:'rgba(76,175,125,0.1)',border:'1px solid rgba(76,175,125,0.25)',borderRadius:100,padding:'6px 16px',fontSize:13,color:'var(--success)',fontWeight:600}}>
+                💎 Pagamento único · 12 meses de acesso completo
+              </div>
+            )}
+          </div>
+
           <div className="planos-grid">
             {PLANS.map(plan=>(
               <div key={plan.id} style={{background:(plan as any).featured?'linear-gradient(160deg,rgba(212,168,67,0.08),var(--gray))':(plan as any).elite?'linear-gradient(160deg,rgba(232,98,26,0.08),var(--gray))':'var(--gray)',border:(plan as any).featured?'1px solid var(--gold)':(plan as any).elite?'1px solid var(--orange-light)':'1px solid rgba(255,255,255,0.06)',borderRadius:16,padding:24,position:'relative',transition:'transform 0.3s'}}>
                 {(plan as any).badge&&<div style={{position:'absolute',top:16,right:16,background:'linear-gradient(135deg,var(--gold),var(--orange))',color:'var(--deep-black)',fontSize:9,fontWeight:900,letterSpacing:'1.5px',padding:'4px 10px',borderRadius:100}}>{(plan as any).badge}</div>}
                 <div style={{fontSize:10,fontWeight:700,letterSpacing:'2.5px',textTransform:'uppercase',color:'var(--text-muted)',marginBottom:10}}>{plan.name}</div>
                 <div style={{fontFamily:'var(--font-display)',fontSize:40,fontWeight:900,lineHeight:1,color:plan.color}}>
-                  <sup style={{fontSize:16,fontWeight:600,color:'var(--text-muted)',verticalAlign:'super'}}>R$</sup>{plan.price}
+                  <sup style={{fontSize:16,fontWeight:600,color:'var(--text-muted)',verticalAlign:'super'}}>R$</sup>
+                  {plan.id === 'free' ? plan.price : (ehAnual ? precoAnual(plan.price) : plan.price)}
                 </div>
-                <div style={{fontSize:12,color:'var(--text-muted)',marginBottom:20}}>{plan.period}</div>
+                <div style={{fontSize:12,color:'var(--text-muted)',marginBottom: ehAnual && plan.id !== 'free' ? 4 : 20}}>
+                  {plan.id === 'free' ? plan.period : (ehAnual ? '/ano' : plan.period)}
+                </div>
+                {ehAnual && plan.id !== 'free' && (
+                  <div style={{fontSize:11,color:'var(--success)',marginBottom:16}}>Pagamento único · 12 meses</div>
+                )}
                 <ul style={{listStyle:'none',display:'flex',flexDirection:'column',gap:8,marginBottom:20}}>
                   {plan.features.map((f,i)=>(
                     <li key={i} style={{display:'flex',alignItems:'flex-start',gap:8,fontSize:12,lineHeight:1.5,color:f.ok?'var(--white)':'var(--text-muted)'}}>
@@ -321,7 +361,7 @@ export default function HomePage() {
                 </ul>
                 {plan.id==='free'
                   ? <Link href="/login?modo=cadastro" className="btn-secondary" style={{display:'block',textAlign:'center',textDecoration:'none',padding:'12px',fontSize:13}}>🎁 Plano Generosidade</Link>
-                  : <Link href={`/checkout?plan=${plan.id}`} className={(plan as any).featured?'btn-primary':'btn-secondary'} style={{display:'block',textAlign:'center',textDecoration:'none',padding:'12px',fontSize:13}}>
+                  : <Link href={`/checkout?plan=${plan.id}&ciclo=${ciclo}`} className={(plan as any).featured?'btn-primary':'btn-secondary'} style={{display:'block',textAlign:'center',textDecoration:'none',padding:'12px',fontSize:13}}>
                       {(plan as any).featured?'ASSINAR AGORA':'ASSINAR'}
                     </Link>
                 }
@@ -413,7 +453,6 @@ export default function HomePage() {
         @keyframes fadeInDown { from{opacity:0;transform:translateY(-16px);}to{opacity:1;transform:translateY(0);} }
         @keyframes pulse      { 0%,100%{opacity:1;transform:scale(1);}50%{opacity:0.5;transform:scale(0.9);} }
 
-        /* === Grade de planos — robusta no mobile (5 cards sempre visíveis) === */
         .planos-grid {
           display: grid;
           grid-template-columns: repeat(5, 1fr);
