@@ -1141,6 +1141,8 @@ function IndiceJuridico({ showUpgrade, isPago }: any) {
   const [busca, setBusca] = useState('')
   const [letraSel, setLetraSel] = useState<string|null>(null)
   const [termos, setTermos] = useState<any[]>([])
+  const [questoesBusca, setQuestoesBusca] = useState<any[]>([])
+  const [flashBusca, setFlashBusca] = useState<any[]>([])
   const [loading, setLoading] = useState(false)
   const [termoSel, setTermoSel] = useState<any|null>(null)
   const [questRel, setQuestRel] = useState<any[]>([])
@@ -1149,45 +1151,55 @@ function IndiceJuridico({ showUpgrade, isPago }: any) {
 
   const LETRAS = 'ABCDEFGHIJLMNOPQRSTUVZ'.split('')
 
-  const buscarTermos = async (texto: string, letra: string|null) => {
+  const buscarTudo = async (texto: string, letra: string|null) => {
     setLoading(true)
     try {
-      let query = supabase.from('indice_remissivo').select('*').eq('ativo', true)
       if (texto.length >= 2) {
-        query = (query as any).ilike('termo', `%${texto}%`)
+        // Busca multi-fonte simultânea
+        const [resTermos, resQuestoes, resFlash] = await Promise.all([
+          supabase.from('indice_remissivo').select('*').eq('ativo', true)
+            .or(`termo.ilike.%${texto}%,descricao.ilike.%${texto}%`)
+            .order('termo').limit(50),
+          supabase.from('questoes_oab').select('id,disciplina,enunciado,opcao_a,opcao_b,opcao_c,opcao_d,resposta_correta,comentario')
+            .ilike('enunciado', `%${texto}%`).neq('resposta_correta','*').limit(10),
+          supabase.from('flashcards').select('id,disciplina,frente,verso').eq('ativo',true)
+            .ilike('frente', `%${texto}%`).limit(10),
+        ])
+        setTermos(resTermos.data || [])
+        setQuestoesBusca(resQuestoes.data || [])
+        setFlashBusca(resFlash.data || [])
       } else if (letra) {
-        query = (query as any).eq('letra', letra)
+        // Filtro A-Z: só no índice
+        const { data } = await supabase.from('indice_remissivo').select('*')
+          .eq('ativo', true).eq('letra', letra).order('termo').limit(100)
+        setTermos(data || [])
+        setQuestoesBusca([])
+        setFlashBusca([])
+      } else {
+        setTermos([]); setQuestoesBusca([]); setFlashBusca([])
       }
-      const { data } = await (query as any).order('termo').limit(100)
-      setTermos(data || [])
-    } catch { setTermos([]) }
+    } catch { setTermos([]); setQuestoesBusca([]); setFlashBusca([]) }
     finally { setLoading(false) }
   }
 
   const handleBusca = (val: string) => {
-    setBusca(val)
-    setLetraSel(null)
+    setBusca(val); setLetraSel(null)
     if (buscaRef.current) clearTimeout(buscaRef.current)
-    buscaRef.current = setTimeout(() => buscarTermos(val, null), 300)
+    buscaRef.current = setTimeout(() => buscarTudo(val, null), 350)
   }
 
   const handleLetra = (letra: string) => {
     const nova = letraSel === letra ? null : letra
-    setLetraSel(nova)
-    setBusca('')
-    buscarTermos('', nova)
+    setLetraSel(nova); setBusca('')
+    buscarTudo('', nova)
   }
 
   const abrirTermo = async (termo: any) => {
-    setTermoSel(termo)
-    setLoadingModal(true)
+    setTermoSel(termo); setLoadingModal(true)
     try {
-      const { data } = await supabase
-        .from('questoes_oab')
+      const { data } = await supabase.from('questoes_oab')
         .select('id,enunciado,opcao_a,opcao_b,opcao_c,opcao_d,resposta_correta,comentario')
-        .ilike('enunciado', `%${termo.termo.split(' ')[0]}%`)
-        .neq('resposta_correta', '*')
-        .limit(3)
+        .ilike('enunciado', `%${termo.termo}%`).neq('resposta_correta','*').limit(3)
       setQuestRel(data || [])
     } catch { setQuestRel([]) }
     finally { setLoadingModal(false) }
@@ -1196,8 +1208,11 @@ function IndiceJuridico({ showUpgrade, isPago }: any) {
   const TIPO_COR: Record<string,string> = {
     'ação':'#3a8fe8','princípio':'var(--gold)','conceito':'var(--success)',
     'instituto':'#8B5CF6','crime':'var(--danger)','excludente':'var(--orange)',
-    'remédio constitucional':'var(--gold)','padrão':'var(--text-muted)',
+    'remédio constitucional':'var(--gold)',
   }
+
+  const totalResultados = termos.length + questoesBusca.length + flashBusca.length
+  const buscaAtiva = busca.length >= 2 || !!letraSel
 
   if (!isPago) return (
     <div style={{padding:'24px 20px',flex:1,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',textAlign:'center'}}>
@@ -1206,10 +1221,10 @@ function IndiceJuridico({ showUpgrade, isPago }: any) {
         Índice Jurídico <span style={{color:'var(--gold)'}}>Remissivo</span>
       </h2>
       <p style={{fontSize:15,color:'var(--text-muted)',maxWidth:460,lineHeight:1.7,marginBottom:28}}>
-        Navegue por mais de 100 termos jurídicos organizados de A a Z. Clique em qualquer termo para ver a definição completa + questões OAB relacionadas.
+        Busca inteligente em todo o conteúdo da plataforma — termos, questões OAB e flashcards — em um único lugar.
       </p>
       <div style={{display:'flex',flexDirection:'column',gap:10,marginBottom:28,width:'100%',maxWidth:380,textAlign:'left'}}>
-        {['Navegação A-Z por letra','Busca instantânea por termo','Definição + questões OAB relacionadas','Cobertura de todas as 17 disciplinas'].map((f,i)=>(
+        {['Busca simultânea em termos, questões e flashcards','Navegação A-Z por letra do índice','Definição completa com questões OAB relacionadas','Cobertura de todas as 17 disciplinas'].map((f,i)=>(
           <div key={i} style={{display:'flex',alignItems:'center',gap:12,background:'rgba(212,168,67,0.06)',border:'1px solid rgba(212,168,67,0.12)',borderRadius:10,padding:'10px 14px',fontSize:13}}>
             <span style={{color:'var(--success)'}}>✓</span>{f}
           </div>
@@ -1228,60 +1243,53 @@ function IndiceJuridico({ showUpgrade, isPago }: any) {
         <div style={{position:'fixed',inset:0,zIndex:400,background:'rgba(0,0,0,0.92)',backdropFilter:'blur(10px)',display:'flex',alignItems:'center',justifyContent:'center',padding:20,overflowY:'auto'}}>
           <div style={{width:'100%',maxWidth:640,background:'var(--gray)',border:'1px solid rgba(212,168,67,0.2)',borderRadius:24,padding:'28px',position:'relative',maxHeight:'88vh',overflowY:'auto'}}>
             <button onClick={()=>{setTermoSel(null);setQuestRel([])}} style={{position:'absolute',top:16,right:16,background:'none',border:'none',color:'#888',fontSize:22,cursor:'pointer'}}>✕</button>
-            {/* Cabeçalho */}
             <div style={{marginBottom:20}}>
               <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:10,flexWrap:'wrap'}}>
-                <span style={{fontSize:11,fontWeight:700,letterSpacing:1.5,textTransform:'uppercase',background:`${TIPO_COR[termoSel.tipo]||'var(--text-muted)'}22`,border:`1px solid ${TIPO_COR[termoSel.tipo]||'rgba(255,255,255,0.1)'}44`,color:TIPO_COR[termoSel.tipo]||'var(--text-muted)',padding:'3px 10px',borderRadius:100}}>{termoSel.tipo}</span>
+                <span style={{fontSize:11,fontWeight:700,letterSpacing:1.5,textTransform:'uppercase',background:`${TIPO_COR[termoSel.tipo]||'rgba(255,255,255,0.06)'}22`,border:`1px solid ${TIPO_COR[termoSel.tipo]||'rgba(255,255,255,0.1)'}44`,color:TIPO_COR[termoSel.tipo]||'var(--text-muted)',padding:'3px 10px',borderRadius:100}}>{termoSel.tipo}</span>
                 <span style={{fontSize:11,color:'var(--text-muted)',background:'rgba(255,255,255,0.06)',padding:'3px 10px',borderRadius:100}}>{termoSel.nome_disciplina}</span>
               </div>
               <h2 style={{fontFamily:'var(--font-display)',fontSize:'clamp(20px,4vw,26px)',fontWeight:900,color:'var(--white)',marginBottom:12}}>{termoSel.termo}</h2>
               <p style={{fontSize:14,color:'var(--text-muted)',lineHeight:1.8,background:'rgba(255,255,255,0.03)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:12,padding:'14px 16px'}}>{termoSel.descricao}</p>
             </div>
-            {/* Questões relacionadas */}
-            {loadingModal ? (
-              <div style={{textAlign:'center',padding:20,color:'var(--text-muted)',fontSize:13}}>⏳ Buscando questões relacionadas...</div>
-            ) : questRel.length > 0 ? (
-              <div>
-                <div style={{fontSize:10,fontWeight:700,letterSpacing:'2px',textTransform:'uppercase',color:'var(--gold)',marginBottom:12}}>📝 QUESTÕES OAB RELACIONADAS</div>
-                <div style={{display:'flex',flexDirection:'column',gap:12}}>
-                  {questRel.map((q,i)=>(
-                    <div key={q.id} style={{background:'rgba(255,255,255,0.03)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:12,padding:'14px 16px'}}>
-                      <div style={{fontSize:11,color:'var(--text-muted)',marginBottom:6}}>Questão {i+1} · OAB Oficial</div>
-                      <div style={{fontSize:13,lineHeight:1.6,marginBottom:10,color:'var(--white)'}}>{q.enunciado.slice(0,200)}{q.enunciado.length>200?'...':''}</div>
-                      <div style={{display:'flex',flexWrap:'wrap',gap:6}}>
-                        {['A','B','C','D'].map((l,li)=>{
-                          const opt=[q.opcao_a,q.opcao_b,q.opcao_c,q.opcao_d][li]
-                          const certa=q.resposta_correta===l
-                          return <div key={l} style={{fontSize:11,padding:'4px 10px',borderRadius:6,background:certa?'rgba(76,175,125,0.12)':'rgba(255,255,255,0.04)',border:`1px solid ${certa?'var(--success)':'rgba(255,255,255,0.08)'}`,color:certa?'var(--success)':'var(--text-muted)',flex:'1 1 40%'}}>{l}) {opt?.slice(0,60)}{opt?.length>60?'...':''}</div>
-                        })}
+            {loadingModal
+              ? <div style={{textAlign:'center',padding:20,color:'var(--text-muted)',fontSize:13}}>⏳ Buscando questões...</div>
+              : questRel.length > 0 ? (
+                <div>
+                  <div style={{fontSize:10,fontWeight:700,letterSpacing:'2px',textTransform:'uppercase',color:'var(--gold)',marginBottom:12}}>📝 QUESTÕES OAB RELACIONADAS</div>
+                  <div style={{display:'flex',flexDirection:'column',gap:12}}>
+                    {questRel.map((q,i)=>(
+                      <div key={q.id} style={{background:'rgba(255,255,255,0.03)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:12,padding:'14px 16px'}}>
+                        <div style={{fontSize:11,color:'var(--text-muted)',marginBottom:6}}>Questão {i+1} · OAB Oficial</div>
+                        <div style={{fontSize:13,lineHeight:1.6,marginBottom:10,color:'var(--white)'}}>{q.enunciado.slice(0,220)}{q.enunciado.length>220?'...':''}</div>
+                        <div style={{display:'flex',flexWrap:'wrap',gap:6}}>
+                          {['A','B','C','D'].map((l,li)=>{
+                            const opt=[q.opcao_a,q.opcao_b,q.opcao_c,q.opcao_d][li]
+                            const certa=q.resposta_correta===l
+                            return <div key={l} style={{fontSize:11,padding:'4px 10px',borderRadius:6,background:certa?'rgba(76,175,125,0.12)':'rgba(255,255,255,0.04)',border:`1px solid ${certa?'var(--success)':'rgba(255,255,255,0.08)'}`,color:certa?'var(--success)':'var(--text-muted)',flex:'1 1 40%'}}>{l}) {opt?.slice(0,60)}{opt?.length>60?'...':''}</div>
+                          })}
+                        </div>
+                        {q.comentario&&<div style={{marginTop:8,fontSize:11,color:'var(--text-muted)',borderTop:'1px solid rgba(255,255,255,0.06)',paddingTop:8}}>💡 {q.comentario.slice(0,150)}{q.comentario.length>150?'...':''}</div>}
                       </div>
-                      {q.comentario&&<div style={{marginTop:8,fontSize:11,color:'var(--text-muted)',borderTop:'1px solid rgba(255,255,255,0.06)',paddingTop:8}}>💡 {q.comentario.slice(0,120)}{q.comentario.length>120?'...':''}</div>}
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
-              </div>
-            ) : (
-              <div style={{fontSize:13,color:'var(--text-muted)',textAlign:'center',padding:'16px 0'}}>Nenhuma questão encontrada para este termo no banco atual.</div>
-            )}
+              ) : <div style={{fontSize:13,color:'var(--text-muted)',textAlign:'center',padding:'12px 0'}}>Nenhuma questão OAB encontrada para este termo.</div>
+            }
           </div>
         </div>
       )}
 
       {/* Cabeçalho */}
       <h1 style={{fontFamily:'var(--font-display)',fontSize:'clamp(22px,5vw,32px)',fontWeight:900,marginBottom:6}}>Índice Jurídico 📚</h1>
-      <p style={{fontSize:14,color:'var(--text-muted)',marginBottom:20}}>Navegue pelos termos A-Z ou busque qualquer conceito jurídico.</p>
+      <p style={{fontSize:14,color:'var(--text-muted)',marginBottom:20}}>Busca em termos, questões OAB e flashcards simultaneamente.</p>
 
-      {/* Busca */}
-      <div style={{position:'relative',marginBottom:16,maxWidth:560}}>
+      {/* Campo de busca */}
+      <div style={{position:'relative',marginBottom:16,maxWidth:580}}>
         <span style={{position:'absolute',left:14,top:'50%',transform:'translateY(-50%)',fontSize:16,pointerEvents:'none'}}>🔍</span>
-        <input
-          value={busca}
-          onChange={e=>handleBusca(e.target.value)}
-          placeholder="Buscar termo jurídico... ex: Prescrição, Dolo, Habeas Corpus"
-          className="form-input"
-          style={{width:'100%',paddingLeft:42,fontSize:14}}
-        />
-        {busca&&<button onClick={()=>{setBusca('');setTermos([]);setLetraSel(null)}} style={{position:'absolute',right:12,top:'50%',transform:'translateY(-50%)',background:'none',border:'none',color:'#888',cursor:'pointer',fontSize:18}}>✕</button>}
+        <input value={busca} onChange={e=>handleBusca(e.target.value)}
+          placeholder="Buscar em toda a plataforma... ex: Tutela, Prescrição, Dolo"
+          className="form-input" style={{width:'100%',paddingLeft:42,fontSize:14}}/>
+        {busca&&<button onClick={()=>{setBusca('');setTermos([]);setQuestoesBusca([]);setFlashBusca([]);setLetraSel(null)}} style={{position:'absolute',right:12,top:'50%',transform:'translateY(-50%)',background:'none',border:'none',color:'#888',cursor:'pointer',fontSize:18}}>✕</button>}
       </div>
 
       {/* Filtro A-Z */}
@@ -1291,50 +1299,121 @@ function IndiceJuridico({ showUpgrade, isPago }: any) {
             {l}
           </button>
         ))}
-        {(letraSel||busca)&&<button onClick={()=>{setLetraSel(null);setBusca('');setTermos([])}} style={{padding:'0 14px',height:34,borderRadius:8,border:'1px solid rgba(255,255,255,0.08)',background:'transparent',color:'var(--text-muted)',fontSize:12,cursor:'pointer',fontFamily:'var(--font-body)'}}>Limpar</button>}
+        {buscaAtiva&&<button onClick={()=>{setLetraSel(null);setBusca('');setTermos([]);setQuestoesBusca([]);setFlashBusca([])}} style={{padding:'0 14px',height:34,borderRadius:8,border:'1px solid rgba(255,255,255,0.08)',background:'transparent',color:'var(--text-muted)',fontSize:12,cursor:'pointer',fontFamily:'var(--font-body)'}}>Limpar</button>}
       </div>
 
       {/* Estado inicial */}
-      {!busca&&!letraSel&&termos.length===0&&!loading&&(
+      {!buscaAtiva&&!loading&&(
         <div style={{textAlign:'center',padding:'40px 20px'}}>
           <div style={{fontSize:44,marginBottom:14}}>📖</div>
-          <p style={{fontSize:14,color:'var(--text-muted)',lineHeight:1.7}}>Use a busca ou clique em uma letra para explorar os termos jurídicos.</p>
+          <p style={{fontSize:14,color:'var(--text-muted)',lineHeight:1.7,maxWidth:400,margin:'0 auto'}}>Digite qualquer termo jurídico ou clique em uma letra para explorar o índice.</p>
         </div>
       )}
 
       {/* Loading */}
-      {loading&&(
-        <div style={{textAlign:'center',padding:32,color:'var(--text-muted)',fontSize:13}}>⏳ Buscando termos...</div>
-      )}
+      {loading&&<div style={{textAlign:'center',padding:32,color:'var(--text-muted)',fontSize:13}}>⏳ Buscando em toda a plataforma...</div>}
 
       {/* Sem resultados */}
-      {!loading&&(busca.length>=2||letraSel)&&termos.length===0&&(
+      {!loading&&buscaAtiva&&totalResultados===0&&(
         <div style={{textAlign:'center',padding:32}}>
           <div style={{fontSize:36,marginBottom:12}}>🔎</div>
-          <p style={{fontSize:14,color:'var(--text-muted)'}}>Nenhum termo encontrado. Tente outra busca.</p>
+          <p style={{fontSize:14,color:'var(--text-muted)'}}>Nenhum resultado encontrado. Tente outro termo.</p>
         </div>
       )}
 
-      {/* Grade de resultados */}
-      {!loading&&termos.length>0&&(
+      {/* RESULTADOS */}
+      {!loading&&buscaAtiva&&totalResultados>0&&(
         <div>
-          <div style={{fontSize:12,color:'var(--text-muted)',marginBottom:12}}>{termos.length} termo{termos.length!==1?'s':''} encontrado{termos.length!==1?'s':''}</div>
-          <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(280px,1fr))',gap:12}}>
-            {termos.map(t=>(
-              <div key={t.id} onClick={()=>abrirTermo(t)}
-                style={{background:'var(--gray)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:14,padding:'16px',cursor:'pointer',transition:'all 0.2s'}}
-                onMouseEnter={e=>{e.currentTarget.style.borderColor='rgba(212,168,67,0.25)';e.currentTarget.style.transform='translateY(-2px)'}}
-                onMouseLeave={e=>{e.currentTarget.style.borderColor='rgba(255,255,255,0.06)';e.currentTarget.style.transform='translateY(0)'}}>
-                <div style={{display:'flex',alignItems:'flex-start',justifyContent:'space-between',gap:8,marginBottom:8}}>
-                  <div style={{fontWeight:700,fontSize:14,color:'var(--white)',lineHeight:1.3}}>{t.termo}</div>
-                  <span style={{fontSize:9,fontWeight:700,letterSpacing:1,textTransform:'uppercase',background:`${TIPO_COR[t.tipo]||'rgba(255,255,255,0.06)'}22`,border:`1px solid ${TIPO_COR[t.tipo]||'rgba(255,255,255,0.1)'}44`,color:TIPO_COR[t.tipo]||'var(--text-muted)',padding:'3px 8px',borderRadius:100,flexShrink:0}}>{t.tipo}</span>
+          {/* Contador geral */}
+          {busca.length>=2&&(
+            <div style={{display:'flex',gap:12,marginBottom:20,flexWrap:'wrap'}}>
+              {[
+                {label:'Termos do Índice',count:termos.length,cor:'var(--gold)',icon:'📖'},
+                {label:'Questões OAB',count:questoesBusca.length,cor:'#3a8fe8',icon:'📝'},
+                {label:'Flashcards',count:flashBusca.length,cor:'#8B5CF6',icon:'🃏'},
+              ].map(s=>(
+                <div key={s.label} style={{display:'flex',alignItems:'center',gap:8,background:'rgba(255,255,255,0.04)',border:'1px solid rgba(255,255,255,0.08)',borderRadius:10,padding:'8px 14px',fontSize:12}}>
+                  <span>{s.icon}</span>
+                  <span style={{color:s.cor,fontWeight:700}}>{s.count}</span>
+                  <span style={{color:'var(--text-muted)'}}>{s.label}</span>
                 </div>
-                <div style={{fontSize:11,color:'var(--gold)',marginBottom:6,fontWeight:600}}>{t.nome_disciplina}</div>
-                <div style={{fontSize:12,color:'var(--text-muted)',lineHeight:1.6}}>{t.descricao.slice(0,100)}{t.descricao.length>100?'...':''}</div>
-                <div style={{marginTop:10,fontSize:11,color:'var(--text-dim)'}}>Clique para ver mais →</div>
+              ))}
+            </div>
+          )}
+
+          {/* SEÇÃO: Termos do Índice */}
+          {termos.length>0&&(
+            <div style={{marginBottom:28}}>
+              <div style={{fontSize:10,fontWeight:700,letterSpacing:'2.5px',textTransform:'uppercase',color:'var(--gold)',marginBottom:12,display:'flex',alignItems:'center',gap:8}}>
+                📖 TERMOS DO ÍNDICE
+                <span style={{fontSize:10,background:'rgba(212,168,67,0.1)',border:'1px solid rgba(212,168,67,0.2)',color:'var(--gold)',padding:'2px 8px',borderRadius:100}}>{termos.length}</span>
               </div>
-            ))}
-          </div>
+              <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(280px,1fr))',gap:12}}>
+                {termos.map(t=>(
+                  <div key={t.id} onClick={()=>abrirTermo(t)}
+                    style={{background:'var(--gray)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:14,padding:'16px',cursor:'pointer',transition:'all 0.2s'}}
+                    onMouseEnter={e=>{e.currentTarget.style.borderColor='rgba(212,168,67,0.3)';e.currentTarget.style.transform='translateY(-2px)'}}
+                    onMouseLeave={e=>{e.currentTarget.style.borderColor='rgba(255,255,255,0.06)';e.currentTarget.style.transform='translateY(0)'}}>
+                    <div style={{display:'flex',alignItems:'flex-start',justifyContent:'space-between',gap:8,marginBottom:8}}>
+                      <div style={{fontWeight:700,fontSize:14,color:'var(--white)',lineHeight:1.3}}>{t.termo}</div>
+                      <span style={{fontSize:9,fontWeight:700,letterSpacing:1,textTransform:'uppercase',background:`${TIPO_COR[t.tipo]||'rgba(255,255,255,0.06)'}22`,border:`1px solid ${TIPO_COR[t.tipo]||'rgba(255,255,255,0.1)'}44`,color:TIPO_COR[t.tipo]||'var(--text-muted)',padding:'3px 8px',borderRadius:100,flexShrink:0,whiteSpace:'nowrap'}}>{t.tipo}</span>
+                    </div>
+                    <div style={{fontSize:11,color:'var(--gold)',marginBottom:6,fontWeight:600}}>{t.nome_disciplina}</div>
+                    <div style={{fontSize:12,color:'var(--text-muted)',lineHeight:1.6}}>{t.descricao.slice(0,110)}{t.descricao.length>110?'...':''}</div>
+                    <div style={{marginTop:8,fontSize:11,color:'var(--text-dim)'}}>Clique para ver definição + questões →</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* SEÇÃO: Questões OAB */}
+          {questoesBusca.length>0&&(
+            <div style={{marginBottom:28}}>
+              <div style={{fontSize:10,fontWeight:700,letterSpacing:'2.5px',textTransform:'uppercase',color:'#3a8fe8',marginBottom:12,display:'flex',alignItems:'center',gap:8}}>
+                📝 QUESTÕES OAB
+                <span style={{fontSize:10,background:'rgba(58,143,232,0.1)',border:'1px solid rgba(58,143,232,0.2)',color:'#3a8fe8',padding:'2px 8px',borderRadius:100}}>{questoesBusca.length}</span>
+              </div>
+              <div style={{display:'flex',flexDirection:'column',gap:12}}>
+                {questoesBusca.map((q,i)=>(
+                  <div key={q.id} style={{background:'var(--gray)',border:'1px solid rgba(58,143,232,0.12)',borderRadius:14,padding:'16px'}}>
+                    <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:8,flexWrap:'wrap'}}>
+                      <span style={{fontSize:10,fontWeight:700,letterSpacing:1.5,textTransform:'uppercase',color:'#3a8fe8'}}>OAB OFICIAL</span>
+                      <span style={{fontSize:11,color:'var(--text-muted)'}}>· {q.disciplina}</span>
+                    </div>
+                    <div style={{fontSize:13,lineHeight:1.7,marginBottom:12,color:'var(--white)'}}>{q.enunciado.slice(0,260)}{q.enunciado.length>260?'...':''}</div>
+                    <div style={{display:'flex',flexWrap:'wrap',gap:6}}>
+                      {['A','B','C','D'].map((l,li)=>{
+                        const opt=[q.opcao_a,q.opcao_b,q.opcao_c,q.opcao_d][li]
+                        const certa=q.resposta_correta===l
+                        return opt?<div key={l} style={{fontSize:11,padding:'5px 10px',borderRadius:6,background:certa?'rgba(76,175,125,0.1)':'rgba(255,255,255,0.03)',border:`1px solid ${certa?'var(--success)':'rgba(255,255,255,0.07)'}`,color:certa?'var(--success)':'var(--text-muted)',flex:'1 1 40%',lineHeight:1.5}}><strong>{l})</strong> {opt.slice(0,70)}{opt.length>70?'...':''}</div>:null
+                      })}
+                    </div>
+                    {q.comentario&&<div style={{marginTop:10,padding:'10px 12px',background:'rgba(212,168,67,0.05)',border:'1px solid rgba(212,168,67,0.12)',borderRadius:8,fontSize:11,color:'var(--text-muted)',lineHeight:1.6}}>💡 {q.comentario.slice(0,160)}{q.comentario.length>160?'...':''}</div>}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* SEÇÃO: Flashcards */}
+          {flashBusca.length>0&&(
+            <div style={{marginBottom:20}}>
+              <div style={{fontSize:10,fontWeight:700,letterSpacing:'2.5px',textTransform:'uppercase',color:'#8B5CF6',marginBottom:12,display:'flex',alignItems:'center',gap:8}}>
+                🃏 FLASHCARDS
+                <span style={{fontSize:10,background:'rgba(139,92,246,0.1)',border:'1px solid rgba(139,92,246,0.2)',color:'#8B5CF6',padding:'2px 8px',borderRadius:100}}>{flashBusca.length}</span>
+              </div>
+              <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(280px,1fr))',gap:12}}>
+                {flashBusca.map(f=>(
+                  <div key={f.id} style={{background:'var(--gray)',border:'1px solid rgba(139,92,246,0.15)',borderRadius:14,padding:'16px'}}>
+                    <div style={{fontSize:11,color:'#8B5CF6',fontWeight:700,marginBottom:8}}>{f.disciplina}</div>
+                    <div style={{fontSize:13,fontWeight:600,color:'var(--white)',marginBottom:8,lineHeight:1.5}}>{f.frente.slice(0,120)}{f.frente.length>120?'...':''}</div>
+                    <div style={{fontSize:12,color:'var(--text-muted)',lineHeight:1.6,paddingTop:8,borderTop:'1px solid rgba(255,255,255,0.06)'}}>{f.verso.slice(0,120)}{f.verso.length>120?'...':''}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>
