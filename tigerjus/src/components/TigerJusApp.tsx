@@ -14,6 +14,12 @@ interface Profile {
   free_questions_used: number; free_ia_used: number
   questoes_respondidas: number; questoes_corretas: number
   role?: string
+  referral_code?: string
+  referred_by?: string
+  referral_count?: number
+  ambassador_badge?: string
+  referral_days_bonus?: number
+  referral_discount_pct?: number
 }
 
 type LevelName = 'Filhote' | 'Caçador' | 'Alpha' | 'Tigre Supremo' | 'Mestre TigerJus'
@@ -293,6 +299,22 @@ function DashHome({ profile, onNav, showUpgrade, isPago, canAccessPremium, onOpe
         </div>
         <div style={{fontSize:13,color:'var(--text-muted)'}}>{canAccessPremium?'Veja os 6 temas com maior probabilidade de cair no 47º Exame OAB →':'Temas com maior probabilidade de cair na próxima OAB.'}</div>
       </div>
+      {/* Widget Programa Tigre Embaixador */}
+      {(profile?.ambassador_badge||(profile?.referral_count||0)>0)&&(
+        <div style={{background:'linear-gradient(135deg,rgba(212,168,67,0.08),rgba(232,98,26,0.04))',border:'1px solid rgba(212,168,67,0.18)',borderRadius:16,padding:'16px 18px',marginBottom:20,cursor:'pointer',transition:'all 0.2s'}}
+          onClick={()=>onNav('referral')}
+          onMouseEnter={e=>{e.currentTarget.style.transform='translateY(-2px)';e.currentTarget.style.boxShadow='0 8px 24px rgba(0,0,0,0.3)'}}
+          onMouseLeave={e=>{e.currentTarget.style.transform='translateY(0)';e.currentTarget.style.boxShadow='none'}}>
+          <div style={{display:'flex',alignItems:'center',gap:12}}>
+            <span style={{fontSize:22}}>{['👑','🥇','🥈','🥉'].find((_,i)=>['Embaixador Ouro','Embaixador Prata','Embaixador Bronze','Recrutador'][i]===profile?.ambassador_badge)||'🐯'}</span>
+            <div style={{flex:1}}>
+              <div style={{fontSize:12,fontWeight:700,marginBottom:2}}>{profile?.ambassador_badge||'Programa Tigre Embaixador'}</div>
+              <div style={{fontSize:11,color:'var(--text-muted)'}}>{profile?.referral_count||0} indicaç{(profile?.referral_count||0)===1?'ão':'ões'} · {profile?.plano==='elite'?`${profile?.referral_discount_pct||0}% desconto`:`${profile?.referral_days_bonus||0} dias extras`}</div>
+            </div>
+            <div style={{fontSize:11,color:'var(--gold)',fontWeight:600}}>Ver detalhes →</div>
+          </div>
+        </div>
+      )}
       <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:14}}>
         <h2 style={{fontFamily:'var(--font-display)',fontSize:'clamp(18px,4vw,22px)',fontWeight:900}}>Disciplinas em destaque</h2>
         <button style={{color:'var(--gold)',fontSize:13,border:'none',background:'none',cursor:'pointer'}} onClick={()=>onNav('disciplines')}>Ver todas →</button>
@@ -1420,6 +1442,217 @@ function IndiceJuridico({ showUpgrade, isPago }: any) {
   )
 }
 
+
+// ── PROGRAMA TIGRE EMBAIXADOR ────────────────────────────────────────────────
+const REFERRAL_TIERS = [
+  {count:1, badge:'Recrutador',         icon:'🥉', reward:'15 dias extras',      cor:'#CD7F32'},
+  {count:3, badge:'Embaixador Bronze',  icon:'🥈', reward:'45 dias extras',      cor:'#C0C0C0'},
+  {count:5, badge:'Embaixador Prata',   icon:'🥇', reward:'75 dias extras',      cor:'var(--gold)'},
+  {count:10,badge:'Embaixador Ouro',    icon:'👑', reward:'Elite por 6 meses',   cor:'var(--orange)'},
+]
+
+function ReferralPage({profile,showUpgrade,isPago}:any){
+  const [copiado,setCopiado]=useState(false)
+  const [recompensas,setRecompensas]=useState<any[]>([])
+  const [loadingR,setLoadingR]=useState(false)
+
+  const refLink = typeof window!=='undefined'
+    ? `${window.location.origin}/login?ref=${profile?.referral_code||''}`
+    : `https://www.tigerjus.com.br/login?ref=${profile?.referral_code||''}`
+
+  const count       = profile?.referral_count   || 0
+  const badge       = profile?.ambassador_badge  || null
+  const diasBonus   = profile?.referral_days_bonus || 0
+  const discountPct = profile?.referral_discount_pct || 0
+  const isElite     = profile?.plano === 'elite'
+
+  // Próximo tier
+  const proximoTier = REFERRAL_TIERS.find(t => t.count > count)
+  const tierAtual   = [...REFERRAL_TIERS].reverse().find(t => t.count <= count)
+  const pctProgresso = proximoTier
+    ? Math.round(((count - (tierAtual?.count||0)) / (proximoTier.count - (tierAtual?.count||0))) * 100)
+    : 100
+
+  useEffect(()=>{
+    if(!profile?.id)return
+    setLoadingR(true)
+    supabase.from('referral_rewards').select('*').eq('referrer_id',profile.id).order('granted_at',{ascending:false}).limit(20)
+      .then(({data})=>{setRecompensas(data||[]);setLoadingR(false)})
+  },[profile?.id])
+
+  const copiarLink=async()=>{
+    try{
+      if(navigator.clipboard&&window.isSecureContext){await navigator.clipboard.writeText(refLink)}
+      else{const t=document.createElement('textarea');t.value=refLink;document.body.appendChild(t);t.select();document.execCommand('copy');document.body.removeChild(t)}
+      setCopiado(true)
+      setTimeout(()=>setCopiado(false),2500)
+    }catch{alert('Copie o link manualmente: '+refLink)}
+  }
+
+  return(
+    <div style={{padding:'24px 20px',flex:1,overflowY:'auto'}}>
+      <h1 style={{fontFamily:'var(--font-display)',fontSize:'clamp(22px,5vw,32px)',fontWeight:900,marginBottom:6}}>
+        Programa Tigre Embaixador 🐯
+      </h1>
+      <p style={{fontSize:14,color:'var(--text-muted)',marginBottom:24}}>
+        Indique amigos e evolua. A cada indicação que assinar, você ganha recompensas.
+      </p>
+
+      {/* Badge atual */}
+      {badge&&(
+        <div style={{background:'linear-gradient(135deg,rgba(212,168,67,0.12),rgba(232,98,26,0.06))',border:'1px solid rgba(212,168,67,0.25)',borderRadius:16,padding:'16px 20px',marginBottom:20,display:'flex',alignItems:'center',gap:16}}>
+          <span style={{fontSize:36}}>{REFERRAL_TIERS.find(t=>t.badge===badge)?.icon||'🏅'}</span>
+          <div>
+            <div style={{fontSize:10,fontWeight:700,letterSpacing:'2px',textTransform:'uppercase',color:'var(--gold)',marginBottom:4}}>SEU BADGE ATUAL</div>
+            <div style={{fontFamily:'var(--font-display)',fontSize:20,fontWeight:900}}>{badge}</div>
+            <div style={{fontSize:12,color:'var(--text-muted)',marginTop:2}}>{count} indicaç{count===1?'ão':'ões'} convertida{count!==1?'s':''}</div>
+          </div>
+          {isElite&&discountPct>0&&(
+            <div style={{marginLeft:'auto',textAlign:'center'}}>
+              <div style={{fontFamily:'var(--font-display)',fontSize:28,fontWeight:900,color:'var(--success)'}}>{discountPct}%</div>
+              <div style={{fontSize:11,color:'var(--text-muted)'}}>desconto acum.</div>
+            </div>
+          )}
+          {!isElite&&diasBonus>0&&(
+            <div style={{marginLeft:'auto',textAlign:'center'}}>
+              <div style={{fontFamily:'var(--font-display)',fontSize:28,fontWeight:900,color:'var(--gold)'}}>{diasBonus}</div>
+              <div style={{fontSize:11,color:'var(--text-muted)'}}>dias ganhos</div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Progresso ao próximo badge */}
+      {!isElite&&proximoTier&&(
+        <div style={{background:'var(--gray)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:16,padding:'20px',marginBottom:20}}>
+          <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:12,flexWrap:'wrap',gap:8}}>
+            <div>
+              <div style={{fontSize:12,color:'var(--text-muted)',marginBottom:4}}>Próximo nível</div>
+              <div style={{fontWeight:700,fontSize:15}}>
+                {proximoTier.icon} {proximoTier.badge}
+                <span style={{fontSize:12,color:'var(--text-muted)',marginLeft:8}}>· {proximoTier.reward}</span>
+              </div>
+            </div>
+            <div style={{fontSize:12,color:'var(--text-muted)'}}>
+              <strong style={{color:'var(--gold)'}}>{count}</strong> / {proximoTier.count} indicações
+            </div>
+          </div>
+          <div style={{background:'rgba(255,255,255,0.06)',borderRadius:100,height:10,overflow:'hidden'}}>
+            <div style={{width:`${pctProgresso}%`,height:'100%',background:'linear-gradient(90deg,var(--gold),var(--orange))',borderRadius:100,transition:'width 1s ease'}}/>
+          </div>
+          <div style={{marginTop:8,fontSize:12,color:'var(--text-muted)'}}>
+            Faltam <strong style={{color:'var(--gold)'}}>{proximoTier.count-count}</strong> indicaç{(proximoTier.count-count)===1?'ão':'ões'} para ser <strong style={{color:'var(--gold)'}}>{proximoTier.badge}</strong>
+          </div>
+        </div>
+      )}
+
+      {/* Elite: info de desconto */}
+      {isElite&&(
+        <div style={{background:'linear-gradient(135deg,rgba(232,98,26,0.1),rgba(212,168,67,0.06))',border:'1px solid rgba(232,98,26,0.25)',borderRadius:16,padding:'20px',marginBottom:20}}>
+          <div style={{fontSize:10,fontWeight:700,letterSpacing:'2px',textTransform:'uppercase',color:'var(--orange)',marginBottom:8}}>👑 ELITE EMBAIXADOR</div>
+          <p style={{fontSize:14,color:'var(--text-muted)',lineHeight:1.7,marginBottom:12}}>
+            A cada indicação convertida, você acumula <strong style={{color:'var(--orange)'}}>5% de desconto</strong> na sua próxima renovação. Máximo de 50%.
+          </p>
+          <div style={{display:'flex',alignItems:'center',gap:12}}>
+            <div style={{fontFamily:'var(--font-display)',fontSize:32,fontWeight:900,color:'var(--success)'}}>{discountPct}%</div>
+            <div>
+              <div style={{fontSize:13,fontWeight:700}}>desconto acumulado</div>
+              <div style={{fontSize:11,color:'var(--text-muted)'}}>em {count} indicaç{count===1?'ão':'ões'} convertida{count!==1?'s':''}</div>
+            </div>
+            {discountPct<50&&<div style={{marginLeft:'auto',fontSize:12,color:'var(--text-muted)'}}>faltam {(50-discountPct)/5} indicações para 50%</div>}
+          </div>
+        </div>
+      )}
+
+      {/* Link de indicação */}
+      <div style={{background:'var(--gray)',border:'1px solid rgba(212,168,67,0.2)',borderRadius:16,padding:'20px',marginBottom:20}}>
+        <div style={{fontSize:10,fontWeight:700,letterSpacing:'2px',textTransform:'uppercase',color:'var(--gold)',marginBottom:12}}>🔗 SEU LINK DE INDICAÇÃO</div>
+        <div style={{background:'rgba(255,255,255,0.04)',border:'1px solid rgba(255,255,255,0.08)',borderRadius:10,padding:'12px 14px',fontSize:12,fontFamily:'var(--font-mono)',color:'var(--text-muted)',marginBottom:12,wordBreak:'break-all',lineHeight:1.5}}>
+          {refLink}
+        </div>
+        <div style={{display:'flex',gap:10,flexWrap:'wrap'}}>
+          <button
+            className="btn-primary"
+            style={{flex:1,minWidth:140,fontSize:13,padding:'10px 16px',background:copiado?'var(--success)':undefined,borderColor:copiado?'var(--success)':undefined}}
+            onClick={copiarLink}
+          >
+            {copiado?'✅ Link copiado!':'📋 Copiar link'}
+          </button>
+          <a
+            href={`https://wa.me/?text=${encodeURIComponent(`🐯 Estou estudando para a OAB no TigerJus — a plataforma mais inteligente de Direito! Crie sua conta grátis: ${refLink}`)}`}
+            target="_blank" rel="noopener noreferrer"
+            style={{flex:1,minWidth:140,display:'flex',alignItems:'center',justifyContent:'center',gap:8,background:'#25D366',border:'none',borderRadius:10,padding:'10px 16px',fontSize:13,fontWeight:700,color:'#fff',textDecoration:'none'}}
+          >
+            💬 Compartilhar no WhatsApp
+          </a>
+        </div>
+      </div>
+
+      {/* Como funciona */}
+      <div style={{marginBottom:20}}>
+        <div style={{fontSize:10,fontWeight:700,letterSpacing:'2px',textTransform:'uppercase',color:'var(--text-muted)',marginBottom:12}}>COMO FUNCIONA</div>
+        <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(200px,1fr))',gap:12}}>
+          {[
+            {n:'01',t:'Compartilhe seu link',d:'Envie para amigos, grupos de WhatsApp, Instagram ou turma de faculdade.'},
+            {n:'02',t:'Amigo se cadastra',d:'Ele clica no seu link, cria a conta grátis e explora a plataforma.'},
+            {n:'03',t:'Amigo assina um plano',d:'Quando ele fizer upgrade, você recebe sua recompensa automaticamente.'},
+            {n:'04',t:'Você evolui',d:isElite?'Acumula 5% de desconto por indicação (máximo 50%).':'Acumula dias extras e sobe de badge — Recrutador → Bronze → Prata → Ouro.'},
+          ].map(s=>(
+            <div key={s.n} style={{borderLeft:'2px solid rgba(212,168,67,0.2)',paddingLeft:14}}>
+              <div style={{fontFamily:'var(--font-mono)',fontSize:11,color:'var(--gold)',marginBottom:6}}>{s.n}</div>
+              <div style={{fontWeight:700,fontSize:13,marginBottom:4}}>{s.t}</div>
+              <div style={{fontSize:12,color:'var(--text-muted)',lineHeight:1.6}}>{s.d}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Tiers */}
+      <div style={{marginBottom:20}}>
+        <div style={{fontSize:10,fontWeight:700,letterSpacing:'2px',textTransform:'uppercase',color:'var(--text-muted)',marginBottom:12}}>NÍVEIS DO PROGRAMA</div>
+        <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(180px,1fr))',gap:10}}>
+          {REFERRAL_TIERS.map(t=>{
+            const atingido=count>=t.count
+            return(
+              <div key={t.badge} style={{background:atingido?'rgba(212,168,67,0.08)':'var(--gray)',border:`1px solid ${atingido?'rgba(212,168,67,0.3)':'rgba(255,255,255,0.06)'}`,borderRadius:12,padding:'14px 16px',opacity:atingido?1:0.6,transition:'all 0.2s'}}>
+                <div style={{fontSize:24,marginBottom:8}}>{t.icon}</div>
+                <div style={{fontSize:12,fontWeight:700,marginBottom:4,color:atingido?'var(--white)':'var(--text-muted)'}}>{t.badge}</div>
+                <div style={{fontSize:11,color:'var(--gold)',marginBottom:4}}>{t.count} indicaç{t.count===1?'ão':'ões'}</div>
+                <div style={{fontSize:11,color:'var(--text-muted)'}}>{t.reward}</div>
+                {atingido&&<div style={{marginTop:8,fontSize:10,fontWeight:700,color:'var(--success)'}}>✓ CONQUISTADO</div>}
+              </div>
+            )
+          })}
+        </div>
+      </div>
+
+      {/* Histórico de recompensas */}
+      {recompensas.length>0&&(
+        <div>
+          <div style={{fontSize:10,fontWeight:700,letterSpacing:'2px',textTransform:'uppercase',color:'var(--text-muted)',marginBottom:12}}>HISTÓRICO DE RECOMPENSAS</div>
+          <div style={{display:'flex',flexDirection:'column',gap:8}}>
+            {recompensas.map(r=>(
+              <div key={r.id} style={{display:'flex',alignItems:'center',gap:12,background:'var(--gray)',border:'1px solid rgba(255,255,255,0.05)',borderRadius:10,padding:'12px 14px'}}>
+                <span style={{fontSize:18}}>{r.reward_type==='discount'?'💸':'🎁'}</span>
+                <div style={{flex:1}}>
+                  <div style={{fontSize:13,fontWeight:600}}>
+                    {r.reward_type==='discount'?`+${r.reward_value}% desconto acumulado`:`+${r.reward_value} dias extras`}
+                  </div>
+                  <div style={{fontSize:11,color:'var(--text-muted)'}}>
+                    {new Date(r.granted_at).toLocaleDateString('pt-BR')}
+                  </div>
+                </div>
+                <div style={{fontSize:11,fontWeight:700,color:'var(--success)'}}>✓</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+// ── FIM DO PROGRAMA TIGRE EMBAIXADOR ──────────────────────────────────────────
+
 export default function TigerJusApp() {
   const router=useRouter()
   const { settings } = useAppSettings()
@@ -1458,7 +1691,28 @@ export default function TigerJusApp() {
   const loadProfile=async(userId:string)=>{
     const{data}=await supabase.from('profiles').select('*').eq('id',userId).single()
     if(data){
-      setProfile(data as Profile)
+      // ── REFERRAL: captura ref_code do metadata e grava em profiles.referred_by ──
+      let profileAtualizado={...data}
+      try{
+        if(!data.referred_by){
+          const refLocal=typeof window!=='undefined'?localStorage.getItem('tj_ref'):null
+          const{data:{user}}=await supabase.auth.getUser()
+          const refMeta=user?.user_metadata?.ref_code||null
+          const finalRef=refMeta||refLocal
+          if(finalRef&&finalRef!==data.referral_code){
+            await supabase.from('profiles').update({referred_by:finalRef}).eq('id',userId)
+            profileAtualizado.referred_by=finalRef
+            if(typeof window!=='undefined')localStorage.removeItem('tj_ref')
+          }
+        }
+        // Gera referral_code se ainda não existe
+        if(!data.referral_code){
+          const newCode='TJ-'+Math.random().toString(36).substring(2,10).toUpperCase()
+          await supabase.from('profiles').update({referral_code:newCode}).eq('id',userId)
+          profileAtualizado.referral_code=newCode
+        }
+      }catch(e){console.warn('Referral setup error (non-critical):',e)}
+      setProfile(profileAtualizado as Profile)
       const l=getLimites(data.plano)
       if(isAdmin(data.role)){setFreeQ(999999);setFreeIA(999999)}
       else{setFreeQ(Math.max(0,l.questoes-(data.free_questions_used||0)));setFreeIA(Math.max(0,l.ia-(data.free_ia_used||0)))}
@@ -1499,7 +1753,7 @@ export default function TigerJusApp() {
   const SIDEBAR=[
     {icon:'🏠',label:'Dashboard',key:'dashboard'},{icon:'📚',label:'Disciplinas',key:'disciplines'},
     {icon:'📝',label:'Quiz',key:'quiz'},{icon:'🃏',label:'Flashcards',key:'flashcards'},
-    {icon:'📋',label:'Simulados',key:'simulados'},{icon:'🤖',label:'IA Jurídica',key:'ia'},{icon:'🏆',label:'Ranking',key:'ranking'},{icon:'📖',label:'Índice',key:'indice'},
+    {icon:'📋',label:'Simulados',key:'simulados'},{icon:'🤖',label:'IA Jurídica',key:'ia'},{icon:'🏆',label:'Ranking',key:'ranking'},{icon:'📖',label:'Índice',key:'indice'},{icon:'🐯',label:'Indicar',key:'referral'},
   ]
   const planoDisplay=profile?.plano?.charAt(0).toUpperCase()+(profile?.plano?.slice(1)||'')||'Gratuito'
 
@@ -1586,6 +1840,7 @@ export default function TigerJusApp() {
         {page==='ia'&&<IAPage freeIA={freeIA} setFreeIA={setFreeIA} showUpgrade={showUpgrade} profile={profile} isPago={userIsPago} iaIlimitada={iaIlimitada}/>}
         {page==='ranking'&&<RankingPage profile={profile}/>}
         {page==='indice'&&<IndiceJuridico showUpgrade={showUpgrade} isPago={userIsPago}/>}
+        {page==='referral'&&<ReferralPage profile={profile} showUpgrade={showUpgrade} isPago={userIsPago}/>}
       </div>
       <style>{`
         .tj-upgrade-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;}
