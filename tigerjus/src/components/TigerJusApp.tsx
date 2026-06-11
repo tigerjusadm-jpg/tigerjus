@@ -306,7 +306,7 @@ function DashHome({ profile, onNav, showUpgrade, isPago, canAccessPremium, onOpe
           onMouseEnter={e=>{e.currentTarget.style.transform='translateY(-2px)';e.currentTarget.style.boxShadow='0 8px 24px rgba(0,0,0,0.3)'}}
           onMouseLeave={e=>{e.currentTarget.style.transform='translateY(0)';e.currentTarget.style.boxShadow='none'}}>
           <div style={{display:'flex',alignItems:'center',gap:12}}>
-            <span style={{fontSize:22}}>{['👑','🥇','🥈','🥉'].find((_,i)=>['Embaixador Ouro','Embaixador Prata','Embaixador Bronze','Recrutador'][i]===profile?.ambassador_badge)||'🐯'}</span>
+            <span style={{fontSize:22}}>{['👑','🥈','🥉','🎯'].find((_,i)=>['Embaixador Ouro','Embaixador Prata','Embaixador Bronze','Recrutador'][i]===profile?.ambassador_badge)||'🐯'}</span>
             <div style={{flex:1}}>
               <div style={{fontSize:12,fontWeight:700,marginBottom:2}}>{profile?.ambassador_badge||'Programa Tigre Embaixador'}</div>
               <div style={{fontSize:11,color:'var(--text-muted)'}}>{profile?.referral_count||0} indicaç{(profile?.referral_count||0)===1?'ão':'ões'} · {profile?.plano==='elite'?`${profile?.referral_discount_pct||0}% desconto`:`${profile?.referral_days_bonus||0} dias extras`}</div>
@@ -1445,10 +1445,10 @@ function IndiceJuridico({ showUpgrade, isPago }: any) {
 
 // ── PROGRAMA TIGRE EMBAIXADOR ────────────────────────────────────────────────
 const REFERRAL_TIERS = [
-  {count:1, badge:'Recrutador',         icon:'🥉', reward:'15 dias extras',      cor:'#CD7F32'},
-  {count:3, badge:'Embaixador Bronze',  icon:'🥈', reward:'45 dias extras',      cor:'#C0C0C0'},
-  {count:5, badge:'Embaixador Prata',   icon:'🥇', reward:'75 dias extras',      cor:'var(--gold)'},
-  {count:10,badge:'Embaixador Ouro',    icon:'👑', reward:'Elite por 6 meses',   cor:'var(--orange)'},
+  {count:1, badge:'Recrutador',         icon:'🎯', reward:'15 dias extras',      cor:'#CD7F32'},
+  {count:3, badge:'Embaixador Bronze',  icon:'🥉', reward:'45 dias extras',      cor:'#CD7F32'},
+  {count:5, badge:'Embaixador Prata',   icon:'🥈', reward:'75 dias extras',      cor:'#C0C0C0'},
+  {count:10,badge:'Embaixador Ouro',    icon:'👑', reward:'Elite por 6 meses',   cor:'var(--gold)'},
 ]
 
 function ReferralPage({profile,showUpgrade,isPago}:any){
@@ -1783,8 +1783,8 @@ export default function TigerJusApp() {
           <div style={{width:34,height:34,background:'linear-gradient(135deg,var(--gold),var(--orange))',borderRadius:8,display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'var(--font-display)',fontSize:16,fontWeight:900,color:'var(--deep-black)',flexShrink:0}}>T</div>
           <span style={{fontFamily:'var(--font-display)',fontSize:18,fontWeight:900,letterSpacing:2,background:'linear-gradient(135deg,var(--gold-light),var(--gold))',WebkitBackgroundClip:'text',WebkitTextFillColor:'transparent'}}>TIGERJUS</span>
         </div>
-        <div className="nav-desktop" style={{display:'flex',gap:16,alignItems:'center'}}>
-          {SIDEBAR.map(i=>(<button key={i.key} onClick={()=>navTo(i.key)} style={{color:page===i.key?'var(--gold)':'var(--text-muted)',fontSize:11,fontWeight:600,letterSpacing:1,textTransform:'uppercase',border:'none',background:'none',cursor:'pointer',fontFamily:'var(--font-body)',borderBottom:page===i.key?'2px solid var(--gold)':'2px solid transparent',paddingBottom:2}}>{i.label}</button>))}
+        <div className="nav-desktop tj-nav-items" style={{display:'flex',gap:'clamp(8px,1vw,14px)',alignItems:'center'}}>
+          {SIDEBAR.map(i=>(<button key={i.key} onClick={()=>navTo(i.key)} style={{color:page===i.key?'var(--gold)':'var(--text-muted)',fontSize:'clamp(9px,0.85vw,11px)',fontWeight:600,letterSpacing:'clamp(0.5px,0.1vw,1px)',textTransform:'uppercase',border:'none',background:'none',cursor:'pointer',fontFamily:'var(--font-body)',borderBottom:page===i.key?'2px solid var(--gold)':'2px solid transparent',paddingBottom:2,whiteSpace:'nowrap'}}>{i.label}</button>))}
         </div>
         <div style={{display:'flex',gap:8,alignItems:'center'}}>
           <span className="nav-desktop" style={{fontSize:12,color:'var(--text-muted)'}}>{profile?.nome?.split(' ')[0]||'Usuário'}</span>
