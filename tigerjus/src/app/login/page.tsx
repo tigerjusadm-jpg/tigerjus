@@ -10,17 +10,17 @@ function LoginForm() {
   const router = useRouter()
   const params = useSearchParams()
 
-  // De onde a pessoa veio (ex.: /checkout?plan=pro). Só aceitamos caminhos internos
-  // (começam com "/" e não com "//") pra evitar redirecionamento pra sites externos.
   const rawRedirect = params.get('redirect')
   const redirect = rawRedirect && rawRedirect.startsWith('/') && !rawRedirect.startsWith('//')
     ? rawRedirect
     : null
 
-  // Abre direto em "Criar conta" quando a landing manda ?modo=cadastro
-  // (aceita também ?mode=cadastro por segurança).
   const modoParam = params.get('modo') || params.get('mode')
   const [mode, setMode] = useState<Mode>(modoParam === 'cadastro' ? 'cadastro' : 'login')
+
+  // ── REFERRAL: captura ?ref= da URL ──────────────────────────────────────
+  const refCode = params.get('ref') || null
+
   const [email, setEmail] = useState('')
   const [senha, setSenha] = useState('')
   const [nome, setNome] = useState('')
@@ -28,7 +28,6 @@ function LoginForm() {
   const [loading, setLoading] = useState(false)
   const [erro, setErro] = useState('')
   const [sucesso, setSucesso] = useState('')
-  // Fluxo de recuperação por CÓDIGO (OTP) — substep dentro do modo 'reset'
   const [resetEtapa, setResetEtapa] = useState<'email'|'codigo'>('email')
   const [codigo, setCodigo] = useState('')
   const [novaSenha, setNovaSenha] = useState('')
@@ -41,7 +40,12 @@ function LoginForm() {
       setEmail(emailSalvo)
       setLembrar(true)
     }
-  }, [])
+    // ── REFERRAL: persiste o código no localStorage
+    // caso o usuário precise confirmar e-mail antes de completar o cadastro
+    if (refCode) {
+      localStorage.setItem('tj_ref', refCode)
+    }
+  }, [refCode])
 
   const handleLogin = async () => {
     if (!email || !senha) { setErro('Preencha email e senha.'); return }
@@ -63,7 +67,6 @@ function LoginForm() {
         setErro('Erro ao entrar. Tente novamente.')
       }
     } else {
-      // Se veio do checkout, volta pra lá; senão, vai pra plataforma.
       router.push(redirect || '/plataforma')
     }
     setLoading(false)
@@ -74,17 +77,22 @@ function LoginForm() {
     if (senha.length < 6) { setErro('Senha deve ter pelo menos 6 caracteres.'); return }
     setLoading(true); setErro('')
 
-    // Se a confirmação de email estiver ligada, a pessoa volta pra cá depois de confirmar:
-    // levamos o destino (ex.: /checkout?plan=pro) no parâmetro "next" que o /auth/callback lê.
     const callbackUrl = redirect
       ? `${window.location.origin}/auth/callback?next=${encodeURIComponent(redirect)}`
       : `${window.location.origin}/auth/callback`
+
+    // ── REFERRAL: inclui o ref_code nos metadados do usuário ──────────────
+    // Prioriza o da URL; fallback para o que estava salvo no localStorage
+    const finalRefCode = refCode || localStorage.getItem('tj_ref') || null
 
     const { data, error } = await supabase.auth.signUp({
       email,
       password: senha,
       options: {
-        data: { nome },
+        data: {
+          nome,
+          ...(finalRefCode ? { ref_code: finalRefCode } : {}),
+        },
         emailRedirectTo: callbackUrl,
       }
     })
@@ -105,7 +113,8 @@ function LoginForm() {
       } else if (!data.session) {
         setSucesso('✅ Conta criada! Enviamos um link de confirmação para seu email. Verifique sua caixa de entrada e clique no link para ativar sua conta.')
       } else {
-        // Cadastro já com sessão (confirmação de email desligada): segue direto pro destino.
+        // Cadastro com sessão imediata: limpa o ref do localStorage
+        localStorage.removeItem('tj_ref')
         router.push(redirect || '/plataforma')
       }
     }
@@ -113,7 +122,6 @@ function LoginForm() {
     setLoading(false)
   }
 
-  // Etapa 1 do reset: envia o CÓDIGO para o e-mail e avança para a etapa do código.
   const handleReset = async () => {
     const emailLimpo = email.trim().toLowerCase()
     if (!emailLimpo) { setErro('Digite seu email.'); return }
@@ -121,13 +129,10 @@ function LoginForm() {
     setLoading(true); setErro('')
     const { error } = await supabase.auth.resetPasswordForEmail(emailLimpo)
     setLoading(false)
-    // O e-mail com o código é enviado mesmo quando o Supabase retorna um aviso.
-    // Por isso SEMPRE avançamos para a etapa do código — o usuário nunca fica preso.
     if (error) { console.warn('[TigerJus Reset] aviso ao enviar código:', error.message) }
     setResetEtapa('codigo')
   }
 
-  // Etapa 2 do reset: valida o código e troca a senha.
   const handleConfirmarCodigo = async () => {
     const emailLimpo = email.trim().toLowerCase()
     const codigoLimpo = codigo.replace(/\D/g, '')
@@ -173,9 +178,17 @@ function LoginForm() {
         </div>
 
         <div style={{background:'var(--gray)',border:'1px solid rgba(212,168,67,0.15)',borderRadius:24,padding:40}}>
+          {/* Banner quando vem do checkout */}
           {redirect?.startsWith('/checkout') && (
             <div style={{background:'rgba(212,168,67,0.1)',border:'1px solid rgba(212,168,67,0.25)',borderRadius:10,padding:'12px 16px',marginBottom:20,fontSize:13,color:'var(--gold)',textAlign:'center'}}>
               🔒 Entre ou crie sua conta para finalizar a assinatura.
+            </div>
+          )}
+
+          {/* Banner quando vem de indicação */}
+          {refCode && mode === 'cadastro' && (
+            <div style={{background:'rgba(76,175,125,0.1)',border:'1px solid rgba(76,175,125,0.25)',borderRadius:10,padding:'12px 16px',marginBottom:20,fontSize:13,color:'var(--success)',textAlign:'center'}}>
+              🐯 Você foi convidado por um Tigre! Crie sua conta e comece grátis.
             </div>
           )}
 
@@ -246,7 +259,6 @@ function LoginForm() {
             </>
           )}
 
-          {/* ── RESET: etapa do código + nova senha ── */}
           {!sucesso && mode === 'reset' && resetEtapa === 'codigo' && (
             <>
               <div style={{marginBottom:16}}>
@@ -263,7 +275,7 @@ function LoginForm() {
                   autoComplete="one-time-code"
                 />
                 <div style={{marginTop:8,fontSize:12,color:'var(--text-muted)'}}>
-                  Enviado para <strong style={{color:'var(--gold)'}}>{email.trim().toLowerCase()}</strong>. Copie o código do e-mail e cole aqui (não feche esta tela).
+                  Enviado para <strong style={{color:'var(--gold)'}}>{email.trim().toLowerCase()}</strong>.
                 </div>
               </div>
               <div style={{marginBottom:16}}>
