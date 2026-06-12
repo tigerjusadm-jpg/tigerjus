@@ -1800,6 +1800,18 @@ export default function TigerJusApp() {
       {menuOpen&&(
         <div style={{position:'fixed',top:60,left:0,right:0,zIndex:99,background:'rgba(10,10,10,0.98)',backdropFilter:'blur(12px)',borderBottom:'1px solid rgba(255,255,255,0.08)',padding:'12px 0',display:'flex',flexDirection:'column'}}>
           {SIDEBAR.map(item=>(<button key={item.key} onClick={()=>navTo(item.key)} style={{display:'flex',alignItems:'center',gap:14,padding:'14px 20px',background:page===item.key?'rgba(212,168,67,0.08)':'none',border:'none',cursor:'pointer',fontFamily:'var(--font-body)',fontSize:15,color:page===item.key?'var(--gold)':'var(--white)',textAlign:'left',borderLeft:page===item.key?'3px solid var(--gold)':'3px solid transparent'}}><span style={{fontSize:18,width:24,textAlign:'center'}}>{item.icon}</span>{item.label}</button>))}
+          {/* ── Admin link — apenas para usuários admin ── */}
+          {isAdmin(profile?.role)&&(
+            <button onClick={()=>{router.push('/admin');setMenuOpen(false)}}
+              style={{display:'flex',alignItems:'center',gap:14,padding:'14px 20px',
+                background:'rgba(212,168,67,0.05)',border:'none',cursor:'pointer',
+                fontFamily:'var(--font-body)',fontSize:15,color:'var(--gold)',
+                textAlign:'left',borderLeft:'3px solid rgba(212,168,67,0.4)',
+                borderTop:'1px solid rgba(255,255,255,0.05)'}}>
+              <span style={{fontSize:18,width:24,textAlign:'center'}}>⚙️</span>
+              <span style={{fontWeight:700}}>Painel Admin</span>
+            </button>
+          )}
           <div style={{borderTop:'1px solid rgba(255,255,255,0.06)',margin:'8px 0',padding:'8px 20px',display:'flex',gap:10}}>
             <button className="btn-gold-sm" style={{flex:1,fontSize:12}} onClick={()=>{setShowUpgradeModal(true);setMenuOpen(false)}}>🚀 UPGRADE</button>
             <button onClick={()=>{handleLogout();setMenuOpen(false)}} style={{color:'var(--text-muted)',fontSize:12,border:'1px solid rgba(255,255,255,0.08)',borderRadius:8,padding:'8px 14px',background:'none',cursor:'pointer',fontFamily:'var(--font-body)'}}>Sair</button>
