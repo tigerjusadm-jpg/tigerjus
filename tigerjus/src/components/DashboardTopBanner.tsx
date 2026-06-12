@@ -1,5 +1,4 @@
 'use client'
-
 import { useState, useEffect, useCallback } from 'react'
 import { useAppSettings } from '@/contexts/AppSettingsContext'
 
@@ -12,40 +11,33 @@ export default function DashboardTopBanner() {
   const { settings, loaded } = useAppSettings()
   const [current, setCurrent] = useState(0)
 
-  // ── Helper: lê booleano com fallback ──
-  const getBool = (key: string, fallback = true): boolean => {
-    const val = (settings as Record<string, unknown>)[key]
-    if (val === undefined || val === null || val === '') return fallback
-    return String(val) !== 'false' && String(val) !== '0'
+  // Acessa keys dinâmicas sem quebrar TypeScript
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const s = settings as any
+
+  const areaEnabled: boolean = s.dashboard_banner_enabled === undefined
+    || s.dashboard_banner_enabled === null
+    || s.dashboard_banner_enabled === ''
+    ? true
+    : String(s.dashboard_banner_enabled) !== 'false' && String(s.dashboard_banner_enabled) !== '0'
+
+  const isSlideOn = (raw: unknown, hasUrl: boolean): boolean => {
+    if (raw === undefined || raw === null || raw === '') return hasUrl
+    return String(raw) !== 'false' && String(raw) !== '0'
   }
 
-  // ── Verificação de área inteira ──
-  const areaEnabled = getBool('dashboard_banner_enabled', true)
-
-  // ── Monta slides com filtro por enabled ──
   const rawSlides = [
-    { url: settings.dashboard_banner_url,   link: settings.dashboard_banner_link,   alt: settings.dashboard_banner_alt,   enabledKey: 'dashboard_banner_slide_1_enabled' },
-    { url: settings.dashboard_banner_url_2, link: settings.dashboard_banner_link_2, alt: settings.dashboard_banner_alt_2, enabledKey: 'dashboard_banner_slide_2_enabled' },
-    { url: settings.dashboard_banner_url_3, link: settings.dashboard_banner_link_3, alt: settings.dashboard_banner_alt_3, enabledKey: 'dashboard_banner_slide_3_enabled' },
-  ] as { url: string; link: string; alt: string; enabledKey: string }[]
+    { url: String(settings.dashboard_banner_url   || '').trim(), link: String(settings.dashboard_banner_link   || '').trim(), alt: String(settings.dashboard_banner_alt   || 'Publicidade TigerJus').trim(), raw: s.dashboard_banner_slide_1_enabled },
+    { url: String(settings.dashboard_banner_url_2 || '').trim(), link: String(settings.dashboard_banner_link_2 || '').trim(), alt: String(settings.dashboard_banner_alt_2 || 'Publicidade TigerJus').trim(), raw: s.dashboard_banner_slide_2_enabled },
+    { url: String(settings.dashboard_banner_url_3 || '').trim(), link: String(settings.dashboard_banner_link_3 || '').trim(), alt: String(settings.dashboard_banner_alt_3 || 'Publicidade TigerJus').trim(), raw: s.dashboard_banner_slide_3_enabled },
+  ]
 
-  const slides = rawSlides
-    .map(s => ({
-      url:  String(s.url  || '').trim(),
-      link: String(s.link || '').trim(),
-      alt:  String(s.alt  || 'Publicidade TigerJus').trim(),
-      enabledKey: s.enabledKey,
-    }))
-    .filter(s => {
-      if (!s.url) return false
-      return getBool(s.enabledKey, true)
-    })
-
+  const slides = rawSlides.filter(sl => sl.url && isSlideOn(sl.raw, !!sl.url))
   const total = slides.length
 
   const height      = Number(settings.dashboard_banner_height)        || 120
   const positionRaw = String(settings.dashboard_banner_position || 'center').toLowerCase()
-  const position    = ['top', 'center', 'bottom'].includes(positionRaw) ? positionRaw : 'center'
+  const position    = ['top','center','bottom'].includes(positionRaw) ? positionRaw : 'center'
   const opacityNum  = Number(settings.dashboard_banner_opacity)
   const opacity     = Number.isFinite(opacityNum) ? Math.min(100, Math.max(0, opacityNum)) / 100 : 1
   const fitRaw      = String(settings.dashboard_banner_fit || 'cover').toLowerCase()
@@ -76,16 +68,15 @@ export default function DashboardTopBanner() {
       <div style={{ fontSize:9, fontWeight:700, letterSpacing:'2px', textTransform:'uppercase', color:'var(--text-dim)', marginBottom:6, textAlign:'right' }}>
         PUBLICIDADE
       </div>
-      <div
-        className="tj-dash-banner-frame"
+      <div className="tj-dash-banner-frame"
         style={{
           position:'relative', width:'100%', maxWidth: maxWidth > 0 ? maxWidth : '100%',
           margin:'0 auto', overflow:'hidden', borderRadius:radius, lineHeight:0,
           boxShadow:'0 4px 20px rgba(0,0,0,0.3)',
-          ['--tj-dash-h' as any]: `${height}px`,
-          ['--tj-dash-fit' as any]: fit,
-          ['--tj-dash-pos' as any]: `center ${position}`,
-        }}>
+          ['--tj-dash-h' as string]: `${height}px`,
+          ['--tj-dash-fit' as string]: fit,
+          ['--tj-dash-pos' as string]: `center ${position}`,
+        } as React.CSSProperties}>
         {slides.map((slide, i) => {
           const isActive = i === current
           const img = (
@@ -121,20 +112,20 @@ export default function DashboardTopBanner() {
         )}
       </div>
       <style>{`
-        .tj-dash-banner-frame { height: var(--tj-dash-h, 120px); }
-        .tj-dash-banner-slide { position:absolute; inset:0; width:100%; height:100%; transition:opacity 0.8s ease-in-out; }
-        .tj-dash-banner-img { display:block; width:100%; height:100%; object-fit:var(--tj-dash-fit,cover); object-position:var(--tj-dash-pos,center center); }
-        .tj-dash-arrow { position:absolute; top:50%; transform:translateY(-50%); z-index:5; width:32px; height:32px; border:none; border-radius:50%; background:rgba(0,0,0,0.4); color:#fff; font-size:20px; line-height:1; cursor:pointer; display:flex; align-items:center; justify-content:center; backdrop-filter:blur(4px); transition:background 0.2s; }
-        .tj-dash-arrow:hover { background:rgba(0,0,0,0.65); }
-        .tj-dash-arrow-left { left:10px; } .tj-dash-arrow-right { right:10px; }
-        .tj-dash-dots { position:absolute; bottom:10px; left:50%; transform:translateX(-50%); z-index:5; display:flex; gap:7px; }
-        .tj-dash-dot { width:9px; height:9px; border-radius:50%; border:none; background:rgba(255,255,255,0.5); cursor:pointer; padding:0; transition:background 0.2s,transform 0.2s; }
-        .tj-dash-dot-active { background:#fff; transform:scale(1.25); }
-        @media(max-width:768px) {
-          .tj-dash-banner-frame { height: auto !important; }
-          .tj-dash-banner-img { width:100% !important; height:auto !important; object-fit:contain !important; object-position:center center !important; }
-          .tj-dash-banner-spacer { display:block !important; }
-          .tj-dash-arrow { width:28px; height:28px; font-size:18px; }
+        .tj-dash-banner-frame{height:var(--tj-dash-h,120px);}
+        .tj-dash-banner-slide{position:absolute;inset:0;width:100%;height:100%;transition:opacity 0.8s ease-in-out;}
+        .tj-dash-banner-img{display:block;width:100%;height:100%;object-fit:var(--tj-dash-fit,cover);object-position:var(--tj-dash-pos,center center);}
+        .tj-dash-arrow{position:absolute;top:50%;transform:translateY(-50%);z-index:5;width:32px;height:32px;border:none;border-radius:50%;background:rgba(0,0,0,0.4);color:#fff;font-size:20px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px);transition:background 0.2s;}
+        .tj-dash-arrow:hover{background:rgba(0,0,0,0.65);}
+        .tj-dash-arrow-left{left:10px;}.tj-dash-arrow-right{right:10px;}
+        .tj-dash-dots{position:absolute;bottom:10px;left:50%;transform:translateX(-50%);z-index:5;display:flex;gap:7px;}
+        .tj-dash-dot{width:9px;height:9px;border-radius:50%;border:none;background:rgba(255,255,255,0.5);cursor:pointer;padding:0;transition:background 0.2s,transform 0.2s;}
+        .tj-dash-dot-active{background:#fff;transform:scale(1.25);}
+        @media(max-width:768px){
+          .tj-dash-banner-frame{height:auto !important;}
+          .tj-dash-banner-img{width:100% !important;height:auto !important;object-fit:contain !important;object-position:center center !important;}
+          .tj-dash-banner-spacer{display:block !important;}
+          .tj-dash-arrow{width:28px;height:28px;font-size:18px;}
         }
       `}</style>
     </div>
