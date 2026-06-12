@@ -1,6 +1,7 @@
 'use client'
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '@/lib/supabase'
+import ModuloCentralBanners from '@/components/ModuloCentralBanners'
 
 // ─── TIPOS ────────────────────────────────────────────────────────────────────
 
@@ -27,24 +28,12 @@ const GRUPOS: { key: string; label: string; icon: string; keys: string[] }[] = [
       'footer_copyright',
     ],
   },
+  // hero_media gerenciado pela Central de Banners (aba Banners)
   {
-    key: 'hero_media',
-    label: 'Hero Media',
-    icon: '🐯',
-    keys: [
-      'hero_media_enabled', 'hero_media_type', 'hero_media_url',
-      'hero_media_position', 'hero_media_opacity', 'hero_media_animation',
-      'hero_media_max_width', 'hero_media_blur',
-    ],
-  },
-  {
-    key: 'banner_topo',
-    label: 'Banner Topo',
+    key: 'banners',
+    label: 'Banners',
     icon: '🖼️',
-    keys: [
-      'landing_top_banner_enabled', 'landing_top_banner_url',
-      'landing_top_banner_alt', 'landing_top_banner_link',
-    ],
+    keys: [],
   },
   {
     key: 'dashboard',
@@ -125,11 +114,11 @@ const DEFAULTS: Omit<AppSetting, 'id' | 'ativo'>[] = [
   { key: 'hero_media_animation', value: 'float', type: 'text',    description: 'Animação: none | float | pulse' },
   { key: 'hero_media_max_width', value: '650',   type: 'number',  description: 'Largura máxima da mídia em px (ex: 650)' },
   { key: 'hero_media_blur',      value: '0',     type: 'number',  description: 'Blur aplicado à mídia em px (0 = sem blur)' },
-  // Banner Topo
-  { key: 'landing_top_banner_enabled', value: 'false', type: 'boolean', description: 'Ativa banner no topo da landing (abaixo da navbar)' },
+  // Banner Topo (mantido apenas para compatibilidade; gerenciado pela Central de Banners)
+  { key: 'landing_top_banner_enabled', value: 'false', type: 'boolean', description: 'Ativa banner no topo da landing' },
   { key: 'landing_top_banner_url',     value: '',      type: 'text',    description: 'URL da imagem do banner (recomendado 1800×300px)' },
-  { key: 'landing_top_banner_alt',     value: '',      type: 'text',    description: 'Texto alternativo do banner (acessibilidade)' },
-  { key: 'landing_top_banner_link',    value: '',      type: 'text',    description: 'Link ao clicar no banner (opcional)' },
+  { key: 'landing_top_banner_alt',     value: '',      type: 'text',    description: 'Texto alternativo do banner' },
+  { key: 'landing_top_banner_link',    value: '',      type: 'text',    description: 'Link ao clicar no banner' },
   // Dashboard
   { key: 'welcome_message',      value: '🔥 Bem-vindo de volta! Continue sua jornada jurídica.', type: 'text', description: 'Notificação de boas-vindas no dashboard' },
   { key: 'dashboard_subtitle',   value: 'Comece seus estudos hoje.',                             type: 'text', description: 'Subtítulo abaixo do "Olá, [Nome]!"' },
@@ -360,7 +349,6 @@ export default function ModuloConfiguracoes({ adminId }: { adminId?: string }) {
         .eq('id', existing.id)
       error = res.error
     } else {
-      // Cria setting que não existe ainda
       const def = DEFAULTS.find(d => d.key === key)
       const res = await supabase.from('app_settings').insert({
         key,
@@ -414,7 +402,6 @@ export default function ModuloConfiguracoes({ adminId }: { adminId?: string }) {
   const grupo = GRUPOS.find(g => g.key === grupoAtivo)
   const keysDoGrupo = grupo?.keys || []
 
-  // Combina: defaults do grupo + o que já existe no banco para esse grupo
   const settingsDoGrupo = keysDoGrupo.map(key => {
     const def = DEFAULTS.find(d => d.key === key)
     return settings[key] || {
@@ -424,8 +411,13 @@ export default function ModuloConfiguracoes({ adminId }: { adminId?: string }) {
   })
 
   // Settings que existem no banco mas não estão em nenhum grupo
+  // ─── FILTRO: exclui keys de banners (gerenciadas pela Central de Banners) ───
+  const BANNER_PREFIXES = ['landing_top_banner_', 'dashboard_banner_', 'hero_media_']
   const keysConhecidas = new Set(DEFAULTS.map(d => d.key))
-  const settingsExtras = Object.values(settings).filter(s => !keysConhecidas.has(s.key))
+  const settingsExtras = Object.values(settings).filter(s =>
+    !keysConhecidas.has(s.key) &&
+    !BANNER_PREFIXES.some(p => s.key.startsWith(p))
+  )
 
   const temAlteracoes = Object.keys(editados).length > 0
 
@@ -452,7 +444,13 @@ export default function ModuloConfiguracoes({ adminId }: { adminId?: string }) {
               fontWeight: grupoAtivo === g.key ? 700 : 400,
             }}>
             <span>{g.icon}</span>
-            <span>{g.label}</span>
+            <span style={{ flex: 1 }}>{g.label}</span>
+            {g.key === 'banners' && (
+              <span style={{ fontSize: 9, fontWeight: 800, padding: '1px 5px', borderRadius: 4,
+                background: 'rgba(212,168,67,0.2)', color: '#D4A843', letterSpacing: 0.5 }}>
+                NOVO
+              </span>
+            )}
           </button>
         ))}
         {settingsExtras.length > 0 && (
@@ -473,185 +471,192 @@ export default function ModuloConfiguracoes({ adminId }: { adminId?: string }) {
       </div>
 
       {/* ── CONTEÚDO ── */}
-      <div style={{ flex: 1, overflowY: 'auto', padding: 24 }}>
+      <div style={{ flex: 1, overflowY: 'auto', padding: grupoAtivo === 'banners' ? 0 : 24 }}>
 
-        {/* Header */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
-          <div>
-            <h2 style={{ fontSize: 20, fontWeight: 900, color: '#fff', marginBottom: 2 }}>
-              {GRUPOS.find(g => g.key === grupoAtivo)?.icon} {GRUPOS.find(g => g.key === grupoAtivo)?.label || 'Configurações extras'}
-            </h2>
-            <div style={{ fontSize: 12, color: '#555' }}>
-              {temAlteracoes ? `${Object.keys(editados).length} alteração(ões) não salva(s)` : 'Todas as configurações salvas'}
-            </div>
-          </div>
-          <button onClick={() => setCriando(true)}
-            style={{
-              background: 'linear-gradient(135deg,#D4A843,#E8621A)', border: 'none',
-              borderRadius: 8, padding: '7px 14px', color: '#000', fontSize: 12,
-              fontWeight: 700, cursor: 'pointer',
-            }}>
-            + Nova config
-          </button>
-        </div>
-
-        {loading ? (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            {[...Array(4)].map((_, i) => (
-              <div key={i} style={{ height: 80, borderRadius: 12, background: 'rgba(255,255,255,0.04)', animation: 'pulse 1.5s infinite' }} />
-            ))}
-            <style>{`@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}`}</style>
+        {/* ── CENTRAL DE BANNERS (aba especial) ── */}
+        {grupoAtivo === 'banners' ? (
+          <div style={{ padding: 24, height: '100%', overflowY: 'auto' }}>
+            <ModuloCentralBanners adminId={adminId}/>
           </div>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            {(grupoAtivo === 'extras' ? settingsExtras : settingsDoGrupo).map(s => {
-              const foiEditado = editados[s.key] !== undefined
-              const foiSalvo  = saved[s.key]
-              const salvando  = saving === s.key
-
-              return (
-                <div key={s.key} style={{
-                  background: '#1a1a1a',
-                  border: `1px solid ${foiEditado ? 'rgba(212,168,67,0.3)' : 'rgba(255,255,255,0.06)'}`,
-                  borderRadius: 12, padding: '16px 18px',
-                  transition: 'border-color 0.2s',
+          <>
+            {/* Header (apenas para abas não-banners) */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
+              <div>
+                <h2 style={{ fontSize: 20, fontWeight: 900, color: '#fff', marginBottom: 2 }}>
+                  {GRUPOS.find(g => g.key === grupoAtivo)?.icon} {GRUPOS.find(g => g.key === grupoAtivo)?.label || 'Configurações extras'}
+                </h2>
+                <div style={{ fontSize: 12, color: '#555' }}>
+                  {temAlteracoes ? `${Object.keys(editados).length} alteração(ões) não salva(s)` : 'Todas as configurações salvas'}
+                </div>
+              </div>
+              <button onClick={() => setCriando(true)}
+                style={{
+                  background: 'linear-gradient(135deg,#D4A843,#E8621A)', border: 'none',
+                  borderRadius: 8, padding: '7px 14px', color: '#000', fontSize: 12,
+                  fontWeight: 700, cursor: 'pointer',
                 }}>
-                  <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 10, gap: 10 }}>
-                    <div style={{ minWidth: 0 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 3 }}>
-                        <code style={{ fontSize: 12, color: '#D4A843', background: 'rgba(212,168,67,0.08)', padding: '1px 7px', borderRadius: 4 }}>
-                          {s.key}
-                        </code>
-                        <span style={{
-                          fontSize: 9, padding: '2px 6px', borderRadius: 100, fontWeight: 700,
-                          color: '#888', background: 'rgba(255,255,255,0.06)',
-                        }}>
-                          {s.type}
-                        </span>
-                        {!s.ativo && s.id && (
-                          <span style={{ fontSize: 9, padding: '2px 6px', borderRadius: 100, color: '#f87171', background: 'rgba(248,113,113,0.1)' }}>
-                            INATIVO
-                          </span>
-                        )}
+                + Nova config
+              </button>
+            </div>
+
+            {loading ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {[...Array(4)].map((_, i) => (
+                  <div key={i} style={{ height: 80, borderRadius: 12, background: 'rgba(255,255,255,0.04)', animation: 'pulse 1.5s infinite' }} />
+                ))}
+                <style>{`@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}`}</style>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {(grupoAtivo === 'extras' ? settingsExtras : settingsDoGrupo).map(s => {
+                  const foiEditado = editados[s.key] !== undefined
+                  const foiSalvo  = saved[s.key]
+                  const salvando  = saving === s.key
+
+                  return (
+                    <div key={s.key} style={{
+                      background: '#1a1a1a',
+                      border: `1px solid ${foiEditado ? 'rgba(212,168,67,0.3)' : 'rgba(255,255,255,0.06)'}`,
+                      borderRadius: 12, padding: '16px 18px',
+                      transition: 'border-color 0.2s',
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 10, gap: 10 }}>
+                        <div style={{ minWidth: 0 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 3 }}>
+                            <code style={{ fontSize: 12, color: '#D4A843', background: 'rgba(212,168,67,0.08)', padding: '1px 7px', borderRadius: 4 }}>
+                              {s.key}
+                            </code>
+                            <span style={{
+                              fontSize: 9, padding: '2px 6px', borderRadius: 100, fontWeight: 700,
+                              color: '#888', background: 'rgba(255,255,255,0.06)',
+                            }}>
+                              {s.type}
+                            </span>
+                            {!s.ativo && s.id && (
+                              <span style={{ fontSize: 9, padding: '2px 6px', borderRadius: 100, color: '#f87171', background: 'rgba(248,113,113,0.1)' }}>
+                                INATIVO
+                              </span>
+                            )}
+                          </div>
+                          {s.description && (
+                            <div style={{ fontSize: 11, color: '#555' }}>{s.description}</div>
+                          )}
+                        </div>
+                        <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+                          {s.id && (
+                            <button onClick={() => toggleAtivo(s as AppSetting)}
+                              style={{
+                                background: 'none', border: '1px solid rgba(255,255,255,0.08)',
+                                borderRadius: 6, padding: '4px 8px', color: '#555',
+                                fontSize: 10, cursor: 'pointer',
+                              }}>
+                              {s.ativo ? 'Desativar' : 'Ativar'}
+                            </button>
+                          )}
+                          <button
+                            onClick={() => salvar(s.key)}
+                            disabled={salvando || (!foiEditado && !!s.id)}
+                            style={{
+                              background: foiSalvo
+                                ? 'rgba(52,211,153,0.15)'
+                                : foiEditado ? 'linear-gradient(135deg,#D4A843,#E8621A)' : 'rgba(255,255,255,0.04)',
+                              border: foiSalvo ? '1px solid #34d399' : 'none',
+                              borderRadius: 6, padding: '5px 12px',
+                              color: foiSalvo ? '#34d399' : foiEditado ? '#000' : '#444',
+                              fontSize: 11, fontWeight: 700,
+                              cursor: (salvando || (!foiEditado && !!s.id)) ? 'not-allowed' : 'pointer',
+                              opacity: salvando ? 0.7 : 1,
+                              minWidth: 64, transition: 'all 0.2s',
+                            }}>
+                            {salvando ? '⏳' : foiSalvo ? '✅ Salvo' : !s.id ? '+ Criar' : '💾 Salvar'}
+                          </button>
+                        </div>
                       </div>
-                      {s.description && (
-                        <div style={{ fontSize: 11, color: '#555' }}>{s.description}</div>
+
+                      <EditorCampo
+                        setting={{ ...s, value: getValor(s.key) } as AppSetting}
+                        onChange={v => handleChange(s.key, v)}
+                      />
+
+                      {s.key === 'maintenance_mode' && getValor(s.key) === 'true' && (
+                        <div style={{
+                          marginTop: 10, padding: '10px 14px',
+                          background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)',
+                          borderRadius: 8, fontSize: 12, color: '#f87171',
+                        }}>
+                          ⚠️ Modo de manutenção ATIVO — usuários verão mensagem de manutenção ao acessar a plataforma.
+                        </div>
+                      )}
+
+                      {s.key === 'primary_color' && getValor(s.key) && (
+                        <div style={{ marginTop: 10, display: 'flex', gap: 8, alignItems: 'center' }}>
+                          <span style={{ fontSize: 11, color: '#555' }}>Preview:</span>
+                          <div style={{
+                            background: `linear-gradient(135deg, ${getValor(s.key)}, #E8621A)`,
+                            borderRadius: 6, padding: '5px 14px', fontSize: 11, fontWeight: 700, color: '#000',
+                          }}>
+                            Botão Exemplo
+                          </div>
+                        </div>
                       )}
                     </div>
-                    <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
-                      {s.id && (
-                        <button onClick={() => toggleAtivo(s as AppSetting)}
-                          style={{
-                            background: 'none', border: '1px solid rgba(255,255,255,0.08)',
-                            borderRadius: 6, padding: '4px 8px', color: '#555',
-                            fontSize: 10, cursor: 'pointer',
-                          }}>
-                          {s.ativo ? 'Desativar' : 'Ativar'}
-                        </button>
-                      )}
-                      <button
-                        onClick={() => salvar(s.key)}
-                        disabled={salvando || (!foiEditado && !!s.id)}
-                        style={{
-                          background: foiSalvo
-                            ? 'rgba(52,211,153,0.15)'
-                            : foiEditado ? 'linear-gradient(135deg,#D4A843,#E8621A)' : 'rgba(255,255,255,0.04)',
-                          border: foiSalvo ? '1px solid #34d399' : 'none',
-                          borderRadius: 6, padding: '5px 12px',
-                          color: foiSalvo ? '#34d399' : foiEditado ? '#000' : '#444',
-                          fontSize: 11, fontWeight: 700,
-                          cursor: (salvando || (!foiEditado && !!s.id)) ? 'not-allowed' : 'pointer',
-                          opacity: salvando ? 0.7 : 1,
-                          minWidth: 64, transition: 'all 0.2s',
-                        }}>
-                        {salvando ? '⏳' : foiSalvo ? '✅ Salvo' : !s.id ? '+ Criar' : '💾 Salvar'}
-                      </button>
+                  )
+                })}
+              </div>
+            )}
+
+            {/* Modal nova configuração */}
+            {criando && (
+              <>
+                <div style={{ position: 'fixed', inset: 0, zIndex: 300, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(3px)' }}
+                  onClick={() => setCriando(false)} />
+                <div style={{
+                  position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%,-50%)',
+                  zIndex: 301, width: '100%', maxWidth: 440,
+                  background: '#111', border: '1px solid rgba(255,255,255,0.1)',
+                  borderRadius: 16, padding: 24, boxShadow: '0 24px 60px rgba(0,0,0,0.6)',
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 18 }}>
+                    <div style={{ fontSize: 15, fontWeight: 700, color: '#fff' }}>Nova Configuração</div>
+                    <button onClick={() => setCriando(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#555', fontSize: 18 }}>✕</button>
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                    <div>
+                      <label style={{ fontSize: 10, fontWeight: 700, letterSpacing: 2, textTransform: 'uppercase' as const, color: '#555', display: 'block', marginBottom: 5 }}>KEY *</label>
+                      <input value={novaKey} onChange={e => setNovaKey(e.target.value)} placeholder="ex: minha_configuracao"
+                        style={{ width: '100%', background: '#1a1a1a', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, padding: '9px 12px', color: '#D4A843', fontSize: 13, outline: 'none', fontFamily: 'monospace', boxSizing: 'border-box' as const }} />
+                    </div>
+                    <div>
+                      <label style={{ fontSize: 10, fontWeight: 700, letterSpacing: 2, textTransform: 'uppercase' as const, color: '#555', display: 'block', marginBottom: 5 }}>TIPO</label>
+                      <select value={novoTipo} onChange={e => setNovoTipo(e.target.value)}
+                        style={{ width: '100%', background: '#1a1a1a', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, padding: '9px 12px', color: '#fff', fontSize: 13, outline: 'none', colorScheme: 'dark' as const, fontFamily: 'inherit' }}>
+                        {['text', 'boolean', 'color', 'number', 'json'].map(t => <option key={t} value={t}>{t}</option>)}
+                      </select>
+                    </div>
+                    <div>
+                      <label style={{ fontSize: 10, fontWeight: 700, letterSpacing: 2, textTransform: 'uppercase' as const, color: '#555', display: 'block', marginBottom: 5 }}>DESCRIÇÃO</label>
+                      <input value={novaDesc} onChange={e => setNovaDesc(e.target.value)} placeholder="Para que serve esta configuração?"
+                        style={{ width: '100%', background: '#1a1a1a', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, padding: '9px 12px', color: '#fff', fontSize: 13, outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' as const }} />
                     </div>
                   </div>
-
-                  <EditorCampo
-                    setting={{ ...s, value: getValor(s.key) } as AppSetting}
-                    onChange={v => handleChange(s.key, v)}
-                  />
-
-                  {/* Preview para maintenance_mode */}
-                  {s.key === 'maintenance_mode' && getValor(s.key) === 'true' && (
-                    <div style={{
-                      marginTop: 10, padding: '10px 14px',
-                      background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)',
-                      borderRadius: 8, fontSize: 12, color: '#f87171',
-                    }}>
-                      ⚠️ Modo de manutenção ATIVO — usuários verão mensagem de manutenção ao acessar a plataforma.
-                    </div>
-                  )}
-
-                  {/* Preview de cor */}
-                  {s.key === 'primary_color' && getValor(s.key) && (
-                    <div style={{ marginTop: 10, display: 'flex', gap: 8, alignItems: 'center' }}>
-                      <span style={{ fontSize: 11, color: '#555' }}>Preview:</span>
-                      <div style={{
-                        background: `linear-gradient(135deg, ${getValor(s.key)}, #E8621A)`,
-                        borderRadius: 6, padding: '5px 14px', fontSize: 11, fontWeight: 700, color: '#000',
+                  <div style={{ display: 'flex', gap: 8, marginTop: 18 }}>
+                    <button onClick={criarNova} disabled={!novaKey.trim() || saving === '__nova'}
+                      style={{
+                        flex: 1, background: 'linear-gradient(135deg,#D4A843,#E8621A)', border: 'none',
+                        borderRadius: 8, padding: '11px', color: '#000', fontSize: 13, fontWeight: 700,
+                        cursor: !novaKey.trim() ? 'not-allowed' : 'pointer', opacity: !novaKey.trim() ? 0.5 : 1,
                       }}>
-                        Botão Exemplo
-                      </div>
-                    </div>
-                  )}
+                      {saving === '__nova' ? '⏳ Criando...' : '+ Criar'}
+                    </button>
+                    <button onClick={() => setCriando(false)}
+                      style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, padding: '11px 16px', color: '#888', fontSize: 13, cursor: 'pointer' }}>
+                      Cancelar
+                    </button>
+                  </div>
                 </div>
-              )
-            })}
-          </div>
-        )}
-
-        {/* Modal nova configuração */}
-        {criando && (
-          <>
-            <div style={{ position: 'fixed', inset: 0, zIndex: 300, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(3px)' }}
-              onClick={() => setCriando(false)} />
-            <div style={{
-              position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%,-50%)',
-              zIndex: 301, width: '100%', maxWidth: 440,
-              background: '#111', border: '1px solid rgba(255,255,255,0.1)',
-              borderRadius: 16, padding: 24, boxShadow: '0 24px 60px rgba(0,0,0,0.6)',
-            }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 18 }}>
-                <div style={{ fontSize: 15, fontWeight: 700, color: '#fff' }}>Nova Configuração</div>
-                <button onClick={() => setCriando(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#555', fontSize: 18 }}>✕</button>
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                <div>
-                  <label style={{ fontSize: 10, fontWeight: 700, letterSpacing: 2, textTransform: 'uppercase' as const, color: '#555', display: 'block', marginBottom: 5 }}>KEY *</label>
-                  <input value={novaKey} onChange={e => setNovaKey(e.target.value)} placeholder="ex: minha_configuracao"
-                    style={{ width: '100%', background: '#1a1a1a', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, padding: '9px 12px', color: '#D4A843', fontSize: 13, outline: 'none', fontFamily: 'monospace', boxSizing: 'border-box' as const }} />
-                </div>
-                <div>
-                  <label style={{ fontSize: 10, fontWeight: 700, letterSpacing: 2, textTransform: 'uppercase' as const, color: '#555', display: 'block', marginBottom: 5 }}>TIPO</label>
-                  <select value={novoTipo} onChange={e => setNovoTipo(e.target.value)}
-                    style={{ width: '100%', background: '#1a1a1a', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, padding: '9px 12px', color: '#fff', fontSize: 13, outline: 'none', colorScheme: 'dark' as const, fontFamily: 'inherit' }}>
-                    {['text', 'boolean', 'color', 'number', 'json'].map(t => <option key={t} value={t}>{t}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <label style={{ fontSize: 10, fontWeight: 700, letterSpacing: 2, textTransform: 'uppercase' as const, color: '#555', display: 'block', marginBottom: 5 }}>DESCRIÇÃO</label>
-                  <input value={novaDesc} onChange={e => setNovaDesc(e.target.value)} placeholder="Para que serve esta configuração?"
-                    style={{ width: '100%', background: '#1a1a1a', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, padding: '9px 12px', color: '#fff', fontSize: 13, outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' as const }} />
-                </div>
-              </div>
-              <div style={{ display: 'flex', gap: 8, marginTop: 18 }}>
-                <button onClick={criarNova} disabled={!novaKey.trim() || saving === '__nova'}
-                  style={{
-                    flex: 1, background: 'linear-gradient(135deg,#D4A843,#E8621A)', border: 'none',
-                    borderRadius: 8, padding: '11px', color: '#000', fontSize: 13, fontWeight: 700,
-                    cursor: !novaKey.trim() ? 'not-allowed' : 'pointer', opacity: !novaKey.trim() ? 0.5 : 1,
-                  }}>
-                  {saving === '__nova' ? '⏳ Criando...' : '+ Criar'}
-                </button>
-                <button onClick={() => setCriando(false)}
-                  style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, padding: '11px 16px', color: '#888', fontSize: 13, cursor: 'pointer' }}>
-                  Cancelar
-                </button>
-              </div>
-            </div>
+              </>
+            )}
           </>
         )}
       </div>
