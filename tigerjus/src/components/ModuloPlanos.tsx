@@ -21,6 +21,7 @@ interface PlanSetting {
   id: string; plano: string; ativo: boolean; cor_plano: string
   cta_texto: string | null; cta_botao: string | null; ordem_exibicao: number
   ia_perguntas_limite: number | null; quiz_questoes_limite: number | null
+  flashcards_por_disciplina: number | null; mini_simulado_qtd: number | null
   permite_pdf: boolean; permite_simulado_completo: boolean
   permite_rankings: boolean; permite_radar: boolean
 }
