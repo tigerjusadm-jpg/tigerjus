@@ -12,6 +12,7 @@ import ModuloMediaLibrary from '@/components/ModuloMediaLibrary'
 import ModuloCentralBanners from '@/components/ModuloCentralBanners'  // ← NOVO
 import ModuloSimulados from '@/components/ModuloSimulados'
 import ModuloFlashcards from '@/components/ModuloFlashcards'
+import ModuloPlanos from '@/components/ModuloPlanos'
 
 // ─── Seção Overview ───────────────────────────────────────────────────────────
 
@@ -113,6 +114,7 @@ function renderSection(section: AdminSection | string, adminId?: string) {
     case 'media':    return <ModuloMediaLibrary adminId={adminId} />
     case 'banners':   return <ModuloCentralBanners adminId={adminId} />
     case 'simulados': return <ModuloSimulados adminId={adminId} />
+    case 'planos':    return <ModuloPlanos adminId={adminId} />
     case 'flashcards':return <ModuloFlashcards adminId={adminId} />
     default:          return <SectionPlaceholder section={section as string} />
   }
