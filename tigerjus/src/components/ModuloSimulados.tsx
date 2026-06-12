@@ -4,9 +4,10 @@ import { supabase } from '@/lib/supabase'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 interface Prova {
-  id: string; numero_exame: number; nome: string
-  ano: number | null; edicao: string | null; ativo: boolean
-  created_at: string; _qtd?: number
+  id: string; exame: string; numero_exame: number
+  ano: number | null; edicao: string | null
+  total_questoes: number | null; taxa_aprovacao_oficial: number | null
+  status: string | null; created_at: string; _qtd?: number
 }
 
 interface Questao {
@@ -140,7 +141,7 @@ function ProvaDrawer({ prova, adminId, onClose, onSaved }: {
 }) {
   const isNova = !prova
   const [tab, setTab] = useState<'info'|'questoes'|'stats'>('info')
-  const [form, setForm] = useState({ nome: prova?.nome || '', numero_exame: prova?.numero_exame?.toString() || '', ano: prova?.ano?.toString() || '', edicao: prova?.edicao || '', ativo: prova?.ativo ?? true })
+  const [form, setForm] = useState({ exame: prova?.exame || '', numero_exame: prova?.numero_exame?.toString() || '', ano: prova?.ano?.toString() || '', edicao: prova?.edicao || '', status: prova?.status || 'ativo' })
   const [saving, setSaving] = useState(false)
   const [msg, setMsg] = useState('')
   const [questoes, setQuestoes] = useState<Questao[]>([])
@@ -164,9 +165,9 @@ function ProvaDrawer({ prova, adminId, onClose, onSaved }: {
   const setF = (k: string, v: unknown) => setForm(f => ({ ...f, [k]: v }))
 
   const salvarProva = async () => {
-    if (!form.nome.trim() || !form.numero_exame) { setMsg('❌ Nome e nº do exame são obrigatórios.'); return }
+    if (!form.exame.trim() || !form.numero_exame) { setMsg('❌ Nome e nº do exame são obrigatórios.'); return }
     setSaving(true); setMsg('')
-    const payload = { nome: form.nome, numero_exame: parseInt(form.numero_exame), ano: form.ano ? parseInt(form.ano) : null, edicao: form.edicao || null, ativo: form.ativo }
+    const payload = { exame: form.exame, numero_exame: parseInt(form.numero_exame), ano: form.ano ? parseInt(form.ano) : null, edicao: form.edicao || null, status: form.status }
     const { error } = isNova
       ? await supabase.from('provas_oab').insert(payload)
       : await supabase.from('provas_oab').update(payload).eq('id', prova!.id)
@@ -201,7 +202,7 @@ function ProvaDrawer({ prova, adminId, onClose, onSaved }: {
           <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:14 }}>
             <div>
               <div style={{ fontSize:15, fontWeight:700, color:'#fff' }}>{isNova ? '+ Nova Prova OAB' : `${prova!.numero_exame}º Exame de Ordem`}</div>
-              {!isNova && <div style={{ fontSize:11, color:'#555', marginTop:2 }}>{prova!.nome}</div>}
+              {!isNova && <div style={{ fontSize:11, color:'#555', marginTop:2 }}>{prova!.exame}</div>}
             </div>
             <button onClick={onClose} style={{ background:'none', border:'none', color:'#555', fontSize:22, cursor:'pointer' }}>✕</button>
           </div>
@@ -224,7 +225,7 @@ function ProvaDrawer({ prova, adminId, onClose, onSaved }: {
           {(tab === 'info' || isNova) && (
             <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
               <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12 }}>
-                {[['Nome da Prova','nome','Ex: 46º Exame de Ordem Unificado'],['Nº do Exame','numero_exame','Ex: 46'],['Ano','ano','Ex: 2026'],['Edição','edicao','Ex: 2026/1']].map(([label,key,ph]) => (
+                {[['Nome/Exame','exame','Ex: 46º Exame de Ordem Unificado'],['Nº do Exame','numero_exame','Ex: 46'],['Ano','ano','Ex: 2026'],['Edição','edicao','Ex: 2026/1']].map(([label,key,ph]) => (
                   <div key={key} style={{ gridColumn: key === 'nome' ? 'span 2' : 'span 1' }}>
                     <label style={{ fontSize:10, fontWeight:700, letterSpacing:2, textTransform:'uppercase', color:'#555', display:'block', marginBottom:5 }}>{label}</label>
                     <input value={(form as any)[key]} onChange={e => setF(key, e.target.value)} placeholder={ph}
@@ -233,8 +234,8 @@ function ProvaDrawer({ prova, adminId, onClose, onSaved }: {
                 ))}
               </div>
               <div style={{ display:'flex', alignItems:'center', gap:10 }}>
-                <Toggle on={form.ativo} onChange={v => setF('ativo', v)}/>
-                <span style={{ fontSize:13, color: form.ativo ? '#34d399' : '#888' }}>{form.ativo ? 'Prova ativa — visível para usuários' : 'Prova inativa — oculta'}</span>
+                <Toggle on={form.status === 'ativo'} onChange={v => setF('status', v ? 'ativo' : 'inativo')}/>
+                <span style={{ fontSize:13, color: form.status === 'ativo' ? '#34d399' : '#888' }}>{form.status === 'ativo' ? 'Prova ativa — visível para usuários' : 'Prova inativa — oculta'}</span>
               </div>
               {msg && <div style={{ padding:'8px 12px', background: msg.startsWith('✅') ? 'rgba(52,211,153,0.1)' : 'rgba(239,68,68,0.1)', border:`1px solid ${msg.startsWith('✅') ? '#34d399' : '#ef4444'}44`, borderRadius:8, fontSize:12, color: msg.startsWith('✅') ? '#34d399' : '#f87171' }}>{msg}</div>}
             </div>
@@ -311,7 +312,7 @@ function ProvaDrawer({ prova, adminId, onClose, onSaved }: {
                 <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:12 }}>
                   {[
                     { label:'Total de Questões', value: prova?._qtd || '—', color:'#60a5fa' },
-                    { label:'Status', value: prova?.ativo ? 'Ativa' : 'Inativa', color: prova?.ativo ? '#34d399' : '#f87171' },
+                    { label:'Status', value: prova?.status === 'ativo' ? 'Ativa' : 'Inativa', color: prova?.status === 'ativo' ? '#34d399' : '#f87171' },
                     { label:'Edição', value: prova?.edicao || '—', color:'#D4A843' },
                   ].map(s => (
                     <div key={s.label} style={{ background:'#1a1a1a', border:'1px solid rgba(255,255,255,0.06)', borderRadius:10, padding:14, textAlign:'center' }}>
@@ -372,19 +373,25 @@ export default function ModuloSimulados({ adminId }: { adminId?: string }) {
     const { data: qtdData } = await supabase.from('questoes_oab').select('prova_id')
     const qtdMap: Record<string, number> = {}
     if (qtdData) qtdData.forEach(q => { qtdMap[q.prova_id] = (qtdMap[q.prova_id] || 0) + 1 })
-    setProvas((provData || []).map(p => ({ ...p, _qtd: qtdMap[p.id] || 0 })))
+    setProvas((provData || []).map(p => ({
+      ...p,
+_qtd: qtdMap[p.id] || 0
+    })))
     setLoading(false)
   }, [])
 
   useEffect(() => { load() }, [load])
 
   const toggleAtivo = async (p: Prova) => {
-    await supabase.from('provas_oab').update({ ativo: !p.ativo }).eq('id', p.id)
-    load()
+    const novoStatus = isAtiva(p) ? 'inativo' : 'ativo'
+    setProvas(prev => prev.map(x => x.id === p.id ? { ...x, status: novoStatus } : x))
+    const { error } = await supabase.from('provas_oab').update({ status: novoStatus }).eq('id', p.id)
+    if (error) { console.error('Erro ao atualizar status:', error); load() }
   }
 
-  const filtradas = provas.filter(p => filtro === 'all' ? true : filtro === 'ativa' ? p.ativo : !p.ativo)
-  const totalQ = provas.reduce((s, p) => s + (p._qtd || 0), 0)
+  const isAtiva = (p: Prova) => p.status === 'ativo' || p.status === null || p.status === ''
+  const filtradas = provas.filter(p => filtro === 'all' ? true : filtro === 'ativa' ? isAtiva(p) : !isAtiva(p))
+  const totalQ = provas.reduce((s, p) => s + (p._qtd || p.total_questoes || 0), 0)
 
   return (
     <div>
@@ -404,9 +411,9 @@ export default function ModuloSimulados({ adminId }: { adminId?: string }) {
       <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(140px,1fr))', gap:10, marginBottom:20 }}>
         {[
           { label:'Total de Provas', value: provas.length, color:'#60a5fa', icon:'📋' },
-          { label:'Provas Ativas', value: provas.filter(p=>p.ativo).length, color:'#34d399', icon:'✅' },
+          { label:'Provas Ativas', value: provas.filter(p=>isAtiva(p)).length, color:'#34d399', icon:'✅' },
           { label:'Total de Questões', value: totalQ, color:'#D4A843', icon:'📝' },
-          { label:'Questões Ativas', value: provas.filter(p=>p.ativo).reduce((s,p)=>s+(p._qtd||0),0), color:'#a78bfa', icon:'⚡' },
+          { label:'Questões Ativas', value: provas.filter(p=>isAtiva(p)).reduce((s,p)=>s+(p._qtd||0),0), color:'#a78bfa', icon:'⚡' },
         ].map(m => (
           <div key={m.label} style={{ background:'#1a1a1a', border:'1px solid rgba(255,255,255,0.06)', borderRadius:12, padding:'14px 16px', textAlign:'center' }}>
             <div style={{ fontSize:18, marginBottom:6 }}>{m.icon}</div>
@@ -439,20 +446,20 @@ export default function ModuloSimulados({ adminId }: { adminId?: string }) {
                 onMouseEnter={e => e.currentTarget.style.borderColor='rgba(212,168,67,0.2)'}
                 onMouseLeave={e => e.currentTarget.style.borderColor='rgba(255,255,255,0.06)'}>
                 {/* Badge */}
-                <div style={{ width:52, height:52, borderRadius:12, background: p.ativo ? 'rgba(52,211,153,0.1)' : 'rgba(255,255,255,0.04)', border:`1px solid ${p.ativo ? 'rgba(52,211,153,0.2)' : 'rgba(255,255,255,0.08)'}`, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
-                  <span style={{ fontSize:13, fontWeight:900, color: p.ativo ? '#34d399' : '#555' }}>{p.numero_exame}º</span>
+                <div style={{ width:52, height:52, borderRadius:12, background: isAtiva(p) ? 'rgba(52,211,153,0.1)' : 'rgba(255,255,255,0.04)', border:`1px solid ${isAtiva(p) ? 'rgba(52,211,153,0.2)' : 'rgba(255,255,255,0.08)'}`, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
+                  <span style={{ fontSize:13, fontWeight:900, color: isAtiva(p) ? '#34d399' : '#555' }}>{p.numero_exame}º</span>
                 </div>
                 <div style={{ flex:1, minWidth:180 }}>
-                  <div style={{ fontSize:14, fontWeight:700, color:'#fff', marginBottom:4 }}>{p.nome}</div>
+                  <div style={{ fontSize:14, fontWeight:700, color:'#fff', marginBottom:4 }}>{p.edicao || p.exame || `Exame ${p.numero_exame}º`}</div>
                   <div style={{ display:'flex', gap:8, flexWrap:'wrap' }}>
-                    {p.edicao && <span style={{ fontSize:10, color:'#888' }}>📅 {p.edicao}</span>}
-                    <span style={{ fontSize:10, color:'#888' }}>📝 {p._qtd} questões</span>
-                    <span style={{ fontSize:10, padding:'1px 8px', borderRadius:100, background: p.ativo ? 'rgba(52,211,153,0.1)' : 'rgba(248,113,113,0.1)', color: p.ativo ? '#34d399' : '#f87171', border:`1px solid ${p.ativo ? 'rgba(52,211,153,0.2)' : 'rgba(248,113,113,0.2)'}` }}>{p.ativo ? 'Ativa' : 'Inativa'}</span>
+                    <span style={{ fontSize:10, color:'#888' }}>📚 {p.exame}</span>
+                    <span style={{ fontSize:10, color:'#888' }}>📝 {p._qtd || p.total_questoes || 0} questões</span>
+                    <span style={{ fontSize:10, padding:'1px 8px', borderRadius:100, background: isAtiva(p) ? 'rgba(52,211,153,0.1)' : 'rgba(248,113,113,0.1)', color: isAtiva(p) ? '#34d399' : '#f87171', border:`1px solid ${isAtiva(p) ? 'rgba(52,211,153,0.2)' : 'rgba(248,113,113,0.2)'}` }}>{isAtiva(p) ? 'Ativa' : 'Inativa'}</span>
                   </div>
                 </div>
                 <div style={{ display:'flex', gap:8, alignItems:'center', flexShrink:0 }}>
                   <button onClick={() => setEditProva(p)} style={{ padding:'6px 14px', background:'rgba(212,168,67,0.08)', border:'1px solid rgba(212,168,67,0.2)', borderRadius:8, color:'#D4A843', fontSize:12, fontWeight:600, cursor:'pointer' }}>Editar</button>
-                  <Toggle on={p.ativo} onChange={() => toggleAtivo(p)}/>
+                  <Toggle on={isAtiva(p)} onChange={() => toggleAtivo(p)}/>
                 </div>
               </div>
             ))}
