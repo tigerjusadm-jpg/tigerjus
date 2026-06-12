@@ -2,473 +2,353 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
 
+// ── Types ─────────────────────────────────────────────────────────────────────
 interface Flashcard {
-  id: string
-  disciplina: string
-  frente: string
-  verso: string
-  questao_id: string | null
-  ativo: boolean
-  gerado_automaticamente: boolean
-  fonte: string | null
-  qualidade_score: number
-  revisado: boolean
-  created_at: string
-  updated_at: string
+  id: string; disciplina: string; frente: string; verso: string
+  ativo: boolean; nivel?: string | null; created_at: string
 }
 
-const POR_PAGINA = 25
+const DISCIPLINAS = [
+  'Constitucional','Administrativo','Penal','Processo Penal','Civil',
+  'Processo Civil','Trabalho','Processo do Trabalho','Tributário',
+  'Empresarial','Ética','Consumidor','Direitos Humanos','Ambiental',
+  'Filosofia','Internacional','ECA'
+]
 
-function Badge({ children, color = '#D4A843' }: { children: React.ReactNode; color?: string }) {
-  return (
-    <span style={{
-      display: 'inline-block',
-      padding: '3px 8px',
-      borderRadius: 100,
-      fontSize: 10,
-      fontWeight: 800,
-      color,
-      background: `${color}18`,
-      border: `1px solid ${color}33`,
-      whiteSpace: 'nowrap'
-    }}>
-      {children}
-    </span>
-  )
+const DISC_CORES: Record<string,string> = {
+  'Constitucional':'#60a5fa','Administrativo':'#34d399','Penal':'#f87171',
+  'Processo Penal':'#fb923c','Civil':'#a78bfa','Processo Civil':'#c084fc',
+  'Trabalho':'#fbbf24','Processo do Trabalho':'#f59e0b','Tributário':'#38bdf8',
+  'Empresarial':'#4ade80','Ética':'#D4A843','Consumidor':'#f472b6',
+  'Direitos Humanos':'#818cf8','Ambiental':'#34d399','Filosofia':'#94a3b8',
+  'Internacional':'#22d3ee','ECA':'#e879f9',
 }
 
-function Skeleton() {
+// ── Toggle ────────────────────────────────────────────────────────────────────
+function Toggle({ on, onChange }: { on: boolean; onChange: (v: boolean) => void }) {
   return (
-    <div style={{display:'flex',flexDirection:'column',gap:6}}>
-      {[...Array(7)].map((_,i)=>(
-        <div key={i} style={{height:58,borderRadius:10,background:'rgba(255,255,255,0.04)',animation:'pulse 1.5s infinite'}}/>
-      ))}
-      <style>{`@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}`}</style>
+    <div onClick={e => { e.stopPropagation(); onChange(!on) }}
+      style={{ width:36, height:20, borderRadius:10, background: on ? '#34d399' : '#374151',
+        position:'relative', cursor:'pointer', flexShrink:0, transition:'background 0.2s' }}>
+      <div style={{ position:'absolute', top:2, left: on ? 18 : 2, width:16, height:16,
+        borderRadius:'50%', background:'#fff', transition:'left 0.2s' }}/>
     </div>
   )
 }
 
-function EmptyState({ msg }: { msg: string }) {
-  return (
-    <div style={{textAlign:'center',padding:48,color:'#666'}}>
-      <div style={{fontSize:40,marginBottom:12}}>🃏</div>
-      <div style={{fontSize:16,fontWeight:800,color:'#fff',marginBottom:6}}>Nenhum flashcard encontrado</div>
-      <div style={{fontSize:13}}>{msg}</div>
-    </div>
-  )
-}
-
-interface EditorProps {
-  card: Partial<Flashcard>
-  adminId?: string
-  onClose: () => void
-  onSaved: () => void
-}
-
-function EditorFlashcard({ card, adminId, onClose, onSaved }: EditorProps) {
-  const isNovo = !card.id
+// ── FlashcardDrawer (create / edit) ───────────────────────────────────────────
+function FlashcardDrawer({ fc, adminId, onClose, onSaved }: {
+  fc?: Flashcard; adminId?: string; onClose: () => void; onSaved: () => void
+}) {
+  const isNovo = !fc
   const [form, setForm] = useState({
-    disciplina: card.disciplina || '',
-    frente: card.frente || '',
-    verso: card.verso || '',
-    ativo: card.ativo ?? true,
-    revisado: card.revisado ?? false,
-    fonte: card.fonte || 'manual',
-    qualidade_score: String(card.qualidade_score ?? 0),
+    disciplina: fc?.disciplina || DISCIPLINAS[0],
+    frente: fc?.frente || '',
+    verso: fc?.verso || '',
+    nivel: fc?.nivel || 'basico',
+    ativo: fc?.ativo ?? true,
   })
   const [saving, setSaving] = useState(false)
   const [msg, setMsg] = useState('')
-
-  const set = (k: string, v: any) => setForm(f => ({ ...f, [k]: v }))
-
-  const audit = async (action_type: string, metadata: any) => {
-    if (!adminId) return
-    await supabase.from('admin_audit_logs').insert({
-      user_id: adminId,
-      action_type,
-      target_type: 'flashcard',
-      target_id: card.id || 'novo',
-      metadata
-    })
-  }
+  const [confirmDel, setConfirmDel] = useState(false)
+  const set = (k: string, v: unknown) => setForm(f => ({ ...f, [k]: v }))
 
   const salvar = async () => {
-    if (!form.disciplina.trim() || !form.frente.trim() || !form.verso.trim()) {
-      setMsg('❌ Disciplina, frente e verso são obrigatórios.')
-      return
-    }
-
-    setSaving(true)
-    setMsg('')
-
-    const qualidade = parseInt(form.qualidade_score, 10)
-
-    const payload = {
-      disciplina: form.disciplina.trim(),
-      frente: form.frente.trim(),
-      verso: form.verso.trim(),
-      ativo: form.ativo,
-      revisado: form.revisado,
-      fonte: form.fonte || 'manual',
-      qualidade_score: isNaN(qualidade) ? 0 : qualidade,
-      gerado_automaticamente: isNovo ? false : (card.gerado_automaticamente ?? false),
-      updated_at: new Date().toISOString()
-    }
-
-    if (isNovo) {
-      const { error } = await supabase.from('flashcards').insert(payload)
-      if (error) {
-        setMsg(`❌ Erro ao criar: ${error.message}`)
-        setSaving(false)
-        return
-      }
-      await audit('CREATE', { after: payload })
-    } else {
-      const { error } = await supabase.from('flashcards').update(payload).eq('id', card.id!)
-      if (error) {
-        setMsg(`❌ Erro ao salvar: ${error.message}`)
-        setSaving(false)
-        return
-      }
-      await audit('UPDATE', {
-        before: {
-          disciplina: card.disciplina,
-          frente: card.frente,
-          verso: card.verso,
-          ativo: card.ativo,
-          revisado: card.revisado,
-          fonte: card.fonte,
-          qualidade_score: card.qualidade_score
-        },
-        after: payload
-      })
-    }
-
-    setMsg('✅ Salvo!')
+    if (!form.frente.trim() || !form.verso.trim()) { setMsg('❌ Frente e verso são obrigatórios.'); return }
+    setSaving(true); setMsg('')
+    const payload = { disciplina: form.disciplina, frente: form.frente, verso: form.verso, nivel: form.nivel, ativo: form.ativo }
+    const { error } = isNovo
+      ? await supabase.from('flashcards').insert(payload)
+      : await supabase.from('flashcards').update(payload).eq('id', fc!.id)
+    if (!error) { setMsg('✅ Salvo!'); setTimeout(() => { onSaved(); onClose() }, 700) }
+    else setMsg('❌ Erro: ' + error.message)
     setSaving(false)
-    setTimeout(onSaved, 700)
   }
 
-  const label = (txt: string) => (
-    <label style={{fontSize:10,fontWeight:800,letterSpacing:1.5,textTransform:'uppercase',color:'#666',display:'block',marginBottom:6}}>
-      {txt}
-    </label>
-  )
-
-  const inputStyle: React.CSSProperties = {
-    width:'100%',
-    background:'#1a1a1a',
-    border:'1px solid rgba(255,255,255,.1)',
-    borderRadius:8,
-    padding:'10px 12px',
-    color:'#fff',
-    fontSize:13,
-    outline:'none',
-    boxSizing:'border-box',
-    fontFamily:'inherit'
+  const excluir = async () => {
+    if (!fc) return
+    await supabase.from('flashcards').delete().eq('id', fc.id)
+    onSaved(); onClose()
   }
+
+  const corDisc = DISC_CORES[form.disciplina] || '#D4A843'
 
   return (
     <>
-      <div onClick={onClose} style={{position:'fixed',inset:0,zIndex:200,background:'rgba(0,0,0,.6)',backdropFilter:'blur(2px)'}}/>
-      <div style={{
-        position:'fixed',
-        top:0,
-        right:0,
-        bottom:0,
-        zIndex:201,
-        width:620,
-        maxWidth:'100vw',
-        background:'#111',
-        borderLeft:'1px solid rgba(255,255,255,.08)',
-        display:'flex',
-        flexDirection:'column'
-      }}>
-        <div style={{padding:'18px 20px',borderBottom:'1px solid rgba(255,255,255,.07)',display:'flex',justifyContent:'space-between',alignItems:'center',background:'#0d0d0d'}}>
+      <div style={{ position:'fixed', inset:0, zIndex:200, background:'rgba(0,0,0,0.6)', backdropFilter:'blur(2px)' }} onClick={onClose}/>
+      <div style={{ position:'fixed', top:0, right:0, bottom:0, zIndex:201, width:560, maxWidth:'100vw', background:'#111', borderLeft:'1px solid rgba(255,255,255,0.08)', display:'flex', flexDirection:'column' }}>
+
+        {/* Header */}
+        <div style={{ padding:'18px 20px 14px', borderBottom:'1px solid rgba(255,255,255,0.07)', background:'#0d0d0d', flexShrink:0, display:'flex', alignItems:'center', justifyContent:'space-between' }}>
           <div>
-            <div style={{fontSize:16,fontWeight:800,color:'#fff'}}>{isNovo ? 'Novo Flashcard' : 'Editar Flashcard'}</div>
-            {!isNovo && <div style={{fontSize:11,color:'#555'}}>ID: {card.id?.slice(0,8)}...</div>}
+            <div style={{ fontSize:15, fontWeight:700, color:'#fff' }}>{isNovo ? '+ Novo Flashcard' : 'Editar Flashcard'}</div>
+            {!isNovo && <div style={{ fontSize:11, color:'#555', marginTop:2, fontFamily:'monospace' }}>{fc!.id.slice(0,12)}…</div>}
           </div>
-          <button onClick={onClose} style={{background:'none',border:'none',color:'#777',fontSize:22,cursor:'pointer'}}>✕</button>
+          <button onClick={onClose} style={{ background:'none', border:'none', color:'#555', fontSize:22, cursor:'pointer' }}>✕</button>
         </div>
 
-        <div style={{flex:1,overflowY:'auto',padding:20,display:'flex',flexDirection:'column',gap:16}}>
-          <div>
-            {label('Disciplina')}
-            <input value={form.disciplina} onChange={e=>set('disciplina', e.target.value)} placeholder="Ex: Direito Constitucional" style={inputStyle}/>
+        {/* Body */}
+        <div style={{ flex:1, overflowY:'auto', padding:20, display:'flex', flexDirection:'column', gap:16 }}>
+
+          {/* Preview */}
+          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12 }}>
+            <div style={{ background:'linear-gradient(135deg,rgba(212,168,67,0.06),rgba(232,98,26,0.03))', border:`1px solid ${corDisc}22`, borderRadius:12, padding:14, minHeight:100 }}>
+              <div style={{ fontSize:9, fontWeight:700, letterSpacing:2, color:'#666', marginBottom:8 }}>FRENTE</div>
+              <div style={{ fontSize:13, color:'#ccc', lineHeight:1.7 }}>{form.frente || <span style={{ color:'#444', fontStyle:'italic' }}>Digite a pergunta...</span>}</div>
+            </div>
+            <div style={{ background:'rgba(255,255,255,0.03)', border:`1px solid ${corDisc}22`, borderRadius:12, padding:14, minHeight:100 }}>
+              <div style={{ fontSize:9, fontWeight:700, letterSpacing:2, color:'#666', marginBottom:8 }}>VERSO</div>
+              <div style={{ fontSize:13, color:'#ccc', lineHeight:1.7 }}>{form.verso || <span style={{ color:'#444', fontStyle:'italic' }}>Digite a resposta...</span>}</div>
+            </div>
           </div>
 
-          <div>
-            {label('Frente')}
-            <textarea value={form.frente} onChange={e=>set('frente', e.target.value)} placeholder="Pergunta ou conceito..." rows={7}
-              style={{...inputStyle, resize:'vertical', lineHeight:1.6}}/>
-          </div>
-
-          <div>
-            {label('Verso')}
-            <textarea value={form.verso} onChange={e=>set('verso', e.target.value)} placeholder="Resposta, explicação ou gabarito..." rows={7}
-              style={{...inputStyle, resize:'vertical', lineHeight:1.6}}/>
-          </div>
-
-          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}}>
+          {/* Disciplina + Nível */}
+          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12 }}>
             <div>
-              {label('Fonte')}
-              <input value={form.fonte} onChange={e=>set('fonte', e.target.value)} placeholder="manual / auto / ia" style={inputStyle}/>
+              <label style={{ fontSize:10, fontWeight:700, letterSpacing:2, textTransform:'uppercase', color:'#555', display:'block', marginBottom:5 }}>DISCIPLINA</label>
+              <select value={form.disciplina} onChange={e => set('disciplina', e.target.value)}
+                style={{ width:'100%', background:'#1a1a1a', border:'1px solid rgba(255,255,255,0.1)', borderRadius:8, padding:'9px 12px', color: corDisc, fontSize:13, fontWeight:600, outline:'none', colorScheme:'dark' as const, fontFamily:'inherit' }}>
+                {DISCIPLINAS.map(d => <option key={d} value={d}>{d}</option>)}
+              </select>
             </div>
             <div>
-              {label('Qualidade Score')}
-              <input value={form.qualidade_score} onChange={e=>set('qualidade_score', e.target.value.replace(/\D/g,''))} placeholder="0" style={inputStyle}/>
+              <label style={{ fontSize:10, fontWeight:700, letterSpacing:2, textTransform:'uppercase', color:'#555', display:'block', marginBottom:5 }}>NÍVEL</label>
+              <select value={form.nivel} onChange={e => set('nivel', e.target.value)}
+                style={{ width:'100%', background:'#1a1a1a', border:'1px solid rgba(255,255,255,0.1)', borderRadius:8, padding:'9px 12px', color:'#fff', fontSize:13, outline:'none', colorScheme:'dark' as const, fontFamily:'inherit' }}>
+                {['basico','intermediario','avancado'].map(n => <option key={n} value={n}>{{ basico:'Básico', intermediario:'Intermediário', avancado:'Avançado' }[n]}</option>)}
+              </select>
             </div>
           </div>
 
-          <div style={{display:'flex',gap:12,flexWrap:'wrap'}}>
-            <label style={{display:'flex',alignItems:'center',gap:8,fontSize:13,color:'#ccc'}}>
-              <input type="checkbox" checked={form.ativo} onChange={e=>set('ativo', e.target.checked)}/>
-              Ativo
-            </label>
-            <label style={{display:'flex',alignItems:'center',gap:8,fontSize:13,color:'#ccc'}}>
-              <input type="checkbox" checked={form.revisado} onChange={e=>set('revisado', e.target.checked)}/>
-              Revisado
-            </label>
+          {/* Frente */}
+          <div>
+            <label style={{ fontSize:10, fontWeight:700, letterSpacing:2, textTransform:'uppercase', color:'#555', display:'block', marginBottom:5 }}>FRENTE (pergunta) *</label>
+            <textarea value={form.frente} onChange={e => set('frente', e.target.value)} rows={4} placeholder="Ex: O que é o princípio da legalidade?"
+              style={{ width:'100%', background:'#1a1a1a', border:`1px solid ${form.frente ? corDisc+'44' : 'rgba(255,255,255,0.1)'}`, borderRadius:8, padding:'10px 12px', color:'#fff', fontSize:13, outline:'none', resize:'vertical', fontFamily:'inherit', lineHeight:1.7, boxSizing:'border-box' as const, transition:'border-color 0.2s' }}/>
           </div>
 
-          {!isNovo && card.questao_id && (
-            <div style={{padding:12,borderRadius:10,background:'rgba(96,165,250,.08)',border:'1px solid rgba(96,165,250,.2)',fontSize:12,color:'#93c5fd'}}>
-              Este flashcard foi gerado a partir de uma questão vinculada.
-            </div>
-          )}
+          {/* Verso */}
+          <div>
+            <label style={{ fontSize:10, fontWeight:700, letterSpacing:2, textTransform:'uppercase', color:'#555', display:'block', marginBottom:5 }}>VERSO (resposta) *</label>
+            <textarea value={form.verso} onChange={e => set('verso', e.target.value)} rows={5} placeholder="Ex: O princípio da legalidade determina que..."
+              style={{ width:'100%', background:'#1a1a1a', border:`1px solid ${form.verso ? corDisc+'44' : 'rgba(255,255,255,0.1)'}`, borderRadius:8, padding:'10px 12px', color:'#ccc', fontSize:13, outline:'none', resize:'vertical', fontFamily:'inherit', lineHeight:1.7, boxSizing:'border-box' as const, transition:'border-color 0.2s' }}/>
+          </div>
+
+          {/* Status */}
+          <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+            <Toggle on={form.ativo} onChange={v => set('ativo', v)}/>
+            <span style={{ fontSize:13, color: form.ativo ? '#34d399' : '#888' }}>{form.ativo ? 'Ativo — visível para usuários' : 'Inativo — oculto'}</span>
+          </div>
+
+          {msg && <div style={{ padding:'8px 12px', background: msg.startsWith('✅') ? 'rgba(52,211,153,0.1)' : 'rgba(239,68,68,0.1)', border:`1px solid ${msg.startsWith('✅') ? '#34d399' : '#ef4444'}44`, borderRadius:8, fontSize:12, color: msg.startsWith('✅') ? '#34d399' : '#f87171' }}>{msg}</div>}
         </div>
 
-        <div style={{padding:16,borderTop:'1px solid rgba(255,255,255,.07)',background:'#0d0d0d'}}>
-          {msg && (
-            <div style={{marginBottom:10,padding:'9px 12px',borderRadius:8,fontSize:12,
-              background:msg.startsWith('✅')?'rgba(52,211,153,.1)':'rgba(239,68,68,.1)',
-              color:msg.startsWith('✅')?'#34d399':'#f87171',
-              border:`1px solid ${msg.startsWith('✅')?'#34d399':'#ef4444'}44`}}>
-              {msg}
-            </div>
-          )}
-          <button onClick={salvar} disabled={saving}
-            style={{width:'100%',background:'linear-gradient(135deg,#D4A843,#E8621A)',border:'none',borderRadius:8,padding:'12px',fontWeight:900,color:'#000',cursor:saving?'not-allowed':'pointer',opacity:saving?.7:1}}>
-            {saving ? '⏳ Salvando...' : isNovo ? '+ Criar Flashcard' : '💾 Salvar Alterações'}
-          </button>
+        {/* Footer */}
+        <div style={{ padding:'14px 20px', borderTop:'1px solid rgba(255,255,255,0.07)', background:'#0d0d0d', flexShrink:0 }}>
+          <div style={{ display:'flex', gap:8 }}>
+            <button onClick={salvar} disabled={saving}
+              style={{ flex:1, background:'linear-gradient(135deg,#D4A843,#E8621A)', border:'none', borderRadius:8, padding:'11px', color:'#000', fontSize:13, fontWeight:700, cursor: saving ? 'not-allowed' : 'pointer', opacity: saving ? 0.7 : 1 }}>
+              {saving ? '⏳ Salvando...' : isNovo ? '+ Criar Flashcard' : '💾 Salvar'}
+            </button>
+            {!isNovo && !confirmDel && (
+              <button onClick={() => setConfirmDel(true)}
+                style={{ background:'rgba(239,68,68,0.08)', border:'1px solid rgba(239,68,68,0.2)', borderRadius:8, padding:'11px 16px', color:'#f87171', fontSize:12, cursor:'pointer' }}>
+                Excluir
+              </button>
+            )}
+            {!isNovo && confirmDel && (
+              <button onClick={excluir}
+                style={{ background:'rgba(239,68,68,0.15)', border:'1px solid #ef4444', borderRadius:8, padding:'11px 16px', color:'#f87171', fontSize:12, fontWeight:700, cursor:'pointer' }}>
+                Confirmar
+              </button>
+            )}
+          </div>
         </div>
       </div>
     </>
   )
 }
 
+// ── Main ──────────────────────────────────────────────────────────────────────
 export default function ModuloFlashcards({ adminId }: { adminId?: string }) {
   const [cards, setCards] = useState<Flashcard[]>([])
-  const [total, setTotal] = useState(0)
   const [loading, setLoading] = useState(true)
-  const [pagina, setPagina] = useState(0)
+  const [discFilter, setDiscFilter] = useState('')
+  const [statusFilter, setStatusFilter] = useState<'all'|'ativo'|'inativo'>('all')
   const [busca, setBusca] = useState('')
-  const [disciplina, setDisciplina] = useState('')
-  const [ativo, setAtivo] = useState('')
-  const [editando, setEditando] = useState<Partial<Flashcard>|null>(null)
-  const [novo, setNovo] = useState(false)
-  const [selecionados, setSelecionados] = useState<string[]>([])
-  const buscaTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const [editCard, setEditCard] = useState<Flashcard | undefined | null>(undefined)
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  const load = useCallback(async (pag = pagina, termo = busca) => {
+  const load = useCallback(async () => {
     setLoading(true)
-
-    let query = supabase
-      .from('flashcards')
-      .select('id,disciplina,frente,verso,questao_id,ativo,gerado_automaticamente,fonte,qualidade_score,revisado,created_at,updated_at', { count:'exact' })
-
-    if (disciplina) query = query.eq('disciplina', disciplina)
-    if (ativo === 'ativo') query = query.eq('ativo', true)
-    if (ativo === 'inativo') query = query.eq('ativo', false)
-
-    if (termo.trim()) {
-      const t = termo.trim()
-      query = query.or(`frente.ilike.%${t}%,verso.ilike.%${t}%,disciplina.ilike.%${t}%`)
-    }
-
-    const { data, count, error } = await query
-      .order('updated_at', { ascending:false })
-      .range(pag * POR_PAGINA, (pag + 1) * POR_PAGINA - 1)
-
-    if (!error && data) {
-      setCards(data as Flashcard[])
-      setTotal(count || 0)
-    }
-
+    const { data } = await supabase.from('flashcards').select('*').order('disciplina').order('created_at', { ascending: false })
+    setCards(data || [])
     setLoading(false)
-  }, [pagina, busca, disciplina, ativo])
-
-  const loadDisciplinas = async () => {
-    const { data } = await supabase.from('flashcards').select('disciplina')
-    const unicas = [...new Set((data || []).map(d => d.disciplina).filter(Boolean))]
-    return unicas.sort()
-  }
-
-  const [disciplinas, setDisciplinas] = useState<string[]>([])
-
-  useEffect(() => {
-    loadDisciplinas().then(setDisciplinas)
   }, [])
 
-  useEffect(() => {
-    setPagina(0)
-  }, [disciplina, ativo])
+  useEffect(() => { load() }, [load])
 
-  useEffect(() => {
-    load(pagina, busca)
-  }, [pagina, disciplina, ativo])
+  const toggleAtivo = async (fc: Flashcard) => {
+    await supabase.from('flashcards').update({ ativo: !fc.ativo }).eq('id', fc.id)
+    load()
+  }
 
   const handleBusca = (v: string) => {
     setBusca(v)
-    if (buscaTimer.current) clearTimeout(buscaTimer.current)
-    buscaTimer.current = setTimeout(() => {
-      setPagina(0)
-      load(0, v)
-    }, 400)
+    if (timerRef.current) clearTimeout(timerRef.current)
+    timerRef.current = setTimeout(() => {}, 0)
   }
 
-  const audit = async (action_type: string, metadata: any) => {
-    if (!adminId) return
-    await supabase.from('admin_audit_logs').insert({
-      user_id: adminId,
-      action_type,
-      target_type: 'flashcard',
-      target_id: 'bulk',
-      metadata
-    })
-  }
-
-  const bulkAtivar = async (valor: boolean) => {
-    if (selecionados.length === 0) return
-    if (!confirm(`Confirmar alteração em ${selecionados.length} flashcard(s)?`)) return
-
-    const { error } = await supabase.from('flashcards').update({
-      ativo: valor,
-      updated_at: new Date().toISOString()
-    }).in('id', selecionados)
-
-    if (!error) {
-      await audit(valor ? 'BULK_ACTIVATE' : 'BULK_DEACTIVATE', { ids: selecionados, ativo: valor })
-      setSelecionados([])
-      load(pagina, busca)
+  const filtrados = cards.filter(c => {
+    if (discFilter && c.disciplina !== discFilter) return false
+    if (statusFilter === 'ativo' && !c.ativo) return false
+    if (statusFilter === 'inativo' && c.ativo) return false
+    if (busca) {
+      const q = busca.toLowerCase()
+      if (!c.frente.toLowerCase().includes(q) && !c.verso.toLowerCase().includes(q)) return false
     }
-  }
+    return true
+  })
 
-  const totalPags = Math.ceil(total / POR_PAGINA)
+  const discCount = DISCIPLINAS.reduce((acc, d) => {
+    acc[d] = cards.filter(c => c.disciplina === d).length; return acc
+  }, {} as Record<string, number>)
 
   return (
-    <div style={{display:'flex',flexDirection:'column',height:'100%'}}>
-      <div style={{marginBottom:16}}>
-        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:10,flexWrap:'wrap',marginBottom:14}}>
-          <div>
-            <h2 style={{fontSize:20,fontWeight:900,color:'#fff',marginBottom:2}}>Flashcards</h2>
-            <div style={{fontSize:12,color:'#555'}}>{total.toLocaleString()} flashcard(s) encontrado(s)</div>
-          </div>
-          <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
-            <button onClick={()=>load(pagina,busca)} style={{background:'rgba(255,255,255,.05)',border:'1px solid rgba(255,255,255,.08)',borderRadius:8,padding:'8px 14px',color:'#888',fontSize:12,cursor:'pointer'}}>
-              🔄 Atualizar
-            </button>
-            <button onClick={()=>setNovo(true)} style={{background:'linear-gradient(135deg,#D4A843,#E8621A)',border:'none',borderRadius:8,padding:'8px 16px',color:'#000',fontSize:12,fontWeight:900,cursor:'pointer'}}>
-              + Novo Flashcard
-            </button>
-          </div>
+    <div>
+      {/* Header */}
+      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:20, flexWrap:'wrap', gap:12 }}>
+        <div>
+          <h2 style={{ fontSize:22, fontWeight:900, color:'#fff', marginBottom:4 }}>Flashcards 🃏</h2>
+          <div style={{ fontSize:13, color:'#555' }}>Gerencie os flashcards por disciplina</div>
         </div>
-
-        <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
-          <input value={busca} onChange={e=>handleBusca(e.target.value)} placeholder="Buscar por frente, verso ou disciplina..."
-            style={{flex:1,minWidth:240,background:'#1a1a1a',border:'1px solid rgba(255,255,255,.1)',borderRadius:8,padding:'9px 14px',color:'#fff',fontSize:13,outline:'none',fontFamily:'inherit'}}/>
-
-          <select value={disciplina} onChange={e=>setDisciplina(e.target.value)}
-            style={{background:'#1a1a1a',border:'1px solid rgba(255,255,255,.1)',borderRadius:8,padding:'9px 12px',color:disciplina?'#fff':'#555',fontSize:13,colorScheme:'dark'}}>
-            <option value="">Todas disciplinas</option>
-            {disciplinas.map(d => <option key={d} value={d}>{d}</option>)}
-          </select>
-
-          <select value={ativo} onChange={e=>setAtivo(e.target.value)}
-            style={{background:'#1a1a1a',border:'1px solid rgba(255,255,255,.1)',borderRadius:8,padding:'9px 12px',color:ativo?'#fff':'#555',fontSize:13,colorScheme:'dark'}}>
-            <option value="">Todos status</option>
-            <option value="ativo">Ativos</option>
-            <option value="inativo">Inativos</option>
-          </select>
+        <div style={{ display:'flex', gap:8 }}>
+          <button onClick={load} style={{ background:'rgba(255,255,255,0.05)', border:'1px solid rgba(255,255,255,0.08)', borderRadius:8, padding:'8px 14px', color:'#888', fontSize:12, cursor:'pointer' }}>🔄</button>
+          <button onClick={() => setEditCard(null)} style={{ background:'linear-gradient(135deg,#D4A843,#E8621A)', border:'none', borderRadius:8, padding:'8px 18px', color:'#000', fontSize:13, fontWeight:700, cursor:'pointer' }}>+ Novo Flashcard</button>
         </div>
-
-        {selecionados.length > 0 && (
-          <div style={{marginTop:10,padding:10,borderRadius:10,background:'rgba(212,168,67,.08)',border:'1px solid rgba(212,168,67,.18)',display:'flex',justifyContent:'space-between',gap:10,alignItems:'center'}}>
-            <div style={{fontSize:12,color:'#D4A843'}}>{selecionados.length} selecionado(s)</div>
-            <div style={{display:'flex',gap:8}}>
-              <button onClick={()=>bulkAtivar(true)} style={{background:'rgba(52,211,153,.1)',border:'1px solid rgba(52,211,153,.25)',borderRadius:7,padding:'6px 10px',color:'#34d399',fontSize:12,cursor:'pointer'}}>Ativar</button>
-              <button onClick={()=>bulkAtivar(false)} style={{background:'rgba(239,68,68,.1)',border:'1px solid rgba(239,68,68,.25)',borderRadius:7,padding:'6px 10px',color:'#f87171',fontSize:12,cursor:'pointer'}}>Desativar</button>
-            </div>
-          </div>
-        )}
       </div>
 
-      {loading ? <Skeleton/> : cards.length === 0 ? (
-        <EmptyState msg="Ajuste os filtros ou crie um novo flashcard."/>
-      ) : (
-        <>
-          <div style={{display:'grid',gridTemplateColumns:'40px 1.5fr 2fr 1fr .8fr .8fr',gap:8,padding:'6px 14px',borderBottom:'1px solid rgba(255,255,255,.07)',marginBottom:4}}>
-            {['','FRENTE','VERSO','DISCIPLINA','STATUS','ORIGEM'].map(h=>(
-              <div key={h} style={{fontSize:10,fontWeight:800,letterSpacing:1.3,color:'#444',textTransform:'uppercase'}}>{h}</div>
-            ))}
+      {/* Metrics */}
+      <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(130px,1fr))', gap:10, marginBottom:20 }}>
+        {[
+          { label:'Total', value: cards.length, color:'#60a5fa', icon:'🃏' },
+          { label:'Ativos', value: cards.filter(c=>c.ativo).length, color:'#34d399', icon:'✅' },
+          { label:'Inativos', value: cards.filter(c=>!c.ativo).length, color:'#f87171', icon:'❌' },
+          { label:'Disciplinas', value: DISCIPLINAS.filter(d=>discCount[d]>0).length, color:'#D4A843', icon:'📚' },
+        ].map(m => (
+          <div key={m.label} style={{ background:'#1a1a1a', border:'1px solid rgba(255,255,255,0.06)', borderRadius:12, padding:'14px 16px', textAlign:'center' }}>
+            <div style={{ fontSize:18, marginBottom:6 }}>{m.icon}</div>
+            <div style={{ fontSize:22, fontWeight:900, color:m.color }}>{m.value}</div>
+            <div style={{ fontSize:10, color:'#555', marginTop:2 }}>{m.label}</div>
           </div>
+        ))}
+      </div>
 
-          <div style={{flex:1,overflowY:'auto'}}>
-            {cards.map(c => (
-              <div key={c.id} onClick={()=>setEditando(c)}
-                style={{display:'grid',gridTemplateColumns:'40px 1.5fr 2fr 1fr .8fr .8fr',gap:8,padding:'11px 14px',borderRadius:10,marginBottom:4,background:'#1a1a1a',border:'1px solid rgba(255,255,255,.05)',cursor:'pointer'}}
-              >
-                <div onClick={e=>e.stopPropagation()} style={{display:'flex',alignItems:'center'}}>
-                  <input type="checkbox" checked={selecionados.includes(c.id)}
-                    onChange={e=>setSelecionados(s => e.target.checked ? [...s, c.id] : s.filter(id => id !== c.id))}/>
-                </div>
+      {/* Filters */}
+      <div style={{ display:'flex', gap:8, marginBottom:14, flexWrap:'wrap', alignItems:'center' }}>
+        <div style={{ display:'flex', gap:6 }}>
+          {(['all','ativo','inativo'] as const).map(f => (
+            <button key={f} onClick={() => setStatusFilter(f)}
+              style={{ padding:'5px 14px', borderRadius:100, fontSize:12, cursor:'pointer',
+                border: statusFilter===f ? '1px solid #D4A843' : '1px solid rgba(255,255,255,0.08)',
+                background: statusFilter===f ? 'rgba(212,168,67,0.1)' : 'transparent',
+                color: statusFilter===f ? '#D4A843' : '#666' }}>
+              {{ all:'Todos', ativo:'Ativos', inativo:'Inativos' }[f]}
+            </button>
+          ))}
+        </div>
+        <div style={{ flex:1, minWidth:200, position:'relative' }}>
+          <input value={busca} onChange={e => handleBusca(e.target.value)} placeholder="Buscar por conteúdo..."
+            style={{ width:'100%', background:'#1a1a1a', border:'1px solid rgba(255,255,255,0.1)', borderRadius:8, padding:'7px 12px 7px 32px', color:'#fff', fontSize:12, outline:'none', boxSizing:'border-box' as const }}/>
+          <span style={{ position:'absolute', left:10, top:'50%', transform:'translateY(-50%)', color:'#555', fontSize:13 }}>🔍</span>
+          {busca && <button onClick={() => setBusca('')} style={{ position:'absolute', right:8, top:'50%', transform:'translateY(-50%)', background:'none', border:'none', color:'#888', cursor:'pointer', fontSize:14 }}>✕</button>}
+        </div>
+      </div>
 
-                <div style={{fontSize:12,color:'#fff',overflow:'hidden',display:'-webkit-box',WebkitLineClamp:2,WebkitBoxOrient:'vertical'}}>
-                  {c.frente}
-                </div>
+      {/* Disciplina pills */}
+      <div style={{ display:'flex', gap:6, flexWrap:'wrap', marginBottom:18 }}>
+        <button onClick={() => setDiscFilter('')}
+          style={{ padding:'4px 12px', borderRadius:100, fontSize:11, cursor:'pointer',
+            border: !discFilter ? '1px solid #D4A843' : '1px solid rgba(255,255,255,0.08)',
+            background: !discFilter ? 'rgba(212,168,67,0.1)' : 'transparent',
+            color: !discFilter ? '#D4A843' : '#555' }}>
+          Todas <span style={{ opacity:0.6 }}>{cards.length}</span>
+        </button>
+        {DISCIPLINAS.filter(d => discCount[d] > 0).map(d => {
+          const cor = DISC_CORES[d] || '#888'
+          const ativo = discFilter === d
+          return (
+            <button key={d} onClick={() => setDiscFilter(ativo ? '' : d)}
+              style={{ padding:'4px 12px', borderRadius:100, fontSize:11, cursor:'pointer',
+                border: `1px solid ${ativo ? cor+'66' : 'rgba(255,255,255,0.08)'}`,
+                background: ativo ? cor+'18' : 'transparent',
+                color: ativo ? cor : '#666' }}>
+              {d} <span style={{ opacity:0.6 }}>{discCount[d]}</span>
+            </button>
+          )
+        })}
+      </div>
 
-                <div style={{fontSize:12,color:'#aaa',overflow:'hidden',display:'-webkit-box',WebkitLineClamp:2,WebkitBoxOrient:'vertical'}}>
-                  {c.verso}
-                </div>
+      {/* Cards grid */}
+      {loading
+        ? <div style={{ textAlign:'center', padding:48, color:'#555' }}>⏳ Carregando flashcards...</div>
+        : filtrados.length === 0
+          ? <div style={{ textAlign:'center', padding:48, color:'#555' }}><div style={{ fontSize:36, marginBottom:12 }}>🃏</div>Nenhum flashcard encontrado.</div>
+          : (
+            <>
+              <div style={{ fontSize:12, color:'#555', marginBottom:12 }}>{filtrados.length} flashcard{filtrados.length !== 1 ? 's' : ''} encontrado{filtrados.length !== 1 ? 's' : ''}</div>
+              <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(300px,1fr))', gap:12 }}>
+                {filtrados.map(fc => {
+                  const cor = DISC_CORES[fc.disciplina] || '#888'
+                  return (
+                    <div key={fc.id}
+                      style={{ background:'#1a1a1a', border:`1px solid ${fc.ativo ? 'rgba(255,255,255,0.06)' : 'rgba(248,113,113,0.12)'}`, borderRadius:14, padding:16, transition:'all 0.15s', display:'flex', flexDirection:'column', gap:10 }}
+                      onMouseEnter={e => { e.currentTarget.style.transform='translateY(-2px)'; e.currentTarget.style.borderColor=cor+'44' }}
+                      onMouseLeave={e => { e.currentTarget.style.transform='translateY(0)'; e.currentTarget.style.borderColor = fc.ativo ? 'rgba(255,255,255,0.06)' : 'rgba(248,113,113,0.12)' }}>
 
-                <div style={{fontSize:11,color:'#888',display:'flex',alignItems:'center',overflow:'hidden',textOverflow:'ellipsis'}}>
-                  {c.disciplina}
-                </div>
+                      {/* Header */}
+                      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+                        <span style={{ fontSize:10, fontWeight:700, padding:'2px 8px', borderRadius:100, background:`${cor}18`, border:`1px solid ${cor}33`, color:cor }}>{fc.disciplina}</span>
+                        <div style={{ display:'flex', gap:6, alignItems:'center' }}>
+                          {!fc.ativo && <span style={{ fontSize:9, padding:'2px 6px', borderRadius:100, background:'rgba(248,113,113,0.1)', color:'#f87171', border:'1px solid rgba(248,113,113,0.2)' }}>INATIVO</span>}
+                          <Toggle on={fc.ativo} onChange={() => toggleAtivo(fc)}/>
+                        </div>
+                      </div>
 
-                <div style={{display:'flex',alignItems:'center'}}>
-                  {c.ativo ? <Badge color="#34d399">ATIVO</Badge> : <Badge color="#888">INATIVO</Badge>}
-                </div>
+                      {/* Frente */}
+                      <div style={{ background:'rgba(255,255,255,0.03)', borderRadius:8, padding:'10px 12px' }}>
+                        <div style={{ fontSize:8, fontWeight:700, letterSpacing:2, color:'#555', marginBottom:4 }}>FRENTE</div>
+                        <div style={{ fontSize:12, color:'#ccc', lineHeight:1.6 }}>{fc.frente.slice(0,100)}{fc.frente.length > 100 ? '...' : ''}</div>
+                      </div>
 
-                <div style={{display:'flex',alignItems:'center',gap:5,flexWrap:'wrap'}}>
-                  {c.gerado_automaticamente ? <Badge color="#60a5fa">AUTO</Badge> : <Badge color="#D4A843">MANUAL</Badge>}
-                  {c.revisado && <Badge color="#34d399">REV</Badge>}
-                </div>
+                      {/* Verso */}
+                      <div style={{ background:`${cor}08`, borderRadius:8, padding:'10px 12px', border:`1px solid ${cor}18` }}>
+                        <div style={{ fontSize:8, fontWeight:700, letterSpacing:2, color:`${cor}88`, marginBottom:4 }}>VERSO</div>
+                        <div style={{ fontSize:12, color:'#888', lineHeight:1.6 }}>{fc.verso.slice(0,100)}{fc.verso.length > 100 ? '...' : ''}</div>
+                      </div>
+
+                      {/* Actions */}
+                      <div style={{ display:'flex', gap:6 }}>
+                        <button onClick={() => setEditCard(fc)}
+                          style={{ flex:1, padding:'6px', background:'rgba(212,168,67,0.08)', border:'1px solid rgba(212,168,67,0.2)', borderRadius:8, color:'#D4A843', fontSize:12, fontWeight:600, cursor:'pointer' }}>
+                          ✏️ Editar
+                        </button>
+                      </div>
+                    </div>
+                  )
+                })}
               </div>
-            ))}
-          </div>
+            </>
+          )
+      }
 
-          {totalPags > 1 && (
-            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',paddingTop:12,borderTop:'1px solid rgba(255,255,255,.07)',marginTop:8}}>
-              <div style={{fontSize:12,color:'#555'}}>Página {pagina + 1} de {totalPags}</div>
-              <div style={{display:'flex',gap:6}}>
-                <button disabled={pagina===0} onClick={()=>setPagina(p=>Math.max(0,p-1))}
-                  style={{background:'#1a1a1a',border:'1px solid rgba(255,255,255,.1)',borderRadius:6,padding:'6px 12px',color:pagina===0?'#444':'#ccc',cursor:pagina===0?'not-allowed':'pointer'}}>←</button>
-                <button disabled={pagina===totalPags-1} onClick={()=>setPagina(p=>Math.min(totalPags-1,p+1))}
-                  style={{background:'#1a1a1a',border:'1px solid rgba(255,255,255,.1)',borderRadius:6,padding:'6px 12px',color:pagina===totalPags-1?'#444':'#ccc',cursor:pagina===totalPags-1?'not-allowed':'pointer'}}>→</button>
-              </div>
-            </div>
-          )}
-        </>
-      )}
-
-      {(editando || novo) && (
-        <EditorFlashcard
-          card={novo ? {} : editando!}
+      {/* Drawer */}
+      {editCard !== undefined && (
+        <FlashcardDrawer
+          fc={editCard ?? undefined}
           adminId={adminId}
-          onClose={()=>{setEditando(null);setNovo(false)}}
-          onSaved={()=>{setEditando(null);setNovo(false);load(pagina,busca);loadDisciplinas().then(setDisciplinas)}}
-        />
+          onClose={() => setEditCard(undefined)}
+          onSaved={() => { load(); setEditCard(undefined) }}/>
       )}
     </div>
   )
