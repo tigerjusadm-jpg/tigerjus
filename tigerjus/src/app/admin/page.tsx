@@ -8,7 +8,8 @@ import ModuloUsuarios from '@/components/ModuloUsuarios'
 import ModuloFlags from '@/components/ModuloFlags'
 import ModuloQuestoes from '@/components/ModuloQuestoes'
 import ModuloConfiguracoes from '@/components/ModuloConfiguracoes'
-import ModuloMediaLibrary from '@/components/ModuloMediaLibrary'  // ← NOVO (C10.9-C)
+import ModuloMediaLibrary from '@/components/ModuloMediaLibrary'
+import ModuloCentralBanners from '@/components/ModuloCentralBanners'  // ← NOVO
 
 // ─── Seção Overview ───────────────────────────────────────────────────────────
 
@@ -67,7 +68,7 @@ function SectionOverview() {
           ATALHOS RÁPIDOS
         </div>
         <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
-          {['👥 Usuários','📝 Questões','🃏 Flashcards','📖 Resumos','🚩 Feature Flags','⚙️ Configurações'].map(label => (
+          {['👥 Usuários','📝 Questões','🃏 Flashcards','📖 Resumos','🚩 Feature Flags','⚙️ Configurações','🎯 Banners'].map(label => (
             <div key={label} style={{background:'rgba(255,255,255,0.04)',border:'1px solid rgba(255,255,255,0.07)',borderRadius:8,padding:'7px 13px',fontSize:12,color:'#888'}}>
               {label}
             </div>
@@ -99,7 +100,7 @@ function SectionPlaceholder({ section }: { section: string }) {
 
 // ─── Render por seção ─────────────────────────────────────────────────────────
 
-function renderSection(section: AdminSection, adminId?: string) {
+function renderSection(section: AdminSection | string, adminId?: string) {
   switch (section) {
     case 'overview': return <SectionOverview />
     case 'resumos':  return <ModuloResumos adminId={adminId} />
@@ -107,8 +108,9 @@ function renderSection(section: AdminSection, adminId?: string) {
     case 'flags':    return <ModuloFlags adminId={adminId} />
     case 'questoes': return <ModuloQuestoes adminId={adminId} />
     case 'settings': return <ModuloConfiguracoes adminId={adminId} />
-    case 'media':    return <ModuloMediaLibrary adminId={adminId} />  // ← NOVO (C10.9-C)
-    default:         return <SectionPlaceholder section={section} />
+    case 'media':    return <ModuloMediaLibrary adminId={adminId} />
+    case 'banners':  return <ModuloCentralBanners adminId={adminId} />  // ← NOVO
+    default:         return <SectionPlaceholder section={section as string} />
   }
 }
 
