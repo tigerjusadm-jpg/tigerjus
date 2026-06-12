@@ -2,437 +2,469 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
 
-// ─── TIPOS ────────────────────────────────────────────────────────────────────
-
+// ── Types ─────────────────────────────────────────────────────────────────────
 interface Prova {
-  id: string
-  exame: string
-  numero_exame: number
-  ano: number
-  edicao: string | null
-  total_questoes: number | null
-  taxa_aprovacao_oficial: number | null
-  status: string | null
-  created_at: string | null
-  questoes_count?: number
+  id: string; numero_exame: number; nome: string
+  ano: number | null; edicao: string | null; ativo: boolean
+  created_at: string; _qtd?: number
 }
 
-const EXAMES = ['OAB 1ª Fase', 'OAB 2ª Fase']
-
-const STATUS_COLOR: Record<string,{color:string;bg:string}> = {
-  ativo:     {color:'#34d399',bg:'rgba(52,211,153,0.1)'},
-  inativo:   {color:'#6B7280',bg:'rgba(107,114,128,0.1)'},
-  rascunho:  {color:'#60a5fa',bg:'rgba(96,165,250,0.1)'},
-  arquivado: {color:'#888',bg:'rgba(255,255,255,0.05)'},
+interface Questao {
+  id: string; prova_id: string; disciplina: string; numero_questao: number | null
+  enunciado: string; opcao_a: string; opcao_b: string; opcao_c: string; opcao_d: string
+  resposta_correta: string; comentario: string | null; ativo: boolean
 }
 
-const POR_PAGINA = 25
+const DISCIPLINAS = [
+  'Constitucional','Administrativo','Penal','Processo Penal','Civil',
+  'Processo Civil','Trabalho','Processo do Trabalho','Tributário',
+  'Empresarial','Ética','Consumidor','Direitos Humanos','Ambiental',
+  'Filosofia','Internacional','ECA'
+]
 
-// ─── EMPTY STATE ──────────────────────────────────────────────────────────────
-
-function EmptyState({msg}:{msg:string}) {
+// ── Toggle ────────────────────────────────────────────────────────────────────
+function Toggle({ on, onChange }: { on: boolean; onChange: (v: boolean) => void }) {
   return (
-    <div style={{textAlign:'center',padding:48,color:'#555'}}>
-      <div style={{fontSize:36,marginBottom:12}}>📋</div>
-      <div style={{fontSize:14,fontWeight:600,color:'#666',marginBottom:6}}>Nenhuma prova encontrada</div>
-      <div style={{fontSize:12}}>{msg}</div>
+    <div onClick={e => { e.stopPropagation(); onChange(!on) }}
+      style={{ width:36, height:20, borderRadius:10, background: on ? '#34d399' : '#374151',
+        position:'relative', cursor:'pointer', flexShrink:0, transition:'background 0.2s' }}>
+      <div style={{ position:'absolute', top:2, left: on ? 18 : 2, width:16, height:16,
+        borderRadius:'50%', background:'#fff', transition:'left 0.2s' }}/>
     </div>
   )
 }
 
-// ─── SKELETON ─────────────────────────────────────────────────────────────────
-
-function Skeleton() {
-  return (
-    <div style={{display:'flex',flexDirection:'column',gap:6}}>
-      {[...Array(6)].map((_,i) => (
-        <div key={i} style={{height:54,borderRadius:10,background:'rgba(255,255,255,0.04)',animation:'pulse 1.5s infinite'}}/>
-      ))}
-      <style>{`@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}`}</style>
-    </div>
-  )
-}
-
-// ─── BADGE ────────────────────────────────────────────────────────────────────
-
-function Badge({label,color,bg}:{label:string;color:string;bg:string}) {
-  return (
-    <span style={{display:'inline-block',padding:'2px 8px',borderRadius:100,fontSize:10,fontWeight:700,color,background:bg,border:`1px solid ${color}33`,whiteSpace:'nowrap'}}>
-      {label.toUpperCase()}
-    </span>
-  )
-}
-
-// ─── EDITOR DE PROVA ──────────────────────────────────────────────────────────
-
-interface EditorProps {
-  prova: Partial<Prova>
-  adminId: string
-  onClose: () => void
-  onSaved: () => void
-}
-
-function EditorProva({prova, adminId, onClose, onSaved}: EditorProps) {
-  const isNova = !prova.id
+// ── QuestaoForm (edit/create questao) ─────────────────────────────────────────
+function QuestaoForm({ q, provaId, adminId, onSaved, onCancel }: {
+  q?: Questao; provaId: string; adminId?: string
+  onSaved: () => void; onCancel: () => void
+}) {
   const [form, setForm] = useState({
-    exame:                  prova.exame || EXAMES[0],
-    numero_exame:           prova.numero_exame?.toString() || '',
-    ano:                    prova.ano?.toString() || new Date().getFullYear().toString(),
-    edicao:                 prova.edicao || '',
-    total_questoes:         prova.total_questoes?.toString() || '80',
-    taxa_aprovacao_oficial: prova.taxa_aprovacao_oficial?.toString() || '0',
-    status:                 prova.status || 'ativo',
+    numero_questao: q?.numero_questao?.toString() || '',
+    disciplina: q?.disciplina || DISCIPLINAS[0],
+    enunciado: q?.enunciado || '',
+    opcao_a: q?.opcao_a || '', opcao_b: q?.opcao_b || '',
+    opcao_c: q?.opcao_c || '', opcao_d: q?.opcao_d || '',
+    resposta_correta: q?.resposta_correta || 'A',
+    comentario: q?.comentario || '', ativo: q?.ativo ?? true,
   })
   const [saving, setSaving] = useState(false)
   const [msg, setMsg] = useState('')
-
-  const set = (k: string, v: any) => setForm(f => ({...f, [k]: v}))
+  const set = (k: string, v: unknown) => setForm(f => ({ ...f, [k]: v }))
 
   const salvar = async () => {
-    if (!form.exame || !form.numero_exame || !form.ano) {
-      setMsg('❌ Exame, número e ano são obrigatórios.'); return
-    }
-    const numExame = parseInt(form.numero_exame, 10)
-    const ano = parseInt(form.ano, 10)
-    if (isNaN(numExame) || numExame <= 0) {
-      setMsg('❌ Número do exame deve ser positivo.'); return
-    }
-    if (isNaN(ano) || ano < 2010 || ano > 2099) {
-      setMsg('❌ Ano inválido (2010-2099).'); return
-    }
-    const totalQ = parseInt(form.total_questoes, 10)
-    const taxa = parseFloat(form.taxa_aprovacao_oficial)
-
+    if (!form.enunciado.trim()) { setMsg('❌ Enunciado obrigatório.'); return }
     setSaving(true); setMsg('')
-
-    const payload: any = {
-      exame:                  form.exame,
-      numero_exame:           numExame,
-      ano:                    ano,
-      edicao:                 form.edicao || null,
-      total_questoes:         isNaN(totalQ) ? 80 : totalQ,
-      taxa_aprovacao_oficial: isNaN(taxa) ? null : taxa,
-      status:                 form.status,
+    const payload = {
+      prova_id: provaId, disciplina: form.disciplina,
+      numero_questao: form.numero_questao ? parseInt(form.numero_questao) : null,
+      enunciado: form.enunciado, opcao_a: form.opcao_a,
+      opcao_b: form.opcao_b, opcao_c: form.opcao_c, opcao_d: form.opcao_d,
+      resposta_correta: form.resposta_correta.toUpperCase(),
+      comentario: form.comentario || null, ativo: form.ativo,
     }
-
-    if (isNova) {
-      const { error } = await supabase.from('provas_oab').insert(payload)
-      if (error) { setMsg(`❌ Erro ao criar: ${error.message}`); setSaving(false); return }
-      await supabase.from('admin_audit_logs').insert({
-        user_id: adminId, action_type: 'CREATE',
-        target_type: 'prova_oab', target_id: 'nova',
-        metadata: { exame: form.exame, numero_exame: numExame, ano: ano, edicao: form.edicao },
-      })
-    } else {
-      const { error } = await supabase
-        .from('provas_oab')
-        .update(payload)
-        .eq('id', prova.id!)
-      if (error) { setMsg(`❌ Erro ao salvar: ${error.message}`); setSaving(false); return }
-
-      await supabase.from('admin_audit_logs').insert({
-        user_id: adminId, action_type: 'UPDATE',
-        target_type: 'prova_oab', target_id: prova.id,
-        metadata: {
-          before: {
-            exame: prova.exame, numero_exame: prova.numero_exame, ano: prova.ano,
-            edicao: prova.edicao, status: prova.status,
-            taxa_aprovacao_oficial: prova.taxa_aprovacao_oficial,
-            total_questoes: prova.total_questoes,
-          },
-          after: payload,
-        },
-      })
-    }
-
-    setMsg('✅ Salvo!'); setTimeout(() => onSaved(), 800)
+    const { error } = q?.id
+      ? await supabase.from('questoes_oab').update(payload).eq('id', q.id)
+      : await supabase.from('questoes_oab').insert(payload)
+    if (error) { setMsg('❌ Erro: ' + error.message) }
+    else { setMsg('✅ Salvo!'); setTimeout(onSaved, 700) }
     setSaving(false)
   }
 
-  const label = (s: string) => (
-    <label style={{fontSize:10,fontWeight:700,letterSpacing:2,textTransform:'uppercase',color:'#555',display:'block',marginBottom:5}}>
-      {s}
-    </label>
-  )
-
-  const inp = (val: string, onChange: (v:string)=>void, placeholder='') => (
-    <input value={val} onChange={e=>onChange(e.target.value)} placeholder={placeholder}
-      style={{width:'100%',background:'#1a1a1a',border:'1px solid rgba(255,255,255,0.1)',borderRadius:8,
-        padding:'9px 12px',color:'#fff',fontSize:13,outline:'none',boxSizing:'border-box',fontFamily:'inherit'}}/>
-  )
-
-  const sel = (val: string, onChange: (v:string)=>void, opts: string[][]) => (
-    <select value={val} onChange={e=>onChange(e.target.value)}
-      style={{width:'100%',background:'#1a1a1a',border:'1px solid rgba(255,255,255,0.1)',borderRadius:8,
-        padding:'9px 12px',color:'#fff',fontSize:13,outline:'none',colorScheme:'dark',fontFamily:'inherit'}}>
-      {opts.map(([v,l])=><option key={v} value={v}>{l}</option>)}
-    </select>
+  const inp = (label: string, key: string, placeholder = '') => (
+    <div>
+      <label style={{ fontSize:10, fontWeight:700, letterSpacing:2, textTransform:'uppercase', color:'#555', display:'block', marginBottom:4 }}>{label}</label>
+      <input value={(form as any)[key]} onChange={e => set(key, e.target.value)} placeholder={placeholder}
+        style={{ width:'100%', background:'#111', border:'1px solid rgba(255,255,255,0.1)', borderRadius:8, padding:'8px 12px', color:'#fff', fontSize:13, outline:'none', boxSizing:'border-box' as const, fontFamily:'inherit' }}/>
+    </div>
   )
 
   return (
+    <div style={{ background:'#1a1a1a', border:'1px solid rgba(212,168,67,0.2)', borderRadius:14, padding:20, display:'flex', flexDirection:'column', gap:12 }}>
+      <div style={{ fontSize:13, fontWeight:700, color:'#D4A843', marginBottom:4 }}>{q ? 'Editar Questão' : '+ Nova Questão'}</div>
+      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
+        <div>
+          <label style={{ fontSize:10, fontWeight:700, letterSpacing:2, textTransform:'uppercase', color:'#555', display:'block', marginBottom:4 }}>DISCIPLINA</label>
+          <select value={form.disciplina} onChange={e => set('disciplina', e.target.value)}
+            style={{ width:'100%', background:'#111', border:'1px solid rgba(255,255,255,0.1)', borderRadius:8, padding:'8px 12px', color:'#fff', fontSize:13, outline:'none', colorScheme:'dark' as const, fontFamily:'inherit' }}>
+            {DISCIPLINAS.map(d => <option key={d} value={d}>{d}</option>)}
+          </select>
+        </div>
+        <div>{inp('Nº Questão', 'numero_questao', 'Ex: 1')}</div>
+      </div>
+      <div>
+        <label style={{ fontSize:10, fontWeight:700, letterSpacing:2, textTransform:'uppercase', color:'#555', display:'block', marginBottom:4 }}>ENUNCIADO *</label>
+        <textarea value={form.enunciado} onChange={e => set('enunciado', e.target.value)} rows={4}
+          style={{ width:'100%', background:'#111', border:'1px solid rgba(255,255,255,0.1)', borderRadius:8, padding:'8px 12px', color:'#fff', fontSize:13, outline:'none', resize:'vertical', fontFamily:'inherit', lineHeight:1.6, boxSizing:'border-box' as const }}/>
+      </div>
+      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
+        {inp('Opção A', 'opcao_a')}{inp('Opção B', 'opcao_b')}
+        {inp('Opção C', 'opcao_c')}{inp('Opção D', 'opcao_d')}
+      </div>
+      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
+        <div>
+          <label style={{ fontSize:10, fontWeight:700, letterSpacing:2, textTransform:'uppercase', color:'#555', display:'block', marginBottom:4 }}>RESPOSTA CORRETA</label>
+          <select value={form.resposta_correta} onChange={e => set('resposta_correta', e.target.value)}
+            style={{ width:'100%', background:'#111', border:'1px solid rgba(255,255,255,0.1)', borderRadius:8, padding:'8px 12px', color:'#34d399', fontSize:14, fontWeight:700, outline:'none', colorScheme:'dark' as const, fontFamily:'inherit' }}>
+            {['A','B','C','D'].map(l => <option key={l} value={l}>{l}</option>)}
+          </select>
+        </div>
+        <div style={{ display:'flex', alignItems:'center', gap:10, paddingTop:24 }}>
+          <Toggle on={form.ativo} onChange={v => set('ativo', v)}/>
+          <span style={{ fontSize:12, color: form.ativo ? '#34d399' : '#888' }}>{form.ativo ? 'Ativa' : 'Inativa'}</span>
+        </div>
+      </div>
+      <div>
+        <label style={{ fontSize:10, fontWeight:700, letterSpacing:2, textTransform:'uppercase', color:'#555', display:'block', marginBottom:4 }}>COMENTÁRIO / FUNDAMENTAÇÃO</label>
+        <textarea value={form.comentario} onChange={e => set('comentario', e.target.value)} rows={2}
+          style={{ width:'100%', background:'#111', border:'1px solid rgba(255,255,255,0.1)', borderRadius:8, padding:'8px 12px', color:'#ccc', fontSize:12, outline:'none', resize:'vertical', fontFamily:'inherit', lineHeight:1.6, boxSizing:'border-box' as const }}/>
+      </div>
+      {msg && <div style={{ padding:'8px 12px', background: msg.startsWith('✅') ? 'rgba(52,211,153,0.1)' : 'rgba(239,68,68,0.1)', border:`1px solid ${msg.startsWith('✅') ? '#34d399' : '#ef4444'}44`, borderRadius:8, fontSize:12, color: msg.startsWith('✅') ? '#34d399' : '#f87171' }}>{msg}</div>}
+      <div style={{ display:'flex', gap:8 }}>
+        <button onClick={salvar} disabled={saving}
+          style={{ flex:1, background:'linear-gradient(135deg,#D4A843,#E8621A)', border:'none', borderRadius:8, padding:'10px', color:'#000', fontSize:13, fontWeight:700, cursor: saving ? 'not-allowed' : 'pointer', opacity: saving ? 0.7 : 1 }}>
+          {saving ? '⏳ Salvando...' : '💾 Salvar'}
+        </button>
+        <button onClick={onCancel}
+          style={{ background:'rgba(255,255,255,0.05)', border:'1px solid rgba(255,255,255,0.1)', borderRadius:8, padding:'10px 16px', color:'#888', fontSize:13, cursor:'pointer' }}>
+          Cancelar
+        </button>
+      </div>
+    </div>
+  )
+}
+
+// ── ProvaDrawer (edit prova + view questoes) ──────────────────────────────────
+function ProvaDrawer({ prova, adminId, onClose, onSaved }: {
+  prova: Prova | null; adminId?: string; onClose: () => void; onSaved: () => void
+}) {
+  const isNova = !prova
+  const [tab, setTab] = useState<'info'|'questoes'|'stats'>('info')
+  const [form, setForm] = useState({ nome: prova?.nome || '', numero_exame: prova?.numero_exame?.toString() || '', ano: prova?.ano?.toString() || '', edicao: prova?.edicao || '', ativo: prova?.ativo ?? true })
+  const [saving, setSaving] = useState(false)
+  const [msg, setMsg] = useState('')
+  const [questoes, setQuestoes] = useState<Questao[]>([])
+  const [loadingQ, setLoadingQ] = useState(false)
+  const [novaQ, setNovaQ] = useState(false)
+  const [editQ, setEditQ] = useState<Questao | null>(null)
+  const [confirmDel, setConfirmDel] = useState<string | null>(null)
+  const [filtroDisc, setFiltroDisc] = useState('')
+  const [buscaQ, setBuscaQ] = useState('')
+
+  const loadQuestoes = useCallback(async () => {
+    if (!prova?.id) return
+    setLoadingQ(true)
+    const { data } = await supabase.from('questoes_oab').select('*').eq('prova_id', prova.id).order('numero_questao', { ascending: true })
+    setQuestoes(data || [])
+    setLoadingQ(false)
+  }, [prova?.id])
+
+  useEffect(() => { if (tab === 'questoes') loadQuestoes() }, [tab, loadQuestoes])
+
+  const setF = (k: string, v: unknown) => setForm(f => ({ ...f, [k]: v }))
+
+  const salvarProva = async () => {
+    if (!form.nome.trim() || !form.numero_exame) { setMsg('❌ Nome e nº do exame são obrigatórios.'); return }
+    setSaving(true); setMsg('')
+    const payload = { nome: form.nome, numero_exame: parseInt(form.numero_exame), ano: form.ano ? parseInt(form.ano) : null, edicao: form.edicao || null, ativo: form.ativo }
+    const { error } = isNova
+      ? await supabase.from('provas_oab').insert(payload)
+      : await supabase.from('provas_oab').update(payload).eq('id', prova!.id)
+    if (error) { setMsg('❌ Erro: ' + error.message) }
+    else { setMsg('✅ Salvo!'); setTimeout(() => { onSaved(); if (isNova) onClose() }, 800) }
+    setSaving(false)
+  }
+
+  const excluirQ = async (id: string) => {
+    await supabase.from('questoes_oab').delete().eq('id', id)
+    setConfirmDel(null); loadQuestoes()
+  }
+
+  const questoesFiltradas = questoes.filter(q => {
+    if (filtroDisc && q.disciplina !== filtroDisc) return false
+    if (buscaQ && !q.enunciado.toLowerCase().includes(buscaQ.toLowerCase())) return false
+    return true
+  })
+
+  const discCount = DISCIPLINAS.reduce((acc, d) => {
+    acc[d] = questoes.filter(q => q.disciplina === d).length
+    return acc
+  }, {} as Record<string, number>)
+
+  return (
     <>
-      <div style={{position:'fixed',inset:0,zIndex:200,background:'rgba(0,0,0,0.6)',backdropFilter:'blur(2px)'}} onClick={onClose}/>
-      <div style={{position:'fixed',top:0,right:0,bottom:0,zIndex:201,width:560,maxWidth:'100vw',
-        background:'#111',borderLeft:'1px solid rgba(255,255,255,0.08)',overflowY:'auto',display:'flex',flexDirection:'column'}}>
+      <div style={{ position:'fixed', inset:0, zIndex:200, background:'rgba(0,0,0,0.6)', backdropFilter:'blur(2px)' }} onClick={onClose}/>
+      <div style={{ position:'fixed', top:0, right:0, bottom:0, zIndex:201, width:680, maxWidth:'100vw', background:'#111', borderLeft:'1px solid rgba(255,255,255,0.08)', display:'flex', flexDirection:'column', overflowY:'hidden' }}>
 
         {/* Header */}
-        <div style={{padding:'18px 20px 14px',borderBottom:'1px solid rgba(255,255,255,0.07)',display:'flex',alignItems:'center',justifyContent:'space-between',flexShrink:0,background:'#0d0d0d'}}>
-          <div>
-            <div style={{fontSize:15,fontWeight:700,color:'#fff'}}>{isNova ? 'Nova Prova OAB' : 'Editar Prova OAB'}</div>
-            {!isNova && prova.id && <div style={{fontSize:11,color:'#555'}}>ID: {prova.id.slice(0,8)}…</div>}
+        <div style={{ padding:'18px 20px 0', borderBottom:'1px solid rgba(255,255,255,0.07)', background:'#0d0d0d', flexShrink:0 }}>
+          <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:14 }}>
+            <div>
+              <div style={{ fontSize:15, fontWeight:700, color:'#fff' }}>{isNova ? '+ Nova Prova OAB' : `${prova!.numero_exame}º Exame de Ordem`}</div>
+              {!isNova && <div style={{ fontSize:11, color:'#555', marginTop:2 }}>{prova!.nome}</div>}
+            </div>
+            <button onClick={onClose} style={{ background:'none', border:'none', color:'#555', fontSize:22, cursor:'pointer' }}>✕</button>
           </div>
-          <button onClick={onClose} style={{background:'none',border:'none',cursor:'pointer',color:'#555',fontSize:20}}>✕</button>
+          {!isNova && (
+            <div style={{ display:'flex', gap:4, marginBottom:0 }}>
+              {(['info','questoes','stats'] as const).map(t => (
+                <button key={t} onClick={() => setTab(t)}
+                  style={{ padding:'8px 16px', borderRadius:'8px 8px 0 0', border:'none', cursor:'pointer', fontSize:12, fontWeight: tab===t ? 700 : 400, background: tab===t ? '#111' : 'transparent', color: tab===t ? '#D4A843' : '#666', borderBottom: tab===t ? '2px solid #D4A843' : '2px solid transparent' }}>
+                  {t === 'info' ? '📋 Informações' : t === 'questoes' ? `📝 Questões (${questoes.length})` : '📊 Estatísticas'}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
-        {/* Corpo */}
-        <div style={{flex:1,overflowY:'auto',padding:20,display:'flex',flexDirection:'column',gap:16}}>
+        {/* Body */}
+        <div style={{ flex:1, overflowY:'auto', padding:20 }}>
 
-          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}>
-            <div>
-              {label('TIPO DE EXAME')}
-              {sel(form.exame, v=>set('exame',v), EXAMES.map(e=>[e,e]))}
+          {/* Tab: Info / Nova Prova */}
+          {(tab === 'info' || isNova) && (
+            <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
+              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12 }}>
+                {[['Nome da Prova','nome','Ex: 46º Exame de Ordem Unificado'],['Nº do Exame','numero_exame','Ex: 46'],['Ano','ano','Ex: 2026'],['Edição','edicao','Ex: 2026/1']].map(([label,key,ph]) => (
+                  <div key={key} style={{ gridColumn: key === 'nome' ? 'span 2' : 'span 1' }}>
+                    <label style={{ fontSize:10, fontWeight:700, letterSpacing:2, textTransform:'uppercase', color:'#555', display:'block', marginBottom:5 }}>{label}</label>
+                    <input value={(form as any)[key]} onChange={e => setF(key, e.target.value)} placeholder={ph}
+                      style={{ width:'100%', background:'#1a1a1a', border:'1px solid rgba(255,255,255,0.1)', borderRadius:8, padding:'9px 12px', color:'#fff', fontSize:13, outline:'none', boxSizing:'border-box' as const, fontFamily:'inherit' }}/>
+                  </div>
+                ))}
+              </div>
+              <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+                <Toggle on={form.ativo} onChange={v => setF('ativo', v)}/>
+                <span style={{ fontSize:13, color: form.ativo ? '#34d399' : '#888' }}>{form.ativo ? 'Prova ativa — visível para usuários' : 'Prova inativa — oculta'}</span>
+              </div>
+              {msg && <div style={{ padding:'8px 12px', background: msg.startsWith('✅') ? 'rgba(52,211,153,0.1)' : 'rgba(239,68,68,0.1)', border:`1px solid ${msg.startsWith('✅') ? '#34d399' : '#ef4444'}44`, borderRadius:8, fontSize:12, color: msg.startsWith('✅') ? '#34d399' : '#f87171' }}>{msg}</div>}
             </div>
-            <div>
-              {label('STATUS')}
-              {sel(form.status, v=>set('status',v), [['ativo','Ativo'],['inativo','Inativo'],['rascunho','Rascunho'],['arquivado','Arquivado']])}
-            </div>
-          </div>
+          )}
 
-          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}>
+          {/* Tab: Questoes */}
+          {tab === 'questoes' && !isNova && (
             <div>
-              {label('NÚMERO DO EXAME')}
-              {inp(form.numero_exame, v=>set('numero_exame',v.replace(/\D/g,'')), 'Ex: 46')}
+              {/* Distribuição por disciplina */}
+              <div style={{ display:'flex', gap:8, flexWrap:'wrap', marginBottom:16 }}>
+                {DISCIPLINAS.filter(d => discCount[d] > 0).map(d => (
+                  <button key={d} onClick={() => setFiltroDisc(filtroDisc === d ? '' : d)}
+                    style={{ padding:'4px 10px', borderRadius:100, fontSize:11, cursor:'pointer',
+                      background: filtroDisc === d ? 'rgba(212,168,67,0.15)' : 'rgba(255,255,255,0.04)',
+                      border: `1px solid ${filtroDisc === d ? 'rgba(212,168,67,0.4)' : 'rgba(255,255,255,0.08)'}`,
+                      color: filtroDisc === d ? '#D4A843' : '#777' }}>
+                    {d} <span style={{ opacity:0.6 }}>{discCount[d]}</span>
+                  </button>
+                ))}
+              </div>
+              {/* Busca */}
+              <div style={{ position:'relative', marginBottom:16 }}>
+                <input value={buscaQ} onChange={e => setBuscaQ(e.target.value)} placeholder="Buscar no enunciado..."
+                  style={{ width:'100%', background:'#1a1a1a', border:'1px solid rgba(255,255,255,0.1)', borderRadius:8, padding:'8px 12px 8px 36px', color:'#fff', fontSize:13, outline:'none', boxSizing:'border-box' as const }}/>
+                <span style={{ position:'absolute', left:12, top:'50%', transform:'translateY(-50%)', color:'#555', fontSize:14 }}>🔍</span>
+                {(buscaQ || filtroDisc) && <button onClick={() => { setBuscaQ(''); setFiltroDisc('') }} style={{ position:'absolute', right:10, top:'50%', transform:'translateY(-50%)', background:'none', border:'none', color:'#888', cursor:'pointer', fontSize:16 }}>✕</button>}
+              </div>
+              {/* Nova questão */}
+              {!novaQ && !editQ && (
+                <button onClick={() => setNovaQ(true)}
+                  style={{ width:'100%', background:'rgba(212,168,67,0.06)', border:'1px dashed rgba(212,168,67,0.25)', borderRadius:10, padding:'10px', color:'#D4A843', fontSize:13, fontWeight:600, cursor:'pointer', marginBottom:14 }}>
+                  + Nova Questão
+                </button>
+              )}
+              {novaQ && <div style={{ marginBottom:14 }}><QuestaoForm provaId={prova!.id} adminId={adminId} onSaved={() => { setNovaQ(false); loadQuestoes() }} onCancel={() => setNovaQ(false)}/></div>}
+              {/* Lista */}
+              {loadingQ ? <div style={{ textAlign:'center', padding:32, color:'#555' }}>⏳ Carregando questões...</div>
+                : questoesFiltradas.length === 0 ? <div style={{ textAlign:'center', padding:32, color:'#555' }}>Nenhuma questão encontrada.</div>
+                : questoesFiltradas.map((q, idx) => (
+                  <div key={q.id} style={{ background:'#1a1a1a', border:'1px solid rgba(255,255,255,0.06)', borderRadius:12, padding:14, marginBottom:10 }}>
+                    {editQ?.id === q.id
+                      ? <QuestaoForm q={q} provaId={prova!.id} adminId={adminId} onSaved={() => { setEditQ(null); loadQuestoes() }} onCancel={() => setEditQ(null)}/>
+                      : <>
+                          <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:8, gap:8 }}>
+                            <div style={{ display:'flex', alignItems:'center', gap:8, flexWrap:'wrap' }}>
+                              <span style={{ fontSize:10, fontWeight:700, color:'#888' }}>Q{q.numero_questao || idx+1}</span>
+                              <span style={{ fontSize:9, padding:'2px 8px', borderRadius:100, background:'rgba(212,168,67,0.08)', color:'#D4A843', border:'1px solid rgba(212,168,67,0.2)' }}>{q.disciplina}</span>
+                              <span style={{ fontSize:9, padding:'2px 8px', borderRadius:100, background: q.resposta_correta === '*' ? 'rgba(251,191,36,0.1)' : 'rgba(52,211,153,0.1)', color: q.resposta_correta === '*' ? '#fbbf24' : '#34d399', border:`1px solid ${q.resposta_correta === '*' ? 'rgba(251,191,36,0.3)' : 'rgba(52,211,153,0.3)'}` }}>
+                                {q.resposta_correta === '*' ? 'Anulada' : `Resp: ${q.resposta_correta}`}
+                              </span>
+                            </div>
+                            <div style={{ display:'flex', gap:6 }}>
+                              <button onClick={() => setEditQ(q)} style={{ padding:'4px 10px', background:'rgba(212,168,67,0.08)', border:'1px solid rgba(212,168,67,0.2)', borderRadius:6, color:'#D4A843', fontSize:11, cursor:'pointer' }}>Editar</button>
+                              {confirmDel === q.id
+                                ? <button onClick={() => excluirQ(q.id)} style={{ padding:'4px 10px', background:'rgba(239,68,68,0.15)', border:'1px solid rgba(239,68,68,0.3)', borderRadius:6, color:'#f87171', fontSize:11, cursor:'pointer', fontWeight:700 }}>Confirmar</button>
+                                : <button onClick={() => setConfirmDel(q.id)} style={{ padding:'4px 10px', background:'rgba(255,255,255,0.04)', border:'1px solid rgba(255,255,255,0.08)', borderRadius:6, color:'#555', fontSize:11, cursor:'pointer' }}>Excluir</button>
+                              }
+                            </div>
+                          </div>
+                          <div style={{ fontSize:12, color:'#ccc', lineHeight:1.6 }}>{q.enunciado.slice(0,180)}{q.enunciado.length > 180 ? '...' : ''}</div>
+                        </>
+                    }
+                  </div>
+                ))
+              }
             </div>
-            <div>
-              {label('ANO')}
-              {inp(form.ano, v=>set('ano',v.replace(/\D/g,'').slice(0,4)), 'Ex: 2026')}
-            </div>
-          </div>
+          )}
 
-          <div>
-            {label('EDIÇÃO (TÍTULO DESCRITIVO)')}
-            {inp(form.edicao, v=>set('edicao',v), 'Ex: 46º Exame de Ordem Unificado — 2026/1')}
-          </div>
-
-          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}>
-            <div>
-              {label('TOTAL DE QUESTÕES')}
-              {inp(form.total_questoes, v=>set('total_questoes',v.replace(/\D/g,'')), '80')}
-            </div>
-            <div>
-              {label('TAXA DE APROVAÇÃO OFICIAL (%)')}
-              {inp(form.taxa_aprovacao_oficial, v=>set('taxa_aprovacao_oficial',v.replace(/[^\d.]/g,'')), 'Ex: 42.5')}
-            </div>
-          </div>
-
-          {!isNova && (prova.questoes_count || 0) > 0 && (
-            <div style={{padding:'12px 14px',background:'rgba(96,165,250,0.06)',border:'1px solid rgba(96,165,250,0.2)',borderRadius:10,fontSize:12,color:'#93c5fd',lineHeight:1.6}}>
-              ℹ️ Esta prova tem <strong>{prova.questoes_count} questão(ões) vinculada(s)</strong>. Editar campos descritivos é seguro — as questões não serão afetadas.
+          {/* Tab: Stats */}
+          {tab === 'stats' && !isNova && (
+            <div style={{ display:'flex', flexDirection:'column', gap:16 }}>
+              <div style={{ background:'rgba(212,168,67,0.04)', border:'1px solid rgba(212,168,67,0.12)', borderRadius:12, padding:16 }}>
+                <div style={{ fontSize:10, fontWeight:700, letterSpacing:2, color:'#D4A843', marginBottom:12 }}>📊 RESUMO DA PROVA</div>
+                <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:12 }}>
+                  {[
+                    { label:'Total de Questões', value: prova?._qtd || '—', color:'#60a5fa' },
+                    { label:'Status', value: prova?.ativo ? 'Ativa' : 'Inativa', color: prova?.ativo ? '#34d399' : '#f87171' },
+                    { label:'Edição', value: prova?.edicao || '—', color:'#D4A843' },
+                  ].map(s => (
+                    <div key={s.label} style={{ background:'#1a1a1a', border:'1px solid rgba(255,255,255,0.06)', borderRadius:10, padding:14, textAlign:'center' }}>
+                      <div style={{ fontSize:20, fontWeight:900, color:s.color, marginBottom:6 }}>{s.value}</div>
+                      <div style={{ fontSize:10, color:'#555' }}>{s.label}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div style={{ background:'#1a1a1a', border:'1px solid rgba(255,255,255,0.06)', borderRadius:12, padding:16 }}>
+                <div style={{ fontSize:10, fontWeight:700, letterSpacing:2, color:'#888', marginBottom:12 }}>📐 QUESTÕES POR DISCIPLINA</div>
+                <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+                  {DISCIPLINAS.filter(d => discCount[d] > 0).sort((a,b) => discCount[b] - discCount[a]).map(d => (
+                    <div key={d} style={{ display:'flex', alignItems:'center', gap:10 }}>
+                      <div style={{ width:140, fontSize:12, color:'#ccc', flexShrink:0 }}>{d}</div>
+                      <div style={{ flex:1, height:6, background:'rgba(255,255,255,0.05)', borderRadius:3, overflow:'hidden' }}>
+                        <div style={{ width:`${Math.round((discCount[d]/(prova?._qtd||80))*100)}%`, height:'100%', background:'linear-gradient(90deg,#D4A843,#E8621A)', borderRadius:3 }}/>
+                      </div>
+                      <div style={{ fontSize:12, color:'#888', width:24, textAlign:'right' }}>{discCount[d]}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div style={{ background:'rgba(255,255,255,0.02)', border:'1px dashed rgba(255,255,255,0.08)', borderRadius:12, padding:16, textAlign:'center' }}>
+                <div style={{ fontSize:24, marginBottom:8 }}>📈</div>
+                <div style={{ fontSize:13, color:'#888', lineHeight:1.7 }}>
+                  Para rastrear quem realizou esta prova e a taxa de acerto por usuário,<br/>crie a tabela <code style={{ color:'#D4A843' }}>simulado_results</code> com campos<br/><code style={{ color:'#D4A843' }}>user_id, prova_id, score, total, created_at</code>.
+                </div>
+              </div>
             </div>
           )}
         </div>
 
         {/* Footer */}
-        <div style={{padding:'14px 20px',borderTop:'1px solid rgba(255,255,255,0.07)',flexShrink:0,background:'#0d0d0d'}}>
-          {msg && (
-            <div style={{marginBottom:10,padding:'8px 12px',background:msg.startsWith('✅')?'rgba(52,211,153,0.1)':'rgba(239,68,68,0.1)',
-              border:`1px solid ${msg.startsWith('✅')?'#34d399':'#ef4444'}44`,borderRadius:8,fontSize:12,
-              color:msg.startsWith('✅')?'#34d399':'#f87171'}}>
-              {msg}
-            </div>
-          )}
-          <div style={{display:'flex',gap:8}}>
-            <button onClick={salvar} disabled={saving}
-              style={{flex:1,background:'linear-gradient(135deg,#D4A843,#E8621A)',border:'none',borderRadius:8,
-                padding:'11px',color:'#000',fontSize:13,fontWeight:700,cursor:saving?'not-allowed':'pointer',opacity:saving?0.7:1}}>
-              {saving?'⏳ Salvando...':isNova?'+ Criar Prova':'💾 Salvar Alterações'}
+        {(tab === 'info' || isNova) && (
+          <div style={{ padding:'14px 20px', borderTop:'1px solid rgba(255,255,255,0.07)', background:'#0d0d0d', flexShrink:0 }}>
+            <button onClick={salvarProva} disabled={saving}
+              style={{ width:'100%', background:'linear-gradient(135deg,#D4A843,#E8621A)', border:'none', borderRadius:8, padding:'12px', color:'#000', fontSize:13, fontWeight:700, cursor: saving ? 'not-allowed' : 'pointer', opacity: saving ? 0.7 : 1 }}>
+              {saving ? '⏳ Salvando...' : '💾 Salvar Prova'}
             </button>
           </div>
-        </div>
+        )}
       </div>
     </>
   )
 }
 
-// ─── MÓDULO PRINCIPAL ─────────────────────────────────────────────────────────
+// ── Main ──────────────────────────────────────────────────────────────────────
+export default function ModuloSimulados({ adminId }: { adminId?: string }) {
+  const [provas, setProvas] = useState<Prova[]>([])
+  const [loading, setLoading] = useState(true)
+  const [editProva, setEditProva] = useState<Prova | null | undefined>(undefined)
+  const [filtro, setFiltro] = useState<'all'|'ativa'|'inativa'>('all')
 
-export default function ModuloSimulados({adminId}:{adminId?:string}) {
-  const [provas, setProvas]     = useState<Prova[]>([])
-  const [total, setTotal]       = useState(0)
-  const [loading, setLoading]   = useState(true)
-  const [pagina, setPagina]     = useState(0)
-  const [busca, setBusca]       = useState('')
-  const [filtroStatus, setFiltroStatus] = useState('')
-  const [filtroExame, setFiltroExame]   = useState('')
-  const [editando, setEditando] = useState<Partial<Prova>|null>(null)
-  const [novaCriando, setNovaCriando] = useState(false)
-  const buscaTimer              = useRef<NodeJS.Timeout | undefined>(undefined)
-
-  const load = useCallback(async (pag = pagina, termoBusca = busca) => {
+  const load = useCallback(async () => {
     setLoading(true)
-
-    let query = supabase.from('provas_oab').select(
-      'id,exame,numero_exame,ano,edicao,total_questoes,taxa_aprovacao_oficial,status,created_at',
-      { count: 'exact' }
-    )
-
-    if (filtroStatus) query = query.eq('status', filtroStatus)
-    if (filtroExame)  query = query.eq('exame', filtroExame)
-    if (termoBusca.trim()) {
-      const t = termoBusca.trim()
-      query = query.or(`edicao.ilike.%${t}%,exame.ilike.%${t}%`)
-    }
-
-    const { data, count, error } = await query
-      .order('ano', { ascending: false })
-      .order('numero_exame', { ascending: false })
-      .range(pag * POR_PAGINA, (pag + 1) * POR_PAGINA - 1)
-
-    if (error || !data) { setLoading(false); return }
-
-    const provaIds = data.map(p => p.id)
-    const counts: Record<string, number> = {}
-    if (provaIds.length > 0) {
-      const { data: questoesLink } = await supabase
-        .from('questoes_oab')
-        .select('prova_id')
-        .in('prova_id', provaIds)
-      if (questoesLink) {
-        for (const q of questoesLink) {
-          if (q.prova_id) counts[q.prova_id] = (counts[q.prova_id] || 0) + 1
-        }
-      }
-    }
-
-    setProvas((data as Prova[]).map(p => ({...p, questoes_count: counts[p.id] || 0})))
-    setTotal(count || 0)
+    const { data: provData } = await supabase.from('provas_oab').select('*').order('numero_exame', { ascending: false })
+    const { data: qtdData } = await supabase.from('questoes_oab').select('prova_id')
+    const qtdMap: Record<string, number> = {}
+    if (qtdData) qtdData.forEach(q => { qtdMap[q.prova_id] = (qtdMap[q.prova_id] || 0) + 1 })
+    setProvas((provData || []).map(p => ({ ...p, _qtd: qtdMap[p.id] || 0 })))
     setLoading(false)
-  }, [pagina, busca, filtroStatus, filtroExame])
+  }, [])
 
-  useEffect(() => { setPagina(0) }, [filtroStatus, filtroExame])
-  useEffect(() => { load(pagina, busca) }, [pagina, filtroStatus, filtroExame])
+  useEffect(() => { load() }, [load])
 
-  const handleBusca = (v: string) => {
-    setBusca(v)
-    clearTimeout(buscaTimer.current)
-    buscaTimer.current = setTimeout(() => { setPagina(0); load(0, v) }, 400)
+  const toggleAtivo = async (p: Prova) => {
+    await supabase.from('provas_oab').update({ ativo: !p.ativo }).eq('id', p.id)
+    load()
   }
 
-  const totalPags = Math.ceil(total / POR_PAGINA)
+  const filtradas = provas.filter(p => filtro === 'all' ? true : filtro === 'ativa' ? p.ativo : !p.ativo)
+  const totalQ = provas.reduce((s, p) => s + (p._qtd || 0), 0)
 
   return (
-    <div style={{display:'flex',flexDirection:'column',height:'100%'}}>
-
-      <div style={{marginBottom:16}}>
-        <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:14,flexWrap:'wrap',gap:10}}>
-          <div>
-            <h2 style={{fontSize:20,fontWeight:900,color:'#fff',marginBottom:2}}>Simulados / Provas OAB</h2>
-            <div style={{fontSize:12,color:'#555'}}>{total.toLocaleString()} prova(s) cadastrada(s)</div>
-          </div>
-          <div style={{display:'flex',gap:8}}>
-            <button onClick={()=>load(pagina,busca)} style={{background:'rgba(255,255,255,0.05)',border:'1px solid rgba(255,255,255,0.08)',borderRadius:8,padding:'7px 14px',color:'#888',fontSize:12,cursor:'pointer'}}>
-              🔄 Atualizar
-            </button>
-            <button onClick={()=>setNovaCriando(true)}
-              style={{background:'linear-gradient(135deg,#D4A843,#E8621A)',border:'none',borderRadius:8,padding:'7px 16px',color:'#000',fontSize:12,fontWeight:700,cursor:'pointer'}}>
-              + Nova Prova
-            </button>
-          </div>
+    <div>
+      {/* Header */}
+      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:20, flexWrap:'wrap', gap:12 }}>
+        <div>
+          <h2 style={{ fontSize:22, fontWeight:900, color:'#fff', marginBottom:4 }}>Simulados 📋</h2>
+          <div style={{ fontSize:13, color:'#555' }}>Gerencie provas OAB e questões</div>
         </div>
-
-        <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
-          <input value={busca} onChange={e=>handleBusca(e.target.value)}
-            placeholder="Buscar por edição ou exame..."
-            style={{flex:1,minWidth:220,background:'#1a1a1a',border:'1px solid rgba(255,255,255,0.1)',borderRadius:8,padding:'9px 14px',color:'#fff',fontSize:13,outline:'none',fontFamily:'inherit'}}/>
-          <select value={filtroStatus} onChange={e=>{setFiltroStatus(e.target.value);setPagina(0)}}
-            style={{background:'#1a1a1a',border:'1px solid rgba(255,255,255,0.1)',borderRadius:8,padding:'9px 12px',color:filtroStatus?'#fff':'#555',fontSize:13,outline:'none',colorScheme:'dark',fontFamily:'inherit'}}>
-            <option value="">Todos status</option>
-            <option value="ativo">Ativo</option>
-            <option value="inativo">Inativo</option>
-            <option value="rascunho">Rascunho</option>
-            <option value="arquivado">Arquivado</option>
-          </select>
-          <select value={filtroExame} onChange={e=>{setFiltroExame(e.target.value);setPagina(0)}}
-            style={{background:'#1a1a1a',border:'1px solid rgba(255,255,255,0.1)',borderRadius:8,padding:'9px 12px',color:filtroExame?'#fff':'#555',fontSize:13,outline:'none',colorScheme:'dark',fontFamily:'inherit'}}>
-            <option value="">Todos exames</option>
-            {EXAMES.map(e=><option key={e} value={e}>{e}</option>)}
-          </select>
+        <div style={{ display:'flex', gap:8 }}>
+          <button onClick={load} style={{ background:'rgba(255,255,255,0.05)', border:'1px solid rgba(255,255,255,0.08)', borderRadius:8, padding:'8px 14px', color:'#888', fontSize:12, cursor:'pointer' }}>🔄</button>
+          <button onClick={() => setEditProva(null)} style={{ background:'linear-gradient(135deg,#D4A843,#E8621A)', border:'none', borderRadius:8, padding:'8px 18px', color:'#000', fontSize:13, fontWeight:700, cursor:'pointer' }}>+ Nova Prova</button>
         </div>
       </div>
 
-      {loading ? <Skeleton/> : provas.length === 0 ? (
-        <EmptyState msg={busca ? 'Tente outros termos.' : 'Ajuste os filtros ou crie uma nova prova.'}/>
-      ) : (
-        <>
-          <div style={{display:'grid',gridTemplateColumns:'2.5fr 0.5fr 0.5fr 1fr 0.8fr 0.8fr',gap:8,padding:'6px 14px',borderBottom:'1px solid rgba(255,255,255,0.07)',marginBottom:4}}>
-            {['PROVA','Nº','ANO','EXAME','QUESTÕES','STATUS'].map((h,i)=>(
-              <div key={i} style={{fontSize:10,fontWeight:700,letterSpacing:1.5,color:'#444',textTransform:'uppercase'}}>{h}</div>
-            ))}
+      {/* Metrics */}
+      <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(140px,1fr))', gap:10, marginBottom:20 }}>
+        {[
+          { label:'Total de Provas', value: provas.length, color:'#60a5fa', icon:'📋' },
+          { label:'Provas Ativas', value: provas.filter(p=>p.ativo).length, color:'#34d399', icon:'✅' },
+          { label:'Total de Questões', value: totalQ, color:'#D4A843', icon:'📝' },
+          { label:'Questões Ativas', value: provas.filter(p=>p.ativo).reduce((s,p)=>s+(p._qtd||0),0), color:'#a78bfa', icon:'⚡' },
+        ].map(m => (
+          <div key={m.label} style={{ background:'#1a1a1a', border:'1px solid rgba(255,255,255,0.06)', borderRadius:12, padding:'14px 16px', textAlign:'center' }}>
+            <div style={{ fontSize:18, marginBottom:6 }}>{m.icon}</div>
+            <div style={{ fontSize:22, fontWeight:900, color:m.color }}>{m.value}</div>
+            <div style={{ fontSize:10, color:'#555', marginTop:2 }}>{m.label}</div>
           </div>
+        ))}
+      </div>
 
-          <div style={{flex:1,overflowY:'auto'}}>
-            {provas.map(p=>(
-              <div key={p.id}
-                onClick={()=>setEditando(p)}
-                style={{display:'grid',gridTemplateColumns:'2.5fr 0.5fr 0.5fr 1fr 0.8fr 0.8fr',gap:8,padding:'11px 14px',
-                  borderRadius:10,marginBottom:4,background:'#1a1a1a',border:'1px solid rgba(255,255,255,0.05)',
-                  cursor:'pointer',transition:'border-color 0.15s'}}
-                onMouseEnter={e=>e.currentTarget.style.borderColor='rgba(212,168,67,0.2)'}
-                onMouseLeave={e=>e.currentTarget.style.borderColor='rgba(255,255,255,0.05)'}>
+      {/* Filters */}
+      <div style={{ display:'flex', gap:8, marginBottom:16 }}>
+        {(['all','ativa','inativa'] as const).map(f => (
+          <button key={f} onClick={() => setFiltro(f)}
+            style={{ padding:'6px 16px', borderRadius:100, fontSize:12, fontWeight:600, cursor:'pointer',
+              border: filtro===f ? '1px solid #D4A843' : '1px solid rgba(255,255,255,0.1)',
+              background: filtro===f ? 'rgba(212,168,67,0.12)' : 'rgba(255,255,255,0.03)',
+              color: filtro===f ? '#D4A843' : '#666' }}>
+            {{ all:'Todas', ativa:'Ativas', inativa:'Inativas' }[f]}
+          </button>
+        ))}
+      </div>
 
-                <div style={{minWidth:0,display:'flex',flexDirection:'column',justifyContent:'center'}}>
-                  <div style={{fontSize:13,fontWeight:600,color:'#fff',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',marginBottom:2}}>
-                    {p.edicao || `${p.numero_exame}º Exame — ${p.ano}`}
+      {/* Provas list */}
+      {loading ? <div style={{ textAlign:'center', padding:48, color:'#555' }}>⏳ Carregando provas...</div>
+        : filtradas.length === 0 ? <div style={{ textAlign:'center', padding:48, color:'#555' }}><div style={{ fontSize:36, marginBottom:12 }}>📋</div>Nenhuma prova encontrada.</div>
+        : (
+          <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
+            {filtradas.map(p => (
+              <div key={p.id} style={{ background:'#1a1a1a', border:'1px solid rgba(255,255,255,0.06)', borderRadius:14, padding:'16px 18px', display:'flex', alignItems:'center', gap:16, transition:'border-color 0.15s', flexWrap:'wrap' }}
+                onMouseEnter={e => e.currentTarget.style.borderColor='rgba(212,168,67,0.2)'}
+                onMouseLeave={e => e.currentTarget.style.borderColor='rgba(255,255,255,0.06)'}>
+                {/* Badge */}
+                <div style={{ width:52, height:52, borderRadius:12, background: p.ativo ? 'rgba(52,211,153,0.1)' : 'rgba(255,255,255,0.04)', border:`1px solid ${p.ativo ? 'rgba(52,211,153,0.2)' : 'rgba(255,255,255,0.08)'}`, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
+                  <span style={{ fontSize:13, fontWeight:900, color: p.ativo ? '#34d399' : '#555' }}>{p.numero_exame}º</span>
+                </div>
+                <div style={{ flex:1, minWidth:180 }}>
+                  <div style={{ fontSize:14, fontWeight:700, color:'#fff', marginBottom:4 }}>{p.nome}</div>
+                  <div style={{ display:'flex', gap:8, flexWrap:'wrap' }}>
+                    {p.edicao && <span style={{ fontSize:10, color:'#888' }}>📅 {p.edicao}</span>}
+                    <span style={{ fontSize:10, color:'#888' }}>📝 {p._qtd} questões</span>
+                    <span style={{ fontSize:10, padding:'1px 8px', borderRadius:100, background: p.ativo ? 'rgba(52,211,153,0.1)' : 'rgba(248,113,113,0.1)', color: p.ativo ? '#34d399' : '#f87171', border:`1px solid ${p.ativo ? 'rgba(52,211,153,0.2)' : 'rgba(248,113,113,0.2)'}` }}>{p.ativo ? 'Ativa' : 'Inativa'}</span>
                   </div>
-                  {p.taxa_aprovacao_oficial !== null && p.taxa_aprovacao_oficial > 0 && (
-                    <div style={{fontSize:10,color:'#888'}}>Aprovação: {p.taxa_aprovacao_oficial}%</div>
-                  )}
                 </div>
-
-                <div style={{display:'flex',alignItems:'center',fontSize:13,fontWeight:600,color:'#D4A843'}}>{p.numero_exame}º</div>
-                <div style={{display:'flex',alignItems:'center',fontSize:12,color:'#aaa'}}>{p.ano}</div>
-                <div style={{display:'flex',alignItems:'center',fontSize:11,color:'#888',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{p.exame}</div>
-
-                <div style={{display:'flex',alignItems:'center',gap:6}}>
-                  <span style={{fontSize:13,fontWeight:600,color:p.questoes_count?'#fff':'#444'}}>{p.questoes_count || 0}</span>
-                  <span style={{fontSize:9,color:'#555'}}>/{p.total_questoes || 80}</span>
-                </div>
-
-                <div style={{display:'flex',alignItems:'center'}}>
-                  <Badge label={p.status || 'ativo'} {...(STATUS_COLOR[p.status || 'ativo']||{color:'#888',bg:'#1a1a1a'})}/>
+                <div style={{ display:'flex', gap:8, alignItems:'center', flexShrink:0 }}>
+                  <button onClick={() => setEditProva(p)} style={{ padding:'6px 14px', background:'rgba(212,168,67,0.08)', border:'1px solid rgba(212,168,67,0.2)', borderRadius:8, color:'#D4A843', fontSize:12, fontWeight:600, cursor:'pointer' }}>Editar</button>
+                  <Toggle on={p.ativo} onChange={() => toggleAtivo(p)}/>
                 </div>
               </div>
             ))}
           </div>
+        )
+      }
 
-          {totalPags > 1 && (
-            <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',paddingTop:12,borderTop:'1px solid rgba(255,255,255,0.07)',marginTop:8,flexShrink:0}}>
-              <div style={{fontSize:12,color:'#555'}}>
-                Página {pagina+1} de {totalPags} · {total.toLocaleString()} provas
-              </div>
-              <div style={{display:'flex',gap:6,alignItems:'center'}}>
-                <button onClick={()=>setPagina(0)} disabled={pagina===0}
-                  style={{background:'#1a1a1a',border:'1px solid rgba(255,255,255,0.1)',borderRadius:6,padding:'5px 10px',color:pagina===0?'#444':'#ccc',fontSize:11,cursor:pagina===0?'not-allowed':'pointer'}}>«</button>
-                <button onClick={()=>setPagina(p=>Math.max(0,p-1))} disabled={pagina===0}
-                  style={{background:'#1a1a1a',border:'1px solid rgba(255,255,255,0.1)',borderRadius:6,padding:'5px 12px',color:pagina===0?'#444':'#ccc',fontSize:12,cursor:pagina===0?'not-allowed':'pointer'}}>← Anterior</button>
-                <span style={{fontSize:12,color:'#666',padding:'0 4px'}}>{pagina+1}</span>
-                <button onClick={()=>setPagina(p=>Math.min(totalPags-1,p+1))} disabled={pagina===totalPags-1}
-                  style={{background:'#1a1a1a',border:'1px solid rgba(255,255,255,0.1)',borderRadius:6,padding:'5px 12px',color:pagina===totalPags-1?'#444':'#ccc',fontSize:12,cursor:pagina===totalPags-1?'not-allowed':'pointer'}}>Próxima →</button>
-                <button onClick={()=>setPagina(totalPags-1)} disabled={pagina===totalPags-1}
-                  style={{background:'#1a1a1a',border:'1px solid rgba(255,255,255,0.1)',borderRadius:6,padding:'5px 10px',color:pagina===totalPags-1?'#444':'#ccc',fontSize:11,cursor:pagina===totalPags-1?'not-allowed':'pointer'}}>»</button>
-              </div>
-            </div>
-          )}
-        </>
-      )}
-
-      {(editando || novaCriando) && adminId && (
-        <EditorProva
-          prova={novaCriando ? {} : editando!}
-          adminId={adminId}
-          onClose={()=>{setEditando(null);setNovaCriando(false)}}
-          onSaved={()=>{setEditando(null);setNovaCriando(false);load(pagina,busca)}}
-        />
+      {/* Drawer */}
+      {editProva !== undefined && (
+        <ProvaDrawer prova={editProva} adminId={adminId}
+          onClose={() => setEditProva(undefined)}
+          onSaved={() => { load(); if (editProva !== null) setEditProva(undefined) }}/>
       )}
     </div>
   )
