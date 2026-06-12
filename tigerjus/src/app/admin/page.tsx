@@ -10,6 +10,8 @@ import ModuloQuestoes from '@/components/ModuloQuestoes'
 import ModuloConfiguracoes from '@/components/ModuloConfiguracoes'
 import ModuloMediaLibrary from '@/components/ModuloMediaLibrary'
 import ModuloCentralBanners from '@/components/ModuloCentralBanners'  // ← NOVO
+import ModuloSimulados from '@/components/ModuloSimulados'
+import ModuloFlashcards from '@/components/ModuloFlashcards'
 
 // ─── Seção Overview ───────────────────────────────────────────────────────────
 
@@ -68,7 +70,7 @@ function SectionOverview() {
           ATALHOS RÁPIDOS
         </div>
         <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
-          {['👥 Usuários','📝 Questões','🃏 Flashcards','📖 Resumos','🚩 Feature Flags','⚙️ Configurações','🎯 Banners'].map(label => (
+          {['👥 Usuários','📝 Questões','📋 Simulados','🃏 Flashcards','📖 Resumos','🚩 Feature Flags','⚙️ Configurações','🎯 Banners'].map(label => (
             <div key={label} style={{background:'rgba(255,255,255,0.04)',border:'1px solid rgba(255,255,255,0.07)',borderRadius:8,padding:'7px 13px',fontSize:12,color:'#888'}}>
               {label}
             </div>
@@ -109,8 +111,10 @@ function renderSection(section: AdminSection | string, adminId?: string) {
     case 'questoes': return <ModuloQuestoes adminId={adminId} />
     case 'settings': return <ModuloConfiguracoes adminId={adminId} />
     case 'media':    return <ModuloMediaLibrary adminId={adminId} />
-    case 'banners':  return <ModuloCentralBanners adminId={adminId} />  // ← NOVO
-    default:         return <SectionPlaceholder section={section as string} />
+    case 'banners':   return <ModuloCentralBanners adminId={adminId} />
+    case 'simulados': return <ModuloSimulados adminId={adminId} />
+    case 'flashcards':return <ModuloFlashcards adminId={adminId} />
+    default:          return <SectionPlaceholder section={section as string} />
   }
 }
 
