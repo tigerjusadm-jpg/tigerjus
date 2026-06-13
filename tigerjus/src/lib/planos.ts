@@ -5,10 +5,6 @@
 
 import type { SupabaseClient } from '@supabase/supabase-js'
 
-// ───────────────────────────────────────────────────────────────────
-// TIPOS
-// ───────────────────────────────────────────────────────────────────
-
 export type Plano = 'gratuito' | 'start' | 'plus' | 'pro' | 'elite'
 export type PlanName = Plano
 
@@ -64,7 +60,6 @@ export interface Nivel {
 
 // ───────────────────────────────────────────────────────────────────
 // HIERARQUIA DOS 5 PLANOS OFICIAIS
-// gratuito=0 | start=1 | plus=2 | pro=3 | elite=4
 // ───────────────────────────────────────────────────────────────────
 
 const PLANO_LEVEL: Record<Plano, number> = {
@@ -82,11 +77,6 @@ const FEATURE_TO_COLUMN: Record<PlanFeature, keyof PlanSettings> = {
   rankings:           'permite_rankings',
   radar:              'permite_radar',
 }
-
-// ───────────────────────────────────────────────────────────────────
-// NORMALIZAÇÃO
-// Sem conversão legada — start, plus, pro são planos oficiais
-// ───────────────────────────────────────────────────────────────────
 
 export function normalizePlano(plano: string | null | undefined): Plano {
   if (!plano) return 'gratuito'
@@ -111,10 +101,6 @@ export function isAtLeast(
   return getPlanoLevel(planoOrProfile) >= PLANO_LEVEL[tier]
 }
 
-// ───────────────────────────────────────────────────────────────────
-// HELPERS USADOS PELO TigerJusApp E ADMIN
-// ───────────────────────────────────────────────────────────────────
-
 export function isAdmin(role?: string | null): boolean {
   return role === 'admin'
 }
@@ -123,17 +109,11 @@ export function isPago(plano?: string | null): boolean {
   return getPlanoLevel(plano) >= 1
 }
 
-/**
- * canAccess — compatibilidade dupla:
- * Legada:  canAccess(plano: string, tier: Plano) → boolean
- * Nova:    canAccess(profile: ProfileLike, feature: PlanFeature, settings: PlanSettingsMap) → boolean
- */
 export function canAccess(
   planoOrProfile: string | null | undefined | ProfileLike,
   tierOrFeature: Plano | PlanFeature,
   settings?: PlanSettingsMap | null
 ): boolean {
-  // Assinatura nova com settings
   if (settings !== undefined) {
     const profile = planoOrProfile as ProfileLike | null | undefined
     if (!profile) return false
@@ -143,7 +123,6 @@ export function canAccess(
     if (!userSettings) return false
     return Boolean(userSettings[FEATURE_TO_COLUMN[tierOrFeature as PlanFeature]])
   }
-  // Assinatura legada com tier
   if (typeof planoOrProfile === 'object' && planoOrProfile !== null) {
     const profile = planoOrProfile as ProfileLike
     if (profile.role === 'admin') return true
@@ -155,28 +134,29 @@ export function canAccess(
 // ───────────────────────────────────────────────────────────────────
 // LIMITES POR PLANO (fallback local)
 // Fonte definitiva: tabela plan_settings no banco
+// Elite: IA limitada a 500/dia no backend (plan_settings) — não Infinity
 // ───────────────────────────────────────────────────────────────────
 
 const LIMITES_FALLBACK: Record<Plano, Limites> = {
   gratuito: {
-    questoes: 15, ia: 5, flashcards: 5, mini_simulado: 10,
-    permite_pdf: false, permite_simulado_completo: false, permite_radar: false,
+    questoes: 15,        ia: 5,   flashcards: 5,        mini_simulado: 10,
+    permite_pdf: false,  permite_simulado_completo: false, permite_radar: false,
   },
   start: {
-    questoes: Infinity, ia: 20, flashcards: 15, mini_simulado: 20,
-    permite_pdf: false, permite_simulado_completo: true, permite_radar: false,
+    questoes: Infinity,  ia: 20,  flashcards: 15,       mini_simulado: 20,
+    permite_pdf: false,  permite_simulado_completo: true,  permite_radar: false,
   },
   plus: {
-    questoes: Infinity, ia: 50, flashcards: 30, mini_simulado: 30,
-    permite_pdf: true, permite_simulado_completo: true, permite_radar: true,
+    questoes: Infinity,  ia: 50,  flashcards: 30,       mini_simulado: 30,
+    permite_pdf: true,   permite_simulado_completo: true,  permite_radar: true,
   },
   pro: {
-    questoes: Infinity, ia: 150, flashcards: 60, mini_simulado: 50,
-    permite_pdf: true, permite_simulado_completo: true, permite_radar: true,
+    questoes: Infinity,  ia: 150, flashcards: 60,       mini_simulado: 50,
+    permite_pdf: true,   permite_simulado_completo: true,  permite_radar: true,
   },
   elite: {
-    questoes: Infinity, ia: Infinity, flashcards: Infinity, mini_simulado: Infinity,
-    permite_pdf: true, permite_simulado_completo: true, permite_radar: true,
+    questoes: Infinity,  ia: 500, flashcards: Infinity, mini_simulado: Infinity,
+    permite_pdf: true,   permite_simulado_completo: true,  permite_radar: true,
   },
 }
 
@@ -195,10 +175,6 @@ export function getUserPlanSettings(
   return settings[normalizePlano(profile.plano)] ?? null
 }
 
-// ───────────────────────────────────────────────────────────────────
-// DISPLAY — usado em admin e UI
-// ───────────────────────────────────────────────────────────────────
-
 export const PLANOS_DISPLAY: { value: Plano; label: string }[] = [
   { value: 'gratuito', label: 'Gratuito'      },
   { value: 'start',    label: 'Tiger Start'   },
@@ -208,15 +184,15 @@ export const PLANOS_DISPLAY: { value: Plano; label: string }[] = [
 ]
 
 // ───────────────────────────────────────────────────────────────────
-// NÍVEIS DE GAMIFICAÇÃO
+// NÍVEIS DE GAMIFICAÇÃO — alinhados com a identidade TigerJus
 // ───────────────────────────────────────────────────────────────────
 
 export const NIVEIS: readonly Nivel[] = [
-  { nivel: 1, nome: 'Filhote',     xp_min: 0,     xp_max: 999,   icon: '🐯' },
-  { nivel: 2, nome: 'Aprendiz',    xp_min: 1000,  xp_max: 4999,  icon: '🎯' },
-  { nivel: 3, nome: 'Guerreiro',   xp_min: 5000,  xp_max: 14999, icon: '⚔️' },
-  { nivel: 4, nome: 'Mestre',      xp_min: 15000, xp_max: 39999, icon: '🏆' },
-  { nivel: 5, nome: 'Tigre Elite', xp_min: 40000, xp_max: null,  icon: '👑' },
+  { nivel: 1, nome: 'Filhote',        xp_min: 0,     xp_max: 999,   icon: '🐯' },
+  { nivel: 2, nome: 'Caçador',        xp_min: 1000,  xp_max: 4999,  icon: '🎯' },
+  { nivel: 3, nome: 'Alpha',          xp_min: 5000,  xp_max: 14999, icon: '⚔️' },
+  { nivel: 4, nome: 'Tigre Supremo',  xp_min: 15000, xp_max: 39999, icon: '🏆' },
+  { nivel: 5, nome: 'Mestre TigerJus',xp_min: 40000, xp_max: null,  icon: '👑' },
 ] as const
 
 export function getLevelName(nivel: number | null | undefined): string {
@@ -226,11 +202,11 @@ export function getLevelName(nivel: number | null | undefined): string {
 }
 
 export function getNivelByXp(xp: number): Nivel {
-  if (!Number.isFinite(xp) || xp < 0) return NIVEIS[0]
+  if (!Number.isFinite(xp) || xp < 0) return { ...NIVEIS[0] }
   for (let i = NIVEIS.length - 1; i >= 0; i--) {
-    if (xp >= NIVEIS[i].xp_min) return NIVEIS[i]
+    if (xp >= NIVEIS[i].xp_min) return { ...NIVEIS[i] }
   }
-  return NIVEIS[0]
+  return { ...NIVEIS[0] }
 }
 
 export function getNextNivel(xp: number): Nivel | null {
@@ -238,10 +214,6 @@ export function getNextNivel(xp: number): Nivel | null {
   if (current.xp_max === null) return null
   return NIVEIS.find(n => n.nivel === current.nivel + 1) ?? null
 }
-
-// ───────────────────────────────────────────────────────────────────
-// COTAS DIÁRIAS
-// ───────────────────────────────────────────────────────────────────
 
 export function todayISO(): string {
   const d = new Date()
@@ -266,10 +238,6 @@ export function dailyQuotaRemaining(
   return Math.max(0, limit - used)
 }
 
-// ───────────────────────────────────────────────────────────────────
-// FETCHER — Carrega plan_settings do banco
-// ───────────────────────────────────────────────────────────────────
-
 export async function getPlanSettings(
   supabase: SupabaseClient
 ): Promise<PlanSettingsMap | null> {
@@ -278,12 +246,10 @@ export async function getPlanSettings(
     .select('*')
     .eq('ativo', true)
     .order('ordem_exibicao')
-
   if (error || !data || data.length === 0) {
     if (error) console.error('[planos] erro ao carregar plan_settings:', error)
     return null
   }
-
   const map: Partial<PlanSettingsMap> = {}
   for (const row of data as PlanSettings[]) {
     map[row.plano] = row
