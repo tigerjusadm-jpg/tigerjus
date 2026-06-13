@@ -6,11 +6,11 @@ import { useAppSettings } from '@/contexts/AppSettingsContext'
 import RadarOAB from '@/components/RadarOAB'
 import DashboardTopBanner from '@/components/DashboardTopBanner'
 import LandingTopBanner from '@/components/LandingTopBanner'
-import { canAccess, isAdmin, getLimites, isPago, PLANOS_DISPLAY, type Plano } from '@/lib/planos'
+import { canAccess, isAdmin, getLimites, isPago, PLANOS_DISPLAY, getNivelByXp, type Plano } from '@/lib/planos'
 
 interface Profile {
   id: string; nome: string; email: string; plano: string
-  xp: number; nivel: number; level_name: string; streak: number
+  xp: number; nivel: number; streak: number
   free_questions_used: number; free_ia_used: number
   questoes_respondidas: number; questoes_corretas: number
   role?: string
@@ -22,16 +22,8 @@ interface Profile {
   referral_discount_pct?: number
 }
 
-type LevelName = 'Filhote' | 'Caçador' | 'Alpha' | 'Tigre Supremo' | 'Mestre TigerJus'
 
-const XP_NEXT: Record<LevelName, number> = {
-  'Filhote': 1000, 'Caçador': 5000, 'Alpha': 15000,
-  'Tigre Supremo': 40000, 'Mestre TigerJus': 999999,
-}
-const XP_PREV: Record<LevelName, number> = {
-  'Filhote': 0, 'Caçador': 1000, 'Alpha': 5000,
-  'Tigre Supremo': 15000, 'Mestre TigerJus': 40000,
-}
+// Níveis calculados dinamicamente via getNivelByXp() de planos.ts
 
 const PLANS_UPGRADE = [
   { id:'start', name:'Tiger Start', price:'1,99', color:'var(--success)', features:['Questões ilimitadas','IA jurídica (20/dia)','Simulados completos','Streak + ranking'] },
@@ -69,15 +61,7 @@ const DISC_MAP: Record<string, string> = {
   'Internacional':'Internacional','ECA':'ECA',
 }
 
-const RANKING_DATA = [
-  {pos:1,name:'Rafael M.',level:'Tigre Supremo',xp:48200,streak:45,av:'🦁'},
-  {pos:2,name:'Ana C.',level:'Alpha',xp:41800,streak:38,av:'⚡'},
-  {pos:3,name:'Lucas F.',level:'Alpha',xp:39500,streak:22,av:'🔥'},
-  {pos:4,name:'Beatriz S.',level:'Caçador',xp:28900,streak:15,av:'🎯'},
-  {pos:5,name:'Você',level:'Caçador',xp:18400,streak:7,av:'🐯',me:true},
-  {pos:6,name:'Carlos L.',level:'Caçador',xp:14200,streak:9,av:'⚖️'},
-  {pos:7,name:'Marina T.',level:'Filhote',xp:8900,streak:4,av:'📚'},
-]
+// Ranking carregado do Supabase em RankingPage
 
 const RESUMOS: Record<string, string> = {
   constitucional:`DIREITO CONSTITUCIONAL — RESUMO ESSENCIAL\n\nESTRUTURA DA CF/88\nA Constituição Federal de 1988 é rígida, analítica e promulgada. Organiza-se em 9 títulos.\n\nDIREITOS FUNDAMENTAIS (Art. 5º)\nSão cláusulas pétreas. Principais garantias:\n- Habeas Corpus — liberdade de locomoção\n- Mandado de Segurança — direito líquido e certo\n- Habeas Data — informações pessoais\n- Mandado de Injunção — omissão legislativa\n\nPRINCÍPIOS FUNDAMENTAIS\n- Soberania, Cidadania, Dignidade da pessoa humana\n- Valores sociais do trabalho e da livre iniciativa\n- Pluralismo político\n\nORGANIZAÇÃO DOS PODERES\n- Executivo, Legislativo e Judiciário — independentes e harmônicos\n- Sistema de freios e contrapesos`,
@@ -199,10 +183,9 @@ function Notification({ msg, onClose }: { msg: string; onClose: () => void }) {
   )
 }
 
-function XPTooltip({ xp, levelName }: { xp: number; levelName: LevelName }) {
+function XPTooltip({ xp }: { xp: number }) {
   const [show,setShow]=useState(false)
-  const xpNext=XP_NEXT[levelName]||5000
-  const xpPrev=XP_PREV[levelName]||0
+  const _tn=getNivelByXp(xp); const xpNext=_tn.xp_max??999999; const xpPrev=_tn.xp_min; const levelName=_tn.nome
   const pct=Math.min(100,Math.round(((xp-xpPrev)/(xpNext-xpPrev))*100))
   return(
     <div style={{position:'relative',display:'inline-block'}} onMouseEnter={()=>setShow(true)} onMouseLeave={()=>setShow(false)}>
@@ -243,10 +226,34 @@ function PremiumGate({ onClose, onUpgrade }: { onClose:()=>void; onUpgrade:()=>v
   )
 }
 
+function QuestaoDodia({onNav}:{onNav:(k:string)=>void}){
+  const [q,setQ]=useState<{disciplina:string;enunciado:string}|null>(null)
+  useEffect(()=>{
+    // Seleciona questão do dia usando a data como semente — determinística para todos os usuários
+    const hoje=new Date(); const seed=(hoje.getDate()*7+hoje.getMonth()*31)%400
+    supabase.from('questoes_oab').select('disciplina,enunciado').neq('resposta_correta','*')
+      .range(seed,seed).limit(1).then(({data})=>{ if(data?.[0])setQ(data[0]) })
+  },[])
+  const disc=q?.disciplina||'OAB'
+  const trecho=q?.enunciado?.slice(0,60)+(q&&q.enunciado.length>60?'...':'')
+  return(
+    <div style={{background:'linear-gradient(135deg,rgba(212,168,67,0.1),rgba(232,98,26,0.06))',border:'1px solid rgba(212,168,67,0.2)',borderRadius:16,padding:18,marginBottom:16,cursor:'pointer'}} onClick={()=>onNav('quiz')}>
+      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',flexWrap:'wrap',gap:10}}>
+        <div>
+          <div style={{fontSize:10,fontWeight:700,letterSpacing:2,textTransform:'uppercase',color:'var(--gold)',marginBottom:4}}>⚡ QUESTÃO DO DIA</div>
+          <div style={{fontWeight:700,fontSize:15}}>{q?`${disc} — ${trecho}`:'Carregando...'}</div>
+          <div style={{fontSize:12,color:'var(--text-muted)',marginTop:4}}>+150 XP bônus ao responder hoje</div>
+        </div>
+        <button className="btn-gold-sm">+150 XP</button>
+      </div>
+    </div>
+  )
+}
+
 function DashHome({ profile, onNav, showUpgrade, isPago, canAccessPremium, onOpenRadar }: any) {
   const { settings: dashSettings } = useAppSettings()
-  const xp=profile?.xp||0; const levelName=(profile?.level_name||'Filhote') as LevelName
-  const streak=profile?.streak||0; const xpNext=XP_NEXT[levelName]||1000; const xpPrev=XP_PREV[levelName]||0
+  const xp=profile?.xp||0; const _niv=getNivelByXp(xp); const levelName=_niv.nome
+  const streak=profile?.streak||0; const xpNext=_niv.xp_max??999999; const xpPrev=_niv.xp_min
   const pct=Math.min(100,Math.round(((xp-xpPrev)/(xpNext-xpPrev))*100))
   const questoes=profile?.questoes_respondidas||0; const corretas=profile?.questoes_corretas||0
   const taxa=questoes>0?Math.round((corretas/questoes)*100):0
@@ -268,7 +275,7 @@ function DashHome({ profile, onNav, showUpgrade, isPago, canAccessPremium, onOpe
       <div style={{background:'linear-gradient(135deg,rgba(212,168,67,0.12),rgba(232,98,26,0.06))',border:'1px solid rgba(212,168,67,0.2)',borderRadius:20,padding:'24px',marginBottom:20,position:'relative',overflow:'hidden'}}>
         <div style={{position:'absolute',right:-16,top:-16,fontSize:100,opacity:0.04,pointerEvents:'none'}}>🐯</div>
         <div style={{fontSize:10,fontWeight:700,letterSpacing:'2.5px',textTransform:'uppercase',color:'var(--gold)',marginBottom:6}}>NÍVEL — {levelName.toUpperCase()}</div>
-        <div style={{fontFamily:'var(--font-display)',fontSize:'clamp(20px,5vw,32px)',fontWeight:900,marginBottom:4}}><XPTooltip xp={xp} levelName={levelName}/></div>
+        <div style={{fontFamily:'var(--font-display)',fontSize:'clamp(20px,5vw,32px)',fontWeight:900,marginBottom:4}}><XPTooltip xp={xp}/></div>
         <div style={{fontSize:13,color:'var(--text-muted)',marginBottom:16}}>{xp<xpNext?`${(xpNext-xp).toLocaleString()} XP para o próximo nível 🏆`:'Nível máximo! 👑'}</div>
         <div style={{background:'rgba(255,255,255,0.08)',borderRadius:100,height:8,overflow:'hidden'}}><div style={{width:`${pct}%`,height:'100%',background:'linear-gradient(90deg,var(--gold),var(--orange))',borderRadius:100,transition:'width 1s ease'}}/></div>
         <div style={{display:'flex',justifyContent:'space-between',marginTop:6,fontSize:11,color:'var(--text-muted)'}}><span>{levelName}</span><span>{pct}%</span><span>Próximo</span></div>
@@ -282,12 +289,7 @@ function DashHome({ profile, onNav, showUpgrade, isPago, canAccessPremium, onOpe
           </div>
         ))}
       </div>
-      <div style={{background:'linear-gradient(135deg,rgba(212,168,67,0.1),rgba(232,98,26,0.06))',border:'1px solid rgba(212,168,67,0.2)',borderRadius:16,padding:18,marginBottom:16,cursor:'pointer'}} onClick={()=>onNav('quiz')}>
-        <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',flexWrap:'wrap',gap:10}}>
-          <div><div style={{fontSize:10,fontWeight:700,letterSpacing:2,textTransform:'uppercase',color:'var(--gold)',marginBottom:4}}>⚡ QUESTÃO DO DIA</div><div style={{fontWeight:700,fontSize:15}}>Penal — Teoria do Crime: Tipicidade</div><div style={{fontSize:12,color:'var(--text-muted)',marginTop:4}}>+150 XP bônus ao responder hoje</div></div>
-          <button className="btn-gold-sm">+150 XP</button>
-        </div>
-      </div>
+      <QuestaoDodia onNav={onNav}/>
       <div style={{background:canAccessPremium?'linear-gradient(135deg,rgba(58,143,232,0.1),rgba(212,168,67,0.06))':'linear-gradient(135deg,rgba(58,143,232,0.08),rgba(212,168,67,0.06))',border:`1px solid ${canAccessPremium?'rgba(58,143,232,0.25)':'rgba(58,143,232,0.2)'}`,borderRadius:16,padding:20,marginBottom:20,cursor:'pointer',transition:'all 0.2s'}}
         onClick={canAccessPremium?onOpenRadar:showUpgrade}
         onMouseEnter={e=>{e.currentTarget.style.transform='translateY(-2px)';e.currentTarget.style.boxShadow='0 8px 24px rgba(0,0,0,0.3)'}}
@@ -299,22 +301,35 @@ function DashHome({ profile, onNav, showUpgrade, isPago, canAccessPremium, onOpe
         </div>
         <div style={{fontSize:13,color:'var(--text-muted)'}}>{canAccessPremium?'Veja os 6 temas com maior probabilidade de cair no 47º Exame OAB →':'Temas com maior probabilidade de cair na próxima OAB.'}</div>
       </div>
-      {/* Widget Programa Tigre Embaixador */}
-      {(profile?.ambassador_badge||(profile?.referral_count||0)>0)&&(
-        <div style={{background:'linear-gradient(135deg,rgba(212,168,67,0.08),rgba(232,98,26,0.04))',border:'1px solid rgba(212,168,67,0.18)',borderRadius:16,padding:'16px 18px',marginBottom:20,cursor:'pointer',transition:'all 0.2s'}}
-          onClick={()=>onNav('referral')}
-          onMouseEnter={e=>{e.currentTarget.style.transform='translateY(-2px)';e.currentTarget.style.boxShadow='0 8px 24px rgba(0,0,0,0.3)'}}
-          onMouseLeave={e=>{e.currentTarget.style.transform='translateY(0)';e.currentTarget.style.boxShadow='none'}}>
-          <div style={{display:'flex',alignItems:'center',gap:12}}>
-            <span style={{fontSize:22}}>{['👑','🥈','🥉','🎯'].find((_,i)=>['Embaixador Ouro','Embaixador Prata','Embaixador Bronze','Recrutador'][i]===profile?.ambassador_badge)||'🐯'}</span>
-            <div style={{flex:1}}>
-              <div style={{fontSize:12,fontWeight:700,marginBottom:2}}>{profile?.ambassador_badge||'Programa Tigre Embaixador'}</div>
-              <div style={{fontSize:11,color:'var(--text-muted)'}}>{profile?.referral_count||0} indicaç{(profile?.referral_count||0)===1?'ão':'ões'} · {profile?.plano==='elite'?`${profile?.referral_discount_pct||0}% desconto`:`${profile?.referral_days_bonus||0} dias extras`}</div>
+      {/* ── BOTÃO INDICAR AMIGOS — sempre visível ─────────────── */}
+      <div
+        style={{background:'linear-gradient(135deg,rgba(212,168,67,0.13),rgba(232,98,26,0.08))',border:'1px solid rgba(212,168,67,0.35)',borderRadius:18,padding:'18px 20px',marginBottom:20,cursor:'pointer',transition:'all 0.2s'}}
+        onClick={()=>onNav('referral')}
+        onMouseEnter={e=>{e.currentTarget.style.transform='translateY(-2px)';e.currentTarget.style.boxShadow='0 10px 30px rgba(212,168,67,0.15)'}}
+        onMouseLeave={e=>{e.currentTarget.style.transform='translateY(0)';e.currentTarget.style.boxShadow='none'}}>
+        <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:14,flexWrap:'wrap'}}>
+          <div style={{display:'flex',alignItems:'center',gap:14,flex:1,minWidth:200}}>
+            <div style={{width:46,height:46,borderRadius:12,background:'linear-gradient(135deg,rgba(212,168,67,0.2),rgba(232,98,26,0.1))',border:'1px solid rgba(212,168,67,0.3)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:24,flexShrink:0}}>🐯</div>
+            <div>
+              <div style={{fontSize:14,fontWeight:900,color:'var(--gold)',marginBottom:3}}>
+                {profile?.ambassador_badge||'Programa Tigre Embaixador'}
+              </div>
+              <div style={{fontSize:12,color:'var(--text-muted)',lineHeight:1.5}}>
+                {(profile?.referral_count||0)>0
+                  ? `${profile?.referral_count} indicaç${(profile?.referral_count||0)===1?'ão':'ões'} · ${profile?.plano==='elite'?`${profile?.referral_discount_pct||0}% desconto acumulado`:`${profile?.referral_days_bonus||0} dias extras ganhos`}`
+                  : 'Indique amigos e ganhe 15 dias extras por assinatura.'}
+              </div>
             </div>
-            <div style={{fontSize:11,color:'var(--gold)',fontWeight:600}}>Ver detalhes →</div>
           </div>
+          <button
+            className="btn-primary"
+            style={{fontSize:12,padding:'10px 22px',flexShrink:0,whiteSpace:'nowrap',fontWeight:800,letterSpacing:'0.5px'}}
+            onClick={e=>{e.stopPropagation();onNav('referral')}}>
+            🔗 INDICAR AGORA
+          </button>
         </div>
-      )}
+      </div>
+      {/* ── FIM BOTÃO INDICAR ────────────────────────────────────── */}
       <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:14}}>
         <h2 style={{fontFamily:'var(--font-display)',fontSize:'clamp(18px,4vw,22px)',fontWeight:900}}>Disciplinas em destaque</h2>
         <button style={{color:'var(--gold)',fontSize:13,border:'none',background:'none',cursor:'pointer'}} onClick={()=>onNav('disciplines')}>Ver todas →</button>
@@ -376,7 +391,7 @@ function QuizPage({ freeQ, setFreeQ, showUpgrade, onXp, profile, isPago }: any) 
     if(!isPago)setFreeQ((p:number)=>p-1)
     if(i===questions[cur].correct){setScore(p=>p+1);onXp('question_correct')}else onXp('question_wrong')
   }
-  const next=()=>{if(cur+1>=questions.length){setDone(true);return}setCur(p=>p+1);setSel(null);setAnswered(false);setTime(MODO_TEMPO[modo])}
+  const next=()=>{if(cur+1>=questions.length){setDone(true);onXp('quiz_complete');return}setCur(p=>p+1);setSel(null);setAnswered(false);setTime(MODO_TEMPO[modo])}
   const restart=()=>{setStarted(false);setDone(false);setScore(0);setCur(0)}
 
   if(!started) return(
@@ -490,7 +505,7 @@ function IAPage({ freeIA, setFreeIA, showUpgrade, profile, isPago, iaIlimitada }
   return(
     <div style={{padding:'24px 20px',flex:1,display:'flex',flexDirection:'column'}}>
       <h1 style={{fontFamily:'var(--font-display)',fontSize:'clamp(22px,5vw,32px)',fontWeight:900,marginBottom:6}}>IA Jurídica 🤖</h1>
-      <p style={{fontSize:14,color:'var(--text-muted)',marginBottom:12}}>Tutor inteligente 24/7. {iaIlimitada?<span style={{color:'var(--success)',fontWeight:700}}>Ilimitado</span>:freeIA>0?<span style={{color:'var(--gold)',fontWeight:700}}>{freeIA} perguntas restantes</span>:<span style={{color:'var(--danger)'}}>🔒 Limite atingido</span>}</p>
+      <p style={{fontSize:14,color:'var(--text-muted)',marginBottom:12}}>Tutor inteligente 24/7. {freeIA>0?<span style={{color:'var(--gold)',fontWeight:700}}>{freeIA} pergunta{freeIA!==1?'s':''} restante{freeIA!==1?'s':''} hoje</span>:<span style={{color:'var(--danger)'}}>🔒 Limite atingido</span>}</p>
       {!iaIlimitada&&freeIA<=0&&(<div style={{background:'rgba(232,66,26,0.08)',border:'1px solid rgba(232,66,26,0.2)',borderRadius:12,padding:'14px 16px',marginBottom:16,fontSize:13}}>🔒 Limite atingido.<button onClick={showUpgrade} style={{color:'var(--gold)',background:'none',border:'none',cursor:'pointer',fontSize:13,fontFamily:'var(--font-body)',marginLeft:8,fontWeight:700}}>Fazer upgrade →</button></div>)}
       <div style={{display:'flex',gap:6,flexWrap:'wrap',marginBottom:14}}>{chips.map(c=><button key={c} onClick={()=>send(c)} style={{background:'rgba(212,168,67,0.06)',border:'1px solid rgba(212,168,67,0.14)',borderRadius:100,padding:'5px 12px',fontSize:11,color:'var(--text-muted)',cursor:'pointer',fontFamily:'var(--font-body)'}}>{c}</button>)}</div>
       <div style={{flex:1,background:'var(--gray)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:20,overflow:'hidden',display:'flex',flexDirection:'column',minHeight:350}}>
@@ -1034,7 +1049,7 @@ function SimuladosPage({ showUpgrade, freeQ, setFreeQ, onXp, profile, isPago, ca
     if(!isPago)setFreeQ((p:number)=>p-1)
     if(i===selectedSimulado.questions[cur].correct){setScore(p=>p+1);onXp('question_correct')}else onXp('question_wrong')
   }
-  const next=()=>{if(cur+1>=selectedSimulado.questions.length){setDone(true);return}setCur(p=>p+1);setSel(null);setAnswered(false)}
+  const next=()=>{if(cur+1>=selectedSimulado.questions.length){setDone(true);onXp('simulado_complete');return}setCur(p=>p+1);setSel(null);setAnswered(false)}
 
   if(running&&!done&&selectedSimulado){
     const q=selectedSimulado.questions[cur];const pct=Math.round(((cur+(answered?1:0))/selectedSimulado.questions.length)*100)
@@ -1114,46 +1129,335 @@ function SimuladosPage({ showUpgrade, freeQ, setFreeQ, onXp, profile, isPago, ca
   )
 }
 
-function RankingPage({profile}:any){
-  const [tab,setTab]=useState<'geral'|'semanal'|'disciplina'>('semanal')
+function formatRankName(nome:string|null):string{
+  if(!nome)return 'Estudante'
+  const p=nome.trim().split(' ')
+  if(p.length===1)return p[0]
+  return p[0]+' '+p[1][0]+'.'
+}
+
+function PlanoBadgeSmall({plano}:{plano:string}){
+  const cfg:Record<string,{label:string;cor:string;bg:string}> = {
+    start:    {label:'START', cor:'#60a5fa', bg:'rgba(96,165,250,0.12)'},
+    plus:     {label:'PLUS',  cor:'#a78bfa', bg:'rgba(167,139,250,0.12)'},
+    pro:      {label:'PRO',   cor:'#f472b6', bg:'rgba(244,114,182,0.12)'},
+    elite:    {label:'ELITE', cor:'#D4A843', bg:'rgba(212,168,67,0.15)'},
+  }
+  const c = cfg[plano]
+  if(!c) return null
   return(
-    <div style={{padding:'24px 20px',flex:1}}>
-      <h1 style={{fontFamily:'var(--font-display)',fontSize:'clamp(22px,5vw,32px)',fontWeight:900,marginBottom:6}}>Ranking Nacional 🏆</h1>
-      <p style={{fontSize:14,color:'var(--text-muted)',marginBottom:20}}>Top estudantes. Compita, evolua, seja aprovado.</p>
-      <div style={{display:'flex',gap:8,marginBottom:20,flexWrap:'wrap'}}>
-        {(['geral','semanal','disciplina'] as const).map(t=>(
-          <button key={t} onClick={()=>setTab(t)} style={{background:tab===t?'rgba(212,168,67,0.1)':'var(--gray)',border:tab===t?'1px solid rgba(212,168,67,0.3)':'1px solid rgba(255,255,255,0.06)',borderRadius:8,padding:'8px 14px',color:tab===t?'var(--gold)':'var(--text-muted)',fontSize:12,fontWeight:700,cursor:'pointer',fontFamily:'var(--font-body)',textTransform:'capitalize'}}>{t==='disciplina'?'Por Disciplina':t.charAt(0).toUpperCase()+t.slice(1)}</button>
+    <span style={{fontSize:8,fontWeight:800,padding:'2px 6px',borderRadius:4,
+      background:c.bg,color:c.cor,letterSpacing:'0.5px',border:`1px solid ${c.cor}33`,
+      whiteSpace:'nowrap'}}>
+      {c.label}
+    </span>
+  )
+}
+
+function RankingPage({profile,onNav}:any){
+  const [tab,setTab]=useState<'geral'|'semanal'|'streak'|'questoes'>('geral')
+  const [rankData,setRankData]=useState<any[]>([])
+  const [loading,setLoading]=useState(true)
+  const [totalUsers,setTotalUsers]=useState(0)
+  const [myPos,setMyPos]=useState<number|null>(null)
+  const [myMetric,setMyMetric]=useState<number|null>(null)
+
+  const mapRow=(p:any,i:number,metric:number)=>({
+    pos:i+1,id:p.id,name:formatRankName(p.nome),
+    level:getNivelByXp(p.xp||0).nome,icon:getNivelByXp(p.xp||0).icon,
+    xp:p.xp||0,streak:p.streak||0,
+    questoes:p.questoes_respondidas||0,acertos:p.questoes_corretas||0,
+    plano:p.plano||'gratuito',badge:p.ambassador_badge,
+    metric,me:p.id===profile?.id,
+  })
+
+  const loadGeral=async()=>{
+    setLoading(true)
+    const [rRes,cRes]=await Promise.all([
+      supabase.from('profiles').select('id,nome,plano,xp,nivel,streak,questoes_respondidas,questoes_corretas,ambassador_badge')
+        .neq('role','admin').order('xp',{ascending:false}).limit(20),
+      supabase.from('profiles').select('id',{count:'exact',head:true}).neq('role','admin'),
+    ])
+    const data=rRes.data||[]
+    setTotalUsers(cRes.count||0)
+    const mapped=data.map((p,i)=>mapRow(p,i,p.xp||0))
+    setRankData(mapped)
+    const me=mapped.find(r=>r.me)
+    if(me){setMyPos(me.pos);setMyMetric(me.metric)}
+    else if(profile?.id){
+      const{count}=await supabase.from('profiles').select('id',{count:'exact',head:true})
+        .neq('role','admin').gt('xp',profile.xp||0)
+      setMyPos((count||0)+1)
+      setMyMetric(profile.xp||0)
+    }
+    setLoading(false)
+  }
+
+  const loadSemanal=async()=>{
+    setLoading(true)
+    const sevenAgo=new Date();sevenAgo.setDate(sevenAgo.getDate()-7)
+    const{data:hist}=await supabase.from('xp_historico')
+      .select('user_id,xp').gte('created_at',sevenAgo.toISOString())
+    if(!hist||hist.length===0){setRankData([]);setLoading(false);return}
+    const map:Record<string,number>={}
+    for(const h of hist) map[h.user_id]=(map[h.user_id]||0)+h.xp
+    const top=Object.entries(map).sort((a,b)=>b[1]-a[1]).slice(0,20)
+    const ids=top.map(([id])=>id)
+    const{data:profs}=await supabase.from('profiles')
+      .select('id,nome,plano,xp,nivel,streak,questoes_respondidas,questoes_corretas,ambassador_badge')
+      .in('id',ids)
+    const mapped=top.map(([id,xpSem],i)=>{
+      const p=profs?.find(x=>x.id===id)
+      if(!p)return null
+      return mapRow(p,i,xpSem)
+    }).filter(Boolean)
+    setRankData(mapped)
+    const me=mapped.find(r=>r&&r.me)
+    setMyPos(me?me.pos:null)
+    setMyMetric(me?me.metric:null)
+    setTotalUsers(0)
+    setLoading(false)
+  }
+
+  const loadStreak=async()=>{
+    setLoading(true)
+    const{data}=await supabase.from('profiles')
+      .select('id,nome,plano,xp,nivel,streak,questoes_respondidas,questoes_corretas,ambassador_badge')
+      .neq('role','admin').gt('streak',0).order('streak',{ascending:false}).limit(20)
+    const mapped=(data||[]).map((p,i)=>mapRow(p,i,p.streak||0))
+    setRankData(mapped)
+    const me=mapped.find(r=>r.me)
+    setMyPos(me?me.pos:null);setMyMetric(me?me.metric:null)
+    setLoading(false)
+  }
+
+  const loadQuestoes=async()=>{
+    setLoading(true)
+    const{data}=await supabase.from('profiles')
+      .select('id,nome,plano,xp,nivel,streak,questoes_respondidas,questoes_corretas,ambassador_badge')
+      .neq('role','admin').gt('questoes_respondidas',0)
+      .order('questoes_respondidas',{ascending:false}).limit(20)
+    const mapped=(data||[]).map((p,i)=>mapRow(p,i,p.questoes_respondidas||0))
+    setRankData(mapped)
+    const me=mapped.find(r=>r.me)
+    setMyPos(me?me.pos:null);setMyMetric(me?me.metric:null)
+    setLoading(false)
+  }
+
+  useEffect(()=>{
+    if(tab==='geral')loadGeral()
+    else if(tab==='semanal')loadSemanal()
+    else if(tab==='streak')loadStreak()
+    else loadQuestoes()
+  },[tab,profile?.id])
+
+  const TABS=[
+    {key:'geral',   icon:'🏆',label:'Geral',   sub:'XP total'},
+    {key:'semanal', icon:'📅',label:'Semanal', sub:'Esta semana'},
+    {key:'streak',  icon:'🔥',label:'Streak',  sub:'Dias seguidos'},
+    {key:'questoes',icon:'📝',label:'Questões',sub:'Respondidas'},
+  ] as const
+
+  const metricLabel=(r:any)=>{
+    if(tab==='geral'  )return `${(r.xp||0).toLocaleString('pt-BR')} XP`
+    if(tab==='semanal')return `+${(r.metric||0).toLocaleString('pt-BR')} XP`
+    if(tab==='streak' )return `${r.streak}d 🔥`
+    const acerto=r.questoes>0?Math.round((r.acertos/r.questoes)*100):0
+    return `${r.questoes}q · ${acerto}%`
+  }
+
+  const top3=rankData.slice(0,3)
+  const notInTop=!rankData.find(r=>r.me) && myPos
+
+  const motivacional=()=>{
+    if(tab!=='geral'||!myPos)return null
+    const minha=profile?.xp||0
+    const acima=rankData.find(r=>r.pos===myPos-1)
+    if(acima&&acima.metric>minha){
+      const diff=(acima.metric-minha).toLocaleString('pt-BR')
+      return `🎯 Faltam ${diff} XP para ultrapassar ${acima.name} e subir para #${myPos-1}`
+    }
+    return null
+  }
+
+  return(
+    <div style={{padding:'24px 20px',flex:1,overflowY:'auto'}}>
+
+      {/* ── Título + header stats ── */}
+      <div style={{marginBottom:20}}>
+        <h1 style={{fontFamily:'var(--font-display)',fontSize:'clamp(22px,5vw,32px)',fontWeight:900,marginBottom:8}}>
+          Ranking Nacional 🏆
+        </h1>
+        <div style={{display:'flex',gap:10,flexWrap:'wrap'}}>
+          {totalUsers>0&&<span style={{fontSize:12,color:'var(--text-muted)',background:'rgba(255,255,255,0.04)',border:'1px solid rgba(255,255,255,0.08)',borderRadius:100,padding:'4px 12px'}}>👥 {totalUsers} estudantes</span>}
+          {myPos&&<span style={{fontSize:12,color:'var(--gold)',background:'rgba(212,168,67,0.08)',border:'1px solid rgba(212,168,67,0.2)',borderRadius:100,padding:'4px 12px',fontWeight:700}}>🎯 Você: #{myPos}</span>}
+          {myMetric!==null&&tab==='geral'&&<span style={{fontSize:12,color:'var(--text-muted)',background:'rgba(255,255,255,0.04)',border:'1px solid rgba(255,255,255,0.08)',borderRadius:100,padding:'4px 12px'}}>⚡ {(myMetric||0).toLocaleString('pt-BR')} XP</span>}
+        </div>
+      </div>
+
+      {/* ── Tabs ── */}
+      <div style={{display:'flex',gap:6,marginBottom:20,flexWrap:'wrap'}}>
+        {TABS.map(t=>(
+          <button key={t.key} onClick={()=>setTab(t.key)}
+            style={{display:'flex',flexDirection:'column',alignItems:'center',padding:'8px 14px',borderRadius:10,border:'none',cursor:'pointer',transition:'all 0.15s',
+              background:tab===t.key?'rgba(212,168,67,0.12)':'rgba(255,255,255,0.04)',
+              outline:tab===t.key?'1px solid rgba(212,168,67,0.35)':'1px solid rgba(255,255,255,0.07)'}}>
+            <span style={{fontSize:16,marginBottom:2}}>{t.icon}</span>
+            <span style={{fontSize:11,fontWeight:tab===t.key?700:400,color:tab===t.key?'var(--gold)':'var(--text-muted)'}}>{t.label}</span>
+            <span style={{fontSize:9,color:'var(--text-dim)'}}>{t.sub}</span>
+          </button>
         ))}
       </div>
-      <div style={{display:'flex',gap:10,marginBottom:24,justifyContent:'center',flexWrap:'wrap'}}>
-        {[1,0,2].map(idx=>{
-          const r=RANKING_DATA[idx];const heights=[110,138,90];const h=heights[idx===0?1:idx===1?0:2]
-          return(
-            <div key={idx} style={{textAlign:'center',width:100}}>
-              <div style={{fontSize:26,marginBottom:5}}>{r.av}</div>
-              <div style={{fontWeight:700,fontSize:11,marginBottom:2}}>{r.name}</div>
-              <div style={{fontSize:10,color:'var(--text-muted)',marginBottom:6}}>{r.level}</div>
-              <div style={{height:h,background:idx===0?'linear-gradient(135deg,var(--gold),var(--orange))':idx===1?'linear-gradient(135deg,#C0C0C0,#A0A0A0)':'linear-gradient(135deg,#CD7F32,#A0522D)',borderRadius:'8px 8px 0 0',display:'flex',alignItems:'flex-start',justifyContent:'center',paddingTop:8}}>
-                <div style={{fontFamily:'var(--font-display)',fontWeight:900,fontSize:18,color:idx===0?'var(--deep-black)':'#fff'}}>{['🥇','🥈','🥉'][idx===0?1:idx===1?0:2]}</div>
-              </div>
-            </div>
-          )
-        })}
-      </div>
-      <div style={{display:'flex',flexDirection:'column',gap:10}}>
-        {RANKING_DATA.map(r=>(
-          <div key={r.pos} style={{display:'flex',alignItems:'center',gap:12,background:(r as any).me?'rgba(212,168,67,0.06)':'var(--gray)',border:(r as any).me?'1px solid rgba(212,168,67,0.25)':'1px solid rgba(255,255,255,0.05)',borderRadius:14,padding:'14px 16px'}}>
-            <div style={{fontFamily:'var(--font-mono)',fontSize:13,fontWeight:700,width:28,textAlign:'center',color:r.pos===1?'#FFD700':r.pos===2?'#C0C0C0':r.pos===3?'#CD7F32':'var(--text-muted)'}}>{r.pos<=3?['🥇','🥈','🥉'][r.pos-1]:`#${r.pos}`}</div>
-            <div style={{width:36,height:36,borderRadius:'50%',background:'linear-gradient(135deg,var(--gold-dark),var(--orange))',display:'flex',alignItems:'center',justifyContent:'center',fontSize:18,flexShrink:0}}>{r.av}</div>
-            <div style={{flex:1,minWidth:0}}>
-              <div style={{fontSize:13,fontWeight:600}}>{r.name}{(r as any).me&&<span style={{marginLeft:8,fontSize:10,background:'rgba(212,168,67,0.15)',color:'var(--gold)',padding:'2px 8px',borderRadius:4}}>VOCÊ</span>}</div>
-              <div style={{fontSize:11,color:'var(--text-muted)'}}>{r.level}</div>
-            </div>
-            <div style={{fontSize:12,color:'var(--orange)'}}>🔥{r.streak}d</div>
-            <div style={{fontFamily:'var(--font-mono)',fontSize:12,fontWeight:700,color:'var(--gold)'}}>{r.xp.toLocaleString()}</div>
+
+      {loading?(
+        <div style={{textAlign:'center',padding:48,color:'var(--text-muted)'}}>
+          <div style={{fontSize:36,marginBottom:12,animation:'pulse 1.5s infinite'}}>⏳</div>
+          Carregando ranking...
+        </div>
+      ):rankData.length===0?(
+        <div style={{textAlign:'center',padding:48}}>
+          <div style={{fontSize:48,marginBottom:16}}>
+            {tab==='semanal'?'📅':tab==='streak'?'🔥':tab==='questoes'?'📝':'🏆'}
           </div>
-        ))}
-      </div>
+          <div style={{fontSize:16,fontWeight:700,marginBottom:8}}>
+            {tab==='semanal'?'Nenhum XP esta semana ainda':'Ranking vazio por enquanto'}
+          </div>
+          <div style={{fontSize:13,color:'var(--text-muted)',marginBottom:20,lineHeight:1.6}}>
+            {tab==='semanal'
+              ?'Responda questões hoje para aparecer no ranking semanal!'
+              :tab==='streak'?'Estude todos os dias para construir seu streak!'
+              :tab==='questoes'?'Comece respondendo questões agora!'
+              :'Seja o primeiro! Responda questões para aparecer aqui.'}
+          </div>
+          <button className="btn-primary" style={{fontSize:13,padding:'10px 24px'}}
+            onClick={()=>onNav&&onNav('quiz')}>
+            Ir para Questões →
+          </button>
+        </div>
+      ):(
+        <>
+          {/* ── Pódio top 3 ── */}
+          {top3.length>=2&&(
+            <div style={{display:'flex',alignItems:'flex-end',gap:8,marginBottom:28,justifyContent:'center',flexWrap:'wrap'}}>
+              {([1,0,2] as const).map(idx=>{
+                const r=top3[idx];if(!r)return null
+                const isFirst=idx===1
+                const heights=[90,120,74]
+                const h=heights[idx===1?1:idx===0?0:2]
+                const golds=['linear-gradient(135deg,#C0C0C0,#a0a0a0)','linear-gradient(135deg,var(--gold),var(--orange))','linear-gradient(135deg,#CD7F32,#a05a2c)']
+                const grad=golds[idx===1?1:idx===0?0:2]
+                const medal=['🥈','🥇','🥉'][idx===1?1:idx===0?0:2]
+                return(
+                  <div key={idx} style={{textAlign:'center',minWidth:90,flex:isFirst?'0 0 110px':'0 0 90px',
+                    transform:isFirst?'scale(1.05)':'none',transition:'transform 0.2s',
+                    filter:r.me?'drop-shadow(0 0 8px rgba(212,168,67,0.5))':'none'}}>
+                    <div style={{fontSize:isFirst?28:22,marginBottom:4}}>{r.icon}</div>
+                    <div style={{fontSize:isFirst?12:10,fontWeight:700,marginBottom:1,color:r.me?'var(--gold)':'var(--white)'}}>{r.name}{r.me?' 👈':''}</div>
+                    <div style={{fontSize:9,color:'var(--text-muted)',marginBottom:6}}>{r.level}</div>
+                    <div style={{height:h,background:grad,borderRadius:'10px 10px 0 0',
+                      display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'flex-start',
+                      paddingTop:10,gap:4}}>
+                      <span style={{fontSize:isFirst?20:16}}>{medal}</span>
+                      <span style={{fontSize:9,color:isFirst?'var(--deep-black)':'rgba(255,255,255,0.8)',fontWeight:700,fontFamily:'var(--font-mono)'}}>
+                        {metricLabel(r)}
+                      </span>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+
+          {/* ── Lista principal ── */}
+          <div style={{display:'flex',flexDirection:'column',gap:8}}>
+            {rankData.map(r=>(
+              <div key={r.id} style={{
+                display:'flex',alignItems:'center',gap:10,
+                background:r.me?'rgba(212,168,67,0.07)':'rgba(255,255,255,0.03)',
+                border:r.me?'1px solid rgba(212,168,67,0.3)':'1px solid rgba(255,255,255,0.05)',
+                borderRadius:12,padding:'12px 14px',transition:'all 0.15s'}}>
+                {/* Rank */}
+                <div style={{fontFamily:'var(--font-mono)',fontSize:12,fontWeight:700,width:28,textAlign:'center',flexShrink:0,
+                  color:r.pos===1?'#FFD700':r.pos===2?'#C0C0C0':r.pos===3?'#CD7F32':'var(--text-muted)'}}>
+                  {r.pos<=3?['🥇','🥈','🥉'][r.pos-1]:`#${r.pos}`}
+                </div>
+                {/* Avatar */}
+                <div style={{width:34,height:34,borderRadius:'50%',flexShrink:0,
+                  background:'linear-gradient(135deg,rgba(212,168,67,0.2),rgba(232,98,26,0.1))',
+                  display:'flex',alignItems:'center',justifyContent:'center',fontSize:18}}>
+                  {r.icon}
+                </div>
+                {/* Info */}
+                <div style={{flex:1,minWidth:0}}>
+                  <div style={{display:'flex',alignItems:'center',gap:6,flexWrap:'wrap'}}>
+                    <span style={{fontSize:13,fontWeight:600,color:r.me?'var(--gold)':'var(--white)'}}>
+                      {r.name}
+                    </span>
+                    {r.me&&<span style={{fontSize:9,background:'rgba(212,168,67,0.15)',color:'var(--gold)',padding:'1px 7px',borderRadius:4,fontWeight:700}}>VOCÊ</span>}
+                    <PlanoBadgeSmall plano={r.plano}/>
+                  </div>
+                  <div style={{fontSize:10,color:'var(--text-muted)',marginTop:1}}>{r.level}</div>
+                </div>
+                {/* Streak se relevante */}
+                {tab!=='streak'&&r.streak>0&&(
+                  <div style={{fontSize:11,color:'var(--orange)',fontWeight:600,flexShrink:0}}>🔥{r.streak}d</div>
+                )}
+                {/* Métrica principal */}
+                <div style={{fontFamily:'var(--font-mono)',fontSize:12,fontWeight:700,
+                  color:r.me?'var(--gold)':'var(--text-muted)',flexShrink:0,textAlign:'right'}}>
+                  {metricLabel(r)}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* ── Usuário fora do top 20 (pinado) ── */}
+          {notInTop&&(
+            <>
+              <div style={{display:'flex',alignItems:'center',gap:10,margin:'16px 0 8px',opacity:0.4}}>
+                <div style={{flex:1,height:1,background:'rgba(255,255,255,0.1)'}}/>
+                <span style={{fontSize:11,color:'var(--text-muted)',whiteSpace:'nowrap'}}>sua posição</span>
+                <div style={{flex:1,height:1,background:'rgba(255,255,255,0.1)'}}/>
+              </div>
+              <div style={{display:'flex',alignItems:'center',gap:10,
+                background:'rgba(212,168,67,0.07)',border:'1px dashed rgba(212,168,67,0.25)',
+                borderRadius:12,padding:'12px 14px'}}>
+                <div style={{fontFamily:'var(--font-mono)',fontSize:12,fontWeight:700,width:28,textAlign:'center',color:'var(--text-muted)'}}>
+                  #{myPos}
+                </div>
+                <div style={{width:34,height:34,borderRadius:'50%',
+                  background:'linear-gradient(135deg,rgba(212,168,67,0.2),rgba(232,98,26,0.1))',
+                  display:'flex',alignItems:'center',justifyContent:'center',fontSize:18}}>
+                  {getNivelByXp(profile?.xp||0).icon}
+                </div>
+                <div style={{flex:1,minWidth:0}}>
+                  <div style={{display:'flex',alignItems:'center',gap:6}}>
+                    <span style={{fontSize:13,fontWeight:600,color:'var(--gold)'}}>
+                      {formatRankName(profile?.nome)}
+                    </span>
+                    <span style={{fontSize:9,background:'rgba(212,168,67,0.15)',color:'var(--gold)',padding:'1px 7px',borderRadius:4,fontWeight:700}}>VOCÊ</span>
+                  </div>
+                  <div style={{fontSize:10,color:'var(--text-muted)',marginTop:1}}>{getNivelByXp(profile?.xp||0).nome}</div>
+                </div>
+                <div style={{fontFamily:'var(--font-mono)',fontSize:12,fontWeight:700,color:'var(--gold)',textAlign:'right'}}>
+                  {tab==='geral'?`${(myMetric||0).toLocaleString('pt-BR')} XP`
+                   :tab==='streak'?`${profile?.streak||0}d 🔥`
+                   :`${profile?.questoes_respondidas||0}q`}
+                </div>
+              </div>
+            </>
+          )}
+
+          {/* ── Texto motivacional ── */}
+          {motivacional()&&(
+            <div style={{marginTop:14,padding:'12px 16px',background:'rgba(212,168,67,0.06)',
+              border:'1px solid rgba(212,168,67,0.15)',borderRadius:10,fontSize:12,
+              color:'var(--text-muted)',textAlign:'center',lineHeight:1.6}}>
+              {motivacional()}
+            </div>
+          )}
+        </>
+      )}
     </div>
   )
 }
@@ -1672,7 +1976,7 @@ export default function TigerJusApp() {
   const canAccessPremium=!!(isAdmin(profile?.role)||canAccess(plano,'pro'))
   const canAccessElite=!!(isAdmin(profile?.role)||canAccess(plano,'elite'))
   const limites=getLimites(plano)
-  const iaIlimitada=!!(isAdmin(profile?.role)||limites.ia===Infinity)
+  const iaIlimitada=isAdmin(profile?.role)||false // Elite limitado a 500/dia pelo backend (plan_settings)
   const podePDF=!!(isAdmin(profile?.role)||limites.permite_pdf)
 
   useEffect(()=>{
@@ -1735,7 +2039,7 @@ export default function TigerJusApp() {
       if(!prev)return prev
       const incR=action==='question_correct'||action==='question_wrong'
       const incC=action==='question_correct'
-      return{...prev,xp:data.total_xp??prev.xp,level_name:data.level?.name??prev.level_name,streak:data.streak??prev.streak,questoes_respondidas:(prev.questoes_respondidas||0)+(incR?1:0),questoes_corretas:(prev.questoes_corretas||0)+(incC?1:0)}
+      return{...prev,xp:data.total_xp??prev.xp,streak:data.streak??prev.streak,questoes_respondidas:(prev.questoes_respondidas||0)+(incR?1:0),questoes_corretas:(prev.questoes_corretas||0)+(incC?1:0)}
     })
   }
 
@@ -1850,7 +2154,7 @@ export default function TigerJusApp() {
         {page==='flashcards'&&<FlashCardsPage/>}
         {page==='simulados'&&<SimuladosPage showUpgrade={showUpgrade} freeQ={freeQ} setFreeQ={setFreeQ} onXp={handleXp} profile={profile} isPago={userIsPago} canAccessElite={canAccessElite}/>}
         {page==='ia'&&<IAPage freeIA={freeIA} setFreeIA={setFreeIA} showUpgrade={showUpgrade} profile={profile} isPago={userIsPago} iaIlimitada={iaIlimitada}/>}
-        {page==='ranking'&&<RankingPage profile={profile}/>}
+        {page==='ranking'&&<RankingPage profile={profile} onNav={navTo}/>}
         {page==='indice'&&<IndiceJuridico showUpgrade={showUpgrade} isPago={userIsPago}/>}
         {page==='referral'&&<ReferralPage profile={profile} showUpgrade={showUpgrade} isPago={userIsPago}/>}
       </div>
