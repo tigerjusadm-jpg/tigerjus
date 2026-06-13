@@ -16,11 +16,11 @@ const XP_ACTIONS: Record<string, number> = {
 }
 
 const LEVELS = [
-  { name: 'Filhote', min: 0, max: 999 },
-  { name: 'Caçador', min: 1000, max: 4999 },
-  { name: 'Alpha', min: 5000, max: 14999 },
-  { name: 'Tigre Supremo', min: 15000, max: 39999 },
-  { name: 'Mestre TigerJus', min: 40000, max: 999999 },
+  { nivel: 1, name: 'Filhote',         min: 0,     max: 999    },
+  { nivel: 2, name: 'Caçador',         min: 1000,  max: 4999   },
+  { nivel: 3, name: 'Alpha',           min: 5000,  max: 14999  },
+  { nivel: 4, name: 'Tigre Supremo',   min: 15000, max: 39999  },
+  { nivel: 5, name: 'Mestre TigerJus', min: 40000, max: 999999 },
 ]
 
 function getLevel(xp: number) {
@@ -34,9 +34,10 @@ export async function POST(req: NextRequest) {
 
     const xpEarned = XP_ACTIONS[action] || 0
 
+    // FIX: removido "level_name" — coluna inexistente que quebrava o UPDATE inteiro
     const { data: profile } = await supabase
       .from('profiles')
-      .select('xp, level_name, streak, ultimo_acesso, questoes_respondidas, questoes_corretas')
+      .select('xp, nivel, streak, ultimo_acesso, questoes_respondidas, questoes_corretas')
       .eq('id', userId)
       .single()
 
@@ -44,7 +45,7 @@ export async function POST(req: NextRequest) {
 
     const today = new Date().toISOString().split('T')[0]
     const lastAccess = profile.ultimo_acesso
-    
+
     let newStreak = profile.streak || 0
     if (lastAccess !== today) {
       const yesterday = new Date()
@@ -59,9 +60,10 @@ export async function POST(req: NextRequest) {
     const newLevel = getLevel(newXp)
     const leveledUp = newLevel.name !== oldLevel.name
 
+    // FIX: usar "nivel" (integer) em vez de "level_name" (coluna inexistente)
     const updates: any = {
       xp: newXp,
-      level_name: newLevel.name,
+      nivel: newLevel.nivel,
       streak: newStreak,
       ultimo_acesso: today,
     }
@@ -75,6 +77,7 @@ export async function POST(req: NextRequest) {
 
     await supabase.from('profiles').update(updates).eq('id', userId)
 
+    // xp_historico é opcional — falha silenciosa se a tabela não existir
     if (xpEarned > 0) {
       await supabase.from('xp_historico').insert({
         user_id: userId,
