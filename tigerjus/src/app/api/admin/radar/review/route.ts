@@ -3,17 +3,17 @@ import { createClient } from '@supabase/supabase-js'
 
 export const runtime = 'nodejs'
 
-const URL = process.env.NEXT_PUBLIC_SUPABASE_URL!
+const SB_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const ANON = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 const SERVICE = process.env.SUPABASE_SERVICE_ROLE_KEY!
 
 async function getAdmin(req: NextRequest) {
   const token = (req.headers.get('authorization') || '').replace('Bearer ', '').trim()
   if (!token) return { error: 'Não autenticado', status: 401 as const }
-  const authClient = createClient(URL, ANON, { global: { headers: { Authorization: `Bearer ${token}` } } })
+  const authClient = createClient(SB_URL, ANON, { global: { headers: { Authorization: `Bearer ${token}` } } })
   const { data: { user }, error } = await authClient.auth.getUser()
   if (error || !user) return { error: 'Sessão inválida', status: 401 as const }
-  const admin = createClient(URL, SERVICE)
+  const admin = createClient(SB_URL, SERVICE)
   const { data: caller } = await admin.from('profiles').select('role').eq('id', user.id).single()
   if (caller?.role !== 'admin') return { error: 'Acesso negado.', status: 403 as const }
   return { admin, user }
