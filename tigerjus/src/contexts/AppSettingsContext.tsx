@@ -43,6 +43,13 @@ export interface AppSettings {
   background_color:     string
   background_style:     string
   card_glow_enabled:    boolean
+  // ── NOVO: Background customizável ──
+  background_type:           string   // 'preset' | 'color' | 'image' | 'gradient'
+  background_image_url:      string
+  background_gradient:       string
+  background_overlay_opacity: number  // 0-100
+  background_blur:           number   // px
+  // ── FIM: Background customizável ──
   hero_media_enabled:   boolean
   hero_media_type:      string
   hero_media_url:       string
@@ -129,6 +136,13 @@ const FALLBACKS: AppSettings = {
   background_color:     '#0a0a0a',
   background_style:     'tech',
   card_glow_enabled:    true,
+  // ── NOVO: Background customizável (fallbacks) ──
+  background_type:           'preset',  // padrão: usar o preset do background_style
+  background_image_url:      '',
+  background_gradient:       '',
+  background_overlay_opacity: 70,
+  background_blur:           0,
+  // ── FIM ──
   hero_media_enabled:   false,
   hero_media_type:      'image',
   hero_media_url:       '',
@@ -262,9 +276,19 @@ export function AppSettingsProvider({ children }: { children: ReactNode }) {
 
       if (typeof document !== 'undefined') {
         const root = document.documentElement
-        if (merged.primary_color)   root.style.setProperty('--gold',       merged.primary_color)
-        if (merged.secondary_color) root.style.setProperty('--orange',     merged.secondary_color)
-        if (merged.background_color) root.style.setProperty('--deep-black', merged.background_color)
+        if (merged.primary_color)    root.style.setProperty('--gold',       merged.primary_color)
+        if (merged.secondary_color)  root.style.setProperty('--orange',     merged.secondary_color)
+        // ── CORREÇÃO: background_color agora afeta o fundo real do site (--tj-bg) ──
+        // O ThemeProvider tem prioridade quando background_type !== 'preset'.
+        // Mantemos --deep-black também para compatibilidade com componentes legados.
+        if (merged.background_color) {
+          root.style.setProperty('--deep-black', merged.background_color)
+          // Só aplicamos em --tj-bg se o usuário escolheu 'color' como tipo,
+          // senão deixamos o ThemeProvider/getTheme decidir.
+          if (merged.background_type === 'color') {
+            root.style.setProperty('--tj-bg', merged.background_color)
+          }
+        }
       }
     } catch (err) {
       console.error('[AppSettings] erro inesperado:', err)
