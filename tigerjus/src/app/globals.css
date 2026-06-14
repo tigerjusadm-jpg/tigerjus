@@ -41,6 +41,13 @@
     --tj-radial-glow:       radial-gradient(ellipse 70% 50% at 50% 0%, rgba(99,130,200,0.08) 0%, transparent 70%);
     --tj-radius:            16px;
     --tj-sidebar-width:     260px;
+
+    /* ── NOVO: Background customizável (fallbacks) ──────────── */
+    /* ThemeProvider injeta estes valores em runtime quando     */
+    /* background_type === 'image'                              */
+    --tj-bg-custom-image:     none;
+    --tj-bg-overlay-opacity:  0.7;
+    --tj-bg-blur:             0px;
   }
 
   * { box-sizing: border-box; }
@@ -51,7 +58,46 @@
     color: var(--white);
     font-family: var(--font-body), system-ui, sans-serif;
     overflow-x: hidden;
+    position: relative;
   }
+
+  /* ── NOVO: Suporte a imagem de fundo customizável ───────────────── */
+  /* Quando o admin escolhe background_type='image', o ThemeProvider  */
+  /* seta data-bg-mode="image" no <html> e --tj-bg-custom-image      */
+  /* recebe a URL da imagem. Os pseudo-elementos criam imagem +      */
+  /* overlay escurecido configurável.                                 */
+
+  html[data-bg-mode="image"] body {
+    /* Não duplica o background — body fica transparente sobre o ::before */
+    background: transparent;
+  }
+
+  html[data-bg-mode="image"] body::before {
+    /* Camada 1: a imagem de fundo */
+    content: '';
+    position: fixed;
+    inset: 0;
+    z-index: -2;
+    background-image: var(--tj-bg-custom-image);
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    background-attachment: fixed;
+    filter: blur(var(--tj-bg-blur));
+    pointer-events: none;
+  }
+
+  html[data-bg-mode="image"] body::after {
+    /* Camada 2: o overlay escuro pra garantir legibilidade */
+    content: '';
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    background: #000;
+    opacity: var(--tj-bg-overlay-opacity);
+    pointer-events: none;
+  }
+  /* ── FIM: Suporte a imagem de fundo ─────────────────────────────── */
 
   ::-webkit-scrollbar { width: 4px; }
   ::-webkit-scrollbar-track { background: var(--tj-bg); }
@@ -463,6 +509,14 @@
   .tj-radial-glow  { opacity: 0.5; }
   .tj-xp-fill::after { animation: none; }
   .tj-card:hover { transform: none; box-shadow: none; }
+
+  /* ── NOVO: Performance do background-image no mobile ─────── */
+  /* attachment:fixed causa jank em iOS Safari + Android Chrome */
+  /* Trocamos por scroll, que continua cobrindo a viewport      */
+  html[data-bg-mode="image"] body::before {
+    background-attachment: scroll;
+  }
+  /* ── FIM ─────────────────────────────────────────────────── */
 
   /* Hero two-col vira coluna única no mobile */
   .hero-two-col {
