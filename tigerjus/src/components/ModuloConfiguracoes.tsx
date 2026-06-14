@@ -1,7 +1,8 @@
 'use client'
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
 import ModuloCentralBanners from '@/components/ModuloCentralBanners'
+import { uploadAsset } from '@/lib/storage'
 
 // ─── TIPOS ────────────────────────────────────────────────────────────────────
 
@@ -76,7 +77,19 @@ const GRUPOS: { key: string; label: string; icon: string; keys: string[] }[] = [
     key: 'tema',
     label: 'Tema Visual',
     icon: '🖌️',
-    keys: ['primary_color', 'secondary_color', 'background_color', 'accent_color', 'background_style', 'card_glow_enabled'],
+    keys: [
+      'primary_color', 'secondary_color', 'accent_color',
+      // ── NOVO: Background customizável ──
+      'background_type',
+      'background_color',
+      'background_image_url',
+      'background_gradient',
+      'background_overlay_opacity',
+      'background_blur',
+      // ── FIM ──
+      'background_style',
+      'card_glow_enabled',
+    ],
   },
   {
     key: 'plataforma',
@@ -155,6 +168,13 @@ const DEFAULTS: Omit<AppSetting, 'id' | 'ativo'>[] = [
   { key: 'accent_color',       value: '#34d399',  type: 'color',   description: 'Cor de destaque (sucesso)' },
   { key: 'background_style',   value: 'tech',     type: 'text',    description: 'Estilo do background: classic | tech | neon | gold | cyber | minimal' },
   { key: 'card_glow_enabled',  value: 'true',     type: 'boolean', description: 'Ativa efeito glow nos cards ao hover' },
+  // ── NOVO: Background customizável ──
+  { key: 'background_type',           value: 'preset', type: 'text',    description: 'Tipo de fundo: preset | color | image | gradient' },
+  { key: 'background_image_url',      value: '',       type: 'text',    description: 'URL da imagem de fundo (recomendado 1920×1080px)' },
+  { key: 'background_gradient',       value: '',       type: 'text',    description: 'Gradiente CSS personalizado (ex: linear-gradient(...))' },
+  { key: 'background_overlay_opacity',value: '70',     type: 'number',  description: 'Opacidade do escurecimento sobre a imagem (0 a 100)' },
+  { key: 'background_blur',           value: '0',      type: 'number',  description: 'Blur aplicado ao fundo em px (0 a 20)' },
+  // ── FIM ──
   // Plataforma
   { key: 'max_free_days',      value: '3',                           type: 'number',  description: 'Dias do plano gratuito' },
   { key: 'max_free_questions', value: '15',                          type: 'number',  description: 'Questões grátis por dia' },
@@ -167,6 +187,473 @@ const DEFAULTS: Omit<AppSetting, 'id' | 'ativo'>[] = [
   { key: 'ia_max_tokens',      value: '1000',                        type: 'number',  description: 'Máximo de tokens por resposta' },
   { key: 'ia_system_prompt',   value: '',                            type: 'json',    description: 'System prompt base da IA jurídica' },
 ]
+
+// ─── PRESETS DE GRADIENTE ─────────────────────────────────────────────────────
+// Presets prontos pra clicar — facilitam criação sem conhecer sintaxe CSS
+
+const GRADIENT_PRESETS: { name: string; value: string; preview: string }[] = [
+  { name: 'TigerJus Gold',  value: 'linear-gradient(135deg, #D4A843 0%, #E8621A 100%)',                       preview: 'linear-gradient(135deg, #D4A843 0%, #E8621A 100%)' },
+  { name: 'Noite Escura',   value: 'linear-gradient(180deg, #050505 0%, #1a1a1a 100%)',                       preview: 'linear-gradient(180deg, #050505 0%, #1a1a1a 100%)' },
+  { name: 'Tech Blue',      value: 'linear-gradient(135deg, #070b14 0%, #1e293b 50%, #334155 100%)',          preview: 'linear-gradient(135deg, #070b14 0%, #1e293b 50%, #334155 100%)' },
+  { name: 'Purple Dream',   value: 'linear-gradient(135deg, #1e0a3c 0%, #6b21a8 100%)',                       preview: 'linear-gradient(135deg, #1e0a3c 0%, #6b21a8 100%)' },
+  { name: 'Sunset Red',     value: 'linear-gradient(135deg, #1a0a0a 0%, #7c2d12 100%)',                       preview: 'linear-gradient(135deg, #1a0a0a 0%, #7c2d12 100%)' },
+  { name: 'Aurora',         value: 'linear-gradient(135deg, #064e3b 0%, #1e3a8a 50%, #581c87 100%)',          preview: 'linear-gradient(135deg, #064e3b 0%, #1e3a8a 50%, #581c87 100%)' },
+]
+
+// ─── BACKGROUND DESIGNER (componente novo) ────────────────────────────────────
+// Renderizado APENAS na aba Tema Visual, ANTES dos campos antigos.
+// Integra com o mesmo sistema de `editados` e `salvar` do componente pai.
+
+interface BackgroundDesignerProps {
+  getValor: (key: string) => string
+  handleChange: (key: string, value: string) => void
+  salvar: (key: string) => Promise<void>
+  saving: string | null
+  saved: Record<string, boolean>
+  editados: Record<string, string>
+  adminId?: string
+}
+
+function BackgroundDesigner({
+  getValor, handleChange, salvar, saving, saved, editados, adminId,
+}: BackgroundDesignerProps) {
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const [uploading, setUploading] = useState(false)
+  const [uploadError, setUploadError] = useState<string | null>(null)
+
+  const bgType = (getValor('background_type') || 'preset').toLowerCase().trim()
+  const bgColor = getValor('background_color') || '#0a0a0a'
+  const bgImageUrl = getValor('background_image_url')
+  const bgGradient = getValor('background_gradient')
+  const bgOverlay = parseInt(getValor('background_overlay_opacity') || '70', 10)
+  const bgBlur = parseInt(getValor('background_blur') || '0', 10)
+
+  // Keys que estão com alteração não salva
+  const dirtyKeys = [
+    'background_type', 'background_color', 'background_image_url',
+    'background_gradient', 'background_overlay_opacity', 'background_blur',
+  ].filter(k => editados[k] !== undefined)
+
+  const salvarTudo = async () => {
+    for (const k of dirtyKeys) {
+      await salvar(k)
+    }
+  }
+
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setUploadError(null)
+    setUploading(true)
+
+    try {
+      const { data, error } = await uploadAsset({
+        file,
+        categoria: 'tema',
+        subcategoria: 'backgrounds',
+        nome: file.name.replace(/\.[^.]+$/, ''),
+        alt_text: 'Background da plataforma',
+        descricao: 'Imagem de fundo customizada',
+        criado_por: adminId || null,
+      })
+
+      if (error || !data) {
+        setUploadError(error || 'Erro ao enviar arquivo')
+      } else {
+        handleChange('background_image_url', data.url)
+      }
+    } catch (err) {
+      setUploadError(err instanceof Error ? err.message : 'Erro inesperado no upload')
+    } finally {
+      setUploading(false)
+      if (fileInputRef.current) fileInputRef.current.value = ''
+    }
+  }
+
+  const previewStyle: React.CSSProperties = (() => {
+    const base: React.CSSProperties = {
+      position: 'relative',
+      width: '100%',
+      minHeight: 180,
+      borderRadius: 12,
+      overflow: 'hidden',
+      border: '1px solid rgba(255,255,255,0.1)',
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 10,
+      padding: 24,
+    }
+
+    if (bgType === 'color') {
+      return { ...base, background: bgColor }
+    }
+    if (bgType === 'gradient' && bgGradient) {
+      return { ...base, background: bgGradient }
+    }
+    if (bgType === 'image' && bgImageUrl) {
+      return {
+        ...base,
+        backgroundImage: `url("${bgImageUrl}")`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundRepeat: 'no-repeat',
+      }
+    }
+    return { ...base, background: '#070b14' }
+  })()
+
+  const overlayStyle: React.CSSProperties | undefined = bgType === 'image' && bgImageUrl
+    ? {
+        position: 'absolute', inset: 0,
+        background: '#000',
+        opacity: Math.max(0, Math.min(100, bgOverlay)) / 100,
+        backdropFilter: bgBlur > 0 ? `blur(${Math.min(20, bgBlur)}px)` : undefined,
+        WebkitBackdropFilter: bgBlur > 0 ? `blur(${Math.min(20, bgBlur)}px)` : undefined,
+        pointerEvents: 'none',
+      }
+    : undefined
+
+  const TYPE_CARDS = [
+    { id: 'preset',   icon: '🎨', label: 'Preset', sub: 'Estilos prontos do sistema' },
+    { id: 'color',    icon: '🟨', label: 'Cor sólida', sub: 'Uma cor única' },
+    { id: 'image',    icon: '🖼️', label: 'Imagem', sub: 'Upload ou URL' },
+    { id: 'gradient', icon: '🌈', label: 'Gradiente', sub: 'Transição de cores' },
+  ]
+
+  return (
+    <div style={{
+      background: 'linear-gradient(135deg, rgba(212,168,67,0.04), rgba(232,98,26,0.02))',
+      border: '1px solid rgba(212,168,67,0.2)',
+      borderRadius: 16,
+      padding: 20,
+      marginBottom: 24,
+    }}>
+      {/* HEADER */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, flexWrap: 'wrap', gap: 10 }}>
+        <div>
+          <h3 style={{ fontSize: 16, fontWeight: 900, color: '#fff', display: 'flex', alignItems: 'center', gap: 8 }}>
+            🎨 Fundo da plataforma
+          </h3>
+          <p style={{ fontSize: 11, color: '#888', marginTop: 4 }}>
+            Personalize o background de toda a plataforma — landing, dashboard e admin
+          </p>
+        </div>
+        {dirtyKeys.length > 0 && (
+          <button
+            onClick={salvarTudo}
+            disabled={saving !== null}
+            style={{
+              background: 'linear-gradient(135deg,#D4A843,#E8621A)',
+              border: 'none', borderRadius: 8, padding: '8px 18px',
+              color: '#000', fontSize: 12, fontWeight: 800,
+              cursor: saving ? 'wait' : 'pointer',
+              boxShadow: '0 4px 12px rgba(212,168,67,0.25)',
+            }}
+          >
+            {saving ? '⏳ Salvando…' : `💾 Salvar (${dirtyKeys.length})`}
+          </button>
+        )}
+      </div>
+
+      {/* SELETOR DE TIPO — 4 CARDS */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 8, marginBottom: 18 }}>
+        {TYPE_CARDS.map(card => {
+          const active = bgType === card.id
+          return (
+            <button
+              key={card.id}
+              onClick={() => handleChange('background_type', card.id)}
+              style={{
+                background: active
+                  ? 'linear-gradient(135deg, rgba(212,168,67,0.18), rgba(232,98,26,0.08))'
+                  : 'rgba(255,255,255,0.03)',
+                border: active
+                  ? '2px solid #D4A843'
+                  : '2px solid rgba(255,255,255,0.06)',
+                borderRadius: 12,
+                padding: '14px 12px',
+                cursor: 'pointer',
+                textAlign: 'center',
+                transition: 'all 0.2s',
+                color: active ? '#D4A843' : '#888',
+              }}
+            >
+              <div style={{ fontSize: 26, marginBottom: 6 }}>{card.icon}</div>
+              <div style={{ fontSize: 12, fontWeight: 800, color: active ? '#D4A843' : '#fff', marginBottom: 2 }}>
+                {card.label}
+              </div>
+              <div style={{ fontSize: 10, color: active ? '#D4A843' : '#555', lineHeight: 1.4 }}>
+                {card.sub}
+              </div>
+              {active && (
+                <div style={{ marginTop: 6, fontSize: 9, fontWeight: 800, color: '#D4A843' }}>✓ ATIVO</div>
+              )}
+            </button>
+          )
+        })}
+      </div>
+
+      {/* CONTROLES CONTEXTUAIS */}
+
+      {/* ── PRESET ── */}
+      {bgType === 'preset' && (
+        <div style={{
+          background: 'rgba(255,255,255,0.03)',
+          border: '1px solid rgba(255,255,255,0.06)',
+          borderRadius: 10,
+          padding: '12px 14px',
+          marginBottom: 14,
+          fontSize: 12,
+          color: '#888',
+          lineHeight: 1.6,
+        }}>
+          📦 Modo preset ativo — o background usa o estilo definido em <code style={{color:'#D4A843'}}>background_style</code> abaixo (tech, neon, gold, cyber, minimal, classic).
+        </div>
+      )}
+
+      {/* ── COR SÓLIDA ── */}
+      {bgType === 'color' && (
+        <div style={{
+          background: 'rgba(255,255,255,0.03)',
+          border: '1px solid rgba(255,255,255,0.06)',
+          borderRadius: 10,
+          padding: 14,
+          marginBottom: 14,
+        }}>
+          <label style={{ fontSize: 10, fontWeight: 700, letterSpacing: 2, color: '#888', display: 'block', marginBottom: 8, textTransform: 'uppercase' }}>
+            COR DO FUNDO
+          </label>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <input
+              type="color"
+              value={bgColor}
+              onChange={e => handleChange('background_color', e.target.value)}
+              style={{ width: 50, height: 40, borderRadius: 8, border: 'none', cursor: 'pointer', background: 'none' }}
+            />
+            <input
+              type="text"
+              value={bgColor}
+              onChange={e => handleChange('background_color', e.target.value)}
+              placeholder="#0a0a0a"
+              style={{
+                flex: 1, background: '#1a1a1a', border: '1px solid rgba(255,255,255,0.1)',
+                borderRadius: 8, padding: '10px 12px', color: '#fff', fontSize: 13,
+                outline: 'none', fontFamily: 'monospace', boxSizing: 'border-box',
+              }}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* ── IMAGEM ── */}
+      {bgType === 'image' && (
+        <div style={{
+          background: 'rgba(255,255,255,0.03)',
+          border: '1px solid rgba(255,255,255,0.06)',
+          borderRadius: 10,
+          padding: 14,
+          marginBottom: 14,
+        }}>
+          {/* Upload + URL */}
+          <label style={{ fontSize: 10, fontWeight: 700, letterSpacing: 2, color: '#888', display: 'block', marginBottom: 8, textTransform: 'uppercase' }}>
+            IMAGEM DE FUNDO
+          </label>
+          <div style={{ display: 'flex', gap: 8, marginBottom: 10, flexWrap: 'wrap' }}>
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploading}
+              style={{
+                background: 'linear-gradient(135deg,#D4A843,#E8621A)',
+                border: 'none', borderRadius: 8, padding: '10px 16px',
+                color: '#000', fontSize: 12, fontWeight: 800,
+                cursor: uploading ? 'wait' : 'pointer', whiteSpace: 'nowrap',
+              }}
+            >
+              {uploading ? '⏳ Enviando…' : '📤 Enviar imagem'}
+            </button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/png,image/jpeg,image/webp,image/svg+xml"
+              onChange={handleFileSelect}
+              style={{ display: 'none' }}
+            />
+            <input
+              type="text"
+              value={bgImageUrl}
+              onChange={e => handleChange('background_image_url', e.target.value)}
+              placeholder="ou cole uma URL https://..."
+              style={{
+                flex: 1, minWidth: 200, background: '#1a1a1a', border: '1px solid rgba(255,255,255,0.1)',
+                borderRadius: 8, padding: '10px 12px', color: '#fff', fontSize: 13,
+                outline: 'none', fontFamily: 'monospace', boxSizing: 'border-box',
+              }}
+            />
+            {bgImageUrl && (
+              <button
+                onClick={() => handleChange('background_image_url', '')}
+                style={{
+                  background: 'rgba(248,113,113,0.1)', border: '1px solid rgba(248,113,113,0.3)',
+                  borderRadius: 8, padding: '10px 14px', color: '#f87171',
+                  fontSize: 12, fontWeight: 700, cursor: 'pointer',
+                }}
+                title="Limpar imagem"
+              >
+                ✕
+              </button>
+            )}
+          </div>
+          {uploadError && (
+            <div style={{ marginTop: 6, fontSize: 11, color: '#f87171' }}>⚠️ {uploadError}</div>
+          )}
+          <div style={{ fontSize: 10, color: '#555', marginTop: 4 }}>
+            Recomendado: 1920×1080px · PNG, JPG ou WebP · até 2MB
+          </div>
+
+          {/* Overlay opacity */}
+          <div style={{ marginTop: 14 }}>
+            <label style={{ fontSize: 10, fontWeight: 700, letterSpacing: 2, color: '#888', display: 'block', marginBottom: 6, textTransform: 'uppercase' }}>
+              ESCURECIMENTO (overlay) — <span style={{ color: '#D4A843' }}>{bgOverlay}%</span>
+            </label>
+            <input
+              type="range"
+              min="0"
+              max="100"
+              value={isNaN(bgOverlay) ? 70 : bgOverlay}
+              onChange={e => handleChange('background_overlay_opacity', e.target.value)}
+              style={{ width: '100%', accentColor: '#D4A843' }}
+            />
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 9, color: '#444', marginTop: 2 }}>
+              <span>0% (sem)</span>
+              <span>50%</span>
+              <span>100% (preto)</span>
+            </div>
+          </div>
+
+          {/* Blur */}
+          <div style={{ marginTop: 12 }}>
+            <label style={{ fontSize: 10, fontWeight: 700, letterSpacing: 2, color: '#888', display: 'block', marginBottom: 6, textTransform: 'uppercase' }}>
+              DESFOQUE (blur) — <span style={{ color: '#D4A843' }}>{bgBlur}px</span>
+            </label>
+            <input
+              type="range"
+              min="0"
+              max="20"
+              value={isNaN(bgBlur) ? 0 : bgBlur}
+              onChange={e => handleChange('background_blur', e.target.value)}
+              style={{ width: '100%', accentColor: '#D4A843' }}
+            />
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 9, color: '#444', marginTop: 2 }}>
+              <span>0px (nítido)</span>
+              <span>10px</span>
+              <span>20px (muito borrado)</span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── GRADIENTE ── */}
+      {bgType === 'gradient' && (
+        <div style={{
+          background: 'rgba(255,255,255,0.03)',
+          border: '1px solid rgba(255,255,255,0.06)',
+          borderRadius: 10,
+          padding: 14,
+          marginBottom: 14,
+        }}>
+          <label style={{ fontSize: 10, fontWeight: 700, letterSpacing: 2, color: '#888', display: 'block', marginBottom: 8, textTransform: 'uppercase' }}>
+            PRESETS DE GRADIENTE
+          </label>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 8, marginBottom: 14 }}>
+            {GRADIENT_PRESETS.map(preset => {
+              const isActive = bgGradient === preset.value
+              return (
+                <button
+                  key={preset.name}
+                  onClick={() => handleChange('background_gradient', preset.value)}
+                  style={{
+                    border: isActive ? '2px solid #D4A843' : '2px solid rgba(255,255,255,0.06)',
+                    borderRadius: 10, padding: 0, overflow: 'hidden',
+                    cursor: 'pointer', position: 'relative',
+                    minHeight: 70,
+                  }}
+                >
+                  <div style={{
+                    width: '100%', height: 50,
+                    background: preset.preview,
+                  }} />
+                  <div style={{
+                    padding: '4px 8px', fontSize: 10, fontWeight: 700,
+                    color: isActive ? '#D4A843' : '#aaa',
+                    background: '#1a1a1a', textAlign: 'center',
+                  }}>
+                    {isActive ? '✓ ' : ''}{preset.name}
+                  </div>
+                </button>
+              )
+            })}
+          </div>
+          <label style={{ fontSize: 10, fontWeight: 700, letterSpacing: 2, color: '#888', display: 'block', marginBottom: 6, textTransform: 'uppercase' }}>
+            OU GRADIENTE CSS PERSONALIZADO
+          </label>
+          <input
+            type="text"
+            value={bgGradient}
+            onChange={e => handleChange('background_gradient', e.target.value)}
+            placeholder="linear-gradient(135deg, #000 0%, #333 100%)"
+            style={{
+              width: '100%', background: '#1a1a1a', border: '1px solid rgba(255,255,255,0.1)',
+              borderRadius: 8, padding: '10px 12px', color: '#fff', fontSize: 12,
+              outline: 'none', fontFamily: 'monospace', boxSizing: 'border-box',
+            }}
+          />
+          <div style={{ fontSize: 10, color: '#555', marginTop: 4 }}>
+            Use sintaxe CSS válida. Os presets acima já vêm prontos.
+          </div>
+        </div>
+      )}
+
+      {/* PREVIEW */}
+      <div>
+        <label style={{ fontSize: 10, fontWeight: 700, letterSpacing: 2, color: '#888', display: 'block', marginBottom: 8, textTransform: 'uppercase' }}>
+          🎬 PRÉVIA DO FUNDO
+        </label>
+        <div style={previewStyle}>
+          {overlayStyle && <div style={overlayStyle} />}
+          <div style={{ position: 'relative', zIndex: 1, textAlign: 'center' }}>
+            <div style={{
+              fontFamily: 'serif', fontSize: 28, fontWeight: 900,
+              background: 'linear-gradient(135deg, #F0C96A, #D4A843, #E8621A)',
+              WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
+              marginBottom: 6,
+            }}>
+              🐯 TigerJus
+            </div>
+            <div style={{ fontSize: 13, color: '#fff', opacity: 0.85, marginBottom: 14 }}>
+              Prévia do tema visual
+            </div>
+            <div style={{
+              display: 'inline-block',
+              background: 'linear-gradient(135deg, #D4A843, #E8621A)',
+              color: '#000', fontWeight: 800, fontSize: 11,
+              padding: '8px 18px', borderRadius: 8,
+              letterSpacing: '0.5px',
+            }}>
+              BOTÃO EXEMPLO
+            </div>
+          </div>
+        </div>
+        <div style={{ fontSize: 10, color: '#555', marginTop: 6, textAlign: 'center' }}>
+          {dirtyKeys.length > 0
+            ? '⚠️ Alterações não salvas — clique em "Salvar" acima para aplicar'
+            : '✓ Configuração atual da plataforma'}
+        </div>
+      </div>
+    </div>
+  )
+}
 
 // ─── EDITOR POR TIPO ──────────────────────────────────────────────────────────
 
@@ -451,6 +938,12 @@ export default function ModuloConfiguracoes({ adminId }: { adminId?: string }) {
                 NOVO
               </span>
             )}
+            {g.key === 'tema' && (
+              <span style={{ fontSize: 9, fontWeight: 800, padding: '1px 5px', borderRadius: 4,
+                background: 'rgba(76,175,125,0.2)', color: '#34d399', letterSpacing: 0.5 }}>
+                PRO
+              </span>
+            )}
           </button>
         ))}
         {settingsExtras.length > 0 && (
@@ -500,6 +993,19 @@ export default function ModuloConfiguracoes({ adminId }: { adminId?: string }) {
               </button>
             </div>
 
+            {/* ── NOVO: Background Designer (apenas na aba Tema Visual) ── */}
+            {grupoAtivo === 'tema' && !loading && (
+              <BackgroundDesigner
+                getValor={getValor}
+                handleChange={handleChange}
+                salvar={salvar}
+                saving={saving}
+                saved={saved}
+                editados={editados}
+                adminId={adminId}
+              />
+            )}
+
             {loading ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                 {[...Array(4)].map((_, i) => (
@@ -509,6 +1015,17 @@ export default function ModuloConfiguracoes({ adminId }: { adminId?: string }) {
               </div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {/* ── Header opcional para campos avançados na aba tema ── */}
+                {grupoAtivo === 'tema' && (
+                  <div style={{
+                    fontSize: 10, fontWeight: 700, letterSpacing: 2,
+                    color: '#666', textTransform: 'uppercase',
+                    marginBottom: 4, marginTop: 8,
+                    paddingBottom: 8, borderBottom: '1px solid rgba(255,255,255,0.05)',
+                  }}>
+                    ⚙️ Configurações avançadas (acesso direto às keys)
+                  </div>
+                )}
                 {(grupoAtivo === 'extras' ? settingsExtras : settingsDoGrupo).map(s => {
                   const foiEditado = editados[s.key] !== undefined
                   const foiSalvo  = saved[s.key]
