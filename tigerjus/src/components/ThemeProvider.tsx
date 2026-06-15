@@ -34,6 +34,7 @@ export default function ThemeProvider({ children }: { children: React.ReactNode 
     root.style.removeProperty('--tj-bg-custom-image')
     root.style.removeProperty('--tj-bg-overlay-opacity')
     root.style.removeProperty('--tj-bg-blur')
+    root.style.removeProperty('--tj-bg-position')
 
     if (bgType === 'color' && settings.background_color) {
       // Cor sólida — sobrescreve --tj-bg
@@ -58,6 +59,19 @@ export default function ThemeProvider({ children }: { children: React.ReactNode 
       const blurPx = Number.isFinite(rawBlur) ? Math.max(0, Math.min(20, rawBlur)) : 0
       root.style.setProperty('--tj-bg-blur', `${blurPx}px`)
 
+      // Posição (grid 3×3) — mantém cover; só ancora QUAL parte da imagem aparece
+      // Valores válidos: 'center', 'top left', 'bottom right', etc.
+      const pos = String(settings.background_position || 'center').trim() || 'center'
+      root.style.setProperty('--tj-bg-position', pos)
+
+      // Fundo transparente no modo imagem: deixa a imagem (body::before) aparecer
+      // atrás de TODA a plataforma — landing e app logado, em todas as telas.
+      root.style.setProperty('--tj-bg', 'transparent')
+      // --tj-bg-secondary é usado só nas seções "Plataforma" e "Planos" da landing;
+      // transparente aqui faz a imagem cobrir a landing INTEIRA.
+      // (getTheme reescreve este token a cada render, restaurando-o fora do modo imagem.)
+      root.style.setProperty('--tj-bg-secondary', 'transparent')
+
       root.setAttribute('data-bg-mode', 'image')
     } else {
       // bgType === 'preset' (ou inválido) → comportamento atual: getTheme cuida do --tj-bg
@@ -77,6 +91,7 @@ export default function ThemeProvider({ children }: { children: React.ReactNode 
     settings.background_gradient,
     settings.background_overlay_opacity,
     settings.background_blur,
+    settings.background_position,
   ])
 
   return <>{children}</>
