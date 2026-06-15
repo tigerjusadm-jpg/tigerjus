@@ -222,6 +222,9 @@ function BackgroundDesigner({
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [uploading, setUploading] = useState(false)
   const [uploadError, setUploadError] = useState<string | null>(null)
+  const previewRef = useRef<HTMLDivElement>(null)
+  const dragRef = useRef<{ x: number; y: number; px: number; py: number } | null>(null)
+  const [dragging, setDragging] = useState(false)
 
   const bgType = (getValor('background_type') || 'preset').toLowerCase().trim()
   const bgColor = getValor('background_color') || '#0a0a0a'
@@ -230,17 +233,46 @@ function BackgroundDesigner({
   const bgOverlay = parseInt(getValor('background_overlay_opacity') || '70', 10)
   const bgBlur = parseInt(getValor('background_blur') || '0', 10)
   const bgPosition = getValor('background_position') || 'center'
-  const POSICOES = [
-    { v: 'top left',     icon: '↖', label: 'Sup. esquerda' },
-    { v: 'top',          icon: '↑', label: 'Topo' },
-    { v: 'top right',    icon: '↗', label: 'Sup. direita' },
-    { v: 'left',         icon: '←', label: 'Esquerda' },
-    { v: 'center',       icon: '●', label: 'Centro' },
-    { v: 'right',        icon: '→', label: 'Direita' },
-    { v: 'bottom left',  icon: '↙', label: 'Inf. esquerda' },
-    { v: 'bottom',       icon: '↓', label: 'Rodapé' },
-    { v: 'bottom right', icon: '↘', label: 'Inf. direita' },
-  ]
+
+  // ── Posição via ARRASTE no preview (estilo "reposicionar capa") ──
+  const clampPct = (n: number) => Math.max(0, Math.min(100, n))
+  // Converte o valor salvo (keyword OU "x% y%") em números 0-100
+  const parsePos = (v: string): { x: number; y: number } => {
+    const k = (v || 'center').trim().toLowerCase()
+    const KW: Record<string, [number, number]> = {
+      'center': [50, 50], 'top': [50, 0], 'bottom': [50, 100], 'left': [0, 50], 'right': [100, 50],
+      'top left': [0, 0], 'left top': [0, 0], 'top right': [100, 0], 'right top': [100, 0],
+      'bottom left': [0, 100], 'left bottom': [0, 100], 'bottom right': [100, 100], 'right bottom': [100, 100],
+    }
+    if (KW[k]) return { x: KW[k][0], y: KW[k][1] }
+    const m = k.match(/(-?\d+(?:\.\d+)?)%?\s+(-?\d+(?:\.\d+)?)%?/)
+    if (m) return { x: clampPct(parseFloat(m[1])), y: clampPct(parseFloat(m[2])) }
+    return { x: 50, y: 50 }
+  }
+  const posXY = parsePos(bgPosition)
+
+  const onDragStart = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (bgType !== 'image' || !bgImageUrl) return
+    const start = parsePos(bgPosition)
+    dragRef.current = { x: e.clientX, y: e.clientY, px: start.x, py: start.y }
+    setDragging(true)
+    try { e.currentTarget.setPointerCapture(e.pointerId) } catch {}
+  }
+  const onDragMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    const d = dragRef.current
+    const el = previewRef.current
+    if (!d || !el) return
+    const rect = el.getBoundingClientRect()
+    // "pega e arrasta": mover a imagem revela o lado oposto → subtrai o delta
+    const nx = clampPct(d.px - ((e.clientX - d.x) / rect.width) * 100)
+    const ny = clampPct(d.py - ((e.clientY - d.y) / rect.height) * 100)
+    handleChange('background_position', `${Math.round(nx)}% ${Math.round(ny)}%`)
+  }
+  const onDragEnd = (e: React.PointerEvent<HTMLDivElement>) => {
+    dragRef.current = null
+    setDragging(false)
+    try { e.currentTarget.releasePointerCapture(e.pointerId) } catch {}
+  }
 
   // Keys que estão com alteração não salva
   const dirtyKeys = [
@@ -527,33 +559,23 @@ function BackgroundDesigner({
             Recomendado: 1920×1080px · PNG, JPG ou WebP · até 2MB
           </div>
 
-          {/* Posição da imagem — grid 3×3 (ancora qual parte aparece; mantém cover) */}
+          {/* Posição da imagem — ARRASTE no preview abaixo para reposicionar */}
           <div style={{ marginTop: 16 }}>
             <label style={{ fontSize: 10, fontWeight: 700, letterSpacing: 2, color: '#888', display: 'block', marginBottom: 8, textTransform: 'uppercase' }}>
-              POSIÇÃO DA IMAGEM — <span style={{ color: '#D4A843' }}>{POSICOES.find(p => p.v === bgPosition)?.label || 'Centro'}</span>
+              POSIÇÃO DA IMAGEM — <span style={{ color: '#D4A843' }}>{posXY.x}% {posXY.y}%</span>
             </label>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6, maxWidth: 172 }}>
-              {POSICOES.map(p => {
-                const ativo = bgPosition === p.v
-                return (
-                  <button
-                    key={p.v}
-                    type="button"
-                    onClick={() => handleChange('background_position', p.v)}
-                    title={p.label}
-                    style={{
-                      aspectRatio: '1', display: 'grid', placeItems: 'center',
-                      borderRadius: 8, cursor: 'pointer', fontSize: 16, lineHeight: 1,
-                      border: ativo ? '1px solid rgba(212,168,67,0.6)' : '1px solid rgba(255,255,255,0.1)',
-                      background: ativo ? 'rgba(212,168,67,0.14)' : 'rgba(255,255,255,0.03)',
-                      color: ativo ? '#D4A843' : '#777', fontWeight: 700, transition: 'all 0.15s',
-                    }}
-                  >{p.icon}</button>
-                )
-              })}
-            </div>
-            <div style={{ fontSize: 10, color: '#555', marginTop: 6, lineHeight: 1.5 }}>
-              Clique no ponto onde a imagem deve ancorar. A imagem sempre preenche a tela inteira (sem faixas/cortes brancos).
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+              <div style={{ fontSize: 11, color: '#888', lineHeight: 1.5, flex: 1, minWidth: 180 }}>
+                🖐 Arraste a imagem na <strong style={{ color: '#aaa' }}>prévia abaixo</strong> para posicionar. Ela sempre preenche a tela inteira (sem faixas/cortes brancos).
+              </div>
+              <button
+                type="button"
+                onClick={() => handleChange('background_position', '50% 50%')}
+                style={{
+                  fontSize: 11, fontWeight: 700, padding: '7px 14px', borderRadius: 8, cursor: 'pointer',
+                  border: '1px solid rgba(255,255,255,0.12)', background: 'rgba(255,255,255,0.04)', color: '#aaa', whiteSpace: 'nowrap',
+                }}
+              >⟳ Centralizar</button>
             </div>
           </div>
 
@@ -665,8 +687,32 @@ function BackgroundDesigner({
         <label style={{ fontSize: 10, fontWeight: 700, letterSpacing: 2, color: '#888', display: 'block', marginBottom: 8, textTransform: 'uppercase' }}>
           🎬 PRÉVIA DO FUNDO
         </label>
-        <div style={previewStyle}>
+        <div
+          ref={previewRef}
+          onPointerDown={onDragStart}
+          onPointerMove={onDragMove}
+          onPointerUp={onDragEnd}
+          onPointerCancel={onDragEnd}
+          style={{
+            ...previewStyle,
+            ...(bgType === 'image' && bgImageUrl
+              ? ({ cursor: dragging ? 'grabbing' : 'grab', touchAction: 'none', userSelect: 'none' } as React.CSSProperties)
+              : {}),
+          }}
+        >
           {overlayStyle && <div style={overlayStyle} />}
+          {bgType === 'image' && bgImageUrl && (
+            <div style={{
+              position: 'absolute', top: 8, left: '50%', transform: 'translateX(-50%)',
+              zIndex: 2, pointerEvents: 'none', whiteSpace: 'nowrap',
+              fontSize: 10, fontWeight: 700, letterSpacing: 0.5,
+              background: 'rgba(0,0,0,0.55)', border: '1px solid rgba(255,255,255,0.14)',
+              color: '#e6e9f0', padding: '4px 10px', borderRadius: 100,
+              backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)',
+            }}>
+              {dragging ? `${posXY.x}% ${posXY.y}%` : '🖐 Arraste para posicionar'}
+            </div>
+          )}
           <div style={{ position: 'relative', zIndex: 1, textAlign: 'center' }}>
             <div style={{
               fontFamily: 'serif', fontSize: 28, fontWeight: 900,
