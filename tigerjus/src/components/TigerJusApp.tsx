@@ -1483,13 +1483,9 @@ function IndiceJuridico({ showUpgrade, isPago }: any) {
       if (texto.length >= 2) {
         // Busca multi-fonte simultânea
         const [resTermos, resQuestoes, resFlash] = await Promise.all([
-          supabase.from('indice_remissivo').select('*').eq('ativo', true)
-            .or(`termo.ilike.%${texto}%,descricao.ilike.%${texto}%`)
-            .order('termo').limit(50),
-          supabase.from('questoes_oab').select('id,disciplina,enunciado,opcao_a,opcao_b,opcao_c,opcao_d,resposta_correta,comentario')
-            .ilike('enunciado', `%${texto}%`).neq('resposta_correta','*').limit(10),
-          supabase.from('flashcards').select('id,disciplina,frente,verso').eq('ativo',true)
-            .ilike('frente', `%${texto}%`).limit(10),
+          supabase.rpc('buscar_indice_termos', { q: texto }),
+          supabase.rpc('buscar_questoes_indice', { q: texto, lim: 10 }),
+          supabase.rpc('buscar_flashcards_indice', { q: texto, lim: 10 }),
         ])
         setTermos(resTermos.data || [])
         setQuestoesBusca(resQuestoes.data || [])
@@ -1523,9 +1519,7 @@ function IndiceJuridico({ showUpgrade, isPago }: any) {
   const abrirTermo = async (termo: any) => {
     setTermoSel(termo); setLoadingModal(true)
     try {
-      const { data } = await supabase.from('questoes_oab')
-        .select('id,enunciado,opcao_a,opcao_b,opcao_c,opcao_d,resposta_correta,comentario')
-        .ilike('enunciado', `%${termo.termo}%`).neq('resposta_correta','*').limit(3)
+      const { data } = await supabase.rpc('buscar_questoes_indice', { q: termo.termo, lim: 3 })
       setQuestRel(data || [])
     } catch { setQuestRel([]) }
     finally { setLoadingModal(false) }
