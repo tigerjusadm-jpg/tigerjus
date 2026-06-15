@@ -48,6 +48,7 @@
     --tj-bg-custom-image:     none;
     --tj-bg-overlay-opacity:  0.7;
     --tj-bg-blur:             0px;
+    --tj-bg-position:         center;
   }
 
   * { box-sizing: border-box; }
@@ -80,7 +81,7 @@
     z-index: -2;
     background-image: var(--tj-bg-custom-image);
     background-size: cover;
-    background-position: center;
+    background-position: var(--tj-bg-position, center);
     background-repeat: no-repeat;
     background-attachment: fixed;
     filter: blur(var(--tj-bg-blur));
