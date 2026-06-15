@@ -86,6 +86,7 @@ const GRUPOS: { key: string; label: string; icon: string; keys: string[] }[] = [
       'background_gradient',
       'background_overlay_opacity',
       'background_blur',
+      'background_position',
       // ── FIM ──
       'background_style',
       'card_glow_enabled',
@@ -174,6 +175,7 @@ const DEFAULTS: Omit<AppSetting, 'id' | 'ativo'>[] = [
   { key: 'background_gradient',       value: '',       type: 'text',    description: 'Gradiente CSS personalizado (ex: linear-gradient(...))' },
   { key: 'background_overlay_opacity',value: '70',     type: 'number',  description: 'Opacidade do escurecimento sobre a imagem (0 a 100)' },
   { key: 'background_blur',           value: '0',      type: 'number',  description: 'Blur aplicado ao fundo em px (0 a 20)' },
+  { key: 'background_position',       value: 'center', type: 'text',    description: 'Ancoragem da imagem (grid 3×3): center | top | bottom | left | right | top left | top right | bottom left | bottom right' },
   // ── FIM ──
   // Plataforma
   { key: 'max_free_days',      value: '3',                           type: 'number',  description: 'Dias do plano gratuito' },
@@ -227,11 +229,24 @@ function BackgroundDesigner({
   const bgGradient = getValor('background_gradient')
   const bgOverlay = parseInt(getValor('background_overlay_opacity') || '70', 10)
   const bgBlur = parseInt(getValor('background_blur') || '0', 10)
+  const bgPosition = getValor('background_position') || 'center'
+  const POSICOES = [
+    { v: 'top left',     icon: '↖', label: 'Sup. esquerda' },
+    { v: 'top',          icon: '↑', label: 'Topo' },
+    { v: 'top right',    icon: '↗', label: 'Sup. direita' },
+    { v: 'left',         icon: '←', label: 'Esquerda' },
+    { v: 'center',       icon: '●', label: 'Centro' },
+    { v: 'right',        icon: '→', label: 'Direita' },
+    { v: 'bottom left',  icon: '↙', label: 'Inf. esquerda' },
+    { v: 'bottom',       icon: '↓', label: 'Rodapé' },
+    { v: 'bottom right', icon: '↘', label: 'Inf. direita' },
+  ]
 
   // Keys que estão com alteração não salva
   const dirtyKeys = [
     'background_type', 'background_color', 'background_image_url',
     'background_gradient', 'background_overlay_opacity', 'background_blur',
+    'background_position',
   ].filter(k => editados[k] !== undefined)
 
   const salvarTudo = async () => {
@@ -297,7 +312,7 @@ function BackgroundDesigner({
         ...base,
         backgroundImage: `url("${bgImageUrl}")`,
         backgroundSize: 'cover',
-        backgroundPosition: 'center',
+        backgroundPosition: bgPosition,
         backgroundRepeat: 'no-repeat',
       }
     }
@@ -510,6 +525,36 @@ function BackgroundDesigner({
           )}
           <div style={{ fontSize: 10, color: '#555', marginTop: 4 }}>
             Recomendado: 1920×1080px · PNG, JPG ou WebP · até 2MB
+          </div>
+
+          {/* Posição da imagem — grid 3×3 (ancora qual parte aparece; mantém cover) */}
+          <div style={{ marginTop: 16 }}>
+            <label style={{ fontSize: 10, fontWeight: 700, letterSpacing: 2, color: '#888', display: 'block', marginBottom: 8, textTransform: 'uppercase' }}>
+              POSIÇÃO DA IMAGEM — <span style={{ color: '#D4A843' }}>{POSICOES.find(p => p.v === bgPosition)?.label || 'Centro'}</span>
+            </label>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6, maxWidth: 172 }}>
+              {POSICOES.map(p => {
+                const ativo = bgPosition === p.v
+                return (
+                  <button
+                    key={p.v}
+                    type="button"
+                    onClick={() => handleChange('background_position', p.v)}
+                    title={p.label}
+                    style={{
+                      aspectRatio: '1', display: 'grid', placeItems: 'center',
+                      borderRadius: 8, cursor: 'pointer', fontSize: 16, lineHeight: 1,
+                      border: ativo ? '1px solid rgba(212,168,67,0.6)' : '1px solid rgba(255,255,255,0.1)',
+                      background: ativo ? 'rgba(212,168,67,0.14)' : 'rgba(255,255,255,0.03)',
+                      color: ativo ? '#D4A843' : '#777', fontWeight: 700, transition: 'all 0.15s',
+                    }}
+                  >{p.icon}</button>
+                )
+              })}
+            </div>
+            <div style={{ fontSize: 10, color: '#555', marginTop: 6, lineHeight: 1.5 }}>
+              Clique no ponto onde a imagem deve ancorar. A imagem sempre preenche a tela inteira (sem faixas/cortes brancos).
+            </div>
           </div>
 
           {/* Overlay opacity */}
