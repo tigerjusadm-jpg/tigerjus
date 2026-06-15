@@ -49,6 +49,7 @@ export interface AppSettings {
   background_gradient:       string
   background_overlay_opacity: number  // 0-100
   background_blur:           number   // px
+  background_position:       string   // grid 3×3: center | top left | bottom right ...
   // ── FIM: Background customizável ──
   hero_media_enabled:   boolean
   hero_media_type:      string
@@ -142,6 +143,7 @@ const FALLBACKS: AppSettings = {
   background_gradient:       '',
   background_overlay_opacity: 70,
   background_blur:           0,
+  background_position:       'center',
   // ── FIM ──
   hero_media_enabled:   false,
   hero_media_type:      'image',
