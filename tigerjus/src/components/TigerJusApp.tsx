@@ -250,7 +250,59 @@ function QuestaoDodia({onNav}:{onNav:(k:string)=>void}){
   )
 }
 
-function DashHome({ profile, onNav, showUpgrade, isPago, canAccessPremium, onOpenRadar }: any) {
+function DashTicker(){
+  const frases=[
+    '🔥 Constância vence talento — faça sua questão de hoje.',
+    '⚖️ Cada questão te aproxima da aprovação.',
+    '🐯 Pense como um Tigre: foco, disciplina, evolução.',
+    '📈 Premium libera IA ilimitada, simulados completos e o Radar OAB.',
+    '🎯 30 minutos focados hoje valem mais que 3 horas amanhã.',
+  ]
+  const [i,setI]=useState(0)
+  useEffect(()=>{const t=setInterval(()=>setI(p=>(p+1)%frases.length),4500);return()=>clearInterval(t)},[frases.length])
+  return(
+    <div style={{display:'flex',alignItems:'center',gap:10,background:'rgba(212,168,67,0.06)',border:'1px solid rgba(212,168,67,0.16)',borderRadius:12,padding:'10px 14px',marginBottom:16,overflow:'hidden'}}>
+      <span style={{fontSize:9,fontWeight:800,letterSpacing:1.5,textTransform:'uppercase',color:'var(--gold)',whiteSpace:'nowrap',flexShrink:0}}>TIGER</span>
+      <span key={i} style={{fontSize:13,color:'var(--text-muted)',animation:'tjFade 0.5s ease'}}>{frases[i]}</span>
+      <style>{`@keyframes tjFade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}`}</style>
+    </div>
+  )
+}
+
+function DegustacaoCard({ freeQ, freeIA, limites, showUpgrade }: any){
+  const limQ = limites?.questoes===Infinity ? null : (limites?.questoes ?? 15)
+  const limIA = limites?.ia===Infinity ? null : (limites?.ia ?? 5)
+  const usadoQ = limQ===null?0:Math.max(0,limQ-(freeQ??limQ))
+  const usadoIA = limIA===null?0:Math.max(0,limIA-(freeIA??limIA))
+  const Bar = ({label,usado,lim,emoji}:any)=>{
+    const p = lim? Math.min(100,Math.round((usado/lim)*100)) : 0
+    return(
+      <div style={{marginBottom:12}}>
+        <div style={{display:'flex',justifyContent:'space-between',fontSize:12,marginBottom:5}}>
+          <span style={{color:'var(--text-muted)'}}>{emoji} {label}</span>
+          <span style={{fontWeight:700,color:p>=100?'var(--orange)':'var(--gold)'}}>{usado}/{lim} hoje</span>
+        </div>
+        <div style={{background:'rgba(255,255,255,0.07)',borderRadius:100,height:7,overflow:'hidden'}}>
+          <div style={{width:`${p}%`,height:'100%',background:p>=100?'linear-gradient(90deg,var(--orange),var(--danger))':'linear-gradient(90deg,var(--gold),var(--orange))',borderRadius:100,transition:'width 0.6s'}}/>
+        </div>
+      </div>
+    )
+  }
+  return(
+    <div style={{background:'linear-gradient(135deg,rgba(232,98,26,0.1),rgba(212,168,67,0.06))',border:'1px solid rgba(232,98,26,0.28)',borderRadius:18,padding:20,marginBottom:20,position:'relative',overflow:'hidden'}}>
+      <div style={{position:'absolute',right:-10,top:-10,fontSize:80,opacity:0.05,pointerEvents:'none'}}>🔓</div>
+      <span style={{fontSize:9,fontWeight:800,letterSpacing:1.5,textTransform:'uppercase',background:'rgba(232,98,26,0.15)',border:'1px solid rgba(232,98,26,0.3)',color:'var(--orange)',padding:'3px 9px',borderRadius:100}}>Modo Degustação</span>
+      <div style={{fontSize:15,fontWeight:800,color:'var(--white)',margin:'10px 0 14px'}}>Você está testando o TigerJus grátis</div>
+      {limQ!==null && <Bar label="Questões" usado={usadoQ} lim={limQ} emoji="📝"/>}
+      {limIA!==null && <Bar label="Perguntas à IA" usado={usadoIA} lim={limIA} emoji="🤖"/>}
+      <div style={{fontSize:12,color:'var(--text-muted)',margin:'6px 0 14px',lineHeight:1.5}}>No Premium: questões e IA <strong style={{color:'var(--gold)'}}>ilimitadas</strong>, simulados completos, Radar OAB e revisão inteligente.</div>
+      <button className="btn-primary" style={{width:'100%',fontSize:14,fontWeight:800,padding:14,animation:'tjPulse 2s ease-in-out infinite'}} onClick={showUpgrade}>🚀 DESBLOQUEAR TUDO</button>
+      <style>{`@keyframes tjPulse{0%,100%{box-shadow:0 0 0 0 rgba(232,98,26,0.4)}50%{box-shadow:0 0 0 8px rgba(232,98,26,0)}}`}</style>
+    </div>
+  )
+}
+
+function DashHome({ profile, onNav, showUpgrade, isPago, canAccessPremium, onOpenRadar, freeQ, freeIA, limites }: any) {
   const { settings: dashSettings } = useAppSettings()
   const xp=profile?.xp||0; const _niv=getNivelByXp(xp); const levelName=_niv.nome
   const streak=profile?.streak||0; const xpNext=_niv.xp_max??999999; const xpPrev=_niv.xp_min
@@ -265,6 +317,7 @@ function DashHome({ profile, onNav, showUpgrade, isPago, canAccessPremium, onOpe
       </div>
       {/* ── Banner de imagem configurável pelo admin ── */}
       <DashboardTopBanner/>
+      <DashTicker/>
       <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',flexWrap:'wrap',gap:12,marginBottom:20}}>
         <div>
           <h1 style={{fontFamily:'var(--font-display)',fontSize:'clamp(22px,5vw,32px)',fontWeight:900,marginBottom:6}}>Olá, {profile?.nome?.split(' ')[0]||levelName}! 🔥</h1>
@@ -272,6 +325,28 @@ function DashHome({ profile, onNav, showUpgrade, isPago, canAccessPremium, onOpe
         </div>
         {streak>0&&<div style={{display:'inline-flex',alignItems:'center',gap:6,background:'rgba(232,98,26,0.1)',border:'1px solid rgba(232,98,26,0.25)',borderRadius:100,padding:'8px 16px',fontSize:13,fontWeight:700,color:'var(--orange)'}}>🔥 {streak} dias</div>}
       </div>
+      {/* ── AÇÃO PRIMEIRO ───────────────────────────────────────── */}
+      <div style={{marginBottom:20}}>
+        <h2 style={{fontFamily:'var(--font-display)',fontSize:'clamp(16px,4vw,20px)',fontWeight:900,marginBottom:12}}>O que você quer fazer agora?</h2>
+        <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(150px,1fr))',gap:12}}>
+          {[
+            {icon:'📝',label:'Estudar questões',sub:'Quiz OAB',key:'quiz',lock:false,grad:'linear-gradient(135deg,rgba(212,168,67,0.16),rgba(232,98,26,0.08))',bd:'rgba(212,168,67,0.3)'},
+            {icon:'📋',label:'Fazer simulado',sub:'Estilo OAB',key:'simulados',lock:!canAccessPremium,grad:'linear-gradient(135deg,rgba(58,143,232,0.14),rgba(212,168,67,0.05))',bd:'rgba(58,143,232,0.28)'},
+            {icon:'🤖',label:'Tutor IA',sub:'Tire dúvidas',key:'ia',lock:!canAccessPremium,grad:'linear-gradient(135deg,rgba(139,92,246,0.14),rgba(58,143,232,0.05))',bd:'rgba(139,92,246,0.28)'},
+            {icon:'🃏',label:'Revisar',sub:'Flashcards',key:'flashcards',lock:false,grad:'linear-gradient(135deg,rgba(76,175,125,0.14),rgba(212,168,67,0.05))',bd:'rgba(76,175,125,0.28)'},
+          ].map(a=>(
+            <button key={a.key} onClick={()=>onNav(a.key)} style={{textAlign:'left',cursor:'pointer',background:a.grad,border:`1px solid ${a.bd}`,borderRadius:16,padding:'16px 16px 14px',transition:'transform 0.2s',position:'relative'}}
+              onMouseEnter={e=>{e.currentTarget.style.transform='translateY(-3px)'}}
+              onMouseLeave={e=>{e.currentTarget.style.transform='translateY(0)'}}>
+              {a.lock&&<span style={{position:'absolute',top:10,right:10,fontSize:9,fontWeight:800,letterSpacing:1,textTransform:'uppercase',background:'rgba(212,168,67,0.15)',border:'1px solid rgba(212,168,67,0.3)',color:'var(--gold)',padding:'3px 7px',borderRadius:100}}>🔒 Premium</span>}
+              <div style={{fontSize:26,marginBottom:10}}>{a.icon}</div>
+              <div style={{fontSize:14,fontWeight:800,color:'var(--white)',marginBottom:2}}>{a.label}</div>
+              <div style={{fontSize:11,color:'var(--text-muted)'}}>{a.sub}</div>
+            </button>
+          ))}
+        </div>
+      </div>
+      {!isPago&&<DegustacaoCard freeQ={freeQ} freeIA={freeIA} limites={limites} showUpgrade={showUpgrade}/>}
       <div style={{background:'linear-gradient(135deg,rgba(212,168,67,0.12),rgba(232,98,26,0.06))',border:'1px solid rgba(212,168,67,0.2)',borderRadius:20,padding:'24px',marginBottom:20,position:'relative',overflow:'hidden'}}>
         <div style={{position:'absolute',right:-16,top:-16,fontSize:100,opacity:0.04,pointerEvents:'none'}}>🐯</div>
         <div style={{fontSize:10,fontWeight:700,letterSpacing:'2.5px',textTransform:'uppercase',color:'var(--gold)',marginBottom:6}}>NÍVEL — {levelName.toUpperCase()}</div>
@@ -2172,7 +2247,7 @@ export default function TigerJusApp() {
             <RadarOAB/>
           </div>
         </aside>
-        {page==='dashboard'&&<DashHome profile={profile} onNav={navTo} showUpgrade={showUpgrade} isPago={userIsPago} canAccessPremium={canAccessPremium} onOpenRadar={()=>setShowRadar(true)}/>}
+        {page==='dashboard'&&<DashHome profile={profile} onNav={navTo} showUpgrade={showUpgrade} isPago={userIsPago} canAccessPremium={canAccessPremium} onOpenRadar={()=>setShowRadar(true)} freeQ={freeQ} freeIA={freeIA} limites={limites}/>}
         {page==='disciplines'&&<DisciplinesPage showUpgrade={showUpgrade} profile={profile} isPago={userIsPago} canAccessPremium={canAccessPremium} podePDF={podePDF}/>}
         {page==='quiz'&&<QuizPage freeQ={freeQ} setFreeQ={setFreeQ} showUpgrade={showUpgrade} onXp={handleXp} profile={profile} isPago={userIsPago}/>}
         {page==='flashcards'&&<FlashCardsPage/>}
