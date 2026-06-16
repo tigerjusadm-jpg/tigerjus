@@ -3,12 +3,14 @@ import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import Link from 'next/link'
+import { useAppSettings } from '@/contexts/AppSettingsContext'
 
 type Mode = 'login' | 'cadastro' | 'reset'
 
 function LoginForm() {
   const router = useRouter()
   const params = useSearchParams()
+  const { settings } = useAppSettings()
 
   const rawRedirect = params.get('redirect')
   const redirect = rawRedirect && rawRedirect.startsWith('/') && !rawRedirect.startsWith('//')
@@ -172,7 +174,9 @@ function LoginForm() {
       <div style={{width:'100%',maxWidth:440,position:'relative'}}>
         <div style={{textAlign:'center',marginBottom:40}}>
           <Link href="/" style={{display:'inline-flex',alignItems:'center',gap:10,textDecoration:'none'}}>
-            <div style={{width:48,height:48,background:'linear-gradient(135deg,var(--gold),var(--orange))',borderRadius:12,display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'var(--font-display)',fontSize:24,fontWeight:900,color:'var(--deep-black)'}}>T</div>
+            {settings.logo_url
+              ? <img src={settings.logo_url} alt={settings.site_name||'TigerJus'} style={{width:48,height:48,borderRadius:12,objectFit:'contain'}}/>
+              : <div style={{width:48,height:48,background:'linear-gradient(135deg,var(--gold),var(--orange))',borderRadius:12,display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'var(--font-display)',fontSize:24,fontWeight:900,color:'var(--deep-black)'}}>T</div>}
             <span style={{fontFamily:'var(--font-display)',fontSize:28,fontWeight:900,letterSpacing:2,background:'linear-gradient(135deg,#F5D78E,#D4A843)',WebkitBackgroundClip:'text',WebkitTextFillColor:'transparent'}}>TIGERJUS</span>
           </Link>
         </div>
