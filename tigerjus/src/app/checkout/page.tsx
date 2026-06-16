@@ -3,6 +3,7 @@ import { useState, useEffect, Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
+import { useAppSettings } from '@/contexts/AppSettingsContext'
 
 const PLANS: Record<string, any> = {
   start: { name:'Tiger Start', price:'1,99', amount:1.99, color:'var(--success)', features:['Questões ilimitadas','IA intermediária','Mais simulados','Streak + ranking'] },
@@ -14,6 +15,7 @@ const PLANS: Record<string, any> = {
 function CheckoutContent() {
   const params = useSearchParams()
   const router = useRouter()
+  const { settings } = useAppSettings()
   const planId = params.get('plan') || 'pro'
   const ciclo = params.get('ciclo') === 'anual' ? 'anual' : 'mensal'
   const ehAnual = ciclo === 'anual'
@@ -168,7 +170,9 @@ function CheckoutContent() {
       <div style={{maxWidth:960,margin:'0 auto',marginBottom:24}}>
         <Link href="/" style={{display:'inline-flex',alignItems:'center',gap:8,color:'var(--text-muted)',fontSize:13,textDecoration:'none',marginBottom:20}}>← Voltar</Link>
         <div style={{display:'flex',alignItems:'center',gap:10}}>
-          <div style={{width:36,height:36,background:'linear-gradient(135deg,var(--gold),var(--orange))',borderRadius:8,display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'var(--font-display)',fontSize:18,fontWeight:900,color:'var(--deep-black)',flexShrink:0}}>T</div>
+          {settings.logo_url
+            ? <img src={settings.logo_url} alt={settings.site_name||'TigerJus'} style={{width:36,height:36,borderRadius:8,objectFit:'contain',flexShrink:0}}/>
+            : <div style={{width:36,height:36,background:'linear-gradient(135deg,var(--gold),var(--orange))',borderRadius:8,display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'var(--font-display)',fontSize:18,fontWeight:900,color:'var(--deep-black)',flexShrink:0}}>T</div>}
           <span style={{fontFamily:'var(--font-display)',fontSize:20,fontWeight:900,letterSpacing:2,background:'linear-gradient(135deg,var(--gold-light),var(--gold))',WebkitBackgroundClip:'text',WebkitTextFillColor:'transparent'}}>TIGERJUS</span>
         </div>
       </div>
