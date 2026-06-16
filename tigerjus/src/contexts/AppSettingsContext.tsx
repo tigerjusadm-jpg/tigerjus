@@ -35,6 +35,8 @@ export interface AppSettings {
   whatsapp_icon_url:    string
   telegram_icon_url:    string
   youtube_icon_url:     string
+  tiktok_url:           string
+  tiktok_icon_url:      string
   site_name:            string
   site_tagline:         string
   logo_url:             string
@@ -129,6 +131,8 @@ const FALLBACKS: AppSettings = {
   whatsapp_icon_url:    '',
   telegram_icon_url:    '',
   youtube_icon_url:     '',
+  tiktok_url:           '',
+  tiktok_icon_url:      '',
   site_name:            'TigerJus',
   site_tagline:         'Estude como um Tigre.',
   logo_url:             '',
