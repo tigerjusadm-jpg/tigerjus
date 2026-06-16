@@ -2048,11 +2048,22 @@ export default function TigerJusApp() {
     </div>
   )
 
-  const SIDEBAR=[
-    {icon:'🏠',label:'Dashboard',key:'dashboard'},{icon:'📚',label:'Disciplinas',key:'disciplines'},
-    {icon:'📝',label:'Quiz',key:'quiz'},{icon:'🃏',label:'Flashcards',key:'flashcards'},
-    {icon:'📋',label:'Simulados',key:'simulados'},{icon:'🤖',label:'IA Jurídica',key:'ia'},{icon:'🏆',label:'Ranking',key:'ranking'},{icon:'📖',label:'Índice',key:'indice'},{icon:'🐯',label:'Indicar',key:'referral'},
+  const SIDEBAR_GROUPS=[
+    {title:'',items:[{icon:'🏠',label:'Início',key:'dashboard'}]},
+    {title:'ESTUDAR',items:[
+      {icon:'📝',label:'Questões',key:'quiz'},
+      {icon:'📋',label:'Simulados',key:'simulados'},
+      {icon:'🃏',label:'Flashcards',key:'flashcards'},
+      {icon:'📚',label:'Disciplinas',key:'disciplines'},
+      {icon:'📖',label:'Índice',key:'indice'},
+    ]},
+    {title:'INTELIGÊNCIA',items:[{icon:'🤖',label:'Tutor IA',key:'ia'}]},
+    {title:'EVOLUIR',items:[
+      {icon:'🏆',label:'Ranking',key:'ranking'},
+      {icon:'🐯',label:'Indicar',key:'referral'},
+    ]},
   ]
+  const SIDEBAR=SIDEBAR_GROUPS.flatMap(g=>g.items)
   const planoDisplay=profile?.plano?.charAt(0).toUpperCase()+(profile?.plano?.slice(1)||'')||'Gratuito'
 
   return(
@@ -2078,7 +2089,9 @@ export default function TigerJusApp() {
       )}
       <nav style={{position:'fixed',top:0,left:0,right:0,zIndex:100,display:'flex',alignItems:'center',justifyContent:'space-between',padding:'0 16px',height:60,background:'rgba(8,8,8,0.95)',backdropFilter:'blur(12px)',borderBottom:'1px solid rgba(255,255,255,0.06)'}}>
         <div style={{display:'flex',alignItems:'center',gap:8}}>
-          <div style={{width:34,height:34,background:'linear-gradient(135deg,var(--gold),var(--orange))',borderRadius:8,display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'var(--font-display)',fontSize:16,fontWeight:900,color:'var(--deep-black)',flexShrink:0}}>T</div>
+          {settings.logo_url
+            ? <img src={settings.logo_url} alt={settings.site_name||'TigerJus'} style={{width:34,height:34,borderRadius:8,objectFit:'contain',flexShrink:0}}/>
+            : <div style={{width:34,height:34,background:'linear-gradient(135deg,var(--gold),var(--orange))',borderRadius:8,display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'var(--font-display)',fontSize:16,fontWeight:900,color:'var(--deep-black)',flexShrink:0}}>T</div>}
           <span style={{fontFamily:'var(--font-display)',fontSize:18,fontWeight:900,letterSpacing:2,background:'linear-gradient(135deg,var(--gold-light),var(--gold))',WebkitBackgroundClip:'text',WebkitTextFillColor:'transparent'}}>TIGERJUS</span>
         </div>
         <div className="nav-desktop tj-nav-items" style={{display:'flex',gap:'clamp(8px,1vw,14px)',alignItems:'center'}}>
@@ -2097,7 +2110,12 @@ export default function TigerJusApp() {
       </nav>
       {menuOpen&&(
         <div style={{position:'fixed',top:60,left:0,right:0,zIndex:99,background:'rgba(10,10,10,0.98)',backdropFilter:'blur(12px)',borderBottom:'1px solid rgba(255,255,255,0.08)',padding:'12px 0',display:'flex',flexDirection:'column'}}>
-          {SIDEBAR.map(item=>(<button key={item.key} onClick={()=>navTo(item.key)} style={{display:'flex',alignItems:'center',gap:14,padding:'14px 20px',background:page===item.key?'rgba(212,168,67,0.08)':'none',border:'none',cursor:'pointer',fontFamily:'var(--font-body)',fontSize:15,color:page===item.key?'var(--gold)':'var(--white)',textAlign:'left',borderLeft:page===item.key?'3px solid var(--gold)':'3px solid transparent'}}><span style={{fontSize:18,width:24,textAlign:'center'}}>{item.icon}</span>{item.label}</button>))}
+          {SIDEBAR_GROUPS.map(g=>(
+            <div key={g.title||'inicio'}>
+              {g.title&&<div style={{fontSize:9,fontWeight:700,letterSpacing:2,textTransform:'uppercase',color:'var(--text-dim)',padding:'12px 20px 4px'}}>{g.title}</div>}
+              {g.items.map(item=>(<button key={item.key} onClick={()=>navTo(item.key)} style={{display:'flex',alignItems:'center',gap:14,padding:'14px 20px',width:'100%',background:page===item.key?'rgba(212,168,67,0.08)':'none',border:'none',cursor:'pointer',fontFamily:'var(--font-body)',fontSize:15,color:page===item.key?'var(--gold)':'var(--white)',textAlign:'left',borderLeft:page===item.key?'3px solid var(--gold)':'3px solid transparent'}}><span style={{fontSize:18,width:24,textAlign:'center'}}>{item.icon}</span>{item.label}</button>))}
+            </div>
+          ))}
           {/* ── Admin link — apenas para usuários admin ── */}
           {isAdmin(profile?.role)&&(
             <button onClick={()=>{router.push('/admin');setMenuOpen(false)}}
@@ -2118,18 +2136,30 @@ export default function TigerJusApp() {
       )}
       <div style={{display:'flex',paddingTop:60,minHeight:'100vh'}}>
         <aside className="dash-sidebar nav-desktop tj-sidebar">
-          {SIDEBAR.map(item=>(<button key={item.key} className={`sidebar-item${page===item.key?' active':''}`} onClick={()=>navTo(item.key)}><span style={{fontSize:17,width:24,textAlign:'center'}}>{item.icon}</span> {item.label}</button>))}
+          {SIDEBAR_GROUPS.map(g=>(
+            <div key={g.title||'inicio'}>
+              {g.title&&<div style={{fontSize:10,fontWeight:700,letterSpacing:'2.5px',textTransform:'uppercase',color:'var(--text-dim)',padding:'12px 14px 6px',marginTop:4}}>{g.title}</div>}
+              {g.items.map(item=>(<button key={item.key} className={`sidebar-item${page===item.key?' active':''}`} onClick={()=>navTo(item.key)}><span style={{fontSize:17,width:24,textAlign:'center'}}>{item.icon}</span> {item.label}</button>))}
+            </div>
+          ))}
           <div style={{fontSize:10,fontWeight:700,letterSpacing:'2.5px',textTransform:'uppercase',color:'var(--text-dim)',padding:'12px 14px 6px',marginTop:8}}>CONTA</div>
           {isAdmin(profile?.role)&&<button className="sidebar-item" onClick={()=>router.push('/admin')}>⚙️ Admin Panel</button>}
           <button className="sidebar-item" onClick={handleLogout}>🚪 Sair</button>
-          {(settings.whatsapp_url||settings.instagram_url||settings.telegram_url)&&(
+          {(settings.whatsapp_url||settings.instagram_url||settings.youtube_url||settings.tiktok_url||settings.telegram_url)&&(
             <div style={{padding:'8px 12px 0'}}>
               <div style={{fontSize:9,fontWeight:700,letterSpacing:2,textTransform:'uppercase',color:'var(--text-dim)',marginBottom:6}}>SUPORTE</div>
               <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
-                {settings.whatsapp_url&&<a href={settings.whatsapp_url} target="_blank" rel="noopener noreferrer" title="WhatsApp" style={{width:32,height:32,borderRadius:8,background:'#25D36618',border:'1px solid #25D36633',display:'flex',alignItems:'center',justifyContent:'center',fontSize:16,textDecoration:'none'}}>💬</a>}
-                {settings.instagram_url&&<a href={settings.instagram_url} target="_blank" rel="noopener noreferrer" title="Instagram" style={{width:32,height:32,borderRadius:8,background:'rgba(212,168,67,0.08)',border:'1px solid rgba(212,168,67,0.2)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:16,textDecoration:'none'}}>📸</a>}
-                {settings.telegram_url&&<a href={settings.telegram_url} target="_blank" rel="noopener noreferrer" title="Telegram" style={{width:32,height:32,borderRadius:8,background:'rgba(96,165,250,0.08)',border:'1px solid rgba(96,165,250,0.2)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:16,textDecoration:'none'}}>✈️</a>}
-                {settings.youtube_url&&<a href={settings.youtube_url} target="_blank" rel="noopener noreferrer" title="YouTube" style={{width:32,height:32,borderRadius:8,background:'rgba(248,113,113,0.08)',border:'1px solid rgba(248,113,113,0.2)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:16,textDecoration:'none'}}>▶️</a>}
+                {[
+                  {url:settings.instagram_url,iconUrl:settings.instagram_icon_url,emoji:'📸',label:'Instagram',bg:'rgba(212,168,67,0.08)',bd:'rgba(212,168,67,0.2)'},
+                  {url:settings.whatsapp_url,iconUrl:settings.whatsapp_icon_url,emoji:'💬',label:'WhatsApp',bg:'#25D36618',bd:'#25D36633'},
+                  {url:settings.youtube_url,iconUrl:settings.youtube_icon_url,emoji:'▶️',label:'YouTube',bg:'rgba(248,113,113,0.08)',bd:'rgba(248,113,113,0.2)'},
+                  {url:settings.tiktok_url,iconUrl:settings.tiktok_icon_url,emoji:'🎵',label:'TikTok',bg:'rgba(255,255,255,0.06)',bd:'rgba(255,255,255,0.18)'},
+                  {url:settings.telegram_url,iconUrl:settings.telegram_icon_url,emoji:'✈️',label:'Telegram',bg:'rgba(96,165,250,0.08)',bd:'rgba(96,165,250,0.2)'},
+                ].filter(s=>s.url).map(s=>(
+                  <a key={s.label} href={s.url} target="_blank" rel="noopener noreferrer" title={s.label} style={{width:32,height:32,borderRadius:8,background:s.bg,border:`1px solid ${s.bd}`,display:'flex',alignItems:'center',justifyContent:'center',fontSize:16,textDecoration:'none',overflow:'hidden'}}>
+                    {s.iconUrl?<img src={s.iconUrl} alt={s.label} style={{width:20,height:20,objectFit:'contain'}}/>:<span>{s.emoji}</span>}
+                  </a>
+                ))}
               </div>
             </div>
           )}
