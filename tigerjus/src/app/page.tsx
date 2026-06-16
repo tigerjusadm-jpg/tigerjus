@@ -121,10 +121,11 @@ export default function HomePage() {
   ]
 
   const sociais = [
-    { url: settings.instagram_url, icon: '📸', label: 'Instagram', color: 'rgba(212,168,67,0.15)' },
-    { url: settings.whatsapp_url,  icon: '💬', label: 'WhatsApp',  color: 'rgba(37,211,102,0.15)' },
-    { url: settings.telegram_url,  icon: '✈️', label: 'Telegram',  color: 'rgba(96,165,250,0.15)' },
-    { url: settings.youtube_url,   icon: '▶️', label: 'YouTube',   color: 'rgba(248,113,113,0.15)' },
+    { url: settings.instagram_url, iconUrl: settings.instagram_icon_url, icon: '📸', label: 'Instagram', color: 'rgba(212,168,67,0.15)' },
+    { url: settings.whatsapp_url,  iconUrl: settings.whatsapp_icon_url,  icon: '💬', label: 'WhatsApp',  color: 'rgba(37,211,102,0.15)' },
+    { url: settings.youtube_url,   iconUrl: settings.youtube_icon_url,   icon: '▶️', label: 'YouTube',   color: 'rgba(248,113,113,0.15)' },
+    { url: settings.tiktok_url,    iconUrl: settings.tiktok_icon_url,    icon: '🎵', label: 'TikTok',    color: 'rgba(255,255,255,0.10)' },
+    { url: settings.telegram_url,  iconUrl: settings.telegram_icon_url,  icon: '✈️', label: 'Telegram',  color: 'rgba(96,165,250,0.15)' },
   ].filter(s => s.url)
 
   return (
@@ -135,7 +136,9 @@ export default function HomePage() {
       {/* NAVBAR */}
       <nav style={{position:'fixed',top:0,left:0,right:0,zIndex:100,display:'flex',alignItems:'center',justifyContent:'space-between',padding:'0 20px',height:60,background:'rgba(6,10,18,0.92)',backdropFilter:'blur(12px)',borderBottom:'1px solid rgba(255,255,255,0.06)'}}>
         <div style={{display:'flex',alignItems:'center',gap:10}}>
-          <div style={{width:36,height:36,background:'linear-gradient(135deg,var(--gold),var(--orange))',borderRadius:8,display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'var(--font-display)',fontSize:17,fontWeight:900,color:'var(--deep-black)',boxShadow:'0 0 20px rgba(212,168,67,0.3)',flexShrink:0}}>T</div>
+          {settings.logo_url
+            ? <img src={settings.logo_url} alt={settings.site_name||'TigerJus'} style={{width:36,height:36,borderRadius:8,objectFit:'contain',flexShrink:0,boxShadow:'0 0 20px rgba(212,168,67,0.3)'}}/>
+            : <div style={{width:36,height:36,background:'linear-gradient(135deg,var(--gold),var(--orange))',borderRadius:8,display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'var(--font-display)',fontSize:17,fontWeight:900,color:'var(--deep-black)',boxShadow:'0 0 20px rgba(212,168,67,0.3)',flexShrink:0}}>T</div>}
           <span style={{fontFamily:'var(--font-display)',fontSize:20,fontWeight:900,letterSpacing:2,background:'linear-gradient(135deg,var(--gold-light),var(--gold))',WebkitBackgroundClip:'text',WebkitTextFillColor:'transparent'}}>{settings.site_name||'TIGERJUS'}</span>
         </div>
         <div className="landing-nav-desktop" style={{display:'flex',gap:28,alignItems:'center'}}>
@@ -431,8 +434,10 @@ export default function HomePage() {
           <div style={{display:'flex',gap:10,justifyContent:'center',marginBottom:16,flexWrap:'wrap'}}>
             {sociais.map(s=>(
               <a key={s.label} href={s.url} target="_blank" rel="noopener noreferrer" title={s.label}
-                style={{width:38,height:38,borderRadius:10,background:s.color,border:'1px solid rgba(255,255,255,0.1)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:18,textDecoration:'none'}}>
-                {s.icon}
+                style={{width:38,height:38,borderRadius:10,background:s.color,border:'1px solid rgba(255,255,255,0.1)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:18,textDecoration:'none',overflow:'hidden'}}>
+                {s.iconUrl
+                  ? <img src={s.iconUrl} alt={s.label} style={{width:24,height:24,objectFit:'contain'}}/>
+                  : <span>{s.icon}</span>}
               </a>
             ))}
           </div>
