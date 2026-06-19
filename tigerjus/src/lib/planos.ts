@@ -65,7 +65,7 @@ export interface Nivel {
 const PLANO_LEVEL: Record<Plano, number> = {
   gratuito: 0,
   start:    1,
-  plus:     2,
+  plus:     3, // legado — tratado como Pro (migrado no banco; mantido só como apelido seguro)
   pro:      3,
   elite:    4,
 }
@@ -139,23 +139,24 @@ export function canAccess(
 
 const LIMITES_FALLBACK: Record<Plano, Limites> = {
   gratuito: {
-    questoes: 15,        ia: 5,   flashcards: 5,        mini_simulado: 10,
+    questoes: 15,        ia: 5,   flashcards: 0,        mini_simulado: 10,
     permite_pdf: false,  permite_simulado_completo: false, permite_radar: false,
   },
   start: {
-    questoes: Infinity,  ia: 20,  flashcards: 15,       mini_simulado: 20,
+    questoes: 50,        ia: 20,  flashcards: 20,       mini_simulado: 20,
     permite_pdf: false,  permite_simulado_completo: true,  permite_radar: false,
   },
   plus: {
-    questoes: Infinity,  ia: 50,  flashcards: 30,       mini_simulado: 30,
-    permite_pdf: true,   permite_simulado_completo: true,  permite_radar: true,
+    // Legado: espelha o Pro (nenhum usuário ativo neste plano após migração)
+    questoes: Infinity,  ia: 40,  flashcards: 40,       mini_simulado: 50,
+    permite_pdf: true,   permite_simulado_completo: true,  permite_radar: false,
   },
   pro: {
-    questoes: Infinity,  ia: 150, flashcards: 60,       mini_simulado: 50,
-    permite_pdf: true,   permite_simulado_completo: true,  permite_radar: true,
+    questoes: Infinity,  ia: 40,  flashcards: 40,       mini_simulado: 50,
+    permite_pdf: true,   permite_simulado_completo: true,  permite_radar: false,
   },
   elite: {
-    questoes: Infinity,  ia: 500, flashcards: Infinity, mini_simulado: Infinity,
+    questoes: Infinity,  ia: 80,  flashcards: Infinity, mini_simulado: 100,
     permite_pdf: true,   permite_simulado_completo: true,  permite_radar: true,
   },
 }
@@ -165,6 +166,41 @@ export function getLimites(
   _settings?: PlanSettingsMap | null
 ): Limites {
   return LIMITES_FALLBACK[normalizePlano(plano)]
+}
+
+// ───────────────────────────────────────────────────────────────────
+// MODOS DO QUIZ POR PLANO
+// Grátis: Fácil · Start: Fácil+Médio · Pro/Elite: todos
+// ───────────────────────────────────────────────────────────────────
+export type QuizModo = 'Fácil' | 'Médio' | 'Difícil'
+
+export function getQuizModes(
+  plano?: string | null,
+  role?: string | null
+): QuizModo[] {
+  if (role === 'admin') return ['Fácil', 'Médio', 'Difícil']
+  const p = normalizePlano(plano)
+  if (p === 'gratuito') return ['Fácil']
+  if (p === 'start') return ['Fácil', 'Médio']
+  return ['Fácil', 'Médio', 'Difícil'] // plus/pro/elite
+}
+
+// ───────────────────────────────────────────────────────────────────
+// PROFUNDIDADE DO RESUMO POR PLANO
+// Grátis: nada · Start: curto (prévia) · Pro: completo · Elite: + memorização
+// ───────────────────────────────────────────────────────────────────
+export type ResumoTier = 'none' | 'curto' | 'completo' | 'memorizacao'
+
+export function getResumoTier(
+  plano?: string | null,
+  role?: string | null
+): ResumoTier {
+  if (role === 'admin') return 'memorizacao'
+  const p = normalizePlano(plano)
+  if (p === 'gratuito') return 'none'
+  if (p === 'start') return 'curto'
+  if (p === 'elite') return 'memorizacao'
+  return 'completo' // plus/pro
 }
 
 export function getUserPlanSettings(
@@ -178,7 +214,6 @@ export function getUserPlanSettings(
 export const PLANOS_DISPLAY: { value: Plano; label: string }[] = [
   { value: 'gratuito', label: 'Gratuito'      },
   { value: 'start',    label: 'Tiger Start'   },
-  { value: 'plus',     label: 'Tiger Plus'    },
   { value: 'pro',      label: 'Tiger Pro'     },
   { value: 'elite',    label: 'Tiger Elite'   },
 ]
