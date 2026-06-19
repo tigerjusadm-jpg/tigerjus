@@ -6,7 +6,7 @@ import { useAppSettings } from '@/contexts/AppSettingsContext'
 import RadarOAB from '@/components/RadarOAB'
 import DashboardTopBanner from '@/components/DashboardTopBanner'
 import LandingTopBanner from '@/components/LandingTopBanner'
-import { canAccess, isAdmin, getLimites, isPago, PLANOS_DISPLAY, getNivelByXp, type Plano } from '@/lib/planos'
+import { canAccess, isAdmin, getLimites, isPago, getQuizModes, getResumoTier, PLANOS_DISPLAY, getNivelByXp, type Plano } from '@/lib/planos'
 
 interface Profile {
   id: string; nome: string; email: string; plano: string
@@ -26,10 +26,9 @@ interface Profile {
 // Níveis calculados dinamicamente via getNivelByXp() de planos.ts
 
 const PLANS_UPGRADE = [
-  { id:'start', name:'Tiger Start', price:'1,99', color:'var(--success)', features:['Questões ilimitadas','IA jurídica (20/dia)','Simulados completos','Streak + ranking'] },
-  { id:'plus', name:'Tiger Plus', price:'5,99', color:'#8B5CF6', features:['PDF por disciplina','Radar TigerJus','Simulados OAB 42º e 43º','Flashcards avançados'] },
-  { id:'pro', name:'Tiger Pro', price:'9,99', color:'var(--gold)', badge:'POPULAR', featured:true, features:['IA avançada (150/dia)','Simulados OAB 42º ao 44º','Trilhas personalizadas','Previsão de aprovação'] },
-  { id:'elite', name:'Tiger Elite', price:'19,99', color:'var(--orange)', badge:'TOP', features:['Tudo ilimitado','IA prioritária','Todos os simulados OAB','Acesso total vitalício'] },
+  { id:'start', name:'Tiger Start', price:'4,99', color:'var(--success)', features:['50 questões por dia','IA TigerJus (20/dia)','Simulados completos OAB','Flashcards + resumos rápidos'] },
+  { id:'pro', name:'Tiger Pro', price:'9,99', color:'var(--gold)', badge:'MAIS POPULAR', featured:true, features:['Questões ilimitadas','IA TigerJus (40/dia)','Resumos completos + Índice Remissivo','Exportar PDF + flashcards avançados'] },
+  { id:'elite', name:'Tiger Elite', price:'24,99', color:'var(--orange)', badge:'TOP', features:['Tudo do Pro, sem limites','IA TigerJus (80/dia)','Radar OAB + Lei Seca de memorização','Mini-simulados e flashcards ilimitados'] },
 ]
 
 const DISCIPLINES = [
@@ -302,7 +301,7 @@ function DegustacaoCard({ freeQ, freeIA, limites, showUpgrade }: any){
   )
 }
 
-function DashHome({ profile, onNav, showUpgrade, isPago, canAccessPremium, onOpenRadar, freeQ, freeIA, limites }: any) {
+function DashHome({ profile, onNav, showUpgrade, isPago, canAccessPremium, canAccessElite, onOpenRadar, freeQ, freeIA, limites }: any) {
   const { settings: dashSettings } = useAppSettings()
   const xp=profile?.xp||0; const _niv=getNivelByXp(xp); const levelName=_niv.nome
   const streak=profile?.streak||0; const xpNext=_niv.xp_max??999999; const xpPrev=_niv.xp_min
@@ -331,9 +330,9 @@ function DashHome({ profile, onNav, showUpgrade, isPago, canAccessPremium, onOpe
         <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(150px,1fr))',gap:12}}>
           {[
             {icon:'📝',label:'Estudar questões',sub:'Quiz OAB',key:'quiz',lock:false,grad:'linear-gradient(135deg,rgba(212,168,67,0.16),rgba(232,98,26,0.08))',bd:'rgba(212,168,67,0.3)'},
-            {icon:'📋',label:'Fazer simulado',sub:'Estilo OAB',key:'simulados',lock:!canAccessPremium,grad:'linear-gradient(135deg,rgba(58,143,232,0.14),rgba(212,168,67,0.05))',bd:'rgba(58,143,232,0.28)'},
-            {icon:'🤖',label:'Tutor IA',sub:'Tire dúvidas',key:'ia',lock:!canAccessPremium,grad:'linear-gradient(135deg,rgba(139,92,246,0.14),rgba(58,143,232,0.05))',bd:'rgba(139,92,246,0.28)'},
-            {icon:'🃏',label:'Revisar',sub:'Flashcards',key:'flashcards',lock:false,grad:'linear-gradient(135deg,rgba(76,175,125,0.14),rgba(212,168,67,0.05))',bd:'rgba(76,175,125,0.28)'},
+            {icon:'📋',label:'Fazer simulado',sub:'Estilo OAB',key:'simulados',lock:false,grad:'linear-gradient(135deg,rgba(58,143,232,0.14),rgba(212,168,67,0.05))',bd:'rgba(58,143,232,0.28)'},
+            {icon:'🤖',label:'Tutor IA',sub:'Tire dúvidas',key:'ia',lock:false,grad:'linear-gradient(135deg,rgba(139,92,246,0.14),rgba(58,143,232,0.05))',bd:'rgba(139,92,246,0.28)'},
+            {icon:'🃏',label:'Revisar',sub:'Flashcards',key:'flashcards',lock:!isPago,grad:'linear-gradient(135deg,rgba(76,175,125,0.14),rgba(212,168,67,0.05))',bd:'rgba(76,175,125,0.28)'},
           ].map(a=>(
             <button key={a.key} onClick={()=>onNav(a.key)} style={{textAlign:'left',cursor:'pointer',background:a.grad,border:`1px solid ${a.bd}`,borderRadius:16,padding:'16px 16px 14px',transition:'transform 0.2s',position:'relative'}}
               onMouseEnter={e=>{e.currentTarget.style.transform='translateY(-3px)'}}
@@ -365,16 +364,16 @@ function DashHome({ profile, onNav, showUpgrade, isPago, canAccessPremium, onOpe
         ))}
       </div>
       <QuestaoDodia onNav={onNav}/>
-      <div style={{background:canAccessPremium?'linear-gradient(135deg,rgba(58,143,232,0.1),rgba(212,168,67,0.06))':'linear-gradient(135deg,rgba(58,143,232,0.08),rgba(212,168,67,0.06))',border:`1px solid ${canAccessPremium?'rgba(58,143,232,0.25)':'rgba(58,143,232,0.2)'}`,borderRadius:16,padding:20,marginBottom:20,cursor:'pointer',transition:'all 0.2s'}}
-        onClick={canAccessPremium?onOpenRadar:showUpgrade}
+      <div style={{background:canAccessElite?'linear-gradient(135deg,rgba(58,143,232,0.1),rgba(212,168,67,0.06))':'linear-gradient(135deg,rgba(58,143,232,0.08),rgba(212,168,67,0.06))',border:`1px solid ${canAccessElite?'rgba(58,143,232,0.25)':'rgba(58,143,232,0.2)'}`,borderRadius:16,padding:20,marginBottom:20,cursor:'pointer',transition:'all 0.2s'}}
+        onClick={canAccessElite?onOpenRadar:showUpgrade}
         onMouseEnter={e=>{e.currentTarget.style.transform='translateY(-2px)';e.currentTarget.style.boxShadow='0 8px 24px rgba(0,0,0,0.3)'}}
         onMouseLeave={e=>{e.currentTarget.style.transform='translateY(0)';e.currentTarget.style.boxShadow='none'}}>
         <div style={{display:'flex',alignItems:'center',gap:12,marginBottom:8}}>
           <span style={{fontSize:20}}>🎯</span>
           <div style={{fontSize:16,fontWeight:700,flex:1}}>Radar TigerJus</div>
-          {canAccessPremium?<div style={{fontSize:9,fontWeight:800,letterSpacing:'1.5px',textTransform:'uppercase',background:'rgba(76,175,125,0.15)',border:'1px solid rgba(76,175,125,0.3)',color:'var(--success)',padding:'4px 10px',borderRadius:100}}>✓ ATIVO — CLIQUE</div>:<div style={{fontSize:9,fontWeight:800,letterSpacing:'1.5px',textTransform:'uppercase',background:'rgba(212,168,67,0.1)',border:'1px solid rgba(212,168,67,0.2)',color:'var(--gold)',padding:'4px 10px',borderRadius:100}}>🔒 Premium</div>}
+          {canAccessElite?<div style={{fontSize:9,fontWeight:800,letterSpacing:'1.5px',textTransform:'uppercase',background:'rgba(76,175,125,0.15)',border:'1px solid rgba(76,175,125,0.3)',color:'var(--success)',padding:'4px 10px',borderRadius:100}}>✓ ATIVO — CLIQUE</div>:<div style={{fontSize:9,fontWeight:800,letterSpacing:'1.5px',textTransform:'uppercase',background:'rgba(232,98,26,0.1)',border:'1px solid rgba(232,98,26,0.25)',color:'var(--orange)',padding:'4px 10px',borderRadius:100}}>🔒 Elite</div>}
         </div>
-        <div style={{fontSize:13,color:'var(--text-muted)'}}>{canAccessPremium?'Veja os 6 temas com maior probabilidade de cair no 47º Exame OAB →':'Temas com maior probabilidade de cair na próxima OAB.'}</div>
+        <div style={{fontSize:13,color:'var(--text-muted)'}}>{canAccessElite?'Veja os 6 temas com maior probabilidade de cair no 47º Exame OAB →':'Exclusivo Elite — os temas com maior probabilidade de cair na próxima OAB.'}</div>
       </div>
       {/* ── BOTÃO INDICAR AMIGOS — sempre visível ─────────────── */}
       <div
@@ -441,6 +440,8 @@ function QuizPage({ freeQ, setFreeQ, showUpgrade, onXp, profile, isPago }: any) 
   const [time,setTime]=useState(60)
   const MODO_QTD:Record<string,number>={'Fácil':20,'Médio':40,'Difícil':60}
   const MODO_TEMPO:Record<string,number>={'Fácil':60,'Médio':90,'Difícil':120}
+  const modosLib=getQuizModes(profile?.plano,profile?.role)
+  const temCota=Number.isFinite(freeQ)
 
   useEffect(()=>{
     if(!started||answered||done)return
@@ -461,9 +462,9 @@ function QuizPage({ freeQ, setFreeQ, showUpgrade, onXp, profile, isPago }: any) 
 
   const pick=(i:number)=>{
     if(answered)return
-    if(!isPago&&freeQ<=0){showUpgrade();return}
+    if(freeQ<=0){showUpgrade();return}
     setSel(i);setAnswered(true)
-    if(!isPago)setFreeQ((p:number)=>p-1)
+    setFreeQ((p:number)=>p-1)
     if(i===questions[cur].correct){setScore(p=>p+1);onXp('question_correct')}else onXp('question_wrong')
   }
   const next=()=>{if(cur+1>=questions.length){setDone(true);onXp('quiz_complete');return}setCur(p=>p+1);setSel(null);setAnswered(false);setTime(MODO_TEMPO[modo])}
@@ -474,7 +475,7 @@ function QuizPage({ freeQ, setFreeQ, showUpgrade, onXp, profile, isPago }: any) 
       <h1 style={{fontFamily:'var(--font-display)',fontSize:'clamp(22px,5vw,32px)',fontWeight:900,marginBottom:6}}>Quiz OAB 📝</h1>
       <p style={{fontSize:14,color:'var(--text-muted)',marginBottom:6}}>Questões reais dos exames 42º ao 46º da OAB.</p>
       <div style={{display:'inline-flex',alignItems:'center',gap:6,background:'rgba(212,168,67,0.08)',border:'1px solid rgba(212,168,67,0.2)',borderRadius:100,padding:'5px 12px',fontSize:11,color:'var(--gold)',marginBottom:24}}>📋 400 questões reais no banco</div>
-      {!isPago&&<div style={{background:'rgba(212,168,67,0.06)',border:'1px solid rgba(212,168,67,0.15)',borderRadius:12,padding:'12px 16px',marginBottom:20,fontSize:13,color:'var(--gold)'}}>⚡ Plano gratuito: <strong>{freeQ} questões restantes</strong>. Faça upgrade para ilimitadas.</div>}
+      {temCota&&<div style={{background:'rgba(212,168,67,0.06)',border:'1px solid rgba(212,168,67,0.15)',borderRadius:12,padding:'12px 16px',marginBottom:20,fontSize:13,color:'var(--gold)'}}>⚡ <strong>{freeQ} questões restantes hoje</strong>. {isPago?'Suba para o Pro e tenha questões ilimitadas.':'Faça upgrade para mais questões por dia.'}</div>}
       <div style={{maxWidth:560,background:'var(--gray)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:20,padding:'24px'}}>
         <div style={{marginBottom:20}}>
           <label style={{fontSize:11,fontWeight:700,letterSpacing:'1.5px',textTransform:'uppercase',color:'var(--text-muted)',display:'block',marginBottom:10}}>Disciplina (opcional)</label>
@@ -486,16 +487,18 @@ function QuizPage({ freeQ, setFreeQ, showUpgrade, onXp, profile, isPago }: any) 
         <div style={{marginBottom:28}}>
           <label style={{fontSize:11,fontWeight:700,letterSpacing:'1.5px',textTransform:'uppercase',color:'var(--text-muted)',display:'block',marginBottom:10}}>Modo — <span style={{color:'var(--gold)'}}>{modo} ({MODO_QTD[modo]} questões · {MODO_TEMPO[modo]}s/questão)</span></label>
           <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:8}}>
-            {(['Fácil','Médio','Difícil'] as const).map(m=>(
-              <button key={m} onClick={()=>{if(m!=='Fácil'&&!isPago){showUpgrade();return}setModo(m)}} style={{padding:'12px 8px',borderRadius:10,border:modo===m?'1px solid rgba(212,168,67,0.5)':'1px solid rgba(255,255,255,0.08)',background:modo===m?'rgba(212,168,67,0.1)':'transparent',color:modo===m?'var(--gold)':m!=='Fácil'&&!isPago?'var(--text-dim)':'var(--text-muted)',fontSize:12,fontWeight:700,cursor:'pointer',fontFamily:'var(--font-body)',textAlign:'center'}}>
-                <div>{m} {m!=='Fácil'&&!isPago&&'🔒'}</div>
+            {(['Fácil','Médio','Difícil'] as const).map(m=>{
+              const bloqueado=!modosLib.includes(m)
+              return(
+              <button key={m} onClick={()=>{if(bloqueado){showUpgrade();return}setModo(m)}} style={{padding:'12px 8px',borderRadius:10,border:modo===m?'1px solid rgba(212,168,67,0.5)':'1px solid rgba(255,255,255,0.08)',background:modo===m?'rgba(212,168,67,0.1)':'transparent',color:modo===m?'var(--gold)':bloqueado?'var(--text-dim)':'var(--text-muted)',fontSize:12,fontWeight:700,cursor:'pointer',fontFamily:'var(--font-body)',textAlign:'center'}}>
+                <div>{m} {bloqueado&&'🔒'}</div>
                 <div style={{fontSize:10,marginTop:3,opacity:0.7}}>{MODO_QTD[m]}q · {MODO_TEMPO[m]}s/q</div>
               </button>
-            ))}
+            )})}
           </div>
         </div>
         <button className="btn-primary" style={{width:'100%',fontSize:15,padding:16}} onClick={startQuiz} disabled={loadingQ}>{loadingQ?'⏳ Carregando...':'INICIAR QUIZ →'}</button>
-        <div style={{marginTop:10,textAlign:'center',fontSize:12,color:'var(--text-muted)'}}>{isPago?'✓ Ilimitado':freeQ>0?`${freeQ} grátis restantes`:'🔒 Limite atingido'}</div>
+        <div style={{marginTop:10,textAlign:'center',fontSize:12,color:'var(--text-muted)'}}>{!temCota?'✓ Ilimitado':freeQ>0?`${freeQ} restantes hoje`:'🔒 Limite diário atingido'}</div>
       </div>
     </div>
   )
@@ -620,7 +623,7 @@ function ResumoRenderer({ texto }: { texto: string }) {
   )
 }
 
-function ResumoSection({ disc, onNav, isPago = false, showUpgrade }: { disc: any; onNav: (tab: string) => void; isPago?: boolean; showUpgrade?: () => void }) {
+function ResumoSection({ disc, onNav, resumoTier = 'none', showUpgrade }: { disc: any; onNav: (tab: string) => void; resumoTier?: 'none'|'curto'|'completo'|'memorizacao'; showUpgrade?: () => void }) {
   const [estado,setEstado]=useState<'loading'|'banco'|'local'|'vazio'>('loading')
   const [texto,setTexto]=useState('')
   const [resumoCurto,setResumoCurto]=useState('')
@@ -672,28 +675,39 @@ function ResumoSection({ disc, onNav, isPago = false, showUpgrade }: { disc: any
     </div>
   )
 
+  const verCompleto=resumoTier==='completo'||resumoTier==='memorizacao'
+
+  if(resumoTier==='none') return(
+    <div style={{background:'var(--gray)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:20,padding:32,textAlign:'center'}}>
+      <div style={{fontSize:44,marginBottom:14}}>🔒</div>
+      <h3 style={{fontFamily:'var(--font-display)',fontSize:20,fontWeight:900,marginBottom:8}}>Resumos a partir do Tiger Start</h3>
+      <p style={{fontSize:13,color:'var(--text-muted)',lineHeight:1.7,maxWidth:400,margin:'0 auto 22px'}}>No <strong style={{color:'var(--gold)'}}>Start</strong> você já leva os resumos rápidos. No <strong style={{color:'var(--gold)'}}>Pro</strong>, os resumos completos por disciplina. No <strong style={{color:'var(--orange)'}}>Elite</strong>, ainda a Lei Seca de memorização.</p>
+      <button className="btn-primary" style={{fontSize:13,padding:'12px 28px'}} onClick={showUpgrade}>🚀 Ver planos</button>
+    </div>
+  )
+
   return(
     <div>
       {resumoCurto&&<div style={{background:'rgba(212,168,67,0.06)',border:'1px solid rgba(212,168,67,0.15)',borderRadius:12,padding:'12px 16px',marginBottom:16,fontSize:13,color:'var(--gold)',lineHeight:1.6}}>{resumoCurto}</div>}
       <div style={{background:'var(--gray)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:20,padding:'24px'}}>
-        {!isPago?(
+        {verCompleto?(
+          <ResumoRenderer texto={texto}/>
+        ):(
           <div style={{position:'relative'}}>
             <div style={{maxHeight:300,overflow:'hidden'}}><ResumoRenderer texto={texto}/></div>
-            <div style={{position:'absolute',bottom:0,left:0,right:0,height:160,background:'linear-gradient(to bottom,transparent,var(--gray))',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'flex-end',padding:'0 16px 20px'}}>
-              <p style={{fontSize:11,color:'var(--text-muted)',marginBottom:10,textAlign:'center'}}>Resumo completo disponível a partir de R$1,99/mês</p>
+            <div style={{position:'absolute',bottom:0,left:0,right:0,height:180,background:'linear-gradient(to bottom,transparent,var(--gray))',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'flex-end',padding:'0 16px 20px'}}>
+              <p style={{fontSize:11,color:'var(--text-muted)',marginBottom:10,textAlign:'center'}}>Resumo completo por disciplina no <strong style={{color:'var(--gold)'}}>Tiger Pro</strong></p>
               <button className="btn-primary" style={{fontSize:12,padding:'10px 22px'}} onClick={showUpgrade}>🔒 Desbloquear resumo completo</button>
             </div>
           </div>
-        ):(
-          <ResumoRenderer texto={texto}/>
         )}
-        {estado==='local'&&isPago&&<div style={{marginTop:16,paddingTop:14,borderTop:'1px solid rgba(255,255,255,0.06)',fontSize:11,color:'var(--text-dim)'}}>📌 Resumo base · Atualizado conforme novas provas são adicionadas.</div>}
+        {estado==='local'&&verCompleto&&<div style={{marginTop:16,paddingTop:14,borderTop:'1px solid rgba(255,255,255,0.06)',fontSize:11,color:'var(--text-dim)'}}>📌 Resumo base · Atualizado conforme novas provas são adicionadas.</div>}
       </div>
     </div>
   )
 }
 
-function LeisecaSection({ disc, onNav }: { disc: any; onNav?: (tab: string) => void }) {
+function LeisecaSection({ disc, onNav, canMemorizacao = false, showUpgrade }: { disc: any; onNav?: (tab: string) => void; canMemorizacao?: boolean; showUpgrade?: () => void }) {
   const [estado,setEstado]=useState<'loading'|'ok'|'vazio'>('loading')
   const [texto,setTexto]=useState('')
   const fetchingRef=useRef(false)
@@ -722,6 +736,15 @@ function LeisecaSection({ disc, onNav }: { disc: any; onNav?: (tab: string) => v
     </div>
   )
 
+  if(!canMemorizacao) return(
+    <div style={{background:'linear-gradient(135deg,rgba(232,98,26,0.08),rgba(212,168,67,0.05))',border:'1px solid rgba(232,98,26,0.25)',borderRadius:20,padding:32,textAlign:'center'}}>
+      <div style={{fontSize:44,marginBottom:14}}>📌</div>
+      <h3 style={{fontFamily:'var(--font-display)',fontSize:20,fontWeight:900,marginBottom:8}}>Lei Seca de memorização</h3>
+      <p style={{fontSize:13,color:'var(--text-muted)',lineHeight:1.7,maxWidth:400,margin:'0 auto 22px'}}>O resumo de memorização — artigos e lei seca para fixar rápido — é <strong style={{color:'var(--orange)'}}>exclusivo do Tiger Elite</strong>.</p>
+      <button className="btn-primary" style={{fontSize:13,padding:'12px 28px'}} onClick={showUpgrade}>🔥 Conhecer o Elite</button>
+    </div>
+  )
+
   if(estado==='vazio') return(
     <div style={{background:'var(--gray)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:20,padding:32,textAlign:'center'}}>
       <div style={{fontSize:40,marginBottom:14}}>📌</div>
@@ -744,7 +767,7 @@ function LeisecaSection({ disc, onNav }: { disc: any; onNav?: (tab: string) => v
             <div style={{fontSize:11,color:'var(--text-muted)'}}>Fixação rápida · Artigos e lei seca</div>
           </div>
         </div>
-        <div style={{fontSize:9,fontWeight:900,letterSpacing:'1.5px',background:'rgba(76,175,125,0.15)',border:'1px solid rgba(76,175,125,0.3)',color:'var(--success)',padding:'4px 10px',borderRadius:100}}>✓ GRÁTIS</div>
+        <div style={{fontSize:9,fontWeight:900,letterSpacing:'1.5px',background:'rgba(232,98,26,0.12)',border:'1px solid rgba(232,98,26,0.3)',color:'var(--orange)',padding:'4px 10px',borderRadius:100}}>✓ ELITE</div>
       </div>
       <div style={{background:'var(--gray)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:20,padding:'24px'}}>
         <ResumoRenderer texto={texto}/>
@@ -768,6 +791,8 @@ function DisciplinesPage({ showUpgrade, profile, isPago, canAccessPremium, podeP
   const [selected,setSelected]=useState<any>(null)
   const [subTab,setSubTab]=useState<'resumo'|'quiz'|'flash'|'pdf'|'leiseca'>('resumo')
   const [gerandoPDF,setGerandoPDF]=useState(false)
+  const resumoTier=getResumoTier(profile?.plano,profile?.role)
+  const canMemorizacao=resumoTier==='memorizacao'
 
   const handlePDF=async(disc:any)=>{
     if(!podePDF){showUpgrade();return}
@@ -798,10 +823,17 @@ function DisciplinesPage({ showUpgrade, profile, isPago, canAccessPremium, podeP
           </button>
         ))}
       </div>
-      {subTab==='leiseca'&&<LeisecaSection disc={selected} onNav={navTab}/>}
-      {subTab==='resumo'&&<ResumoSection disc={selected} onNav={navTab} isPago={isPago} showUpgrade={showUpgrade}/>}
+      {subTab==='leiseca'&&<LeisecaSection disc={selected} onNav={navTab} canMemorizacao={canMemorizacao} showUpgrade={showUpgrade}/>}
+      {subTab==='resumo'&&<ResumoSection disc={selected} onNav={navTab} resumoTier={resumoTier} showUpgrade={showUpgrade}/>}
       {subTab==='quiz'&&<QuizDisciplina disciplina={selected.name}/>}
-      {subTab==='flash'&&<FlashCards disciplina={selected.name}/>}
+      {subTab==='flash'&&(isPago?<FlashCards disciplina={selected.name}/>:(
+        <div style={{background:'var(--gray)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:20,padding:40,textAlign:'center'}}>
+          <div style={{fontSize:44,marginBottom:14}}>🔒</div>
+          <h3 style={{fontFamily:'var(--font-display)',fontSize:20,fontWeight:900,marginBottom:8}}>Flashcards — Recurso Pago</h3>
+          <p style={{color:'var(--text-muted)',marginBottom:24,fontSize:14}}>Os flashcards de revisão fazem parte do Tiger Start em diante.</p>
+          <button className="btn-primary" onClick={showUpgrade} style={{minWidth:220,fontSize:14}}>🚀 Ver planos</button>
+        </div>
+      ))}
       {subTab==='pdf'&&(
         <div style={{background:'var(--gray)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:20,padding:40,textAlign:'center'}}>
           {podePDF?(
@@ -857,8 +889,16 @@ const DISCIPLINA_ALIASES: Record<string, string[]> = {
 }
 function getDisciplinaAliases(disciplina:string):string[]{return DISCIPLINA_ALIASES[disciplina]??[disciplina]}
 
-function FlashCardsPage(){
+function FlashCardsPage({ isPago, showUpgrade }: any){
   const [disciplinaAtiva,setDisciplinaAtiva]=useState<string|null>(null)
+  if(!isPago) return(
+    <div style={{padding:'24px 20px',flex:1,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',textAlign:'center'}}>
+      <div style={{fontSize:56,marginBottom:18}}>🃏</div>
+      <h2 style={{fontFamily:'var(--font-display)',fontSize:'clamp(22px,5vw,30px)',fontWeight:900,marginBottom:12}}>Flashcards <span style={{color:'var(--gold)'}}>de revisão</span></h2>
+      <p style={{fontSize:15,color:'var(--text-muted)',maxWidth:440,lineHeight:1.7,marginBottom:26}}>Revise as disciplinas com flashcards gerados das questões reais da OAB. Disponível a partir do <strong style={{color:'var(--gold)'}}>Tiger Start</strong>.</p>
+      <button className="btn-primary" style={{fontSize:14,padding:'14px 32px'}} onClick={showUpgrade}>🔓 Desbloquear flashcards</button>
+    </div>
+  )
   if(!disciplinaAtiva) return(
     <div style={{padding:'24px 20px',flex:1}}>
       <h1 style={{fontFamily:'var(--font-display)',fontSize:'clamp(22px,5vw,32px)',fontWeight:900,marginBottom:6}}>Flashcards 🃏</h1>
@@ -1063,16 +1103,16 @@ function SimuladosPage({ showUpgrade, freeQ, setFreeQ, onXp, profile, isPago, ca
   const [loadingProva,setLoadingProva]=useState(false)
   const [tab,setTab]=useState<'oficiais'|'pratica'>('oficiais')
 
-  function planoMinimoParaSimulado(numeroExame:number):'start'|'plus'|'pro'|'elite'{if(numeroExame<=42)return 'start';if(numeroExame<=43)return 'plus';if(numeroExame<=44)return 'pro';return 'elite'}
-  const BADGE_COR:Record<string,{bg:string;color:string;label:string}>={start:{bg:'rgba(59,130,246,0.15)',color:'#60a5fa',label:'START'},plus:{bg:'rgba(139,92,246,0.15)',color:'#a78bfa',label:'PLUS'},pro:{bg:'rgba(236,72,153,0.15)',color:'#f472b6',label:'PRO'},elite:{bg:'rgba(212,168,67,0.12)',color:'var(--gold)',label:'ELITE'}}
+  function planoMinimoParaSimulado(_numeroExame:number):'start'{return 'start'} // matriz: simulado completo = Start+
+  const BADGE_COR:Record<string,{bg:string;color:string;label:string}>={start:{bg:'rgba(59,130,246,0.15)',color:'#60a5fa',label:'START'},plus:{bg:'rgba(139,92,246,0.15)',color:'#a78bfa',label:'START'},pro:{bg:'rgba(236,72,153,0.15)',color:'#f472b6',label:'PRO'},elite:{bg:'rgba(212,168,67,0.12)',color:'var(--gold)',label:'ELITE'}}
   function podeLiberarProva(prova:any):boolean{if(profile?.role==='admin')return true;return canAccess(profile?.plano,planoMinimoParaSimulado(prova.numero_exame))}
 
   const SIMULADOS_PRATICA=[
     {icon:'⚡',t:'Mini Simulado — Constitucional',info:'5 questões · 15min · Grátis',tags:['Grátis'],lock:false},
     {icon:'🔥',t:'Simulado Intensivo — Penal',info:'30 questões · 45min',tags:['Start'],lock:true},
-    {icon:'📝',t:'Simulado OAB 2ª Fase',info:'Peça jurídica · 5h',tags:['Pro'],lock:true},
-    {icon:'📜',t:'Ética e Estatuto OAB',info:'20 questões · 30min',tags:['Plus'],lock:true},
-    {icon:'🏛️',t:'Simulado Geral',info:'60 questões · 4h',tags:['Elite'],lock:true},
+    {icon:'📝',t:'Simulado OAB 2ª Fase',info:'Peça jurídica · 5h',tags:['Start'],lock:true},
+    {icon:'📜',t:'Ética e Estatuto OAB',info:'20 questões · 30min',tags:['Start'],lock:true},
+    {icon:'🏛️',t:'Simulado Geral',info:'60 questões · 4h',tags:['Start'],lock:true},
   ]
 
   function podeLiberarPratica(s:any):boolean{
@@ -2087,7 +2127,7 @@ export default function TigerJusApp() {
       }catch(e){console.warn('Referral setup error (non-critical):',e)}
       setProfile(profileAtualizado as Profile)
       const l=getLimites(data.plano)
-      if(isAdmin(data.role)){setFreeQ(999999);setFreeIA(999999)}
+      if(isAdmin(data.role)){setFreeQ(Infinity);setFreeIA(Infinity)}
       else{setFreeQ(Math.max(0,l.questoes-(data.free_questions_used||0)));setFreeIA(Math.max(0,l.ia-(data.free_ia_used||0)))}
     }
     setLoading(false)
@@ -2247,14 +2287,14 @@ export default function TigerJusApp() {
             <RadarOAB/>
           </div>
         </aside>
-        {page==='dashboard'&&<DashHome profile={profile} onNav={navTo} showUpgrade={showUpgrade} isPago={userIsPago} canAccessPremium={canAccessPremium} onOpenRadar={()=>setShowRadar(true)} freeQ={freeQ} freeIA={freeIA} limites={limites}/>}
+        {page==='dashboard'&&<DashHome profile={profile} onNav={navTo} showUpgrade={showUpgrade} isPago={userIsPago} canAccessPremium={canAccessPremium} canAccessElite={canAccessElite} onOpenRadar={()=>setShowRadar(true)} freeQ={freeQ} freeIA={freeIA} limites={limites}/>}
         {page==='disciplines'&&<DisciplinesPage showUpgrade={showUpgrade} profile={profile} isPago={userIsPago} canAccessPremium={canAccessPremium} podePDF={podePDF}/>}
         {page==='quiz'&&<QuizPage freeQ={freeQ} setFreeQ={setFreeQ} showUpgrade={showUpgrade} onXp={handleXp} profile={profile} isPago={userIsPago}/>}
-        {page==='flashcards'&&<FlashCardsPage/>}
+        {page==='flashcards'&&<FlashCardsPage isPago={userIsPago} showUpgrade={showUpgrade}/>}
         {page==='simulados'&&<SimuladosPage showUpgrade={showUpgrade} freeQ={freeQ} setFreeQ={setFreeQ} onXp={handleXp} profile={profile} isPago={userIsPago} canAccessElite={canAccessElite}/>}
         {page==='ia'&&<IAPage freeIA={freeIA} setFreeIA={setFreeIA} showUpgrade={showUpgrade} profile={profile} isPago={userIsPago} iaIlimitada={iaIlimitada}/>}
         {page==='ranking'&&<RankingPage profile={profile} onNav={navTo}/>}
-        {page==='indice'&&<IndiceJuridico showUpgrade={showUpgrade} isPago={userIsPago}/>}
+        {page==='indice'&&<IndiceJuridico showUpgrade={showUpgrade} isPago={canAccessPremium}/>}
         {page==='referral'&&<ReferralPage profile={profile} showUpgrade={showUpgrade} isPago={userIsPago}/>}
       </div>
       <style>{`
