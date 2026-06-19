@@ -32,16 +32,20 @@ function normalizeBoolean(value: unknown): boolean {
   return false
 }
 
-// Converte "1,99" → preço anual formatado "23,88"
-function precoAnual(priceStr: string): string {
+// Converte "4,99" → preço anual com desconto opcional. Ex.: ("4,99", 20) → "47,90"
+function precoAnual(priceStr: string, descontoPct: number = 0): string {
   const num = parseFloat(priceStr.replace(',', '.'))
   if (isNaN(num)) return priceStr
-  return (Math.round(num * 12 * 100) / 100).toFixed(2).replace('.', ',')
+  const cheio = num * 12
+  const final = cheio * (1 - (descontoPct || 0) / 100)
+  return (Math.round(final * 100) / 100).toFixed(2).replace('.', ',')
 }
 
 function UpgradeModal({ onClose }: { onClose: () => void }) {
+  const { settings } = useAppSettings()
   const [ciclo, setCiclo] = useState<'mensal'|'anual'>('mensal')
   const ehAnual = ciclo === 'anual'
+  const descPct = settings.desconto_anual_ativo ? (settings.desconto_anual_percent || 0) : 0
 
   return (
     <div style={{position:'fixed',inset:0,zIndex:300,background:'rgba(0,0,0,0.95)',backdropFilter:'blur(10px)',display:'flex',alignItems:'center',justifyContent:'center',padding:20,overflowY:'auto'}}>
@@ -64,10 +68,10 @@ function UpgradeModal({ onClose }: { onClose: () => void }) {
               <div style={{fontSize:10,fontWeight:700,letterSpacing:'2.5px',textTransform:'uppercase',color:'var(--text-muted)',marginBottom:8}}>{plan.name}</div>
               <div style={{fontFamily:'var(--font-display)',fontSize:40,fontWeight:900,color:plan.color,marginBottom:4}}>
                 <sup style={{fontSize:16,color:'var(--text-muted)',verticalAlign:'super'}}>R$</sup>
-                {ehAnual ? precoAnual(plan.price) : plan.price}
+                {ehAnual ? precoAnual(plan.price, descPct) : plan.price}
               </div>
               <div style={{fontSize:12,color:'var(--text-muted)',marginBottom: ehAnual ? 4 : 20}}>{ehAnual ? '/ano' : plan.period}</div>
-              {ehAnual && <div style={{fontSize:11,color:'var(--success)',marginBottom:16}}>Pagamento único · 12 meses</div>}
+              {ehAnual && <div style={{fontSize:11,color:'var(--success)',marginBottom:16}}>{descPct>0 ? `−${descPct}% OFF · pagamento único` : 'Pagamento único · 12 meses'}</div>}
               <ul style={{listStyle:'none',display:'flex',flexDirection:'column',gap:8,marginBottom:20}}>
                 {plan.features.map((f,i)=>(
                   <li key={i} style={{display:'flex',alignItems:'flex-start',gap:8,fontSize:12,color:f.ok?'var(--white)':'var(--text-muted)'}}>
@@ -82,7 +86,7 @@ function UpgradeModal({ onClose }: { onClose: () => void }) {
           ))}
         </div>
         <div style={{textAlign:'center',marginTop:20,fontSize:13,color:'var(--text-muted)'}}>
-          💳 PIX ou Cartão · 🔒 Pagamento seguro · Cancele quando quiser
+          💳 PIX · 🔒 Pagamento seguro · Cancele quando quiser
         </div>
       </div>
     </div>
@@ -96,6 +100,7 @@ export default function HomePage() {
   const [menuOpen, setMenuOpen] = useState(false)
   const [ciclo, setCiclo] = useState<'mensal'|'anual'>('mensal')
   const ehAnual = ciclo === 'anual'
+  const descPct = settings.desconto_anual_ativo ? (settings.desconto_anual_percent || 0) : 0
 
   const heroMedia = {
     enabled:   loaded ? normalizeBoolean(settings.hero_media_enabled) : false,
@@ -297,7 +302,7 @@ export default function HomePage() {
           <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(200px,1fr))',gap:24}}>
             {[
               {n:'01',t:'Crie sua conta',d:'Cadastro em 30 segundos. Sem cartão. Começa grátis.'},
-              {n:'02',t:'Defina seu objetivo',d:'Informe sua meta e data da prova. A IA monta seu plano.'},
+              {n:'02',t:'Escolha seu foco',d:'Disciplinas, questões comentadas e simulados no estilo OAB.'},
               {n:'03',t:'Estude com IA',d:'Quizzes, resumos, flashcards e tutor jurídico integrado.'},
               {n:'04',t:'Seja aprovado',d:'Suba de nível, domine o ranking e conquiste sua aprovação.'},
             ].map(s=>(
@@ -346,13 +351,13 @@ export default function HomePage() {
                 <div style={{fontSize:10,fontWeight:700,letterSpacing:'2.5px',textTransform:'uppercase',color:'var(--text-muted)',marginBottom:10}}>{plan.name}</div>
                 <div style={{fontFamily:'var(--font-display)',fontSize:40,fontWeight:900,lineHeight:1,color:plan.color}}>
                   <sup style={{fontSize:16,fontWeight:600,color:'var(--text-muted)',verticalAlign:'super'}}>R$</sup>
-                  {plan.id === 'free' ? plan.price : (ehAnual ? precoAnual(plan.price) : plan.price)}
+                  {plan.id === 'free' ? plan.price : (ehAnual ? precoAnual(plan.price, descPct) : plan.price)}
                 </div>
                 <div style={{fontSize:12,color:'var(--text-muted)',marginBottom: ehAnual && plan.id !== 'free' ? 4 : 20}}>
                   {plan.id === 'free' ? plan.period : (ehAnual ? '/ano' : plan.period)}
                 </div>
                 {ehAnual && plan.id !== 'free' && (
-                  <div style={{fontSize:11,color:'var(--success)',marginBottom:16}}>Pagamento único · 12 meses</div>
+                  <div style={{fontSize:11,color:'var(--success)',marginBottom:16}}>{descPct>0 ? `−${descPct}% OFF · pagamento único · 12 meses` : 'Pagamento único · 12 meses'}</div>
                 )}
                 <ul style={{listStyle:'none',display:'flex',flexDirection:'column',gap:8,marginBottom:20}}>
                   {plan.features.map((f,i)=>(
@@ -371,7 +376,7 @@ export default function HomePage() {
             ))}
           </div>
           <div style={{textAlign:'center',marginTop:24,fontSize:13,color:'var(--text-muted)'}}>
-            💳 PIX instantâneo ou Cartão · 🔒 Acesso liberado automaticamente · Cancele quando quiser
+            💳 PIX instantâneo · 🔒 Acesso liberado automaticamente · Cancele quando quiser
           </div>
         </div>
       </section>
