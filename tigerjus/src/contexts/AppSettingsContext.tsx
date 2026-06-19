@@ -99,6 +99,9 @@ export interface AppSettings {
   dashboard_banner_max_width:  number
   maintenance_mode:     boolean
   maintenance_message:  string
+  // ── desconto promocional do plano anual (lido pela landing) ──
+  desconto_anual_ativo:   boolean
+  desconto_anual_percent: number
 }
 
 // ─── FALLBACKS ────────────────────────────────────────────────────────────────
@@ -195,6 +198,8 @@ const FALLBACKS: AppSettings = {
   dashboard_banner_max_width:  0,
   maintenance_mode:     false,
   maintenance_message:  'Voltamos em breve.',
+  desconto_anual_ativo:   false,
+  desconto_anual_percent: 0,
 }
 
 // ─── NORMALIZAÇÃO ─────────────────────────────────────────────────────────────
