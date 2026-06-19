@@ -6,10 +6,9 @@ import { supabase } from '@/lib/supabase'
 import { useAppSettings } from '@/contexts/AppSettingsContext'
 
 const PLANS: Record<string, any> = {
-  start: { name:'Tiger Start', price:'1,99', amount:1.99, color:'var(--success)', features:['Questões ilimitadas','IA intermediária','Mais simulados','Streak + ranking'] },
-  plus:  { name:'Tiger Plus',  price:'5,99', amount:5.99, color:'var(--blue)',    features:['Simulados completos','Mapas mentais','PDFs premium','IA ampliada'] },
-  pro:   { name:'Tiger Pro',   price:'9,99', amount:9.99, color:'var(--gold)',    features:['IA avançada ilimitada','Radar jurídico','Trilhas personalizadas','Previsão de aprovação'] },
-  elite: { name:'Tiger Elite', price:'19,99',amount:19.99,color:'var(--orange)', features:['Tudo ilimitado','IA prioritária','Conteúdos exclusivos','Simulados inéditos'] },
+  start: { name:'Tiger Start', price:'4,99', amount:4.99, color:'var(--success)', features:['50 questões por dia','IA TigerJus (20/dia)','Simulados completos no estilo OAB','Flashcards + resumos rápidos'] },
+  pro:   { name:'Tiger Pro',   price:'9,99', amount:9.99, color:'var(--gold)',    features:['Questões ilimitadas — todos os modos','IA TigerJus (40/dia)','Resumos completos + Índice Remissivo','Exportar PDF + flashcards avançados'] },
+  elite: { name:'Tiger Elite', price:'24,99',amount:24.99,color:'var(--orange)', features:['Tudo do Pro, sem limites','IA TigerJus (80/dia)','Radar OAB + Lei Seca de memorização','Mini-simulados e flashcards ilimitados'] },
 }
 
 function CheckoutContent() {
@@ -19,7 +18,7 @@ function CheckoutContent() {
   const planId = params.get('plan') || 'pro'
   const ciclo = params.get('ciclo') === 'anual' ? 'anual' : 'mensal'
   const ehAnual = ciclo === 'anual'
-  const plan = PLANS[planId]
+  const plan = PLANS[planId] || PLANS['pro']
 
   // Valor exibido conforme o ciclo. Anual = 12x o mensal (pagamento único PIX).
   const [descontoPercent, setDescontoPercent] = useState(0)
