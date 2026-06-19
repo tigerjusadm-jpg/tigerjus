@@ -6,7 +6,7 @@ import { useAppSettings } from '@/contexts/AppSettingsContext'
 import RadarOAB from '@/components/RadarOAB'
 import DashboardTopBanner from '@/components/DashboardTopBanner'
 import LandingTopBanner from '@/components/LandingTopBanner'
-import { canAccess, isAdmin, getLimites, isPago, getQuizModes, getResumoTier, PLANOS_DISPLAY, getNivelByXp, type Plano } from '@/lib/planos'
+import { canAccess, isAdmin, getLimites, isPago, getQuizModes, getResumoTier, PLANOS_DISPLAY, getNivelByXp, getNextNivel, type Plano } from '@/lib/planos'
 
 interface Profile {
   id: string; nome: string; email: string; plano: string
@@ -305,6 +305,8 @@ function DashHome({ profile, onNav, showUpgrade, isPago, canAccessPremium, canAc
   const { settings: dashSettings } = useAppSettings()
   const xp=profile?.xp||0; const _niv=getNivelByXp(xp); const levelName=_niv.nome
   const streak=profile?.streak||0; const xpNext=_niv.xp_max??999999; const xpPrev=_niv.xp_min
+  const proxNivel=getNextNivel(xp); const xpFalta=Math.max(0,xpNext-xp)
+  const primeiroNome=profile?.nome?.split(' ')[0]||'Tigre'
   const pct=Math.min(100,Math.round(((xp-xpPrev)/(xpNext-xpPrev))*100))
   const questoes=profile?.questoes_respondidas||0; const corretas=profile?.questoes_corretas||0
   const taxa=questoes>0?Math.round((corretas/questoes)*100):0
@@ -319,8 +321,8 @@ function DashHome({ profile, onNav, showUpgrade, isPago, canAccessPremium, canAc
       <DashTicker/>
       <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',flexWrap:'wrap',gap:12,marginBottom:20}}>
         <div>
-          <h1 style={{fontFamily:'var(--font-display)',fontSize:'clamp(22px,5vw,32px)',fontWeight:900,marginBottom:6}}>Olá, {profile?.nome?.split(' ')[0]||levelName}! 🔥</h1>
-          <p style={{fontSize:14,color:'var(--text-muted)'}}>{streak>0?<>Sequência de <span style={{color:'var(--gold)'}}>{streak} dias</span>. Continue!</>:(dashSettings.dashboard_subtitle||'Comece seus estudos hoje.')}</p>
+          <h1 style={{fontFamily:'var(--font-display)',fontSize:'clamp(22px,5vw,32px)',fontWeight:900,marginBottom:6}}>Olá, {primeiroNome}! 🐯</h1>
+          <p style={{fontSize:14,color:'var(--text-muted)'}}>Você é um <strong style={{color:'var(--gold)'}}>{levelName}</strong>{proxNivel?<> — faltam <strong style={{color:'var(--gold)'}}>{xpFalta.toLocaleString()} XP</strong> pra virar {proxNivel.nome} 🐯</>:<> — você chegou ao topo da selva! 👑</>}</p>
         </div>
         {streak>0&&<div style={{display:'inline-flex',alignItems:'center',gap:6,background:'rgba(232,98,26,0.1)',border:'1px solid rgba(232,98,26,0.25)',borderRadius:100,padding:'8px 16px',fontSize:13,fontWeight:700,color:'var(--orange)'}}>🔥 {streak} dias</div>}
       </div>
@@ -331,10 +333,11 @@ function DashHome({ profile, onNav, showUpgrade, isPago, canAccessPremium, canAc
           {[
             {icon:'📝',label:'Estudar questões',sub:'Quiz OAB',key:'quiz',lock:false,grad:'linear-gradient(135deg,rgba(212,168,67,0.16),rgba(232,98,26,0.08))',bd:'rgba(212,168,67,0.3)'},
             {icon:'📋',label:'Fazer simulado',sub:'Estilo OAB',key:'simulados',lock:false,grad:'linear-gradient(135deg,rgba(58,143,232,0.14),rgba(212,168,67,0.05))',bd:'rgba(58,143,232,0.28)'},
+            {icon:'🎯',label:'Mini-simulado',sub:'10 questões aleatórias',key:'simulados',lock:false,grad:'linear-gradient(135deg,rgba(232,98,26,0.14),rgba(212,168,67,0.05))',bd:'rgba(232,98,26,0.28)'},
             {icon:'🤖',label:'Tutor IA',sub:'Tire dúvidas',key:'ia',lock:false,grad:'linear-gradient(135deg,rgba(139,92,246,0.14),rgba(58,143,232,0.05))',bd:'rgba(139,92,246,0.28)'},
             {icon:'🃏',label:'Revisar',sub:'Flashcards',key:'flashcards',lock:!isPago,grad:'linear-gradient(135deg,rgba(76,175,125,0.14),rgba(212,168,67,0.05))',bd:'rgba(76,175,125,0.28)'},
           ].map(a=>(
-            <button key={a.key} onClick={()=>onNav(a.key)} style={{textAlign:'left',cursor:'pointer',background:a.grad,border:`1px solid ${a.bd}`,borderRadius:16,padding:'16px 16px 14px',transition:'transform 0.2s',position:'relative'}}
+            <button key={a.label} onClick={()=>onNav(a.key)} style={{textAlign:'left',cursor:'pointer',background:a.grad,border:`1px solid ${a.bd}`,borderRadius:16,padding:'16px 16px 14px',transition:'transform 0.2s',position:'relative'}}
               onMouseEnter={e=>{e.currentTarget.style.transform='translateY(-3px)'}}
               onMouseLeave={e=>{e.currentTarget.style.transform='translateY(0)'}}>
               {a.lock&&<span style={{position:'absolute',top:10,right:10,fontSize:9,fontWeight:800,letterSpacing:1,textTransform:'uppercase',background:'rgba(212,168,67,0.15)',border:'1px solid rgba(212,168,67,0.3)',color:'var(--gold)',padding:'3px 7px',borderRadius:100}}>🔒 Premium</span>}
@@ -1108,7 +1111,7 @@ function SimuladosPage({ showUpgrade, freeQ, setFreeQ, onXp, profile, isPago, ca
   function podeLiberarProva(prova:any):boolean{if(profile?.role==='admin')return true;return canAccess(profile?.plano,planoMinimoParaSimulado(prova.numero_exame))}
 
   const SIMULADOS_PRATICA=[
-    {icon:'⚡',t:'Mini Simulado — Constitucional',info:'5 questões · 15min · Grátis',tags:['Grátis'],lock:false},
+    {icon:'⚡',t:'Mini Simulado Rápido',info:'10 questões aleatórias · 15min · Grátis',tags:['Grátis'],lock:false},
     {icon:'🔥',t:'Simulado Intensivo — Penal',info:'30 questões · 45min',tags:['Start'],lock:true},
     {icon:'📝',t:'Simulado OAB 2ª Fase',info:'Peça jurídica · 5h',tags:['Start'],lock:true},
     {icon:'📜',t:'Ética e Estatuto OAB',info:'20 questões · 30min',tags:['Start'],lock:true},
@@ -1138,8 +1141,8 @@ function SimuladosPage({ showUpgrade, freeQ, setFreeQ, onXp, profile, isPago, ca
   const iniciarSimuladoPratica=async(s:any)=>{
     if(!podeLiberarPratica(s)){showUpgrade();return}
     setLoadingProva(true)
-    const discMap:Record<string,string>={'Mini Simulado — Constitucional':'Constitucional','Simulado Intensivo — Penal':'Penal','Ética e Estatuto OAB':'Ética'}
-    const qtdMap:Record<string,number>={'Mini Simulado — Constitucional':5,'Simulado Intensivo — Penal':30,'Ética e Estatuto OAB':20,'Simulado OAB 2ª Fase':40,'Simulado Geral':60}
+    const discMap:Record<string,string>={'Simulado Intensivo — Penal':'Penal','Ética e Estatuto OAB':'Ética'}
+    const qtdMap:Record<string,number>={'Mini Simulado Rápido':10,'Simulado Intensivo — Penal':30,'Ética e Estatuto OAB':20,'Simulado OAB 2ª Fase':40,'Simulado Geral':60}
     const disc=discMap[s.t];const qtd=qtdMap[s.t]||20
     let query=supabase.from('questoes_oab').select('*').neq('resposta_correta','*')
     if(disc)query=query.ilike('disciplina',`%${disc}%`)
