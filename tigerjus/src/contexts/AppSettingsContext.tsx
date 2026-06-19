@@ -102,6 +102,23 @@ export interface AppSettings {
   // ── desconto promocional do plano anual (lido pela landing) ──
   desconto_anual_ativo:   boolean
   desconto_anual_percent: number
+  // ── textos editáveis das seções da landing ──
+  features_tag:        string
+  features_title:      string
+  features_subtitle:   string
+  como_funciona_tag:   string
+  como_funciona_title: string
+  depoimentos_tag:     string
+  depoimentos_title:   string
+  depo_1_nome:  string
+  depo_1_papel: string
+  depo_1_texto: string
+  depo_2_nome:  string
+  depo_2_papel: string
+  depo_2_texto: string
+  depo_3_nome:  string
+  depo_3_papel: string
+  depo_3_texto: string
 }
 
 // ─── FALLBACKS ────────────────────────────────────────────────────────────────
@@ -200,6 +217,22 @@ const FALLBACKS: AppSettings = {
   maintenance_message:  'Voltamos em breve.',
   desconto_anual_ativo:   false,
   desconto_anual_percent: 0,
+  features_tag:        '🐯 A PLATAFORMA',
+  features_title:      'Tudo que você precisa para **ser aprovado.**',
+  features_subtitle:   'Uma experiência completa que combina tecnologia, disciplina e performance jurídica.',
+  como_funciona_tag:   '📍 COMO FUNCIONA',
+  como_funciona_title: 'Sua jornada no **TigerJus.**',
+  depoimentos_tag:     '⭐ DEPOIMENTOS',
+  depoimentos_title:   'Tigres que já **foram aprovados.**',
+  depo_1_nome:  'Fernanda O.',
+  depo_1_papel: 'Aprovada OAB 1ª Fase',
+  depo_1_texto: 'A IA jurídica me salvou nas dúvidas de madrugada. Estudei 3 meses e fui aprovada. O TigerJus é diferente de tudo que usei.',
+  depo_2_nome:  'Gabriel M.',
+  depo_2_papel: 'Aprovado OAB',
+  depo_2_texto: 'O sistema de ranking me fez estudar mais do que qualquer cursinho. A competição saudável com outros alunos é viciante.',
+  depo_3_nome:  'Isabela R.',
+  depo_3_papel: 'Estudante 5º ano',
+  depo_3_texto: 'Os simulados são idênticos à OAB real. Minha taxa de acerto foi de 52% para 78% em apenas 6 semanas de uso.',
 }
 
 // ─── NORMALIZAÇÃO ─────────────────────────────────────────────────────────────
