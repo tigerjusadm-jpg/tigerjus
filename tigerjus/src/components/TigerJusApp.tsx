@@ -301,7 +301,7 @@ function DegustacaoCard({ freeQ, freeIA, limites, showUpgrade }: any){
   )
 }
 
-function DashHome({ profile, onNav, showUpgrade, isPago, canAccessPremium, canAccessElite, onOpenRadar, freeQ, freeIA, limites }: any) {
+function DashHome({ profile, onNav, onMini, showUpgrade, isPago, canAccessPremium, canAccessElite, onOpenRadar, freeQ, freeIA, limites }: any) {
   const { settings: dashSettings } = useAppSettings()
   const xp=profile?.xp||0; const _niv=getNivelByXp(xp); const levelName=_niv.nome
   const streak=profile?.streak||0; const xpNext=_niv.xp_max??999999; const xpPrev=_niv.xp_min
@@ -333,11 +333,11 @@ function DashHome({ profile, onNav, showUpgrade, isPago, canAccessPremium, canAc
           {[
             {icon:'📝',label:'Estudar questões',sub:'Quiz OAB',key:'quiz',lock:false,grad:'linear-gradient(135deg,rgba(212,168,67,0.16),rgba(232,98,26,0.08))',bd:'rgba(212,168,67,0.3)'},
             {icon:'📋',label:'Fazer simulado',sub:'Estilo OAB',key:'simulados',lock:false,grad:'linear-gradient(135deg,rgba(58,143,232,0.14),rgba(212,168,67,0.05))',bd:'rgba(58,143,232,0.28)'},
-            {icon:'🎯',label:'Mini-simulado',sub:'10 questões aleatórias',key:'simulados',lock:false,grad:'linear-gradient(135deg,rgba(232,98,26,0.14),rgba(212,168,67,0.05))',bd:'rgba(232,98,26,0.28)'},
+            {icon:'🎯',label:'Mini-simulado',sub:'10 questões aleatórias',key:'simulados',action:'mini',lock:false,grad:'linear-gradient(135deg,rgba(232,98,26,0.14),rgba(212,168,67,0.05))',bd:'rgba(232,98,26,0.28)'},
             {icon:'🤖',label:'Tutor IA',sub:'Tire dúvidas',key:'ia',lock:false,grad:'linear-gradient(135deg,rgba(139,92,246,0.14),rgba(58,143,232,0.05))',bd:'rgba(139,92,246,0.28)'},
             {icon:'🃏',label:'Revisar',sub:'Flashcards',key:'flashcards',lock:!isPago,grad:'linear-gradient(135deg,rgba(76,175,125,0.14),rgba(212,168,67,0.05))',bd:'rgba(76,175,125,0.28)'},
           ].map(a=>(
-            <button key={a.label} onClick={()=>onNav(a.key)} style={{textAlign:'left',cursor:'pointer',background:a.grad,border:`1px solid ${a.bd}`,borderRadius:16,padding:'16px 16px 14px',transition:'transform 0.2s',position:'relative'}}
+            <button key={a.label} onClick={()=>(a as any).action==='mini'?onMini():onNav(a.key)} style={{textAlign:'left',cursor:'pointer',background:a.grad,border:`1px solid ${a.bd}`,borderRadius:16,padding:'16px 16px 14px',transition:'transform 0.2s',position:'relative'}}
               onMouseEnter={e=>{e.currentTarget.style.transform='translateY(-3px)'}}
               onMouseLeave={e=>{e.currentTarget.style.transform='translateY(0)'}}>
               {a.lock&&<span style={{position:'absolute',top:10,right:10,fontSize:9,fontWeight:800,letterSpacing:1,textTransform:'uppercase',background:'rgba(212,168,67,0.15)',border:'1px solid rgba(212,168,67,0.3)',color:'var(--gold)',padding:'3px 7px',borderRadius:100}}>🔒 Premium</span>}
@@ -1093,7 +1093,7 @@ function FlashCards({disciplina}:{disciplina:string}){
   )
 }
 
-function SimuladosPage({ showUpgrade, freeQ, setFreeQ, onXp, profile, isPago, canAccessElite }: any) {
+function SimuladosPage({ showUpgrade, freeQ, setFreeQ, onXp, profile, isPago, canAccessElite, intentMini, onConsumeIntent }: any) {
   const [running,setRunning]=useState(false)
   const [cur,setCur]=useState(0)
   const [sel,setSel]=useState<number|null>(null)
@@ -1113,7 +1113,6 @@ function SimuladosPage({ showUpgrade, freeQ, setFreeQ, onXp, profile, isPago, ca
   const SIMULADOS_PRATICA=[
     {icon:'⚡',t:'Mini Simulado Rápido',info:'10 questões aleatórias · 15min · Grátis',tags:['Grátis'],lock:false},
     {icon:'🔥',t:'Simulado Intensivo — Penal',info:'30 questões · 45min',tags:['Start'],lock:true},
-    {icon:'📝',t:'Simulado OAB 2ª Fase',info:'Peça jurídica · 5h',tags:['Start'],lock:true},
     {icon:'📜',t:'Ética e Estatuto OAB',info:'20 questões · 30min',tags:['Start'],lock:true},
     {icon:'🏛️',t:'Simulado Geral',info:'60 questões · 4h',tags:['Start'],lock:true},
   ]
@@ -1142,17 +1141,27 @@ function SimuladosPage({ showUpgrade, freeQ, setFreeQ, onXp, profile, isPago, ca
     if(!podeLiberarPratica(s)){showUpgrade();return}
     setLoadingProva(true)
     const discMap:Record<string,string>={'Simulado Intensivo — Penal':'Penal','Ética e Estatuto OAB':'Ética'}
-    const qtdMap:Record<string,number>={'Mini Simulado Rápido':10,'Simulado Intensivo — Penal':30,'Ética e Estatuto OAB':20,'Simulado OAB 2ª Fase':40,'Simulado Geral':60}
+    const qtdMap:Record<string,number>={'Mini Simulado Rápido':10,'Simulado Intensivo — Penal':30,'Ética e Estatuto OAB':20,'Simulado Geral':60}
     const disc=discMap[s.t];const qtd=qtdMap[s.t]||20
     let query=supabase.from('questoes_oab').select('*').neq('resposta_correta','*')
     if(disc)query=query.ilike('disciplina',`%${disc}%`)
     const{data}=await query
-    if(!data||data.length===0){setLoadingProva(false);showUpgrade();return}
+    if(!data||data.length===0){setLoadingProva(false);alert('Ainda não há questões suficientes para este simulado. Experimente o Mini Simulado Rápido!');return}
     const shuffled=[...data].sort(()=>Math.random()-0.5).slice(0,qtd)
     const formatted=shuffled.map((q:any)=>({id:q.id,disc:q.disciplina,dificuldade:'OAB Oficial',q:q.enunciado,opts:[q.opcao_a,q.opcao_b,q.opcao_c,q.opcao_d],correct:['A','B','C','D'].indexOf(q.resposta_correta),exp:q.comentario||''}))
     setSelectedSimulado({...s,questions:formatted});setRunning(true);setCur(0);setSel(null);setAnswered(false);setScore(0);setDone(false);setTime(s.t.includes('Mini')?900:18000)
     setLoadingProva(false)
   }
+
+  useEffect(()=>{
+    if(intentMini){
+      const mini=SIMULADOS_PRATICA.find(s=>s.t.includes('Mini'))
+      setTab('pratica')
+      if(mini)iniciarSimuladoPratica(mini)
+      onConsumeIntent&&onConsumeIntent()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[])
 
   useEffect(()=>{
     if(!running||answered||done)return
@@ -2077,6 +2086,7 @@ export default function TigerJusApp() {
   const [showPremiumGate,setShowPremiumGate]=useState(false)
   const [showUpgradeModal,setShowUpgradeModal]=useState(false)
   const [showRadar,setShowRadar]=useState(false)
+  const [simIntentMini,setSimIntentMini]=useState(false)
   const [freeQ,setFreeQ]=useState(15)
   const [freeIA,setFreeIA]=useState(5)
   const [notif,setNotif]=useState<string|null>(null)
@@ -2290,11 +2300,11 @@ export default function TigerJusApp() {
             <RadarOAB/>
           </div>
         </aside>
-        {page==='dashboard'&&<DashHome profile={profile} onNav={navTo} showUpgrade={showUpgrade} isPago={userIsPago} canAccessPremium={canAccessPremium} canAccessElite={canAccessElite} onOpenRadar={()=>setShowRadar(true)} freeQ={freeQ} freeIA={freeIA} limites={limites}/>}
+        {page==='dashboard'&&<DashHome profile={profile} onNav={navTo} onMini={()=>{setSimIntentMini(true);navTo('simulados')}} showUpgrade={showUpgrade} isPago={userIsPago} canAccessPremium={canAccessPremium} canAccessElite={canAccessElite} onOpenRadar={()=>setShowRadar(true)} freeQ={freeQ} freeIA={freeIA} limites={limites}/>}
         {page==='disciplines'&&<DisciplinesPage showUpgrade={showUpgrade} profile={profile} isPago={userIsPago} canAccessPremium={canAccessPremium} podePDF={podePDF}/>}
         {page==='quiz'&&<QuizPage freeQ={freeQ} setFreeQ={setFreeQ} showUpgrade={showUpgrade} onXp={handleXp} profile={profile} isPago={userIsPago}/>}
         {page==='flashcards'&&<FlashCardsPage isPago={userIsPago} showUpgrade={showUpgrade}/>}
-        {page==='simulados'&&<SimuladosPage showUpgrade={showUpgrade} freeQ={freeQ} setFreeQ={setFreeQ} onXp={handleXp} profile={profile} isPago={userIsPago} canAccessElite={canAccessElite}/>}
+        {page==='simulados'&&<SimuladosPage showUpgrade={showUpgrade} freeQ={freeQ} setFreeQ={setFreeQ} onXp={handleXp} profile={profile} isPago={userIsPago} canAccessElite={canAccessElite} intentMini={simIntentMini} onConsumeIntent={()=>setSimIntentMini(false)}/>}
         {page==='ia'&&<IAPage freeIA={freeIA} setFreeIA={setFreeIA} showUpgrade={showUpgrade} profile={profile} isPago={userIsPago} iaIlimitada={iaIlimitada}/>}
         {page==='ranking'&&<RankingPage profile={profile} onNav={navTo}/>}
         {page==='indice'&&<IndiceJuridico showUpgrade={showUpgrade} isPago={canAccessPremium}/>}
