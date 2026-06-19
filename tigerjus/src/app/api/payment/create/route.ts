@@ -7,10 +7,10 @@ const supabase = createClient(
 )
 
 const PLAN_PRICES: Record<string, number> = {
-  start: 1.99,
-  plus: 5.99,
+  start: 4.99,
+  plus: 9.99, // legado → cobra como Pro
   pro: 9.99,
-  elite: 19.99,
+  elite: 24.99,
 }
 
 export async function POST(req: NextRequest) {
