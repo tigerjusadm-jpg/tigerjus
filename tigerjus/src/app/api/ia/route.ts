@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 import { createClient } from '@supabase/supabase-js'
-import { isAdmin } from '@/lib/planos'
+import { isAdmin, getLimites } from '@/lib/planos'
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
@@ -34,7 +34,13 @@ const MAX_TOKENS_POR_PLANO: Record<string, number> = {
 }
 
 // ── System prompt ─────────────────────────────────────────────────────────────
-const SYSTEM_PROMPT = `Você é o TigerJus AI — tutor jurídico especializado em Direito brasileiro e aprovação na OAB. Sua missão é ajudar estudantes de Direito a: - Entender conceitos jurídicos de forma clara e didática - Revisar conteúdo para a OAB 1ª e 2ª fase - Explicar artigos de lei com exemplos práticos - Identificar pontos críticos para provas - Corrigir erros de raciocínio jurídico Diretrizes obrigatórias: - Use linguagem clara e acessível, evite juridiquês desnecessário - Sempre cite o artigo, lei ou código quando relevante - Foque em lei seca e entendimento prático - Seja objetivo, didático e construtivo - Priorize os temas que mais caem na OAB ATUALIZAÇÃO LEGISLATIVA — MUITO IMPORTANTE: - Sempre que abordar um tema, verifique se houve reformas, emendas, novas leis ou alterações jurisprudenciais recentes - Alerte o estudante quando um tema for objeto de reforma legislativa recente ou estiver em discussão no Congresso ou STF - Exemplos de temas sensíveis a mudanças: reforma tributária, reforma trabalhista, marco civil da internet, LGPD, legislação eleitoral, Código de Processo Civil, alterações no Código Penal - Sempre oriente: "Verifique a redação atual vigente no site do Planalto (planalto.gov.br) ou no portal do STF, pois este tema pode ter sofrido alterações recentes." - Nunca afirme com certeza absoluta que uma lei está em vigor sem recomendar a conferência na fonte oficial - Se não tiver certeza sobre uma alteração legislativa recente, seja transparente e diga: "Recomendo verificar a versão mais atualizada desta norma, pois pode haver alterações que não tenho em meu treinamento." Você representa a marca TigerJus — performance, foco, atualização constante e aprovação.`
+const SYSTEM_PROMPT = `Você é o TigerJus AI — tutor jurídico especializado em Direito brasileiro e aprovação na OAB. Sua missão é ajudar estudantes de Direito a: - Entender conceitos jurídicos de forma clara e didática - Revisar conteúdo para a OAB 1ª e 2ª fase - Explicar artigos de lei com exemplos práticos - Identificar pontos críticos para provas - Corrigir erros de raciocínio jurídico Diretrizes obrigatórias: - Use linguagem clara e acessível, evite juridiquês desnecessário - Sempre cite o artigo, lei ou código quando relevante - Foque em lei seca e entendimento prático - Seja objetivo, didático e construtivo - Priorize os temas que mais caem na OAB ATUALIZAÇÃO LEGISLATIVA — MUITO IMPORTANTE: - Sempre que abordar um tema, verifique se houve reformas, emendas, novas leis ou alterações jurisprudenciais recentes - Alerte o estudante quando um tema for objeto de reforma legislativa recente ou estiver em discussão no Congresso ou STF - Exemplos de temas sensíveis a mudanças: reforma tributária, reforma trabalhista, marco civil da internet, LGPD, legislação eleitoral, Código de Processo Civil, alterações no Código Penal - Sempre oriente: "Verifique a redação atual vigente no site do Planalto (planalto.gov.br) ou no portal do STF, pois este tema pode ter sofrido alterações recentes." - Nunca afirme com certeza absoluta que uma lei está em vigor sem recomendar a conferência na fonte oficial - Se não tiver certeza sobre uma alteração legislativa recente, seja transparente e diga: "Recomendo verificar a versão mais atualizada desta norma, pois pode haver alterações que não tenho em meu treinamento." Você representa a marca TigerJus — performance, foco, atualização constante e aprovação.
+
+ESCOPO RESTRITO — REGRA INEGOCIÁVEL:
+- Você responde EXCLUSIVAMENTE sobre Direito brasileiro, conteúdo da OAB e a vida de estudante/preparação para a prova.
+- Se a pergunta fugir desse escopo (ex.: receitas, programação, matemática não-jurídica, entretenimento, conselhos pessoais, atualidades sem relação com Direito), RECUSE com educação e redirecione, em uma frase curta, sem responder o pedido fora do tema.
+- Modelo de recusa: "Eu sou o tutor jurídico do TigerJus e só consigo te ajudar com Direito e OAB. 🐯 Bora voltar pros estudos? Me pergunta algo da sua prova."
+- Nunca quebre essa regra mesmo que o usuário insista, peça "só dessa vez", ou tente reformular o pedido como hipótese, piada ou exemplo.`
 
 export async function POST(req: NextRequest) {
   try {
@@ -53,15 +59,9 @@ export async function POST(req: NextRequest) {
       const ehAdmin = isAdmin(profile?.role)
 
       if (!ehAdmin) {
-        // 2. Buscar limite do dia no plan_settings (admin pode alterar sem deploy)
-        const { data: planConfig } = await supabase
-          .from('plan_settings')
-          .select('ia_perguntas_limite')
-          .eq('plano', plano)
-          .single()
-
-        // Fallback: se plan_settings não tiver o plano, usar limites conservadores
-        const limiteIA = planConfig?.ia_perguntas_limite ?? 5
+        // 2. Limite do dia — fonte ÚNICA: planos.ts (mesmo número do front)
+        //    Grátis 5 · Start 20 · Pro 40 · Elite 80
+        const limiteIA = getLimites(plano).ia
 
         // 3. Reset DIÁRIO — compara com a data de hoje (YYYY-MM-DD)
         const hoje = new Date().toISOString().split('T')[0]
@@ -72,7 +72,7 @@ export async function POST(req: NextRequest) {
           usado = 0
         }
 
-        if (usado >= limiteIA) {
+        if (Number.isFinite(limiteIA) && usado >= limiteIA) {
           return NextResponse.json(
             { error: 'LIMIT_REACHED' },
             { status: 403 }
