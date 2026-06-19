@@ -29,10 +29,9 @@ interface PlanSetting {
 // ── Constants ─────────────────────────────────────────────────────────────────
 const PLANOS = [
   { key:'gratuito', label:'Gratuito', cor:'#6B7280', preco:0      },
-  { key:'start',    label:'Start',    cor:'#3B82F6', preco:1.99   },
-  { key:'plus',     label:'Plus',     cor:'#8B5CF6', preco:5.99   },
+  { key:'start',    label:'Start',    cor:'#3B82F6', preco:4.99   },
   { key:'pro',      label:'Pro',      cor:'#EC4899', preco:9.99   },
-  { key:'elite',    label:'Elite',    cor:'#D4A843', preco:19.99  },
+  { key:'elite',    label:'Elite',    cor:'#D4A843', preco:24.99  },
 ]
 
 const getPlanCor = (plano: string | null) =>
@@ -192,13 +191,15 @@ export default function ModuloPlanos({ adminId }:{ adminId?:string }) {
 
   const load = useCallback(async () => {
     setLoading(true)
+    const { data: { session } } = await supabase.auth.getSession()
     const [pRes, aRes, payRes, psRes] = await Promise.all([
-      supabase.from('profiles').select('id,email,nome,plano,role,ultimo_acesso,created_at,xp,nivel,questoes_respondidas').order('created_at',{ascending:false}),
+      fetch('/api/admin/list-users', { headers: { Authorization: `Bearer ${session?.access_token ?? ''}` } })
+        .then(r => r.json()).catch(() => ({ users: [] })),
       supabase.from('assinaturas').select('*').order('created_at',{ascending:false}),
       supabase.from('payments').select('*').order('created_at',{ascending:false}).limit(50),
       supabase.from('plan_settings').select('*').order('ordem_exibicao'),
     ])
-    setProfiles(pRes.data || [])
+    setProfiles(pRes.users || [])
     setAssinaturas(aRes.data || [])
     setPayments(payRes.data || [])
     setPlanSettings(psRes.data || [])
@@ -422,7 +423,7 @@ export default function ModuloPlanos({ adminId }:{ adminId?:string }) {
         <div>
           <div style={{ display:'flex',gap:8,marginBottom:14,flexWrap:'wrap',alignItems:'center' }}>
             <div style={{ display:'flex',gap:6,flexWrap:'wrap' }}>
-              {[{k:'all',l:'Todos'},{k:'gratuito',l:'Gratuito'},{k:'start',l:'Start'},{k:'plus',l:'Plus'},{k:'pro',l:'Pro'},{k:'elite',l:'Elite'},{k:'admins',l:'Admins'},{k:'comuns',l:'Comuns'}].map(f=>(
+              {[{k:'all',l:'Todos'},{k:'gratuito',l:'Gratuito'},{k:'start',l:'Start'},{k:'pro',l:'Pro'},{k:'elite',l:'Elite'},{k:'admins',l:'Admins'},{k:'comuns',l:'Comuns'}].map(f=>(
                 <button key={f.k} onClick={()=>setUserFilter(f.k)}
                   style={{ padding:'5px 12px',borderRadius:100,fontSize:11,cursor:'pointer',
                     border:userFilter===f.k?`1px solid ${getPlanCor(f.k==='all'||f.k==='admins'||f.k==='comuns'?null:f.k)}`:'1px solid rgba(255,255,255,0.08)',
