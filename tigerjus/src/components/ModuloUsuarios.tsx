@@ -269,12 +269,14 @@ export default function ModuloUsuarios({ adminId }: { adminId?: string }) {
 
   const load = useCallback(async () => {
     setLoading(true)
-    const { data } = await supabase
-      .from('profiles')
-      .select('*')
-      .order('created_at', { ascending: false })
-      .limit(500)
-    if (data) setUsuarios(data as Profile[])
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      const res = await fetch('/api/admin/list-users', {
+        headers: { Authorization: `Bearer ${session?.access_token ?? ''}` },
+      })
+      const json = await res.json().catch(() => ({}))
+      if (json?.users) setUsuarios(json.users as Profile[])
+    } catch { /* mantém a lista atual em caso de falha */ }
     setLoading(false)
   }, [])
 
