@@ -41,6 +41,16 @@ function precoAnual(priceStr: string, descontoPct: number = 0): string {
   return (Math.round(final * 100) / 100).toFixed(2).replace('.', ',')
 }
 
+// Destaque por marcação: tudo entre **asteriscos** ganha o gradiente dourado premium.
+// Ex.: "Tigres que já **foram aprovados.**" → "foram aprovados." em destaque.
+function Hl({ text }: { text?: string | null }) {
+  if (!text) return null
+  const parts = String(text).split(/\*\*(.+?)\*\*/g)
+  return <>{parts.map((p, i) => i % 2 === 1
+    ? <span key={i} style={{ background: 'linear-gradient(135deg,var(--gold-light) 0%,var(--gold) 50%,var(--orange) 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>{p}</span>
+    : <span key={i}>{p}</span>)}</>
+}
+
 function UpgradeModal({ onClose }: { onClose: () => void }) {
   const { settings } = useAppSettings()
   const [ciclo, setCiclo] = useState<'mensal'|'anual'>('mensal')
@@ -230,16 +240,11 @@ export default function HomePage() {
             </div>
 
             <h1 style={{fontFamily:'var(--font-display)',fontSize:'clamp(38px,8vw,88px)',fontWeight:900,lineHeight:1.05,letterSpacing:-1,marginBottom:24,animation:'fadeInUp 0.8s 0.1s ease both'}}>
-              {settings.hero_headline
-                ? settings.hero_headline.includes('Direito')
-                  ? <>{settings.hero_headline.split('Direito')[0]}<span style={{background:'linear-gradient(135deg,var(--gold-light) 0%,var(--gold) 50%,var(--orange) 100%)',WebkitBackgroundClip:'text',WebkitTextFillColor:'transparent'}}>Direito{settings.hero_headline.split('Direito')[1]}</span></>
-                  : settings.hero_headline
-                : <>O jeito mais inteligente<br/><span style={{background:'linear-gradient(135deg,var(--gold-light) 0%,var(--gold) 50%,var(--orange) 100%)',WebkitBackgroundClip:'text',WebkitTextFillColor:'transparent'}}>de evoluir no Direito.</span></>
-              }
+              <Hl text={settings.hero_headline || 'O jeito mais inteligente de evoluir no **Direito.**'} />
             </h1>
 
             <p style={{fontSize:'clamp(15px,2vw,20px)',color:'var(--text-muted)',maxWidth:580,lineHeight:1.7,marginBottom:16,animation:'fadeInUp 0.8s 0.2s ease both'}}>
-              {settings.hero_subtitle||'Estude com IA, gamificação e metodologia de alta performance. Aprovação na OAB com método e inteligência.'}
+              <Hl text={settings.hero_subtitle||'Estude com IA, gamificação e metodologia de alta performance. Aprovação na OAB com método e inteligência.'} />
             </p>
             <p style={{fontSize:13,color:'var(--gold-dark)',fontStyle:'italic',letterSpacing:1,marginBottom:40,animation:'fadeInUp 0.8s 0.25s ease both'}}>
               ✦ "{settings.hero_quote||'Não basta estudar Direito. É preciso pensar como um Tigre.'}"
@@ -277,10 +282,10 @@ export default function HomePage() {
       {/* FEATURES */}
       <section id="plataforma" style={{padding:'80px 24px',background:'var(--tj-bg-secondary, #0a1020)'}}>
         <div style={{maxWidth:1200,margin:'0 auto'}}>
-          <div className="section-tag">🐯 A PLATAFORMA</div>
-          <h2 style={{fontFamily:'var(--font-display)',fontSize:'clamp(28px,5vw,54px)',fontWeight:900,lineHeight:1.1,marginBottom:16}}>Tudo que você precisa para<br/><span style={{color:'var(--gold)'}}>ser aprovado.</span></h2>
+          <div className="section-tag">{settings.features_tag||'🐯 A PLATAFORMA'}</div>
+          <h2 style={{fontFamily:'var(--font-display)',fontSize:'clamp(28px,5vw,54px)',fontWeight:900,lineHeight:1.1,marginBottom:16}}><Hl text={settings.features_title||'Tudo que você precisa para **ser aprovado.**'} /></h2>
           <div className="divider" />
-          <p style={{fontSize:16,color:'var(--text-muted)',maxWidth:540,lineHeight:1.7,marginBottom:40}}>Uma experiência completa que combina tecnologia, disciplina e performance jurídica.</p>
+          <p style={{fontSize:16,color:'var(--text-muted)',maxWidth:540,lineHeight:1.7,marginBottom:40}}>{settings.features_subtitle||'Uma experiência completa que combina tecnologia, disciplina e performance jurídica.'}</p>
           <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(260px,1fr))',gap:16}}>
             {FEATURES.map(f=>(
               <div key={f.title} style={{background:'var(--tj-card-bg, rgba(12,20,40,0.85))',border:'1px solid var(--tj-card-border, rgba(99,130,200,0.18))',borderRadius:16,padding:28,transition:'all 0.3s',cursor:'default',backdropFilter:'blur(12px)',WebkitBackdropFilter:'blur(12px)'}}>
@@ -296,8 +301,8 @@ export default function HomePage() {
       {/* HOW IT WORKS */}
       <section style={{padding:'80px 24px'}}>
         <div style={{maxWidth:1200,margin:'0 auto'}}>
-          <div className="section-tag">📍 COMO FUNCIONA</div>
-          <h2 style={{fontFamily:'var(--font-display)',fontSize:'clamp(28px,5vw,54px)',fontWeight:900,lineHeight:1.1,marginBottom:16}}>Sua jornada no <span style={{color:'var(--gold)'}}>TigerJus.</span></h2>
+          <div className="section-tag">{settings.como_funciona_tag||'📍 COMO FUNCIONA'}</div>
+          <h2 style={{fontFamily:'var(--font-display)',fontSize:'clamp(28px,5vw,54px)',fontWeight:900,lineHeight:1.1,marginBottom:16}}><Hl text={settings.como_funciona_title||'Sua jornada no **TigerJus.**'} /></h2>
           <div className="divider" />
           <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(200px,1fr))',gap:24}}>
             {[
@@ -384,14 +389,14 @@ export default function HomePage() {
       {/* TESTIMONIALS */}
       <section style={{padding:'80px 24px'}}>
         <div style={{maxWidth:1200,margin:'0 auto'}}>
-          <div className="section-tag">⭐ DEPOIMENTOS</div>
-          <h2 style={{fontFamily:'var(--font-display)',fontSize:'clamp(28px,5vw,54px)',fontWeight:900,marginBottom:16}}>Tigres que já <span style={{color:'var(--gold)'}}>foram aprovados.</span></h2>
+          <div className="section-tag">{settings.depoimentos_tag||'⭐ DEPOIMENTOS'}</div>
+          <h2 style={{fontFamily:'var(--font-display)',fontSize:'clamp(28px,5vw,54px)',fontWeight:900,marginBottom:16}}><Hl text={settings.depoimentos_title||'Tigres que já **foram aprovados.**'} /></h2>
           <div className="divider" />
           <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(260px,1fr))',gap:16}}>
             {[
-              {n:'Fernanda O.',r:'Aprovada OAB 1ª Fase',t:'A IA jurídica me salvou nas dúvidas de madrugada. Estudei 3 meses e fui aprovada. O TigerJus é diferente de tudo que usei.'},
-              {n:'Gabriel M.',r:'Aprovado OAB 2ª Fase',t:'O sistema de ranking me fez estudar mais do que qualquer cursinho. A competição saudável com outros alunos é viciante.'},
-              {n:'Isabela R.',r:'Estudante 5º ano',t:'Os simulados são idênticos à OAB real. Minha taxa de acerto foi de 52% para 78% em apenas 6 semanas de uso.'},
+              {n:settings.depo_1_nome||'Fernanda O.',r:settings.depo_1_papel||'Aprovada OAB 1ª Fase',t:settings.depo_1_texto||'A IA jurídica me salvou nas dúvidas de madrugada. Estudei 3 meses e fui aprovada. O TigerJus é diferente de tudo que usei.'},
+              {n:settings.depo_2_nome||'Gabriel M.',r:settings.depo_2_papel||'Aprovado OAB',t:settings.depo_2_texto||'O sistema de ranking me fez estudar mais do que qualquer cursinho. A competição saudável com outros alunos é viciante.'},
+              {n:settings.depo_3_nome||'Isabela R.',r:settings.depo_3_papel||'Estudante 5º ano',t:settings.depo_3_texto||'Os simulados são idênticos à OAB real. Minha taxa de acerto foi de 52% para 78% em apenas 6 semanas de uso.'},
             ].map(t=>(
               <div key={t.n} style={{background:'var(--gray)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:16,padding:24}}>
                 <div style={{fontSize:14,marginBottom:12}}>⭐⭐⭐⭐⭐</div>
@@ -411,15 +416,10 @@ export default function HomePage() {
         <div style={{maxWidth:600,margin:'0 auto',textAlign:'center'}}>
           <div style={{fontSize:52,marginBottom:20}}>🐯</div>
           <h2 style={{fontFamily:'var(--font-display)',fontSize:'clamp(28px,5vw,54px)',fontWeight:900,marginBottom:16}}>
-            {settings.final_cta_title
-              ? settings.final_cta_title.includes('Tigre')
-                ? <>{settings.final_cta_title.split('Tigre')[0]}<span style={{color:'var(--gold)'}}>Tigre{settings.final_cta_title.split('Tigre')[1]}</span></>
-                : settings.final_cta_title
-              : <>Pronto para pensar<br/><span style={{color:'var(--gold)'}}>como um Tigre?</span></>
-            }
+            <Hl text={settings.final_cta_title||'Pronto para pensar como um **Tigre?**'} />
           </h2>
           <p style={{color:'var(--text-muted)',fontSize:16,marginBottom:36,lineHeight:1.7}}>
-            {settings.final_cta_subtitle||'Mais de 12.400 estudantes já estão evoluindo. Comece grátis e sinta a diferença.'}
+            <Hl text={settings.final_cta_subtitle||'Mais de 12.400 estudantes já estão evoluindo. Comece grátis e sinta a diferença.'} />
           </p>
           <Link href="/login?modo=cadastro" className="btn-primary" style={{fontSize:16,padding:'16px 48px',display:'inline-block'}}>
             {settings.final_cta_button||'COMEÇAR AGORA'}
