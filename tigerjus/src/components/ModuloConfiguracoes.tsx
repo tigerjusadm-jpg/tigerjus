@@ -26,13 +26,12 @@ const GRUPOS: { key: string; label: string; icon: string; desc: string; keys: st
     keys: [] },
   { key: 'redes',   label: 'Redes & Contato',      icon: '🔗', desc: 'Instagram, WhatsApp, YouTube, TikTok, Telegram + e-mail.',
     keys: ['instagram_url', 'whatsapp_url', 'youtube_url', 'tiktok_url', 'telegram_url', 'email_suporte'] },
-  { key: 'textos',  label: 'Textos da plataforma', icon: '✍️', desc: 'Hero, CTAs, boas-vindas, upgrade e rodapé.',
+  { key: 'textos',  label: 'Textos da plataforma', icon: '✍️', desc: 'TODOS os textos da landing e do app num lugar só. Dica: ponha **palavra** pra deixá-la em dourado.',
     keys: ['hero_badge', 'hero_headline', 'hero_subtitle', 'hero_quote', 'hero_cta_primary',
            'final_cta_title', 'final_cta_subtitle', 'final_cta_button', 'final_cta_footer', 'footer_copyright',
            'welcome_message', 'dashboard_subtitle',
-           'cta_upgrade_title', 'cta_upgrade_subtitle', 'cta_upgrade_button', 'upgrade_footer_text', 'cta_downgrade_button'] },
-  { key: 'secoes',  label: 'Seções & Depoimentos', icon: '📰', desc: 'Títulos das seções da landing e os 3 depoimentos. Dica: ponha **palavra** pra deixá-la em dourado.',
-    keys: ['features_tag', 'features_title', 'features_subtitle',
+           'cta_upgrade_title', 'cta_upgrade_subtitle', 'cta_upgrade_button', 'upgrade_footer_text', 'cta_downgrade_button',
+           'features_tag', 'features_title', 'features_subtitle',
            'como_funciona_tag', 'como_funciona_title',
            'depoimentos_tag', 'depoimentos_title',
            'depo_1_nome', 'depo_1_papel', 'depo_1_texto',
@@ -46,6 +45,22 @@ const GRUPOS: { key: string; label: string; icon: string; desc: string; keys: st
     keys: ['maintenance_mode', 'maintenance_message'] },
   { key: 'avancado',label: 'Avançado',             icon: '🔧', desc: 'Campos extras e criação manual de chaves.',
     keys: [] },
+]
+
+// Sub-seções recolhíveis (sanfona) da aba "Textos da plataforma".
+// O ADM vê uma lista limpa; clica numa seção e só então abrem os campos dela.
+const SUBGRUPOS_TEXTOS: { label: string; icon: string; keys: string[] }[] = [
+  { label: 'Topo da landing (Hero)',     icon: '🦅', keys: ['hero_badge', 'hero_headline', 'hero_subtitle', 'hero_quote', 'hero_cta_primary'] },
+  { label: 'Seção "A Plataforma"',       icon: '🐯', keys: ['features_tag', 'features_title', 'features_subtitle'] },
+  { label: 'Seção "Como Funciona"',      icon: '📍', keys: ['como_funciona_tag', 'como_funciona_title'] },
+  { label: 'Seção "Depoimentos"',        icon: '⭐', keys: ['depoimentos_tag', 'depoimentos_title'] },
+  { label: 'Depoimento 1',               icon: '💬', keys: ['depo_1_nome', 'depo_1_papel', 'depo_1_texto'] },
+  { label: 'Depoimento 2',               icon: '💬', keys: ['depo_2_nome', 'depo_2_papel', 'depo_2_texto'] },
+  { label: 'Depoimento 3',               icon: '💬', keys: ['depo_3_nome', 'depo_3_papel', 'depo_3_texto'] },
+  { label: 'Chamada final (CTA)',        icon: '🚀', keys: ['final_cta_title', 'final_cta_subtitle', 'final_cta_button', 'final_cta_footer'] },
+  { label: 'Rodapé',                     icon: '📄', keys: ['footer_copyright'] },
+  { label: 'Dashboard (área logada)',    icon: '🏠', keys: ['welcome_message', 'dashboard_subtitle'] },
+  { label: 'Modal de Upgrade',           icon: '🔓', keys: ['cta_upgrade_title', 'cta_upgrade_subtitle', 'cta_upgrade_button', 'upgrade_footer_text', 'cta_downgrade_button'] },
 ]
 
 // Rótulos amigáveis (o ADM vê isto, não a "key" técnica)
@@ -993,6 +1008,7 @@ export default function ModuloConfiguracoes({ adminId }: { adminId?: string }) {
   const [saving, setSaving]         = useState<string | null>(null)
   const [saved, setSaved]           = useState<Record<string, boolean>>({})
   const [grupoAtivo, setGrupoAtivo] = useState('marca')
+  const [subAberto, setSubAberto] = useState<string | null>(null)
   const [novaKey, setNovaKey]       = useState('')
   const [novaDesc, setNovaDesc]     = useState('')
   const [novoTipo, setNovoTipo]     = useState('text')
@@ -1013,7 +1029,10 @@ export default function ModuloConfiguracoes({ adminId }: { adminId?: string }) {
 
   const getValor = (key: string): string => {
     if (editados[key] !== undefined) return editados[key]
-    return settings[key]?.value ?? ''
+    // Tem linha salva no banco → usa ela (mesmo se for vazia, respeita escolha do ADM)
+    if (settings[key] !== undefined) return settings[key].value ?? ''
+    // Não tem linha salva → mostra o valor PADRÃO (o mesmo texto que está no ar)
+    return DEFAULTS.find(d => d.key === key)?.value ?? ''
   }
 
   const handleChange = (key: string, value: string) => {
@@ -1219,6 +1238,39 @@ export default function ModuloConfiguracoes({ adminId }: { adminId?: string }) {
                     <EditorCampo setting={{ ...s, value: getValor(s.key) } as AppSetting} onChange={v => handleChange(s.key, v)} />
                   </div>
                 ))}
+            </div>
+          ) : grupoAtivo === 'textos' ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {SUBGRUPOS_TEXTOS.map(sub => {
+                const aberto = subAberto === sub.label
+                const nedit = sub.keys.filter(k => editados[k] !== undefined).length
+                return (
+                  <div key={sub.label} style={{ border: '1px solid rgba(255,255,255,0.07)', borderRadius: 12, overflow: 'hidden', background: '#141414' }}>
+                    <button onClick={() => setSubAberto(aberto ? null : sub.label)} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '14px 16px', background: aberto ? 'rgba(212,168,67,0.06)' : 'none', border: 'none', cursor: 'pointer', textAlign: 'left' }}>
+                      <span style={{ fontSize: 18 }}>{sub.icon}</span>
+                      <span style={{ flex: 1, fontSize: 14, fontWeight: 700, color: '#fff' }}>{sub.label}</span>
+                      {nedit > 0 && <span style={{ fontSize: 10, fontWeight: 700, color: '#D4A843' }}>● {nedit} não salvo</span>}
+                      <span style={{ color: '#777', fontSize: 12 }}>{aberto ? '▲' : '▼'}</span>
+                    </button>
+                    {aberto && (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 14, padding: '6px 16px 18px' }}>
+                        {sub.keys.map(k => {
+                          const def = DEFAULTS.find(d => d.key === k)
+                          const setting: AppSetting = settings[k] || { id: '', key: k, value: def?.value || '', type: def?.type || 'text', description: def?.description || null, ativo: true }
+                          return (
+                            <div key={k}>
+                              <label style={{ fontSize: 11, fontWeight: 700, color: '#aaa', display: 'block', marginBottom: 7 }}>{LABELS[k] || k}</label>
+                              {IMAGE_KEYS.has(k)
+                                ? <AssetUploader value={getValor(k)} onChange={v => handleChange(k, v)} adminId={adminId} hint={HINTS[k]} />
+                                : <EditorCampo setting={{ ...setting, value: getValor(k) } as AppSetting} onChange={v => handleChange(k, v)} />}
+                            </div>
+                          )
+                        })}
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
