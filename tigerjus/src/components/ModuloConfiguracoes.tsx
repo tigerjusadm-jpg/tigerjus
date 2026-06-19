@@ -31,6 +31,13 @@ const GRUPOS: { key: string; label: string; icon: string; desc: string; keys: st
            'final_cta_title', 'final_cta_subtitle', 'final_cta_button', 'final_cta_footer', 'footer_copyright',
            'welcome_message', 'dashboard_subtitle',
            'cta_upgrade_title', 'cta_upgrade_subtitle', 'cta_upgrade_button', 'upgrade_footer_text', 'cta_downgrade_button'] },
+  { key: 'secoes',  label: 'Seções & Depoimentos', icon: '📰', desc: 'Títulos das seções da landing e os 3 depoimentos. Dica: ponha **palavra** pra deixá-la em dourado.',
+    keys: ['features_tag', 'features_title', 'features_subtitle',
+           'como_funciona_tag', 'como_funciona_title',
+           'depoimentos_tag', 'depoimentos_title',
+           'depo_1_nome', 'depo_1_papel', 'depo_1_texto',
+           'depo_2_nome', 'depo_2_papel', 'depo_2_texto',
+           'depo_3_nome', 'depo_3_papel', 'depo_3_texto'] },
   { key: 'planos',  label: 'Planos & Limites',     icon: '💳', desc: 'Desconto anual e limites do modo degustação.',
     keys: ['max_free_days', 'max_free_questions', 'max_free_ia', 'desconto_anual_ativo', 'desconto_anual_percent'] },
   { key: 'ia',      label: 'IA Jurídica',          icon: '🤖', desc: 'Liga/desliga, saudação e instruções do tutor.',
@@ -59,6 +66,12 @@ const LABELS: Record<string, string> = {
   desconto_anual_ativo: 'Desconto anual ativo', desconto_anual_percent: 'Desconto anual (%)',
   ia_enabled: 'IA ligada', ia_welcome_message: 'Saudação do tutor IA', ia_system_prompt: 'Instruções do tutor (avançado)',
   maintenance_mode: 'Modo manutenção', maintenance_message: 'Mensagem de manutenção',
+  features_tag: 'Plataforma — selo', features_title: 'Plataforma — título', features_subtitle: 'Plataforma — subtítulo',
+  como_funciona_tag: 'Como Funciona — selo', como_funciona_title: 'Como Funciona — título',
+  depoimentos_tag: 'Depoimentos — selo', depoimentos_title: 'Depoimentos — título',
+  depo_1_nome: 'Depoimento 1 — nome', depo_1_papel: 'Depoimento 1 — papel', depo_1_texto: 'Depoimento 1 — texto',
+  depo_2_nome: 'Depoimento 2 — nome', depo_2_papel: 'Depoimento 2 — papel', depo_2_texto: 'Depoimento 2 — texto',
+  depo_3_nome: 'Depoimento 3 — nome', depo_3_papel: 'Depoimento 3 — papel', depo_3_texto: 'Depoimento 3 — texto',
 }
 
 // Dicas de tamanho recomendado (aparecem nos campos de imagem)
@@ -163,6 +176,23 @@ const DEFAULTS: Omit<AppSetting, 'id' | 'ativo'>[] = [
   { key: 'ia_model',           value: 'claude-sonnet-4-20250514',   type: 'text',    description: 'Modelo de IA utilizado' },
   { key: 'ia_max_tokens',      value: '1000',                        type: 'number',  description: 'Máximo de tokens por resposta' },
   { key: 'ia_system_prompt',   value: '',                            type: 'json',    description: 'System prompt base da IA jurídica' },
+  // Seções da landing + depoimentos (use **palavra** para dourado)
+  { key: 'features_tag',        value: '🐯 A PLATAFORMA',                                              type: 'text', description: 'Selo da seção A Plataforma' },
+  { key: 'features_title',      value: 'Tudo que você precisa para **ser aprovado.**',                 type: 'text', description: 'Título da seção A Plataforma' },
+  { key: 'features_subtitle',   value: 'Uma experiência completa que combina tecnologia, disciplina e performance jurídica.', type: 'text', description: 'Subtítulo da seção A Plataforma' },
+  { key: 'como_funciona_tag',   value: '📍 COMO FUNCIONA',                                             type: 'text', description: 'Selo da seção Como Funciona' },
+  { key: 'como_funciona_title', value: 'Sua jornada no **TigerJus.**',                                 type: 'text', description: 'Título da seção Como Funciona' },
+  { key: 'depoimentos_tag',     value: '⭐ DEPOIMENTOS',                                               type: 'text', description: 'Selo da seção Depoimentos' },
+  { key: 'depoimentos_title',   value: 'Tigres que já **foram aprovados.**',                           type: 'text', description: 'Título da seção Depoimentos' },
+  { key: 'depo_1_nome',  value: 'Fernanda O.',          type: 'text', description: 'Depoimento 1 — nome' },
+  { key: 'depo_1_papel', value: 'Aprovada OAB 1ª Fase', type: 'text', description: 'Depoimento 1 — papel' },
+  { key: 'depo_1_texto', value: 'A IA jurídica me salvou nas dúvidas de madrugada. Estudei 3 meses e fui aprovada. O TigerJus é diferente de tudo que usei.', type: 'text', description: 'Depoimento 1 — texto' },
+  { key: 'depo_2_nome',  value: 'Gabriel M.',  type: 'text', description: 'Depoimento 2 — nome' },
+  { key: 'depo_2_papel', value: 'Aprovado OAB', type: 'text', description: 'Depoimento 2 — papel' },
+  { key: 'depo_2_texto', value: 'O sistema de ranking me fez estudar mais do que qualquer cursinho. A competição saudável com outros alunos é viciante.', type: 'text', description: 'Depoimento 2 — texto' },
+  { key: 'depo_3_nome',  value: 'Isabela R.',       type: 'text', description: 'Depoimento 3 — nome' },
+  { key: 'depo_3_papel', value: 'Estudante 5º ano', type: 'text', description: 'Depoimento 3 — papel' },
+  { key: 'depo_3_texto', value: 'Os simulados são idênticos à OAB real. Minha taxa de acerto foi de 52% para 78% em apenas 6 semanas de uso.', type: 'text', description: 'Depoimento 3 — texto' },
 ]
 
 // ─── PRESETS DE GRADIENTE ─────────────────────────────────────────────────────
