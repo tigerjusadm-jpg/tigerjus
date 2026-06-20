@@ -33,6 +33,10 @@ const GRUPOS: { key: string; label: string; icon: string; desc: string; keys: st
            'cta_upgrade_title', 'cta_upgrade_subtitle', 'cta_upgrade_button', 'upgrade_footer_text', 'cta_downgrade_button',
            'features_tag', 'features_title', 'features_subtitle',
            'como_funciona_tag', 'como_funciona_title',
+           'passo_1_titulo', 'passo_1_desc', 'passo_2_titulo', 'passo_2_desc',
+           'passo_3_titulo', 'passo_3_desc', 'passo_4_titulo', 'passo_4_desc',
+           'stat_1_num', 'stat_1_label', 'stat_2_num', 'stat_2_label',
+           'stat_3_num', 'stat_3_label', 'stat_4_num', 'stat_4_label',
            'depoimentos_tag', 'depoimentos_title',
            'depo_1_nome', 'depo_1_papel', 'depo_1_texto',
            'depo_2_nome', 'depo_2_papel', 'depo_2_texto',
@@ -51,8 +55,9 @@ const GRUPOS: { key: string; label: string; icon: string; desc: string; keys: st
 // O ADM vê uma lista limpa; clica numa seção e só então abrem os campos dela.
 const SUBGRUPOS_TEXTOS: { label: string; icon: string; keys: string[] }[] = [
   { label: 'Topo da landing (Hero)',     icon: '🦅', keys: ['hero_badge', 'hero_headline', 'hero_subtitle', 'hero_quote', 'hero_cta_primary'] },
+  { label: 'Números (estatísticas)',     icon: '📊', keys: ['stat_1_num', 'stat_1_label', 'stat_2_num', 'stat_2_label', 'stat_3_num', 'stat_3_label', 'stat_4_num', 'stat_4_label'] },
   { label: 'Seção "A Plataforma"',       icon: '🐯', keys: ['features_tag', 'features_title', 'features_subtitle'] },
-  { label: 'Seção "Como Funciona"',      icon: '📍', keys: ['como_funciona_tag', 'como_funciona_title'] },
+  { label: 'Seção "Como Funciona"',      icon: '📍', keys: ['como_funciona_tag', 'como_funciona_title', 'passo_1_titulo', 'passo_1_desc', 'passo_2_titulo', 'passo_2_desc', 'passo_3_titulo', 'passo_3_desc', 'passo_4_titulo', 'passo_4_desc'] },
   { label: 'Seção "Depoimentos"',        icon: '⭐', keys: ['depoimentos_tag', 'depoimentos_title'] },
   { label: 'Depoimento 1',               icon: '💬', keys: ['depo_1_nome', 'depo_1_papel', 'depo_1_texto'] },
   { label: 'Depoimento 2',               icon: '💬', keys: ['depo_2_nome', 'depo_2_papel', 'depo_2_texto'] },
@@ -87,6 +92,14 @@ const LABELS: Record<string, string> = {
   depo_1_nome: 'Depoimento 1 — nome', depo_1_papel: 'Depoimento 1 — papel', depo_1_texto: 'Depoimento 1 — texto',
   depo_2_nome: 'Depoimento 2 — nome', depo_2_papel: 'Depoimento 2 — papel', depo_2_texto: 'Depoimento 2 — texto',
   depo_3_nome: 'Depoimento 3 — nome', depo_3_papel: 'Depoimento 3 — papel', depo_3_texto: 'Depoimento 3 — texto',
+  passo_1_titulo: 'Passo 1 — título', passo_1_desc: 'Passo 1 — descrição',
+  passo_2_titulo: 'Passo 2 — título', passo_2_desc: 'Passo 2 — descrição',
+  passo_3_titulo: 'Passo 3 — título', passo_3_desc: 'Passo 3 — descrição',
+  passo_4_titulo: 'Passo 4 — título', passo_4_desc: 'Passo 4 — descrição',
+  stat_1_num: 'Número 1', stat_1_label: 'Rótulo 1',
+  stat_2_num: 'Número 2', stat_2_label: 'Rótulo 2',
+  stat_3_num: 'Número 3', stat_3_label: 'Rótulo 3',
+  stat_4_num: 'Número 4', stat_4_label: 'Rótulo 4',
 }
 
 // Dicas de tamanho recomendado (aparecem nos campos de imagem)
@@ -208,6 +221,22 @@ const DEFAULTS: Omit<AppSetting, 'id' | 'ativo'>[] = [
   { key: 'depo_3_nome',  value: 'Isabela R.',       type: 'text', description: 'Depoimento 3 — nome' },
   { key: 'depo_3_papel', value: 'Estudante 5º ano', type: 'text', description: 'Depoimento 3 — papel' },
   { key: 'depo_3_texto', value: 'Os simulados são idênticos à OAB real. Minha taxa de acerto foi de 52% para 78% em apenas 6 semanas de uso.', type: 'text', description: 'Depoimento 3 — texto' },
+  { key: 'passo_1_titulo', value: 'Crie sua conta',                                          type: 'text', description: 'Como Funciona · Passo 1 — título' },
+  { key: 'passo_1_desc',   value: 'Cadastro em 30 segundos. Sem cartão. Começa grátis.',     type: 'text', description: 'Como Funciona · Passo 1 — descrição' },
+  { key: 'passo_2_titulo', value: 'Escolha seu foco',                                        type: 'text', description: 'Como Funciona · Passo 2 — título' },
+  { key: 'passo_2_desc',   value: 'Disciplinas, questões comentadas e simulados no estilo OAB.', type: 'text', description: 'Como Funciona · Passo 2 — descrição' },
+  { key: 'passo_3_titulo', value: 'Estude com IA',                                           type: 'text', description: 'Como Funciona · Passo 3 — título' },
+  { key: 'passo_3_desc',   value: 'Quizzes, resumos, flashcards e tutor jurídico integrado.', type: 'text', description: 'Como Funciona · Passo 3 — descrição' },
+  { key: 'passo_4_titulo', value: 'Seja aprovado',                                           type: 'text', description: 'Como Funciona · Passo 4 — título' },
+  { key: 'passo_4_desc',   value: 'Suba de nível, domine o ranking e conquiste sua aprovação.', type: 'text', description: 'Como Funciona · Passo 4 — descrição' },
+  { key: 'stat_1_num',   value: '12.400+',           type: 'text', description: 'Números · 1 — valor' },
+  { key: 'stat_1_label', value: 'Estudantes Ativos', type: 'text', description: 'Números · 1 — rótulo' },
+  { key: 'stat_2_num',   value: '97%',               type: 'text', description: 'Números · 2 — valor' },
+  { key: 'stat_2_label', value: 'Satisfação',        type: 'text', description: 'Números · 2 — rótulo' },
+  { key: 'stat_3_num',   value: '3.200+',            type: 'text', description: 'Números · 3 — valor' },
+  { key: 'stat_3_label', value: 'Aprovados OAB',     type: 'text', description: 'Números · 3 — rótulo' },
+  { key: 'stat_4_num',   value: '17',                type: 'text', description: 'Números · 4 — valor' },
+  { key: 'stat_4_label', value: 'Disciplinas',       type: 'text', description: 'Números · 4 — rótulo' },
 ]
 
 // ─── PRESETS DE GRADIENTE ─────────────────────────────────────────────────────
