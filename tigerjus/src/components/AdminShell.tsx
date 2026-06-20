@@ -27,6 +27,7 @@ export type AdminSection =
   | 'planos'
   | 'flags'
   | 'settings'
+  | 'depoimentos'
   | 'audit'
 
 interface SettingsCtx {
@@ -128,6 +129,7 @@ const CMD_ITEMS: { label: string; icon: string; section?: AdminSection; action?:
   { label: 'Media Library',    icon: '🖼️', section: 'media'      },
   { label: 'Planos',           icon: '💳', section: 'planos'     },
   { label: 'Configurações',    icon: '⚙️', section: 'settings'   },
+  { label: 'Depoimentos',      icon: '⭐', section: 'depoimentos' },
   { label: 'Ir para plataforma', icon: '🐯', action: 'platform'  },
 ]
 
@@ -194,6 +196,7 @@ const NAV_ITEMS: { label: string; icon: string; section: AdminSection; group: st
   { label: 'Flashcards',    icon: '🃏', section: 'flashcards', group: 'conteudo'  },
   { label: 'Resumos',       icon: '📖', section: 'resumos',    group: 'conteudo'  },
   { label: 'Media Library', icon: '🖼️', section: 'media',      group: 'conteudo'  },
+  { label: 'Depoimentos',   icon: '⭐', section: 'depoimentos', group: 'conteudo'  },
   { label: 'Planos',        icon: '💳', section: 'planos',     group: 'sistema'   },
   { label: 'Configurações', icon: '⚙️', section: 'settings',   group: 'sistema'   },
 ]
@@ -278,7 +281,7 @@ function Topbar({ adminEmail }: { adminEmail: string }) {
     overview:'Dashboard', usuarios:'Usuários', questoes:'Questões',
     simulados:'Simulados', flashcards:'Flashcards', resumos:'Resumos',
     media:'Media Library', planos:'Planos', flags:'Feature Flags',
-    settings:'Configurações', audit:'Audit Log',
+    settings:'Configurações', depoimentos:'Depoimentos', audit:'Audit Log',
   }
   const handleLogout = async () => {
     await supabase.auth.signOut()
