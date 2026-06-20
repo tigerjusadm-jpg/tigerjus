@@ -1,8 +1,9 @@
 'use client'
 import Link from 'next/link'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAppSettings } from '@/contexts/AppSettingsContext'
+import { supabase } from '@/lib/supabase'
 import HeroMedia from '@/components/HeroMedia'
 import LandingTopBanner from '@/components/LandingTopBanner'
 
@@ -109,6 +110,23 @@ export default function HomePage() {
   const [showUpgrade, setShowUpgrade] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
   const [ciclo, setCiclo] = useState<'mensal'|'anual'>('mensal')
+  const [depoAprovados, setDepoAprovados] = useState<{ nome: string; papel: string; texto: string }[]>([])
+
+  useEffect(() => {
+    let vivo = true
+    ;(async () => {
+      try {
+        const { data } = await supabase
+          .from('depoimentos')
+          .select('nome,papel,texto')
+          .eq('status', 'aprovado')
+          .order('created_at', { ascending: false })
+          .limit(12)
+        if (vivo && data) setDepoAprovados(data)
+      } catch { /* tabela ainda pode não existir — usa os do CMS */ }
+    })()
+    return () => { vivo = false }
+  }, [])
   const ehAnual = ciclo === 'anual'
   const descPct = settings.desconto_anual_ativo ? (settings.desconto_anual_percent || 0) : 0
 
@@ -393,12 +411,14 @@ export default function HomePage() {
           <h2 style={{fontFamily:'var(--font-display)',fontSize:'clamp(28px,5vw,54px)',fontWeight:900,marginBottom:16}}><Hl text={settings.depoimentos_title||'Tigres que já **foram aprovados.**'} /></h2>
           <div className="divider" />
           <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(260px,1fr))',gap:16}}>
-            {[
+            {(depoAprovados.length > 0
+              ? depoAprovados.map(d => ({ n: d.nome, r: d.papel, t: d.texto }))
+              : [
               {n:settings.depo_1_nome||'Fernanda O.',r:settings.depo_1_papel||'Aprovada OAB 1ª Fase',t:settings.depo_1_texto||'A IA jurídica me salvou nas dúvidas de madrugada. Estudei 3 meses e fui aprovada. O TigerJus é diferente de tudo que usei.'},
               {n:settings.depo_2_nome||'Gabriel M.',r:settings.depo_2_papel||'Aprovado OAB',t:settings.depo_2_texto||'O sistema de ranking me fez estudar mais do que qualquer cursinho. A competição saudável com outros alunos é viciante.'},
               {n:settings.depo_3_nome||'Isabela R.',r:settings.depo_3_papel||'Estudante 5º ano',t:settings.depo_3_texto||'Os simulados são idênticos à OAB real. Minha taxa de acerto foi de 52% para 78% em apenas 6 semanas de uso.'},
-            ].map(t=>(
-              <div key={t.n} style={{background:'var(--gray)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:16,padding:24}}>
+            ]).map((t,i)=>(
+              <div key={i} style={{background:'var(--gray)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:16,padding:24}}>
                 <div style={{fontSize:14,marginBottom:12}}>⭐⭐⭐⭐⭐</div>
                 <p style={{fontSize:14,lineHeight:1.8,color:'var(--white)',marginBottom:16}}>"{t.t}"</p>
                 <div style={{display:'flex',alignItems:'center',gap:12}}>
