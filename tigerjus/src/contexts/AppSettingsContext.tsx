@@ -108,6 +108,22 @@ export interface AppSettings {
   features_subtitle:   string
   como_funciona_tag:   string
   como_funciona_title: string
+  passo_1_titulo: string
+  passo_1_desc:   string
+  passo_2_titulo: string
+  passo_2_desc:   string
+  passo_3_titulo: string
+  passo_3_desc:   string
+  passo_4_titulo: string
+  passo_4_desc:   string
+  stat_1_num: string
+  stat_1_label: string
+  stat_2_num: string
+  stat_2_label: string
+  stat_3_num: string
+  stat_3_label: string
+  stat_4_num: string
+  stat_4_label: string
   depoimentos_tag:     string
   depoimentos_title:   string
   depo_1_nome:  string
@@ -222,6 +238,22 @@ const FALLBACKS: AppSettings = {
   features_subtitle:   'Uma experiência completa que combina tecnologia, disciplina e performance jurídica.',
   como_funciona_tag:   '📍 COMO FUNCIONA',
   como_funciona_title: 'Sua jornada no **TigerJus.**',
+  passo_1_titulo: 'Crie sua conta',
+  passo_1_desc:   'Cadastro em 30 segundos. Sem cartão. Começa grátis.',
+  passo_2_titulo: 'Escolha seu foco',
+  passo_2_desc:   'Disciplinas, questões comentadas e simulados no estilo OAB.',
+  passo_3_titulo: 'Estude com IA',
+  passo_3_desc:   'Quizzes, resumos, flashcards e tutor jurídico integrado.',
+  passo_4_titulo: 'Seja aprovado',
+  passo_4_desc:   'Suba de nível, domine o ranking e conquiste sua aprovação.',
+  stat_1_num: '12.400+',
+  stat_1_label: 'Estudantes Ativos',
+  stat_2_num: '97%',
+  stat_2_label: 'Satisfação',
+  stat_3_num: '3.200+',
+  stat_3_label: 'Aprovados OAB',
+  stat_4_num: '17',
+  stat_4_label: 'Disciplinas',
   depoimentos_tag:     '⭐ DEPOIMENTOS',
   depoimentos_title:   'Tigres que já **foram aprovados.**',
   depo_1_nome:  'Fernanda O.',
