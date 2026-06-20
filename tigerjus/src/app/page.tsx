@@ -279,8 +279,13 @@ export default function HomePage() {
             </div>
 
             <div style={{display:'grid',gridTemplateColumns:'repeat(2,1fr)',gap:'20px 40px',maxWidth:480,margin:'0 auto',animation:'fadeInUp 0.8s 0.4s ease both'}}>
-              {[['12.400+','Estudantes Ativos'],['97%','Satisfação'],['3.200+','Aprovados OAB'],['17','Disciplinas']].map(([n,l])=>(
-                <div key={l} style={{textAlign:'center'}}>
+              {[
+                [settings.stat_1_num||'12.400+', settings.stat_1_label||'Estudantes Ativos'],
+                [settings.stat_2_num||'97%', settings.stat_2_label||'Satisfação'],
+                [settings.stat_3_num||'3.200+', settings.stat_3_label||'Aprovados OAB'],
+                [settings.stat_4_num||'17', settings.stat_4_label||'Disciplinas'],
+              ].map(([n,l],i)=>(
+                <div key={i} style={{textAlign:'center'}}>
                   <div style={{fontFamily:'var(--font-display)',fontSize:'clamp(28px,6vw,36px)',fontWeight:900,background:'linear-gradient(135deg,var(--gold-light),var(--gold))',WebkitBackgroundClip:'text',WebkitTextFillColor:'transparent'}}>{n}</div>
                   <div style={{fontSize:10,color:'var(--text-muted)',letterSpacing:'1.5px',textTransform:'uppercase',marginTop:4}}>{l}</div>
                 </div>
@@ -324,10 +329,10 @@ export default function HomePage() {
           <div className="divider" />
           <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(200px,1fr))',gap:24}}>
             {[
-              {n:'01',t:'Crie sua conta',d:'Cadastro em 30 segundos. Sem cartão. Começa grátis.'},
-              {n:'02',t:'Escolha seu foco',d:'Disciplinas, questões comentadas e simulados no estilo OAB.'},
-              {n:'03',t:'Estude com IA',d:'Quizzes, resumos, flashcards e tutor jurídico integrado.'},
-              {n:'04',t:'Seja aprovado',d:'Suba de nível, domine o ranking e conquiste sua aprovação.'},
+              {n:'01',t:settings.passo_1_titulo||'Crie sua conta',d:settings.passo_1_desc||'Cadastro em 30 segundos. Sem cartão. Começa grátis.'},
+              {n:'02',t:settings.passo_2_titulo||'Escolha seu foco',d:settings.passo_2_desc||'Disciplinas, questões comentadas e simulados no estilo OAB.'},
+              {n:'03',t:settings.passo_3_titulo||'Estude com IA',d:settings.passo_3_desc||'Quizzes, resumos, flashcards e tutor jurídico integrado.'},
+              {n:'04',t:settings.passo_4_titulo||'Seja aprovado',d:settings.passo_4_desc||'Suba de nível, domine o ranking e conquiste sua aprovação.'},
             ].map(s=>(
               <div key={s.n} style={{borderLeft:'2px solid rgba(212,168,67,0.2)',paddingLeft:24}}>
                 <div style={{fontFamily:'var(--font-mono)',fontSize:11,color:'var(--gold)',marginBottom:8}}>{s.n}</div>
