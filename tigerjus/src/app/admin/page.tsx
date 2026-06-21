@@ -22,15 +22,20 @@ function SectionOverview() {
 
   useEffect(() => {
     const load = async () => {
-      const [u, q, f, p, r] = await Promise.all([
-        supabase.from('profiles').select('id', { count: 'exact', head: true }),
+      const { data: { session } } = await supabase.auth.getSession()
+      const token = session?.access_token ?? ''
+      const [uCount, q, f, p, r] = await Promise.all([
+        fetch('/api/admin/list-users', { headers: { Authorization: `Bearer ${token}` } })
+          .then(res => (res.ok ? res.json() : { users: [] }))
+          .then(j => (j.users || []).length)
+          .catch(() => 0),
         supabase.from('questoes_oab').select('id', { count: 'exact', head: true }),
         supabase.from('flashcards').select('id', { count: 'exact', head: true }),
         supabase.from('provas_oab').select('id', { count: 'exact', head: true }),
         supabase.from('discipline_summaries').select('id', { count: 'exact', head: true }),
       ])
       setStats({
-        usuarios:   u.count ?? 0,
+        usuarios:   uCount,
         questoes:   q.count ?? 0,
         flashcards: f.count ?? 0,
         simulados:  p.count ?? 0,
