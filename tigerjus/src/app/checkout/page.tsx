@@ -212,12 +212,8 @@ function CheckoutContent() {
             <div style={{fontSize:13,color:'var(--text-muted)',marginTop:4}}>TigerJus {plan.name} — R${precoExibido}{sufixoCiclo}</div>
           </div>
           <div style={{padding:24}}>
-            <div style={{display:'flex',gap:8,marginBottom:24}}>
-              {(['pix','card'] as const).map(t=>(
-                <button key={t} onClick={()=>setTab(t)} style={{flex:1,padding:'11px 8px',borderRadius:8,border:tab===t?'1px solid rgba(212,168,67,0.3)':'1px solid rgba(255,255,255,0.08)',background:tab===t?'rgba(212,168,67,0.1)':'transparent',color:tab===t?'var(--gold)':'var(--text-muted)',fontSize:13,fontWeight:600,cursor:'pointer',fontFamily:'var(--font-body)',transition:'all 0.2s'}}>
-                  {t==='pix'?'⚡ PIX':'💳 Cartão'}
-                </button>
-              ))}
+            <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:24,padding:'11px 14px',borderRadius:8,border:'1px solid rgba(212,168,67,0.3)',background:'rgba(212,168,67,0.1)',color:'var(--gold)',fontSize:13,fontWeight:700,fontFamily:'var(--font-body)'}}>
+              ⚡ Pagamento via PIX
             </div>
 
             {tab==='pix' && (
@@ -268,29 +264,6 @@ function CheckoutContent() {
                   <button className="btn-primary" style={{width:'100%'}} onClick={createPixPayment} disabled={loading}>
                     {loading?'⏳ Gerando PIX...':'GERAR QR CODE PIX'}
                   </button>
-                </div>
-              )
-            )}
-
-            {tab==='card' && (
-              cardDone ? (
-                <div style={{textAlign:'center',background:'rgba(76,175,125,0.1)',border:'1px solid rgba(76,175,125,0.25)',borderRadius:16,padding:32}}>
-                  <div style={{fontSize:52,marginBottom:14}}>✅</div>
-                  <div style={{fontFamily:'var(--font-display)',fontSize:22,fontWeight:900,color:'var(--success)',marginBottom:10}}>Pagamento Aprovado!</div>
-                  <div style={{fontSize:14,color:'var(--text-muted)',marginBottom:20}}>Acesso liberado automaticamente.</div>
-                  <button className="btn-primary" style={{width:'100%'}} onClick={onSuccess}>ACESSAR PLATAFORMA →</button>
-                </div>
-              ) : (
-                <div>
-                  <div style={{background:'rgba(58,143,232,0.06)',border:'1px solid rgba(58,143,232,0.15)',borderRadius:10,padding:'12px 14px',marginBottom:16,fontSize:12,color:'var(--text-muted)',lineHeight:1.6}}>
-                    💳 Você será levado ao ambiente seguro do Mercado Pago para concluir o pagamento com cartão.
-                  </div>
-                  <button className="btn-primary" style={{width:'100%'}} onClick={handleCard} disabled={cardLoading}>
-                    {cardLoading?'⏳ Redirecionando...':`PAGAR R$${precoExibido}${sufixoCiclo} COM CARTÃO`}
-                  </button>
-                  <div style={{marginTop:12,fontSize:11,color:'var(--text-dim)',textAlign:'center'}}>
-                    🔒 Pagamento processado pelo Mercado Pago · Cancele quando quiser
-                  </div>
                 </div>
               )
             )}
