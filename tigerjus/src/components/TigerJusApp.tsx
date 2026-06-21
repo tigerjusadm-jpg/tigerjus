@@ -1490,6 +1490,7 @@ function RankingPage({profile,onNav}:any){
   const [totalUsers,setTotalUsers]=useState(0)
   const [myPos,setMyPos]=useState<number|null>(null)
   const [myMetric,setMyMetric]=useState<number|null>(null)
+  const [allUsers,setAllUsers]=useState<any[]>([])
 
   const mapRow=(p:any,i:number,metric:number)=>({
     pos:i+1,id:p.id,name:formatRankName(p.nome),
@@ -1500,85 +1501,32 @@ function RankingPage({profile,onNav}:any){
     metric,me:p.id===profile?.id,
   })
 
-  const loadGeral=async()=>{
+  const loadRanking=async()=>{
     setLoading(true)
-    const [rRes,cRes]=await Promise.all([
-      supabase.from('profiles').select('id,nome,plano,xp,nivel,streak,questoes_respondidas,questoes_corretas,ambassador_badge')
-        .neq('role','admin').order('xp',{ascending:false}).limit(20),
-      supabase.from('profiles').select('id',{count:'exact',head:true}).neq('role','admin'),
-    ])
-    const data=rRes.data||[]
-    setTotalUsers(cRes.count||0)
-    const mapped=data.map((p,i)=>mapRow(p,i,p.xp||0))
-    setRankData(mapped)
-    const me=mapped.find(r=>r.me)
-    if(me){setMyPos(me.pos);setMyMetric(me.metric)}
-    else if(profile?.id){
-      const{count}=await supabase.from('profiles').select('id',{count:'exact',head:true})
-        .neq('role','admin').gt('xp',profile.xp||0)
-      setMyPos((count||0)+1)
-      setMyMetric(profile.xp||0)
-    }
-    setLoading(false)
+    try{
+      const{data:{session}}=await supabase.auth.getSession()
+      const res=await fetch('/api/ranking',{headers:{Authorization:`Bearer ${session?.access_token??''}`}})
+      const json=await res.json()
+      setAllUsers(res.ok?(json.users||[]):[])
+    }catch{ setAllUsers([]) }
+    finally{ setLoading(false) }
   }
 
-  const loadSemanal=async()=>{
-    setLoading(true)
-    const sevenAgo=new Date();sevenAgo.setDate(sevenAgo.getDate()-7)
-    const{data:hist}=await supabase.from('xp_historico')
-      .select('user_id,xp').gte('created_at',sevenAgo.toISOString())
-    if(!hist||hist.length===0){setRankData([]);setLoading(false);return}
-    const map:Record<string,number>={}
-    for(const h of hist) map[h.user_id]=(map[h.user_id]||0)+h.xp
-    const top=Object.entries(map).sort((a,b)=>b[1]-a[1]).slice(0,20)
-    const ids=top.map(([id])=>id)
-    const{data:profs}=await supabase.from('profiles')
-      .select('id,nome,plano,xp,nivel,streak,questoes_respondidas,questoes_corretas,ambassador_badge')
-      .in('id',ids)
-    const mapped=top.map(([id,xpSem],i)=>{
-      const p=profs?.find(x=>x.id===id)
-      if(!p)return null
-      return mapRow(p,i,xpSem)
-    }).filter(Boolean)
-    setRankData(mapped)
-    const me=mapped.find(r=>r&&r.me)
-    setMyPos(me?me.pos:null)
-    setMyMetric(me?me.metric:null)
-    setTotalUsers(0)
-    setLoading(false)
-  }
-
-  const loadStreak=async()=>{
-    setLoading(true)
-    const{data}=await supabase.from('profiles')
-      .select('id,nome,plano,xp,nivel,streak,questoes_respondidas,questoes_corretas,ambassador_badge')
-      .neq('role','admin').gt('streak',0).order('streak',{ascending:false}).limit(20)
-    const mapped=(data||[]).map((p,i)=>mapRow(p,i,p.streak||0))
-    setRankData(mapped)
-    const me=mapped.find(r=>r.me)
-    setMyPos(me?me.pos:null);setMyMetric(me?me.metric:null)
-    setLoading(false)
-  }
-
-  const loadQuestoes=async()=>{
-    setLoading(true)
-    const{data}=await supabase.from('profiles')
-      .select('id,nome,plano,xp,nivel,streak,questoes_respondidas,questoes_corretas,ambassador_badge')
-      .neq('role','admin').gt('questoes_respondidas',0)
-      .order('questoes_respondidas',{ascending:false}).limit(20)
-    const mapped=(data||[]).map((p,i)=>mapRow(p,i,p.questoes_respondidas||0))
-    setRankData(mapped)
-    const me=mapped.find(r=>r.me)
-    setMyPos(me?me.pos:null);setMyMetric(me?me.metric:null)
-    setLoading(false)
-  }
+  useEffect(()=>{ loadRanking() },[profile?.id])
 
   useEffect(()=>{
-    if(tab==='geral')loadGeral()
-    else if(tab==='semanal')loadSemanal()
-    else if(tab==='streak')loadStreak()
-    else loadQuestoes()
-  },[tab,profile?.id])
+    const metricOf=(p:any)=> tab==='geral'?(p.xp||0):tab==='semanal'?(p.xp_semana||0):tab==='streak'?(p.streak||0):(p.questoes_respondidas||0)
+    let lista=[...allUsers]
+    if(tab==='semanal')lista=lista.filter((p:any)=>(p.xp_semana||0)>0)
+    else if(tab==='streak')lista=lista.filter((p:any)=>(p.streak||0)>0)
+    else if(tab==='questoes')lista=lista.filter((p:any)=>(p.questoes_respondidas||0)>0)
+    lista.sort((a:any,b:any)=>metricOf(b)-metricOf(a))
+    setTotalUsers(tab==='geral'?allUsers.length:lista.length)
+    setRankData(lista.slice(0,20).map((p:any,i:number)=>mapRow(p,i,metricOf(p))))
+    const meIdx=lista.findIndex((p:any)=>p.id===profile?.id)
+    if(meIdx>=0){setMyPos(meIdx+1);setMyMetric(metricOf(lista[meIdx]))}
+    else{setMyPos(null);setMyMetric(null)}
+  },[tab,allUsers,profile?.id])
 
   const TABS=[
     {key:'geral',   icon:'🏆',label:'Geral',   sub:'XP total'},
