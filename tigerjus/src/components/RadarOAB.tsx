@@ -153,18 +153,6 @@ function ExameCard({ exame }: ExameCardProps) {
             {dias1fase}d
           </span>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#639922', flexShrink: 0 }} />
-          <div style={{ flex: 1 }}>
-            <div style={{ fontSize: '11px', color: 'var(--color-text-secondary)' }}>2ª fase — prático-profissional</div>
-            <div style={{ fontSize: '12px', fontWeight: 500, color: 'var(--color-text-primary)' }}>
-              {formatDate(exame.data_prova_2fase)}
-            </div>
-          </div>
-          <span style={{ fontSize: '11px', color: 'var(--color-text-tertiary)', whiteSpace: 'nowrap' }}>
-            {dias2fase}d
-          </span>
-        </div>
       </div>
 
       {/* Barra de progresso */}
