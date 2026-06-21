@@ -870,7 +870,7 @@ function ResumoSection({ disc, onNav, resumoTier = 'none', showUpgrade }: { disc
       <p style={{fontSize:13,color:'var(--text-muted)',lineHeight:1.7,marginBottom:24,maxWidth:380,margin:'0 auto 24px'}}>O resumo de <strong style={{color:'var(--gold)'}}>{disc.name}</strong> ainda está sendo elaborado.</p>
       <div style={{display:'flex',gap:10,justifyContent:'center',flexWrap:'wrap'}}>
         <button className="btn-primary" style={{fontSize:13}} onClick={()=>onNav('quiz')}>📝 Fazer Quiz</button>
-        <button className="btn-secondary" style={{fontSize:13}} onClick={()=>onNav('flash')}>🃏 Ver Flashcards</button>
+        <button className="btn-secondary" style={{fontSize:13}} onClick={()=>onNav('flashcards')}>🃏 Ver Flashcards</button>
         <button className="btn-secondary" style={{fontSize:13}} onClick={()=>onNav('ia')}>🤖 Perguntar à IA</button>
       </div>
     </div>
