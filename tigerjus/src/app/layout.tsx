@@ -21,11 +21,11 @@ const dmMono = DM_Mono({
 
 export const metadata: Metadata = {
   title: 'TigerJus — Estude como um Tigre',
-  description: 'A plataforma jurídica mais inteligente do Brasil. Estude Direito com IA, gamificação e metodologia de alta performance. Aprovação na OAB garantida.',
+  description: 'A plataforma jurídica mais inteligente do Brasil. Estude Direito com IA, gamificação e simulados no estilo OAB. Evolua com método e alta performance.',
   keywords: 'OAB, direito, estudo jurídico, simulado OAB, questões OAB, IA jurídica, aprovação OAB',
   openGraph: {
     title: 'TigerJus — Estude como um Tigre',
-    description: 'Plataforma jurídica com IA, gamificação e simulados OAB. Mais de 12.400 estudantes aprovados.',
+    description: 'Plataforma jurídica com IA, gamificação e simulados no estilo OAB. Estude como um Tigre.',
     url: 'https://tigerjus.com.br',
     siteName: 'TigerJus',
     type: 'website',
