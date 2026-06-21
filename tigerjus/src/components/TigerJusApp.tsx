@@ -387,6 +387,60 @@ function DepoimentoModal({ profile, onClose }: { profile: any; onClose: () => vo
   )
 }
 
+function EvolucaoChart({ profile }: { profile: any }) {
+  const [dias, setDias] = useState<{ label: string; xp: number }[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    let vivo = true
+    ;(async () => {
+      try {
+        const desde = new Date(); desde.setDate(desde.getDate() - 13); desde.setHours(0, 0, 0, 0)
+        const { data } = await supabase.from('xp_historico').select('xp,created_at').eq('user_id', profile?.id).gte('created_at', desde.toISOString())
+        const mapa: Record<string, number> = {}
+        ;(data || []).forEach((r: any) => {
+          const k = new Date(r.created_at).toISOString().slice(0, 10)
+          mapa[k] = (mapa[k] || 0) + (r.xp || 0)
+        })
+        const out: { label: string; xp: number }[] = []
+        for (let i = 13; i >= 0; i--) {
+          const d = new Date(); d.setDate(d.getDate() - i)
+          out.push({ label: d.toLocaleDateString('pt-BR', { day: '2-digit' }), xp: mapa[d.toISOString().slice(0, 10)] || 0 })
+        }
+        if (vivo) setDias(out)
+      } catch { /* xp_historico pode não existir ainda */ }
+      finally { if (vivo) setLoading(false) }
+    })()
+    return () => { vivo = false }
+  }, [profile?.id])
+
+  const maxXp = Math.max(1, ...dias.map(d => d.xp))
+  const totalXp = dias.reduce((a, d) => a + d.xp, 0)
+
+  return (
+    <div style={{ background: 'var(--gray)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 16, padding: '18px 18px 14px', marginBottom: 20 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+        <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: '1.5px', textTransform: 'uppercase', color: 'var(--text-muted)' }}>📈 Evolução · últimos 14 dias</div>
+        <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{totalXp.toLocaleString()} XP no período</div>
+      </div>
+      {loading ? (
+        <div style={{ height: 90, borderRadius: 8, background: 'rgba(255,255,255,0.03)' }} />
+      ) : totalXp === 0 ? (
+        <div style={{ textAlign: 'center', padding: '22px 0', color: 'var(--text-muted)', fontSize: 12.5 }}>Estude um pouco e sua evolução aparece aqui. 🐯</div>
+      ) : (
+        <div style={{ display: 'flex', alignItems: 'flex-end', gap: 4, height: 90 }}>
+          {dias.map((d, i) => (
+            <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, height: '100%', justifyContent: 'flex-end' }}>
+              <div title={`${d.xp} XP em ${d.label}`} style={{ width: '100%', maxWidth: 18, height: `${d.xp === 0 ? 2 : Math.max(6, (d.xp / maxXp) * 70)}px`, borderRadius: 4, background: d.xp === 0 ? 'rgba(255,255,255,0.06)' : 'linear-gradient(180deg,var(--gold),var(--orange))', transition: 'height 0.5s' }} />
+              <span style={{ fontSize: 8.5, color: 'var(--text-muted)' }}>{d.label}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
 function DashHome({ profile, onNav, onMini, showUpgrade, isPago, canAccessPremium, canAccessElite, onOpenRadar, freeQ, freeIA, limites }: any) {
   const { settings: dashSettings } = useAppSettings()
   const [depoOpen, setDepoOpen] = useState(false)
@@ -453,6 +507,7 @@ function DashHome({ profile, onNav, onMini, showUpgrade, isPago, canAccessPremiu
           </div>
         ))}
       </div>
+      <EvolucaoChart profile={profile}/>
       <QuestaoDodia onNav={onNav}/>
       <div style={{background:canAccessElite?'linear-gradient(135deg,rgba(58,143,232,0.1),rgba(212,168,67,0.06))':'linear-gradient(135deg,rgba(58,143,232,0.08),rgba(212,168,67,0.06))',border:`1px solid ${canAccessElite?'rgba(58,143,232,0.25)':'rgba(58,143,232,0.2)'}`,borderRadius:16,padding:20,marginBottom:20,cursor:'pointer',transition:'all 0.2s'}}
         onClick={canAccessElite?onOpenRadar:showUpgrade}
