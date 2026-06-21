@@ -1618,12 +1618,11 @@ function RankingPage({profile,onNav}:any){
             <div style={{display:'flex',alignItems:'flex-end',gap:8,marginBottom:28,justifyContent:'center',flexWrap:'wrap'}}>
               {([1,0,2] as const).map(idx=>{
                 const r=top3[idx];if(!r)return null
-                const isFirst=idx===1
-                const heights=[90,120,74]
-                const h=heights[idx===1?1:idx===0?0:2]
-                const golds=['linear-gradient(135deg,#C0C0C0,#a0a0a0)','linear-gradient(135deg,var(--gold),var(--orange))','linear-gradient(135deg,#CD7F32,#a05a2c)']
-                const grad=golds[idx===1?1:idx===0?0:2]
-                const medal=['🥈','🥇','🥉'][idx===1?1:idx===0?0:2]
+                const isFirst=idx===0
+                const heights=[120,90,74]
+                const h=heights[idx]
+                const grad=['linear-gradient(135deg,var(--gold),var(--orange))','linear-gradient(135deg,#C0C0C0,#a0a0a0)','linear-gradient(135deg,#CD7F32,#a05a2c)'][idx]
+                const medal=['🥇','🥈','🥉'][idx]
                 return(
                   <div key={idx} style={{textAlign:'center',minWidth:90,flex:isFirst?'0 0 110px':'0 0 90px',
                     transform:isFirst?'scale(1.05)':'none',transition:'transform 0.2s',
