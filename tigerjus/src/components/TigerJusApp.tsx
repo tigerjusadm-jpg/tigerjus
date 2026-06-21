@@ -301,8 +301,95 @@ function DegustacaoCard({ freeQ, freeIA, limites, showUpgrade }: any){
   )
 }
 
+function DepoimentoModal({ profile, onClose }: { profile: any; onClose: () => void }) {
+  const [papel, setPapel] = useState('')
+  const [texto, setTexto] = useState('')
+  const [loading, setLoading] = useState(true)
+  const [enviando, setEnviando] = useState(false)
+  const [erro, setErro] = useState('')
+  const [statusAtual, setStatusAtual] = useState<string | null>(null)
+  const [enviado, setEnviado] = useState(false)
+
+  useEffect(() => {
+    let vivo = true
+    ;(async () => {
+      try {
+        const { data } = await supabase.from('depoimentos').select('papel,texto,status').eq('user_id', profile?.id).maybeSingle()
+        if (vivo && data) { setPapel(data.papel || ''); setTexto(data.texto || ''); setStatusAtual(data.status) }
+      } catch { /* tabela pode não existir ainda */ }
+      finally { if (vivo) setLoading(false) }
+    })()
+    return () => { vivo = false }
+  }, [profile?.id])
+
+  const enviar = async () => {
+    if (texto.trim().length < 12) { setErro('Escreva um pouco mais sobre sua experiência (mín. 12 caracteres).'); return }
+    setEnviando(true); setErro('')
+    try {
+      const payload = {
+        nome: profile?.nome || (profile?.email ? String(profile.email).split('@')[0] : 'Aluno TigerJus'),
+        papel: papel.trim() || 'Estudante TigerJus',
+        texto: texto.trim(),
+        status: 'pendente',
+        updated_at: new Date().toISOString(),
+      }
+      const { error } = statusAtual
+        ? await supabase.from('depoimentos').update(payload).eq('user_id', profile?.id)
+        : await supabase.from('depoimentos').insert({ user_id: profile?.id, ...payload })
+      if (error) throw error
+      setEnviado(true); setStatusAtual('pendente')
+    } catch (e) {
+      setErro(e instanceof Error ? e.message : 'Não foi possível enviar. Tente de novo.')
+    } finally { setEnviando(false) }
+  }
+
+  return (
+    <div onClick={onClose} style={{position:'fixed',inset:0,zIndex:400,background:'rgba(0,0,0,0.8)',backdropFilter:'blur(6px)',display:'flex',alignItems:'center',justifyContent:'center',padding:20}}>
+      <div onClick={e=>e.stopPropagation()} style={{width:'100%',maxWidth:460,background:'var(--gray,#141414)',border:'1px solid rgba(255,255,255,0.08)',borderRadius:18,padding:24,maxHeight:'90vh',overflowY:'auto'}}>
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:6}}>
+          <h3 style={{fontFamily:'var(--font-display)',fontSize:21,fontWeight:900,margin:0}}>⭐ Deixe seu depoimento</h3>
+          <button onClick={onClose} style={{background:'none',border:'none',color:'var(--text-muted)',fontSize:24,cursor:'pointer',lineHeight:1}}>×</button>
+        </div>
+        {loading ? (
+          <div style={{padding:'30px 0',textAlign:'center',color:'var(--text-muted)',fontSize:13}}>Carregando…</div>
+        ) : enviado ? (
+          <div style={{padding:'18px 0 6px',textAlign:'center'}}>
+            <div style={{fontSize:42,marginBottom:10}}>🎉</div>
+            <div style={{fontWeight:800,fontSize:16,marginBottom:6}}>Depoimento enviado!</div>
+            <p style={{color:'var(--text-muted)',fontSize:13,lineHeight:1.6,margin:0}}>Nossa equipe vai analisar e, se aprovado, ele aparece na página inicial. Obrigado! 🐯</p>
+            <button onClick={onClose} className="btn-primary" style={{marginTop:18,fontSize:13,padding:'10px 24px'}}>Fechar</button>
+          </div>
+        ) : (
+          <>
+            <p style={{color:'var(--text-muted)',fontSize:13,lineHeight:1.6,marginTop:0,marginBottom:16}}>Conte sua experiência com o TigerJus. Depois de aprovado, ele pode aparecer na nossa landing.</p>
+            {statusAtual && (
+              <div style={{fontSize:12,fontWeight:700,marginBottom:14,padding:'9px 12px',borderRadius:8,
+                background:statusAtual==='aprovado'?'rgba(52,211,153,0.12)':statusAtual==='rejeitado'?'rgba(248,113,113,0.12)':'rgba(212,168,67,0.12)',
+                color:statusAtual==='aprovado'?'#34D399':statusAtual==='rejeitado'?'#F87171':'#D4A843'}}>
+                {statusAtual==='aprovado'?'✅ Seu depoimento está no ar!':statusAtual==='rejeitado'?'Seu depoimento anterior não foi aprovado — pode reenviar.':'⏳ Em análise. Você pode editar e reenviar.'}
+              </div>
+            )}
+            <label style={{fontSize:11,fontWeight:700,color:'var(--text-muted)',display:'block',marginBottom:6,letterSpacing:'0.3px'}}>Como você quer aparecer (opcional)</label>
+            <input value={papel} onChange={e=>setPapel(e.target.value)} maxLength={60} placeholder="Ex.: Estudante OAB · Aprovado(a) · 5º ano"
+              style={{width:'100%',boxSizing:'border-box',background:'rgba(255,255,255,0.04)',border:'1px solid rgba(255,255,255,0.1)',borderRadius:10,padding:'11px 13px',color:'#fff',fontSize:13.5,outline:'none',fontFamily:'inherit'}} />
+            <label style={{fontSize:11,fontWeight:700,color:'var(--text-muted)',display:'block',margin:'14px 0 6px',letterSpacing:'0.3px'}}>Seu depoimento</label>
+            <textarea value={texto} onChange={e=>setTexto(e.target.value)} rows={4} maxLength={400} placeholder="Conte como o TigerJus está te ajudando nos estudos…"
+              style={{width:'100%',boxSizing:'border-box',background:'rgba(255,255,255,0.04)',border:'1px solid rgba(255,255,255,0.1)',borderRadius:10,padding:'11px 13px',color:'#fff',fontSize:13.5,outline:'none',fontFamily:'inherit',resize:'vertical'}} />
+            <div style={{fontSize:11,color:'var(--text-muted)',textAlign:'right',marginTop:4}}>{texto.length}/400</div>
+            {erro && <div style={{color:'#F87171',fontSize:12.5,marginTop:8}}>{erro}</div>}
+            <button onClick={enviar} disabled={enviando} className="btn-primary" style={{width:'100%',marginTop:14,fontSize:14,padding:'12px',opacity:enviando?0.6:1}}>
+              {enviando?'Enviando…':statusAtual?'Reenviar depoimento':'Enviar depoimento'}
+            </button>
+          </>
+        )}
+      </div>
+    </div>
+  )
+}
+
 function DashHome({ profile, onNav, onMini, showUpgrade, isPago, canAccessPremium, canAccessElite, onOpenRadar, freeQ, freeIA, limites }: any) {
   const { settings: dashSettings } = useAppSettings()
+  const [depoOpen, setDepoOpen] = useState(false)
   const xp=profile?.xp||0; const _niv=getNivelByXp(xp); const levelName=_niv.nome
   const streak=profile?.streak||0; const xpNext=_niv.xp_max??999999; const xpPrev=_niv.xp_min
   const proxNivel=getNextNivel(xp); const xpFalta=Math.max(0,xpNext-xp)
@@ -425,6 +512,16 @@ function DashHome({ profile, onNav, onMini, showUpgrade, isPago, canAccessPremiu
           </div>
         ))}
       </div>
+
+      {/* ── DEIXE SEU DEPOIMENTO ─────────────────────────────────── */}
+      <div style={{marginTop:24,background:'linear-gradient(135deg,rgba(212,168,67,0.1),rgba(232,98,26,0.05))',border:'1px solid rgba(212,168,67,0.22)',borderRadius:16,padding:'18px 20px',display:'flex',alignItems:'center',justifyContent:'space-between',gap:14,flexWrap:'wrap'}}>
+        <div>
+          <div style={{fontWeight:800,fontSize:15,marginBottom:3}}>⭐ Curtindo o TigerJus?</div>
+          <div style={{fontSize:13,color:'var(--text-muted)'}}>Deixe seu depoimento e ajude outros futuros aprovados.</div>
+        </div>
+        <button onClick={()=>setDepoOpen(true)} className="btn-primary" style={{fontSize:13,padding:'10px 22px',fontWeight:800,whiteSpace:'nowrap',flexShrink:0}}>Deixar depoimento</button>
+      </div>
+      {depoOpen && <DepoimentoModal profile={profile} onClose={()=>setDepoOpen(false)} />}
     </div>
   )
 }
