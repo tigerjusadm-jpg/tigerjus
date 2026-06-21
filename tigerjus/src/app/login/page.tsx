@@ -27,6 +27,7 @@ function LoginForm() {
   const [senha, setSenha] = useState('')
   const [nome, setNome] = useState('')
   const [lembrar, setLembrar] = useState(false)
+  const [aceito, setAceito] = useState(false)
   const [loading, setLoading] = useState(false)
   const [erro, setErro] = useState('')
   const [sucesso, setSucesso] = useState('')
@@ -76,6 +77,7 @@ function LoginForm() {
 
   const handleCadastro = async () => {
     if (!email || !senha || !nome) { setErro('Preencha todos os campos.'); return }
+    if (!aceito) { setErro('Você precisa aceitar a Política de Privacidade para continuar.'); return }
     if (senha.length < 6) { setErro('Senha deve ter pelo menos 6 caracteres.'); return }
     setLoading(true); setErro('')
 
@@ -247,6 +249,23 @@ function LoginForm() {
                     </div>
                     <span style={{fontSize:13,color:lembrar?'var(--gold)':'var(--text-muted)',transition:'color 0.2s',fontWeight:lembrar?600:400}}>
                       Lembrar meu email neste dispositivo
+                    </span>
+                  </label>
+                </div>
+              )}
+
+              {mode === 'cadastro' && !sucesso && (
+                <div style={{marginBottom:20}}>
+                  <label style={{display:'flex',alignItems:'flex-start',gap:10,cursor:'pointer',userSelect:'none'}} onClick={() => setAceito(a => !a)}>
+                    <div style={{width:20,height:20,borderRadius:6,border:aceito?'2px solid var(--gold)':'2px solid rgba(255,255,255,0.2)',background:aceito?'rgba(212,168,67,0.15)':'transparent',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,marginTop:1,transition:'all 0.2s'}}>
+                      {aceito && (
+                        <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                          <path d="M2 6l3 3 5-5" stroke="#D4A843" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
+                      )}
+                    </div>
+                    <span style={{fontSize:13,color:'var(--text-muted)',lineHeight:1.5}}>
+                      Li e aceito a <a href="/privacidade" target="_blank" rel="noopener noreferrer" style={{color:'var(--gold)'}} onClick={e=>e.stopPropagation()}>Política de Privacidade</a> e os <a href="/termos" target="_blank" rel="noopener noreferrer" style={{color:'var(--gold)'}} onClick={e=>e.stopPropagation()}>Termos de Uso</a>.
                     </span>
                   </label>
                 </div>
