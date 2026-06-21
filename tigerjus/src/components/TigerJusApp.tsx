@@ -1483,6 +1483,91 @@ function PlanoBadgeSmall({plano}:{plano:string}){
   )
 }
 
+const MAPA_DISCIPLINAS: Record<string,{name:string,icon:string}> = {
+  'constitucional':{name:'Constitucional',icon:'⚖️'},'administrativo':{name:'Administrativo',icon:'🏛️'},
+  'penal':{name:'Penal',icon:'🔒'},'processo-penal':{name:'Processo Penal',icon:'🔍'},
+  'civil':{name:'Civil',icon:'📋'},'processo-civil':{name:'Processo Civil',icon:'⚡'},
+  'trabalho':{name:'Trabalho',icon:'🦺'},'proc-trabalho':{name:'Proc. Trabalho',icon:'👷'},
+  'tributario':{name:'Tributário',icon:'💰'},'empresarial':{name:'Empresarial',icon:'🏢'},
+  'etica':{name:'Ética OAB',icon:'📜'},'consumidor':{name:'Consumidor',icon:'🛒'},
+  'direitos-humanos':{name:'Direitos Humanos',icon:'🌍'},'ambiental':{name:'Ambiental',icon:'🌿'},
+  'filosofia':{name:'Filosofia',icon:'📖'},'internacional':{name:'Internacional',icon:'🌐'},'eca':{name:'ECA',icon:'👶'},
+}
+
+function MapasMentaisPage({ canAccessPremium, showUpgrade }: any){
+  const [mapas,setMapas]=useState<any[]>([])
+  const [loading,setLoading]=useState(true)
+  const [zoom,setZoom]=useState<any>(null)
+
+  useEffect(()=>{
+    if(!canAccessPremium){setLoading(false);return}
+    ;(async()=>{
+      const{data}=await supabase.from('mapas_mentais').select('*').eq('ativo',true)
+        .order('disciplina_slug',{ascending:true}).order('ordem',{ascending:true})
+      setMapas(data||[]);setLoading(false)
+    })()
+  },[canAccessPremium])
+
+  if(!canAccessPremium) return(
+    <div style={{maxWidth:520,margin:'40px auto',textAlign:'center',padding:'40px 28px',background:'rgba(212,168,67,0.05)',border:'1px solid rgba(212,168,67,0.2)',borderRadius:18}}>
+      <div style={{fontSize:54,marginBottom:14}}>🗺️</div>
+      <h1 style={{fontFamily:'var(--font-display)',fontSize:'clamp(20px,5vw,28px)',fontWeight:900,marginBottom:10}}>Mapas Mentais é <span style={{color:'var(--gold)'}}>premium</span></h1>
+      <p style={{fontSize:14,color:'var(--text-muted)',lineHeight:1.6,marginBottom:24}}>Revisão visual rápida de cada disciplina — o caminho mais ágil pra fixar antes da prova. Disponível nos planos Pro e Elite.</p>
+      <button className="btn-gold" onClick={showUpgrade}>🚀 Desbloquear agora</button>
+    </div>
+  )
+
+  const grupos:Record<string,any[]>={}
+  mapas.forEach(m=>{(grupos[m.disciplina_slug]=grupos[m.disciplina_slug]||[]).push(m)})
+
+  return(
+    <div>
+      <h1 style={{fontFamily:'var(--font-display)',fontSize:'clamp(22px,5vw,32px)',fontWeight:900,marginBottom:6}}>Mapas Mentais 🗺️</h1>
+      <p style={{fontSize:14,color:'var(--text-muted)',marginBottom:24}}>Revisão visual rápida por disciplina. Toque para ampliar.</p>
+
+      {loading?(
+        <p style={{color:'var(--text-muted)'}}>Carregando…</p>
+      ):mapas.length===0?(
+        <div style={{textAlign:'center',padding:'48px 20px',background:'rgba(255,255,255,0.02)',border:'1px dashed rgba(255,255,255,0.1)',borderRadius:16}}>
+          <div style={{fontSize:44,marginBottom:12}}>🗺️</div>
+          <p style={{fontSize:15,color:'var(--text-muted)'}}>Os mapas mentais estão chegando em breve.</p>
+        </div>
+      ):(
+        Object.entries(grupos).map(([slug,lista])=>{
+          const d=MAPA_DISCIPLINAS[slug]||{name:slug,icon:'🗺️'}
+          return(
+            <div key={slug} style={{marginBottom:28}}>
+              <h2 style={{fontFamily:'var(--font-display)',fontSize:18,fontWeight:800,marginBottom:12}}>{d.icon} {d.name}</h2>
+              <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(200px,1fr))',gap:14}}>
+                {lista.map(m=>(
+                  <div key={m.id} onClick={()=>setZoom(m)} style={{cursor:'pointer',background:'rgba(255,255,255,0.03)',border:'1px solid rgba(255,255,255,0.07)',borderRadius:14,overflow:'hidden',transition:'transform 0.15s'}}
+                    onMouseEnter={e=>(e.currentTarget.style.transform='translateY(-3px)')} onMouseLeave={e=>(e.currentTarget.style.transform='none')}>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={m.imagem_url} alt={m.titulo} style={{width:'100%',height:140,objectFit:'cover',display:'block',background:'#0d0d0d'}}/>
+                    <div style={{padding:'10px 12px'}}>
+                      <div style={{fontSize:13,fontWeight:700,color:'var(--white)'}}>{m.titulo}</div>
+                      {m.descricao&&<div style={{fontSize:11,color:'var(--text-muted)',marginTop:2}}>{m.descricao}</div>}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )
+        })
+      )}
+
+      {zoom&&(
+        <div onClick={()=>setZoom(null)} style={{position:'fixed',inset:0,zIndex:300,background:'rgba(0,0,0,0.92)',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',padding:20}}>
+          <button onClick={()=>setZoom(null)} style={{position:'absolute',top:18,right:20,background:'rgba(255,255,255,0.1)',border:'none',borderRadius:'50%',width:40,height:40,color:'#fff',fontSize:20,cursor:'pointer'}}>✕</button>
+          <div style={{fontSize:15,fontWeight:700,color:'var(--gold)',marginBottom:12,textAlign:'center'}}>{zoom.titulo}</div>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={zoom.imagem_url} alt={zoom.titulo} style={{maxWidth:'95%',maxHeight:'80vh',objectFit:'contain',borderRadius:10}} onClick={e=>e.stopPropagation()}/>
+        </div>
+      )}
+    </div>
+  )
+}
+
 function RankingPage({profile,onNav}:any){
   const [tab,setTab]=useState<'geral'|'semanal'|'streak'|'questoes'>('geral')
   const [rankData,setRankData]=useState<any[]>([])
@@ -2333,6 +2418,7 @@ export default function TigerJusApp() {
       {icon:'🃏',label:'Flashcards',key:'flashcards'},
       {icon:'📚',label:'Disciplinas',key:'disciplines'},
       {icon:'📖',label:'Índice',key:'indice'},
+      {icon:'🗺️',label:'Mapas',key:'mapas'},
     ]},
     {title:'INTELIGÊNCIA',items:[{icon:'🤖',label:'Tutor IA',key:'ia'}]},
     {title:'EVOLUIR',items:[
@@ -2457,6 +2543,7 @@ export default function TigerJusApp() {
         {page==='ia'&&<IAPage freeIA={freeIA} setFreeIA={setFreeIA} showUpgrade={showUpgrade} profile={profile} isPago={userIsPago} iaIlimitada={iaIlimitada}/>}
         {page==='ranking'&&<RankingPage profile={profile} onNav={navTo}/>}
         {page==='indice'&&<IndiceJuridico showUpgrade={showUpgrade} isPago={canAccessPremium}/>}
+        {page==='mapas'&&<MapasMentaisPage canAccessPremium={canAccessPremium} showUpgrade={showUpgrade}/>}
         {page==='referral'&&<ReferralPage profile={profile} showUpgrade={showUpgrade} isPago={userIsPago}/>}
       </div>
       <style>{`
