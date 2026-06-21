@@ -441,6 +441,50 @@ function EvolucaoChart({ profile }: { profile: any }) {
   )
 }
 
+function Conquistas({ profile }: { profile: any }) {
+  const q = profile?.questoes_respondidas || 0
+  const c = profile?.questoes_corretas || 0
+  const taxa = q > 0 ? Math.round((c / q) * 100) : 0
+  const streak = profile?.streak || 0
+  const nivel = profile?.nivel || 1
+  const xp = profile?.xp || 0
+
+  const medalhas = [
+    { icon: '🐾', nome: 'Primeira Caçada', desc: 'Responda sua 1ª questão',        ok: q >= 1,                 prog: `${Math.min(q, 1)}/1` },
+    { icon: '💯', nome: 'Centurião',       desc: '100 questões respondidas',        ok: q >= 100,               prog: `${Math.min(q, 100)}/100` },
+    { icon: '🎯', nome: 'Maratonista',     desc: '500 questões respondidas',        ok: q >= 500,               prog: `${Math.min(q, 500)}/500` },
+    { icon: '🏹', nome: 'Pontaria de Tigre', desc: '70% de acerto (mín. 20 q)',     ok: q >= 20 && taxa >= 70,  prog: q >= 20 ? `${taxa}%` : `${q}/20 q` },
+    { icon: '🎖️', nome: 'Sniper',          desc: '85% de acerto (mín. 50 q)',       ok: q >= 50 && taxa >= 85,  prog: q >= 50 ? `${taxa}%` : `${q}/50 q` },
+    { icon: '🔥', nome: 'Fogo Diário',     desc: '3 dias seguidos',                 ok: streak >= 3,            prog: `${Math.min(streak, 3)}/3` },
+    { icon: '⚡', nome: 'Chama Eterna',    desc: '7 dias seguidos',                 ok: streak >= 7,            prog: `${Math.min(streak, 7)}/7` },
+    { icon: '💎', nome: 'Inabalável',      desc: '30 dias seguidos',                ok: streak >= 30,           prog: `${Math.min(streak, 30)}/30` },
+    { icon: '🐯', nome: 'Caçador',         desc: 'Alcance o nível 2',               ok: nivel >= 2,             prog: `nível ${nivel}` },
+    { icon: '👑', nome: 'Alpha',           desc: 'Alcance o nível 3',               ok: nivel >= 3,             prog: `nível ${nivel}` },
+    { icon: '🏆', nome: 'Tigre Supremo',   desc: 'Alcance o nível 4',               ok: nivel >= 4,             prog: `nível ${nivel}` },
+    { icon: '🌟', nome: '5K de XP',        desc: 'Acumule 5.000 XP',                ok: xp >= 5000,             prog: `${xp.toLocaleString()} XP` },
+  ]
+  const ganhas = medalhas.filter(m => m.ok).length
+
+  return (
+    <div style={{ marginBottom: 20 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+        <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(18px,4vw,22px)', fontWeight: 900 }}>🏅 Conquistas</h2>
+        <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>{ganhas} de {medalhas.length}</span>
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(150px,1fr))', gap: 10 }}>
+        {medalhas.map(m => (
+          <div key={m.nome} style={{ background: m.ok ? 'linear-gradient(135deg,rgba(212,168,67,0.12),rgba(232,98,26,0.05))' : 'var(--gray)', border: `1px solid ${m.ok ? 'rgba(212,168,67,0.35)' : 'rgba(255,255,255,0.05)'}`, borderRadius: 14, padding: '14px', opacity: m.ok ? 1 : 0.5, transition: 'all 0.2s' }}>
+            <div style={{ fontSize: 26, marginBottom: 6, filter: m.ok ? 'none' : 'grayscale(1)' }}>{m.ok ? m.icon : '🔒'}</div>
+            <div style={{ fontSize: 13, fontWeight: 800, color: m.ok ? 'var(--white)' : 'var(--text-muted)', marginBottom: 2 }}>{m.nome}</div>
+            <div style={{ fontSize: 10.5, color: 'var(--text-muted)', lineHeight: 1.4, marginBottom: 6 }}>{m.desc}</div>
+            <div style={{ fontSize: 10, fontWeight: 700, color: m.ok ? 'var(--gold)' : 'var(--text-muted)' }}>{m.ok ? '✓ Conquistada' : m.prog}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 function DashHome({ profile, onNav, onMini, showUpgrade, isPago, canAccessPremium, canAccessElite, onOpenRadar, freeQ, freeIA, limites }: any) {
   const { settings: dashSettings } = useAppSettings()
   const [depoOpen, setDepoOpen] = useState(false)
@@ -567,6 +611,8 @@ function DashHome({ profile, onNav, onMini, showUpgrade, isPago, canAccessPremiu
           </div>
         ))}
       </div>
+
+      <Conquistas profile={profile}/>
 
       {/* ── DEIXE SEU DEPOIMENTO ─────────────────────────────────── */}
       <div style={{marginTop:24,background:'linear-gradient(135deg,rgba(212,168,67,0.1),rgba(232,98,26,0.05))',border:'1px solid rgba(212,168,67,0.22)',borderRadius:16,padding:'18px 20px',display:'flex',alignItems:'center',justifyContent:'space-between',gap:14,flexWrap:'wrap'}}>
