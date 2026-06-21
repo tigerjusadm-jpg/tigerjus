@@ -5,7 +5,7 @@ const URL = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const ANON = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 const SERVICE = process.env.SUPABASE_SERVICE_ROLE_KEY!
 
-const PLANOS = ['gratuito', 'start', 'plus', 'pro', 'elite']
+const PLANOS = ['gratuito', 'start', 'pro', 'elite']
 const ROLES = ['user', 'admin']
 const RESET_FIELDS = ['free_questions_used', 'free_ia_used', 'streak']
 
