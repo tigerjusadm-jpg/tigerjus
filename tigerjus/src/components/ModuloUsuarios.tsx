@@ -25,7 +25,7 @@ interface Profile {
   last_ia_reset: string | null
 }
 
-const PLANOS = ['gratuito', 'start', 'plus', 'pro', 'elite'] as const
+const PLANOS = ['gratuito', 'start', 'pro', 'elite'] as const
 const ROLES  = ['user', 'admin'] as const
 
 const PLANO_COLOR: Record<string, string> = {
