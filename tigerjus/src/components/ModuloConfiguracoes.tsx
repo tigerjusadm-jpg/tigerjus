@@ -45,6 +45,8 @@ const GRUPOS: { key: string; label: string; icon: string; desc: string; keys: st
     keys: ['max_free_days', 'max_free_questions', 'max_free_ia', 'desconto_anual_ativo', 'desconto_anual_percent'] },
   { key: 'ia',      label: 'IA Jurídica',          icon: '🤖', desc: 'Liga/desliga, saudação e instruções do tutor.',
     keys: ['ia_enabled', 'ia_welcome_message', 'ia_system_prompt'] },
+  { key: 'juridico', label: 'Jurídico / LGPD',    icon: '⚖️', desc: 'Política de Privacidade, Termos de Uso e e-mail de contato.',
+    keys: ['privacidade_texto', 'termos_texto', 'juridico_email'] },
   { key: 'sistema', label: 'Sistema',              icon: '🛠️', desc: 'Modo manutenção e mensagem para os usuários.',
     keys: ['maintenance_mode', 'maintenance_message'] },
   { key: 'avancado',label: 'Avançado',             icon: '🔧', desc: 'Campos extras e criação manual de chaves.',
@@ -70,6 +72,9 @@ const SUBGRUPOS_TEXTOS: { label: string; icon: string; keys: string[] }[] = [
 
 // Rótulos amigáveis (o ADM vê isto, não a "key" técnica)
 const LABELS: Record<string, string> = {
+  privacidade_texto: 'Política de Privacidade (texto completo)',
+  termos_texto: 'Termos de Uso (texto completo)',
+  juridico_email: 'E-mail de contato (LGPD)',
   logo_url: 'Logo principal', favicon_url: 'Favicon (aba do navegador)',
   site_name: 'Nome do site', site_tagline: 'Slogan', site_description: 'Descrição (SEO)',
   primary_color: 'Cor principal', secondary_color: 'Cor secundária',
@@ -122,6 +127,46 @@ const SOCIAIS: { key: string; iconKey: string; label: string; emoji: string; ph:
 
 // Settings padrão para criar quando não existem
 const DEFAULTS: Omit<AppSetting, 'id' | 'ativo'>[] = [
+  // Jurídico / LGPD
+  { key: 'juridico_email', value: 'contato@tigerjus.com.br', type: 'text', description: 'E-mail de contato exibido nas páginas legais' },
+  { key: 'privacidade_texto', type: 'text', description: 'Texto da página /privacidade. Use "## " no início da linha para criar um título.', value: `A TigerJus é uma plataforma de preparação para a 1ª fase do Exame da OAB e é a controladora dos seus dados, nos termos da LGPD (Lei nº 13.709/2018).
+
+## 1. Quais dados coletamos
+Dados de cadastro (nome e e-mail), dados de uso e desempenho (questões, acertos, XP, nível, streak), dados de pagamento (processados pelo Mercado Pago, sem que armazenemos seu meio de pagamento) e dados técnicos básicos (IP, dispositivo) para segurança.
+
+## 2. Para que usamos
+Criar e manter sua conta, oferecer os recursos de estudo e a gamificação, processar pagamentos, comunicar avisos do serviço e melhorar a plataforma.
+
+## 3. Base legal
+Execução do contrato, seu consentimento (dado no cadastro) e legítimo interesse para segurança e melhoria.
+
+## 4. Com quem compartilhamos
+Não vendemos seus dados. Compartilhamos o mínimo com Supabase (infraestrutura), Mercado Pago (pagamento) e ferramentas de análise de uso.
+
+## 5. Seus direitos (LGPD)
+Você pode pedir confirmação, acesso, correção, anonimização, eliminação, portabilidade e revogar o consentimento, escrevendo para o nosso contato.
+
+## 6. Retenção e segurança
+Guardamos os dados enquanto a conta estiver ativa, com medidas de proteção como controle de acesso e criptografia em trânsito.` },
+  { key: 'termos_texto', type: 'text', description: 'Texto da página /termos. Use "## " no início da linha para criar um título.', value: `Bem-vindo ao TigerJus. Ao criar uma conta, você concorda com estes Termos.
+
+## 1. Sobre o serviço
+Plataforma de estudos para a 1ª fase da OAB, com questões, simulados, resumos, flashcards, mapas mentais e gamificação.
+
+## 2. Conta
+Você é responsável pela sua senha e pelas atividades na sua conta. Os dados de cadastro devem ser verdadeiros. A conta é pessoal e intransferível.
+
+## 3. Planos e pagamentos
+Há um plano gratuito e planos pagos, processados via Mercado Pago (PIX). Valores e benefícios são informados na plataforma e podem mudar com aviso prévio.
+
+## 4. Uso permitido
+O conteúdo é para uso pessoal de estudo. Não é permitido copiar, redistribuir, revender ou compartilhar o acesso.
+
+## 5. Conteúdo educacional
+O material é de apoio e não garante aprovação. Não substitui a legislação oficial.
+
+## 6. Cancelamento
+Você pode encerrar a conta a qualquer momento. Reembolsos seguem a legislação e as condições da contratação.` },
   // Landing Page
   { key: 'hero_badge',         value: 'Plataforma jurídica de nova geração',                          type: 'text', description: 'Badge animado acima do título hero' },
   { key: 'hero_headline',      value: 'O jeito mais inteligente de evoluir no Direito.',               type: 'text', description: 'Título principal da landing page (H1)' },
@@ -899,7 +944,7 @@ function EditorCampo({
       <textarea
         value={val}
         onChange={e => onChange(e.target.value)}
-        rows={3}
+        rows={setting.key.includes('privacidade') || setting.key.includes('termos') ? 16 : 3}
         placeholder={setting.description || ''}
         style={{
           width: '100%', background: '#1a1a1a', border: '1px solid rgba(255,255,255,0.1)',
