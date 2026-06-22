@@ -1180,20 +1180,19 @@ function QuizDisciplina({disciplina}:{disciplina:string}){
     return()=>clearInterval(t)
   },[started,answered,done,cur])
 
-  // Trilhas: grava o desempenho por disciplina ao concluir (não bloqueia o quiz)
-  useEffect(()=>{
-    if(!done||questions.length===0)return
+  const pick=(i:number)=>{
+    if(answered)return
+    setSel(i);setAnswered(true)
+    const acertou=i===questions[cur].correct
+    if(acertou)setScore(p=>p+1)
+    // Trilhas: grava CADA resposta na hora (não bloqueia o quiz)
     ;(async()=>{
       try{
         const{data:{user}}=await supabase.auth.getUser()
-        if(!user)return
-        await supabase.from('quiz_resultados').insert({user_id:user.id,disciplina,acertos:score,total:questions.length})
+        if(user)await supabase.from('quiz_resultados').insert({user_id:user.id,disciplina,acertos:acertou?1:0,total:1})
       }catch{/* silencioso: nunca atrapalha o quiz */}
     })()
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  },[done])
-
-  const pick=(i:number)=>{if(answered)return;setSel(i);setAnswered(true);if(i===questions[cur].correct)setScore(p=>p+1)}
+  }
   const next=()=>{if(cur+1>=questions.length){setDone(true);return}setCur(p=>p+1);setSel(null);setAnswered(false);setTime(90)}
 
   if(loading) return(<div style={{padding:'40px 0',textAlign:'center'}}><div style={{fontSize:36,marginBottom:12}}>⏳</div><div style={{fontSize:13,color:'var(--text-muted)'}}>Carregando questões de <strong style={{color:'var(--gold)'}}>{disciplina}</strong>...</div></div>)
