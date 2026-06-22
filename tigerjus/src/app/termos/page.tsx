@@ -1,75 +1,65 @@
+'use client'
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
+import { supabase } from '@/lib/supabase'
 
-export const metadata = {
-  title: 'Termos de Uso · TigerJus',
-  description: 'Regras de uso da plataforma TigerJus.',
-}
+const DEFAULT_EMAIL = 'contato@tigerjus.com.br'
+const DEFAULT_TEXTO = `Bem-vindo ao TigerJus. Ao criar uma conta, você concorda com estes Termos.
 
-const ATUALIZADO = 'Junho de 2026'
-const CONTATO = 'contato@tigerjus.com.br' // ← troque pelo seu e-mail oficial
+## 1. Sobre o serviço
+Plataforma de estudos para a 1ª fase da OAB, com questões, simulados, resumos, flashcards, mapas mentais e gamificação.
 
-function Sec({ titulo, children }: { titulo: string; children: React.ReactNode }) {
+## 2. Conta
+Você é responsável pela sua senha e pelas atividades na sua conta. Os dados de cadastro devem ser verdadeiros. A conta é pessoal e intransferível.
+
+## 3. Planos e pagamentos
+Há um plano gratuito e planos pagos, processados via Mercado Pago (PIX). Valores e benefícios são informados na plataforma e podem mudar com aviso prévio.
+
+## 4. Uso permitido
+O conteúdo é para uso pessoal de estudo. Não é permitido copiar, redistribuir, revender ou compartilhar o acesso.
+
+## 5. Conteúdo educacional
+O material é de apoio e não garante aprovação. Não substitui a legislação oficial.
+
+## 6. Cancelamento
+Você pode encerrar a conta a qualquer momento. Reembolsos seguem a legislação e as condições da contratação.`
+
+function Render({ texto }: { texto: string }) {
   return (
-    <section style={{ marginBottom: 28 }}>
-      <h2 style={{ fontSize: 18, fontWeight: 800, color: 'var(--gold, #D4A843)', marginBottom: 10 }}>{titulo}</h2>
-      <div style={{ fontSize: 15, lineHeight: 1.75, color: 'rgba(255,255,255,0.82)' }}>{children}</div>
-    </section>
+    <>
+      {texto.split('\n').map((linha, i) => {
+        if (linha.startsWith('## ')) return <h2 key={i} style={{ fontSize: 18, fontWeight: 800, color: 'var(--gold,#D4A843)', margin: '26px 0 8px' }}>{linha.slice(3)}</h2>
+        if (!linha.trim()) return <div key={i} style={{ height: 6 }} />
+        return <p key={i} style={{ fontSize: 15, lineHeight: 1.75, color: 'rgba(255,255,255,0.82)', margin: '0 0 8px' }}>{linha}</p>
+      })}
+    </>
   )
 }
 
 export default function TermosPage() {
+  const [texto, setTexto] = useState(DEFAULT_TEXTO)
+  const [email, setEmail] = useState(DEFAULT_EMAIL)
+  useEffect(() => {
+    ;(async () => {
+      try {
+        const { data } = await supabase.from('app_settings').select('key,value').in('key', ['termos_texto', 'juridico_email'])
+        const map: Record<string, string> = {}
+        ;(data || []).forEach((r: { key: string; value: string }) => { map[r.key] = r.value })
+        if (map['termos_texto'] && map['termos_texto'].trim()) setTexto(map['termos_texto'])
+        if (map['juridico_email'] && map['juridico_email'].trim()) setEmail(map['juridico_email'])
+      } catch { /* usa padrão */ }
+    })()
+  }, [])
   return (
     <main style={{ background: '#060a12', minHeight: '100vh', color: '#fff', padding: '48px 20px' }}>
       <div style={{ maxWidth: 760, margin: '0 auto' }}>
         <Link href="/" style={{ color: 'rgba(255,255,255,0.6)', fontSize: 14, textDecoration: 'none' }}>← Voltar</Link>
-        <h1 style={{ fontSize: 32, fontWeight: 900, margin: '18px 0 6px' }}>Termos de Uso</h1>
-        <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.45)', marginBottom: 32 }}>Última atualização: {ATUALIZADO}</p>
-
-        <Sec titulo="1. Sobre o serviço">
-          O TigerJus é uma plataforma de estudos para a 1ª fase do Exame da OAB, com questões, simulados,
-          resumos, flashcards, mapas mentais, gamificação e recursos de apoio. Ao criar uma conta, você concorda
-          com estes Termos.
-        </Sec>
-
-        <Sec titulo="2. Conta e responsabilidade">
-          Você é responsável por manter a confidencialidade da sua senha e por todas as atividades realizadas na
-          sua conta. As informações de cadastro devem ser verdadeiras e atualizadas. A conta é pessoal e
-          intransferível.
-        </Sec>
-
-        <Sec titulo="3. Planos e pagamentos">
-          Oferecemos um plano gratuito e planos pagos com recursos adicionais. As assinaturas são processadas via
-          Mercado Pago (PIX). Os valores e benefícios de cada plano são informados na própria plataforma e podem
-          ser ajustados, com aviso prévio razoável.
-        </Sec>
-
-        <Sec titulo="4. Uso permitido">
-          O conteúdo da plataforma é para seu uso pessoal de estudo. Não é permitido copiar, redistribuir, revender
-          ou compartilhar o acesso e os materiais com terceiros sem autorização.
-        </Sec>
-
-        <Sec titulo="5. Conteúdo educacional">
-          Nosso conteúdo tem finalidade de apoio aos estudos e não garante aprovação no exame. Buscamos manter as
-          informações corretas e atualizadas, mas elas não substituem a legislação oficial e fontes primárias.
-        </Sec>
-
-        <Sec titulo="6. Cancelamento">
-          Você pode encerrar sua conta a qualquer momento. Cancelamentos e reembolsos seguem a legislação aplicável
-          e as condições informadas no momento da contratação.
-        </Sec>
-
-        <Sec titulo="7. Alterações">
-          Podemos atualizar estes Termos para refletir melhorias ou exigências legais. A data no topo indica a
-          versão vigente.
-        </Sec>
-
-        <Sec titulo="8. Contato">
-          Dúvidas sobre estes Termos: <strong>{CONTATO}</strong>.
-        </Sec>
-
-        <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.35)', marginTop: 40 }}>
-          🐯 TigerJus — Estude como um Tigre.
+        <h1 style={{ fontSize: 32, fontWeight: 900, margin: '18px 0 24px' }}>Termos de Uso</h1>
+        <Render texto={texto} />
+        <p style={{ fontSize: 15, lineHeight: 1.75, color: 'rgba(255,255,255,0.82)', marginTop: 24 }}>
+          <strong>Contato:</strong> {email}
         </p>
+        <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.35)', marginTop: 40 }}>🐯 TigerJus — Estude como um Tigre.</p>
       </div>
     </main>
   )
