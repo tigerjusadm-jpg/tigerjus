@@ -1581,6 +1581,140 @@ function MapasMentaisPage({ canAccessPremium, showUpgrade }: any){
   )
 }
 
+function TrilhasPage({ canAccessPremium, showUpgrade, onNav }: any){
+  const [stats,setStats]=useState<Record<string,{acertos:number,total:number}>>({})
+  const [loading,setLoading]=useState(true)
+
+  useEffect(()=>{
+    if(!canAccessPremium){setLoading(false);return}
+    ;(async()=>{
+      try{
+        const{data:{user}}=await supabase.auth.getUser()
+        if(!user){setLoading(false);return}
+        const{data}=await supabase.from('quiz_resultados').select('disciplina,acertos,total').eq('user_id',user.id)
+        const agg:Record<string,{acertos:number,total:number}>={}
+        ;(data||[]).forEach((r:any)=>{
+          const k=r.disciplina
+          if(!agg[k])agg[k]={acertos:0,total:0}
+          agg[k].acertos+=r.acertos||0;agg[k].total+=r.total||0
+        })
+        setStats(agg)
+      }catch{/* ignora */}
+      finally{setLoading(false)}
+    })()
+  },[canAccessPremium])
+
+  if(!canAccessPremium) return(
+    <div style={{maxWidth:520,margin:'40px auto',textAlign:'center',padding:'40px 28px',background:'rgba(212,168,67,0.05)',border:'1px solid rgba(212,168,67,0.2)',borderRadius:18}}>
+      <div style={{fontSize:54,marginBottom:14}}>🧭</div>
+      <h1 style={{fontFamily:'var(--font-display)',fontSize:'clamp(20px,5vw,28px)',fontWeight:900,marginBottom:10}}>Trilhas é <span style={{color:'var(--gold)'}}>premium</span></h1>
+      <p style={{fontSize:14,color:'var(--text-muted)',lineHeight:1.6,marginBottom:24}}>Sua trilha de estudo montada pelo seu desempenho real — focando onde você mais erra. Disponível nos planos Pro e Elite.</p>
+      <button className="btn-gold" onClick={showUpgrade}>🚀 Desbloquear agora</button>
+    </div>
+  )
+
+  const lista=DISCIPLINES.map(d=>{
+    const s=stats[d.name];const total=s?.total||0
+    const taxa=total>0?Math.round((s!.acertos/total)*100):null
+    return {id:d.id,icon:d.icon,name:d.name,total,taxa}
+  })
+  const avaliadas=lista.filter(x=>x.taxa!==null)
+  const foco=avaliadas.filter(x=>(x.taxa as number)<60).sort((a,b)=>(a.taxa as number)-(b.taxa as number))
+  const bem=avaliadas.filter(x=>(x.taxa as number)>=60).sort((a,b)=>(b.taxa as number)-(a.taxa as number))
+  const naoAval=lista.filter(x=>x.taxa===null)
+  const cor=(t:number)=>t<50?'#dc5050':t<70?'#e8a33a':'#6bbf59'
+
+  const Metodo=()=>(
+    <div style={{display:'flex',alignItems:'center',gap:8,flexWrap:'wrap',background:'rgba(255,255,255,0.03)',border:'1px solid rgba(255,255,255,0.07)',borderRadius:14,padding:'14px 16px',marginBottom:24}}>
+      <span style={{fontSize:12,fontWeight:700,color:'var(--text-muted)',marginRight:4}}>Método:</span>
+      {['📄 Resumo','🃏 Flashcards','📝 Quiz','⚖️ Questões'].map((e,i)=>(
+        <span key={e} style={{display:'flex',alignItems:'center',gap:8}}>
+          <span style={{fontSize:13,fontWeight:700}}>{e}</span>
+          {i<3&&<span style={{color:'var(--gold)'}}>→</span>}
+        </span>
+      ))}
+    </div>
+  )
+
+  const Bar=({t}:{t:number})=>(
+    <div style={{background:'rgba(255,255,255,0.06)',borderRadius:100,height:6,overflow:'hidden',marginTop:6}}>
+      <div style={{width:`${t}%`,height:'100%',background:cor(t),borderRadius:100}}/>
+    </div>
+  )
+
+  return(
+    <div>
+      <h1 style={{fontFamily:'var(--font-display)',fontSize:'clamp(22px,5vw,32px)',fontWeight:900,marginBottom:6}}>Trilhas 🧭</h1>
+      <p style={{fontSize:14,color:'var(--text-muted)',marginBottom:20}}>Montada pelo seu desempenho real nos quizzes. Foque onde você mais erra.</p>
+      <Metodo/>
+
+      {loading?(
+        <p style={{color:'var(--text-muted)'}}>Carregando seu desempenho…</p>
+      ):avaliadas.length===0?(
+        <div style={{textAlign:'center',padding:'40px 20px',background:'rgba(255,255,255,0.02)',border:'1px dashed rgba(255,255,255,0.1)',borderRadius:16}}>
+          <div style={{fontSize:44,marginBottom:12}}>🧭</div>
+          <p style={{fontSize:15,color:'var(--text-muted)',lineHeight:1.6,marginBottom:18}}>Faça alguns quizzes nas disciplinas e sua trilha vai se montar sozinha,<br/>destacando onde você precisa focar.</p>
+          <button className="btn-primary" onClick={()=>onNav('disciplines')}>Ir para Disciplinas →</button>
+        </div>
+      ):(
+        <>
+          {foco.length>0&&(
+            <div style={{marginBottom:26}}>
+              <h2 style={{fontFamily:'var(--font-display)',fontSize:18,fontWeight:800,marginBottom:12}}>🎯 Foco recomendado</h2>
+              <div style={{display:'flex',flexDirection:'column',gap:10}}>
+                {foco.map(d=>(
+                  <div key={d.id} style={{background:'rgba(255,255,255,0.03)',border:`1px solid ${cor(d.taxa as number)}33`,borderRadius:14,padding:16}}>
+                    <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:12}}>
+                      <div style={{fontSize:15,fontWeight:800}}>{d.icon} {d.name}</div>
+                      <div style={{fontSize:15,fontWeight:900,color:cor(d.taxa as number)}}>{d.taxa}%</div>
+                    </div>
+                    <Bar t={d.taxa as number}/>
+                    <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:12,marginTop:12}}>
+                      <span style={{fontSize:12,color:'var(--text-muted)'}}>Comece pelo resumo, depois refaça o quiz.</span>
+                      <button className="btn-secondary" style={{fontSize:12,whiteSpace:'nowrap'}} onClick={()=>onNav('disciplines')}>Estudar →</button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {naoAval.length>0&&(
+            <div style={{marginBottom:26}}>
+              <h2 style={{fontFamily:'var(--font-display)',fontSize:18,fontWeight:800,marginBottom:12}}>📊 Ainda não avaliadas</h2>
+              <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(190px,1fr))',gap:10}}>
+                {naoAval.map(d=>(
+                  <div key={d.id} onClick={()=>onNav('disciplines')} style={{cursor:'pointer',background:'rgba(255,255,255,0.03)',border:'1px solid rgba(255,255,255,0.07)',borderRadius:12,padding:'12px 14px'}}>
+                    <div style={{fontSize:14,fontWeight:700}}>{d.icon} {d.name}</div>
+                    <div style={{fontSize:11,color:'var(--text-muted)',marginTop:3}}>Faça um quiz pra avaliar</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {bem.length>0&&(
+            <div style={{marginBottom:10}}>
+              <h2 style={{fontFamily:'var(--font-display)',fontSize:18,fontWeight:800,marginBottom:12}}>✅ Você está bem</h2>
+              <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(190px,1fr))',gap:10}}>
+                {bem.map(d=>(
+                  <div key={d.id} style={{background:'rgba(255,255,255,0.03)',border:'1px solid rgba(107,191,89,0.2)',borderRadius:12,padding:'12px 14px'}}>
+                    <div style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+                      <span style={{fontSize:14,fontWeight:700}}>{d.icon} {d.name}</span>
+                      <span style={{fontSize:13,fontWeight:900,color:cor(d.taxa as number)}}>{d.taxa}%</span>
+                    </div>
+                    <Bar t={d.taxa as number}/>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  )
+}
+
 function RankingPage({profile,onNav}:any){
   const [tab,setTab]=useState<'geral'|'semanal'|'streak'|'questoes'>('geral')
   const [rankData,setRankData]=useState<any[]>([])
@@ -2432,6 +2566,7 @@ export default function TigerJusApp() {
       {icon:'📚',label:'Disciplinas',key:'disciplines'},
       {icon:'📖',label:'Índice',key:'indice'},
       {icon:'🗺️',label:'Mapas',key:'mapas'},
+      {icon:'🧭',label:'Trilhas',key:'trilhas'},
     ]},
     {title:'INTELIGÊNCIA',items:[{icon:'🤖',label:'Tutor IA',key:'ia'}]},
     {title:'EVOLUIR',items:[
@@ -2557,6 +2692,7 @@ export default function TigerJusApp() {
         {page==='ranking'&&<RankingPage profile={profile} onNav={navTo}/>}
         {page==='indice'&&<IndiceJuridico showUpgrade={showUpgrade} isPago={canAccessPremium}/>}
         {page==='mapas'&&<MapasMentaisPage canAccessPremium={canAccessPremium} showUpgrade={showUpgrade}/>}
+        {page==='trilhas'&&<TrilhasPage canAccessPremium={canAccessPremium} showUpgrade={showUpgrade} onNav={navTo}/>}
         {page==='referral'&&<ReferralPage profile={profile} showUpgrade={showUpgrade} isPago={userIsPago}/>}
       </div>
       <style>{`
