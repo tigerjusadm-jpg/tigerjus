@@ -521,6 +521,7 @@ function DashHome({ profile, onNav, onMini, showUpgrade, isPago, canAccessPremiu
             {icon:'🎯',label:'Mini-simulado',sub:'10 questões aleatórias',key:'simulados',action:'mini',lock:false,grad:'linear-gradient(135deg,rgba(232,98,26,0.14),rgba(212,168,67,0.05))',bd:'rgba(232,98,26,0.28)'},
             {icon:'🤖',label:'Tutor IA',sub:'Tire dúvidas',key:'ia',lock:false,grad:'linear-gradient(135deg,rgba(139,92,246,0.14),rgba(58,143,232,0.05))',bd:'rgba(139,92,246,0.28)'},
             {icon:'🃏',label:'Revisar',sub:'Flashcards',key:'flashcards',lock:!isPago,grad:'linear-gradient(135deg,rgba(76,175,125,0.14),rgba(212,168,67,0.05))',bd:'rgba(76,175,125,0.28)'},
+            {icon:'🧭',label:'Minha trilha',sub:'Onde focar agora',key:'trilhas',lock:!canAccessPremium,grad:'linear-gradient(135deg,rgba(212,168,67,0.16),rgba(58,143,232,0.06))',bd:'rgba(212,168,67,0.32)'},
           ].map(a=>(
             <button key={a.label} onClick={()=>(a as any).action==='mini'?onMini():onNav(a.key)} style={{textAlign:'left',cursor:'pointer',background:a.grad,border:`1px solid ${a.bd}`,borderRadius:16,padding:'16px 16px 14px',transition:'transform 0.2s',position:'relative'}}
               onMouseEnter={e=>{e.currentTarget.style.transform='translateY(-3px)'}}
