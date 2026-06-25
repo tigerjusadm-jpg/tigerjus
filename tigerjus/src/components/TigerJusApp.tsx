@@ -230,7 +230,7 @@ function QuestaoDodia({onNav}:{onNav:(k:string)=>void}){
   useEffect(()=>{
     // Seleciona questão do dia usando a data como semente — determinística para todos os usuários
     const hoje=new Date(); const seed=(hoje.getDate()*7+hoje.getMonth()*31)%400
-    supabase.from('questoes_oab').select('disciplina,enunciado').neq('resposta_correta','*')
+    supabase.from('questoes_publicas').select('disciplina,enunciado')
       .range(seed,seed).limit(1).then(({data})=>{ if(data?.[0])setQ(data[0]) })
   },[])
   const disc=q?.disciplina||'OAB'
@@ -640,6 +640,7 @@ function QuizPage({ freeQ, setFreeQ, showUpgrade, onXp, profile, isPago }: any) 
   const [score,setScore]=useState(0)
   const [done,setDone]=useState(false)
   const [time,setTime]=useState(60)
+  const [checking,setChecking]=useState(false)
   const MODO_QTD:Record<string,number>={'Fácil':20,'Médio':40,'Difícil':60}
   const MODO_TEMPO:Record<string,number>={'Fácil':60,'Médio':90,'Difícil':120}
   const modosLib=getQuizModes(profile?.plano,profile?.role)
@@ -647,28 +648,45 @@ function QuizPage({ freeQ, setFreeQ, showUpgrade, onXp, profile, isPago }: any) 
 
   useEffect(()=>{
     if(!started||answered||done)return
-    const t=setInterval(()=>setTime(p=>{if(p<=1){clearInterval(t);setAnswered(true);return 0}return p-1}),1000)
+    const t=setInterval(()=>setTime(p=>{if(p<=1){clearInterval(t);responder(null);return 0}return p-1}),1000)
     return()=>clearInterval(t)
   },[started,answered,done,cur])
 
   const startQuiz=async()=>{
     setLoadingQ(true)
-    let query=supabase.from('questoes_oab').select('id,disciplina,enunciado,opcao_a,opcao_b,opcao_c,opcao_d,resposta_correta,comentario').neq('resposta_correta','*')
+    let query=supabase.from('questoes_publicas').select('id,disciplina,enunciado,opcao_a,opcao_b,opcao_c,opcao_d')
     if(disciplina)query=query.ilike('disciplina',`%${disciplina}%`)
     const{data,error}=await query
     if(error||!data||data.length===0){setLoadingQ(false);alert('Nenhuma questão encontrada.');return}
     const shuffled=[...data].sort(()=>Math.random()-0.5).slice(0,MODO_QTD[modo])
-    setQuestions(shuffled.map((q:any)=>({id:q.id,disc:q.disciplina,q:q.enunciado,opts:[q.opcao_a,q.opcao_b,q.opcao_c,q.opcao_d],correct:['A','B','C','D'].indexOf(q.resposta_correta),exp:q.comentario||''})))
+    setQuestions(shuffled.map((q:any)=>({id:q.id,disc:q.disciplina,q:q.enunciado,opts:[q.opcao_a,q.opcao_b,q.opcao_c,q.opcao_d],correct:null,exp:''})))
     setLoadingQ(false);setStarted(true);setCur(0);setSel(null);setAnswered(false);setScore(0);setDone(false);setTime(MODO_TEMPO[modo])
   }
 
-  const pick=(i:number)=>{
-    if(answered)return
-    if(freeQ<=0){showUpgrade();return}
-    setSel(i);setAnswered(true)
-    setFreeQ((p:number)=>p-1)
-    if(i===questions[cur].correct){setScore(p=>p+1);onXp('question_correct')}else onXp('question_wrong')
+  // Valida a resposta no servidor. i=null => tempo esgotou (revela sem pontuar).
+  const responder=async(i:number|null)=>{
+    if(answered||checking)return
+    if(i!==null&&freeQ<=0){showUpgrade();return}
+    if(i!==null)setSel(i)
+    setChecking(true)
+    try{
+      const{data:{session}}=await supabase.auth.getSession()
+      const res=await fetch('/api/questao/validar',{method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${session?.access_token||''}`},body:JSON.stringify({questaoId:questions[cur].id,...(i!==null?{escolha:i}:{})})})
+      const data=await res.json()
+      if(res.ok){
+        const correctIdx=['A','B','C','D'].indexOf(data.letra_correta)
+        setQuestions(prev=>prev.map((qq,idx)=>idx===cur?{...qq,correct:correctIdx,exp:data.comentario||''}:qq))
+        if(i!==null){setFreeQ((p:number)=>p-1);if(data.correto){setScore(p=>p+1);onXp('question_correct')}else onXp('question_wrong')}
+        setAnswered(true)
+      }else if(i!==null){setSel(null)}
+      else setAnswered(true)
+    }catch{
+      if(i!==null)setSel(null)
+      else setAnswered(true)
+    }finally{setChecking(false)}
   }
+
+  const pick=(i:number)=>{ responder(i) }
   const next=()=>{if(cur+1>=questions.length){setDone(true);onXp('quiz_complete');return}setCur(p=>p+1);setSel(null);setAnswered(false);setTime(MODO_TEMPO[modo])}
   const restart=()=>{setStarted(false);setDone(false);setScore(0);setCur(0)}
 
@@ -741,6 +759,7 @@ function QuizPage({ freeQ, setFreeQ, showUpgrade, onXp, profile, isPago }: any) 
           <div style={{display:'flex',flexDirection:'column',gap:10}}>
             {q.opts.map((opt:string,i:number)=>{
               let bg='rgba(255,255,255,0.03)',bc='rgba(255,255,255,0.08)',color='var(--white)'
+              if(checking&&i===sel){bg='rgba(212,168,67,0.08)';bc='rgba(212,168,67,0.6)';color='var(--gold)'}
               if(answered){if(i===q.correct){bg='rgba(76,175,125,0.1)';bc='var(--success)';color='var(--success)'}else if(i===sel){bg='rgba(232,66,26,0.1)';bc='var(--danger)';color='var(--danger)'}}
               return(<button key={i} onClick={()=>pick(i)} style={{display:'flex',alignItems:'flex-start',gap:12,background:bg,border:`1px solid ${bc}`,borderRadius:12,padding:'14px 16px',cursor:'pointer',transition:'all 0.2s',textAlign:'left',width:'100%',fontFamily:'var(--font-body)',fontSize:'clamp(13px,2.5vw,14px)',color}}>
                 <span style={{width:26,height:26,borderRadius:'50%',flexShrink:0,display:'flex',alignItems:'center',justifyContent:'center',fontSize:11,fontWeight:800,background:'rgba(255,255,255,0.06)'}}>{String.fromCharCode(65+i)}</span>
@@ -1143,6 +1162,7 @@ function QuizDisciplina({disciplina}:{disciplina:string}){
   const [score,setScore]=useState(0)
   const [done,setDone]=useState(false)
   const [time,setTime]=useState(90)
+  const [checking,setChecking]=useState(false)
   const fetchingRef=useRef(false)
   const cacheRef=useRef<Map<string,any[]>>(new Map())
 
@@ -1156,18 +1176,18 @@ function QuizDisciplina({disciplina}:{disciplina:string}){
       try{
         const aliases=getDisciplinaAliases(disciplina);let data:any[]=[];let error:any=null
         for(const alias of aliases){
-          const res=await supabase.from('questoes_oab').select('id,disciplina,enunciado,opcao_a,opcao_b,opcao_c,opcao_d,resposta_correta,comentario').eq('disciplina',alias).neq('resposta_correta','*')
+          const res=await supabase.from('questoes_publicas').select('id,disciplina,enunciado,opcao_a,opcao_b,opcao_c,opcao_d').eq('disciplina',alias)
           if(!res.error&&res.data&&res.data.length>0){data=res.data;error=null;break}
           error=res.error
         }
         if(!error&&data.length===0){
           const token=aliases[0].split(' ')[0]
-          const fb=await supabase.from('questoes_oab').select('id,disciplina,enunciado,opcao_a,opcao_b,opcao_c,opcao_d,resposta_correta,comentario').ilike('disciplina',`%${token}%`).neq('resposta_correta','*')
+          const fb=await supabase.from('questoes_publicas').select('id,disciplina,enunciado,opcao_a,opcao_b,opcao_c,opcao_d').ilike('disciplina',`%${token}%`)
           data=fb.data||[];error=fb.error
         }
         if(error){setErro(true);return}
         const shuffled=[...data].sort(()=>Math.random()-0.5).slice(0,20)
-        const formatted=shuffled.map((q:any)=>({id:q.id,disc:q.disciplina,q:q.enunciado,opts:[q.opcao_a,q.opcao_b,q.opcao_c,q.opcao_d],correct:['A','B','C','D'].indexOf(q.resposta_correta),exp:q.comentario||''}))
+        const formatted=shuffled.map((q:any)=>({id:q.id,disc:q.disciplina,q:q.enunciado,opts:[q.opcao_a,q.opcao_b,q.opcao_c,q.opcao_d],correct:null,exp:''}))
         cacheRef.current.set(disciplina,formatted);setQuestions(formatted)
       }catch{setErro(true)}
       finally{setLoading(false);fetchingRef.current=false}
@@ -1177,23 +1197,40 @@ function QuizDisciplina({disciplina}:{disciplina:string}){
 
   useEffect(()=>{
     if(!started||answered||done)return
-    const t=setInterval(()=>setTime(p=>{if(p<=1){clearInterval(t);setAnswered(true);return 0}return p-1}),1000)
+    const t=setInterval(()=>setTime(p=>{if(p<=1){clearInterval(t);responder(null);return 0}return p-1}),1000)
     return()=>clearInterval(t)
   },[started,answered,done,cur])
 
-  const pick=(i:number)=>{
-    if(answered)return
-    setSel(i);setAnswered(true)
-    const acertou=i===questions[cur].correct
-    if(acertou)setScore(p=>p+1)
-    // Trilhas: grava CADA resposta na hora (não bloqueia o quiz)
-    ;(async()=>{
-      try{
-        const{data:{user}}=await supabase.auth.getUser()
-        if(user)await supabase.from('quiz_resultados').insert({user_id:user.id,disciplina,acertos:acertou?1:0,total:1})
-      }catch{/* silencioso: nunca atrapalha o quiz */}
-    })()
+  const responder=async(i:number|null)=>{
+    if(answered||checking)return
+    if(i!==null)setSel(i)
+    setChecking(true)
+    try{
+      const{data:{session}}=await supabase.auth.getSession()
+      const res=await fetch('/api/questao/validar',{method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${session?.access_token||''}`},body:JSON.stringify({questaoId:questions[cur].id,...(i!==null?{escolha:i}:{})})})
+      const data=await res.json()
+      if(res.ok){
+        const correctIdx=['A','B','C','D'].indexOf(data.letra_correta)
+        setQuestions(prev=>prev.map((qq,idx)=>idx===cur?{...qq,correct:correctIdx,exp:data.comentario||''}:qq))
+        setAnswered(true)
+        if(i!==null){
+          if(data.correto)setScore(p=>p+1)
+          // Trilhas: grava CADA resposta na hora (não bloqueia o quiz)
+          ;(async()=>{
+            try{
+              const{data:{user}}=await supabase.auth.getUser()
+              if(user)await supabase.from('quiz_resultados').insert({user_id:user.id,disciplina,acertos:data.correto?1:0,total:1})
+            }catch{/* silencioso */}
+          })()
+        }
+      }else if(i!==null){setSel(null)}
+      else setAnswered(true)
+    }catch{
+      if(i!==null)setSel(null)
+      else setAnswered(true)
+    }finally{setChecking(false)}
   }
+  const pick=(i:number)=>{ responder(i) }
   const next=()=>{if(cur+1>=questions.length){setDone(true);return}setCur(p=>p+1);setSel(null);setAnswered(false);setTime(90)}
 
   if(loading) return(<div style={{padding:'40px 0',textAlign:'center'}}><div style={{fontSize:36,marginBottom:12}}>⏳</div><div style={{fontSize:13,color:'var(--text-muted)'}}>Carregando questões de <strong style={{color:'var(--gold)'}}>{disciplina}</strong>...</div></div>)
@@ -1227,6 +1264,7 @@ function QuizDisciplina({disciplina}:{disciplina:string}){
         <div style={{display:'flex',flexDirection:'column',gap:10}}>
           {q.opts.map((opt:string,i:number)=>{
             let bg='rgba(255,255,255,0.03)',bc='rgba(255,255,255,0.08)',color='var(--white)'
+            if(checking&&i===sel){bg='rgba(212,168,67,0.08)';bc='rgba(212,168,67,0.6)';color='var(--gold)'}
             if(answered){if(i===q.correct){bg='rgba(76,175,125,0.1)';bc='var(--success)';color='var(--success)'}else if(i===sel){bg='rgba(232,66,26,0.1)';bc='var(--danger)';color='var(--danger)'}}
             return(<button key={i} onClick={()=>pick(i)} style={{display:'flex',alignItems:'flex-start',gap:12,background:bg,border:`1px solid ${bc}`,borderRadius:12,padding:'12px 14px',cursor:'pointer',transition:'all 0.2s',textAlign:'left',width:'100%',fontFamily:'var(--font-body)',fontSize:'clamp(13px,2.5vw,14px)',color}}><span style={{width:26,height:26,borderRadius:'50%',flexShrink:0,display:'flex',alignItems:'center',justifyContent:'center',fontSize:11,fontWeight:800,background:'rgba(255,255,255,0.06)',color:'var(--white)'}}>{String.fromCharCode(65+i)}</span><span style={{flex:1}}>{opt}</span></button>)
           })}
@@ -1312,6 +1350,7 @@ function SimuladosPage({ showUpgrade, freeQ, setFreeQ, onXp, profile, isPago, ca
   const [score,setScore]=useState(0)
   const [done,setDone]=useState(false)
   const [time,setTime]=useState(18000)
+  const [checking,setChecking]=useState(false)
   const [selectedSimulado,setSelectedSimulado]=useState<any>(null)
   const [provasOAB,setProvasOAB]=useState<any[]>([])
   const [loadingProva,setLoadingProva]=useState(false)
@@ -1340,9 +1379,9 @@ function SimuladosPage({ showUpgrade, freeQ, setFreeQ, onXp, profile, isPago, ca
   const iniciarProvaOficial=async(prova:any)=>{
     if(!podeLiberarProva(prova)){showUpgrade();return}
     setLoadingProva(true)
-    const{data}=await supabase.from('questoes_oab').select('*').eq('prova_id',prova.id).order('numero_questao')
+    const{data}=await supabase.from('questoes_publicas').select('id,disciplina,enunciado,opcao_a,opcao_b,opcao_c,opcao_d,numero_questao').eq('prova_id',prova.id).order('numero_questao')
     if(data&&data.length>0){
-      const q=data.map((q:any)=>({id:q.id,disc:q.disciplina,dificuldade:'OAB Oficial',q:q.enunciado,opts:[q.opcao_a,q.opcao_b,q.opcao_c,q.opcao_d],correct:['A','B','C','D'].indexOf(q.resposta_correta),exp:q.comentario||''}))
+      const q=data.map((q:any)=>({id:q.id,disc:q.disciplina,dificuldade:'OAB Oficial',q:q.enunciado,opts:[q.opcao_a,q.opcao_b,q.opcao_c,q.opcao_d],correct:null,exp:''}))
       setSelectedSimulado({...prova,questions:q,oficial:true});setRunning(true);setCur(0);setSel(null);setAnswered(false);setScore(0);setDone(false);setTime(18000)
     }
     setLoadingProva(false)
@@ -1354,12 +1393,12 @@ function SimuladosPage({ showUpgrade, freeQ, setFreeQ, onXp, profile, isPago, ca
     const discMap:Record<string,string>={'Simulado Intensivo — Penal':'Penal','Ética e Estatuto OAB':'Ética'}
     const qtdMap:Record<string,number>={'Mini Simulado Rápido':10,'Simulado Intensivo — Penal':30,'Ética e Estatuto OAB':20,'Simulado Geral':60}
     const disc=discMap[s.t];const qtd=qtdMap[s.t]||20
-    let query=supabase.from('questoes_oab').select('*').neq('resposta_correta','*')
+    let query=supabase.from('questoes_publicas').select('id,disciplina,enunciado,opcao_a,opcao_b,opcao_c,opcao_d')
     if(disc)query=query.ilike('disciplina',`%${disc}%`)
     const{data}=await query
     if(!data||data.length===0){setLoadingProva(false);alert('Ainda não há questões suficientes para este simulado. Experimente o Mini Simulado Rápido!');return}
     const shuffled=[...data].sort(()=>Math.random()-0.5).slice(0,qtd)
-    const formatted=shuffled.map((q:any)=>({id:q.id,disc:q.disciplina,dificuldade:'OAB Oficial',q:q.enunciado,opts:[q.opcao_a,q.opcao_b,q.opcao_c,q.opcao_d],correct:['A','B','C','D'].indexOf(q.resposta_correta),exp:q.comentario||''}))
+    const formatted=shuffled.map((q:any)=>({id:q.id,disc:q.disciplina,dificuldade:'OAB Oficial',q:q.enunciado,opts:[q.opcao_a,q.opcao_b,q.opcao_c,q.opcao_d],correct:null,exp:''}))
     setSelectedSimulado({...s,questions:formatted});setRunning(true);setCur(0);setSel(null);setAnswered(false);setScore(0);setDone(false);setTime(s.t.includes('Mini')?900:18000)
     setLoadingProva(false)
   }
@@ -1380,13 +1419,25 @@ function SimuladosPage({ showUpgrade, freeQ, setFreeQ, onXp, profile, isPago, ca
     return()=>clearInterval(t)
   },[running,answered,done,cur])
 
-  const pick=(i:number)=>{
-    if(answered)return
+  const responder=async(i:number)=>{
+    if(answered||checking)return
     if(!isPago&&freeQ<=0){showUpgrade();return}
-    setSel(i);setAnswered(true)
-    if(!isPago)setFreeQ((p:number)=>p-1)
-    if(i===selectedSimulado.questions[cur].correct){setScore(p=>p+1);onXp('question_correct')}else onXp('question_wrong')
+    setSel(i);setChecking(true)
+    try{
+      const{data:{session}}=await supabase.auth.getSession()
+      const res=await fetch('/api/questao/validar',{method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${session?.access_token||''}`},body:JSON.stringify({questaoId:selectedSimulado.questions[cur].id,escolha:i})})
+      const data=await res.json()
+      if(res.ok){
+        const correctIdx=['A','B','C','D'].indexOf(data.letra_correta)
+        setSelectedSimulado((prev:any)=>({...prev,questions:prev.questions.map((qq:any,idx:number)=>idx===cur?{...qq,correct:correctIdx,exp:data.comentario||''}:qq)}))
+        setAnswered(true)
+        if(!isPago)setFreeQ((p:number)=>p-1)
+        if(data.correto){setScore(p=>p+1);onXp('question_correct')}else onXp('question_wrong')
+      }else setSel(null)
+    }catch{setSel(null)}
+    finally{setChecking(false)}
   }
+  const pick=(i:number)=>{ responder(i) }
   const next=()=>{if(cur+1>=selectedSimulado.questions.length){setDone(true);onXp('simulado_complete');return}setCur(p=>p+1);setSel(null);setAnswered(false)}
 
   if(running&&!done&&selectedSimulado){
@@ -1401,7 +1452,7 @@ function SimuladosPage({ showUpgrade, freeQ, setFreeQ, onXp, profile, isPago, ca
             <div style={{display:'flex',gap:8,marginBottom:14}}><span style={{fontSize:10,fontWeight:700,letterSpacing:2,textTransform:'uppercase',color:'var(--gold)'}}>{q.disc}</span><span style={{fontSize:10,color:'var(--text-muted)'}}>· OAB Oficial</span></div>
             <div style={{fontSize:'clamp(14px,3vw,17px)',fontWeight:600,lineHeight:1.7,marginBottom:22}}>{q.q}</div>
             <div style={{display:'flex',flexDirection:'column',gap:10}}>
-              {q.opts.map((opt:string,i:number)=>{let bg='rgba(255,255,255,0.03)',bc='rgba(255,255,255,0.08)',color='var(--white)';if(answered){if(i===q.correct){bg='rgba(76,175,125,0.1)';bc='var(--success)';color='var(--success)'}else if(i===sel){bg='rgba(232,66,26,0.1)';bc='var(--danger)';color='var(--danger)'}}return(<button key={i} onClick={()=>pick(i)} style={{display:'flex',alignItems:'flex-start',gap:12,background:bg,border:`1px solid ${bc}`,borderRadius:12,padding:'13px 15px',cursor:'pointer',transition:'all 0.2s',textAlign:'left',width:'100%',fontFamily:'var(--font-body)',fontSize:'clamp(13px,2.5vw,14px)',color}}><span style={{width:26,height:26,borderRadius:'50%',flexShrink:0,display:'flex',alignItems:'center',justifyContent:'center',fontSize:11,fontWeight:800,background:'rgba(255,255,255,0.06)',color:'var(--white)'}}>{String.fromCharCode(65+i)}</span><span style={{flex:1}}>{opt}</span></button>)})}
+              {q.opts.map((opt:string,i:number)=>{let bg='rgba(255,255,255,0.03)',bc='rgba(255,255,255,0.08)',color='var(--white)';if(checking&&i===sel){bg='rgba(212,168,67,0.08)';bc='rgba(212,168,67,0.6)';color='var(--gold)'}if(answered){if(i===q.correct){bg='rgba(76,175,125,0.1)';bc='var(--success)';color='var(--success)'}else if(i===sel){bg='rgba(232,66,26,0.1)';bc='var(--danger)';color='var(--danger)'}}return(<button key={i} onClick={()=>pick(i)} style={{display:'flex',alignItems:'flex-start',gap:12,background:bg,border:`1px solid ${bc}`,borderRadius:12,padding:'13px 15px',cursor:'pointer',transition:'all 0.2s',textAlign:'left',width:'100%',fontFamily:'var(--font-body)',fontSize:'clamp(13px,2.5vw,14px)',color}}><span style={{width:26,height:26,borderRadius:'50%',flexShrink:0,display:'flex',alignItems:'center',justifyContent:'center',fontSize:11,fontWeight:800,background:'rgba(255,255,255,0.06)',color:'var(--white)'}}>{String.fromCharCode(65+i)}</span><span style={{flex:1}}>{opt}</span></button>)})}
             </div>
             {answered&&q.exp&&<div style={{marginTop:20,padding:16,background:'rgba(212,168,67,0.06)',border:'1px solid rgba(212,168,67,0.15)',borderRadius:12,fontSize:13,lineHeight:1.7,color:'var(--text-muted)'}}>{sel===q.correct?'✅ ':'❌ '}<strong style={{color:'var(--gold)'}}>{sel===q.correct?'Correto!':'Incorreto.'}</strong> {q.exp}</div>}
             {answered&&<button className="btn-primary" style={{width:'100%',marginTop:18}} onClick={next}>{cur+1>=selectedSimulado.questions.length?'VER RESULTADO':'PRÓXIMA →'}</button>}
