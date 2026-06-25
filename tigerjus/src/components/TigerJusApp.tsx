@@ -1020,7 +1020,7 @@ function DisciplinesPage({ showUpgrade, profile, isPago, canAccessPremium, podeP
     setGerandoPDF(true)
     try{
       const resumo=RESUMOS[disc.slug]||`${disc.name} — Resumo em elaboração.`
-      const{data}=await supabase.from('questoes_oab').select('*').ilike('disciplina',`%${disc.name.split(' ')[0]}%`).neq('resposta_correta','*').limit(20)
+      const{data}=await supabase.rpc('buscar_questoes_disciplina_pdf',{disc:disc.name.split(' ')[0],lim:20})
       await gerarPDF(disc,resumo,data||[])
     }finally{setGerandoPDF(false)}
   }
