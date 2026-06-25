@@ -20,6 +20,12 @@ function CheckoutContent() {
   const ehAnual = ciclo === 'anual'
   const plan = PLANS[planId] || PLANS['pro']
 
+  // Destino de volta após login, preservando plano e ciclo escolhidos.
+  const irParaLogin = () => {
+    const back = `/checkout?plan=${planId}&ciclo=${ciclo}`
+    router.replace(`/login?redirect=${encodeURIComponent(back)}`)
+  }
+
   // Valor exibido conforme o ciclo. Anual = 12x o mensal (pagamento único PIX).
   const [descontoPercent, setDescontoPercent] = useState(0)
 
@@ -42,10 +48,22 @@ function CheckoutContent() {
   const [cardDone, setCardDone] = useState(false)
   const [loading, setLoading] = useState(false)
   const [user, setUser] = useState<any>(null)
+  const [authChecked, setAuthChecked] = useState(false)
   const [copied, setCopied] = useState(false)
 
+  // ── GATE DE LOGIN: exige conta antes de qualquer pagamento ──
+  // Sem isso, alguém que cai direto em /checkout?plan=... paga sem userId,
+  // o webhook não acha o dono e a assinatura fica órfã.
   useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user } }) => setUser(user))
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (!user) {
+        irParaLogin()
+        return
+      }
+      setUser(user)
+      setAuthChecked(true)
+    })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   // Lê o desconto anual do banco (só para EXIBIÇÃO). O valor real é recalculado
@@ -113,6 +131,8 @@ function CheckoutContent() {
   }
 
   const createPixPayment = async () => {
+    // Rede de segurança: nunca dispara pagamento sem usuário identificado.
+    if (!user?.id) { irParaLogin(); return }
     setLoading(true)
     try {
       const res = await fetch('/api/payment/create', {
@@ -141,6 +161,8 @@ function CheckoutContent() {
   }
 
   const handleCard = async () => {
+    // Rede de segurança: nunca dispara pagamento sem usuário identificado.
+    if (!user?.id) { irParaLogin(); return }
     setCardLoading(true)
     try {
       const res = await fetch('/api/payment/create', {
@@ -159,6 +181,17 @@ function CheckoutContent() {
   if (!plan) return (
     <div style={{minHeight:'100vh',background:'var(--deep-black)',display:'flex',alignItems:'center',justifyContent:'center',color:'var(--white)'}}>
       Plano inválido
+    </div>
+  )
+
+  // Enquanto verifica a sessão, não pisca a tela de pagamento.
+  // (Se não estiver logado, irParaLogin() já redirecionou.)
+  if (!authChecked) return (
+    <div style={{minHeight:'100vh',background:'var(--deep-black)',display:'flex',alignItems:'center',justifyContent:'center'}}>
+      <div style={{textAlign:'center'}}>
+        <div style={{fontSize:48,marginBottom:16}}>🐯</div>
+        <div style={{fontFamily:'var(--font-display)',fontSize:20,fontWeight:900,color:'var(--gold)'}}>Carregando...</div>
+      </div>
     </div>
   )
 
