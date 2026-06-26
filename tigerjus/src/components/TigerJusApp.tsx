@@ -51,6 +51,28 @@ const DISCIPLINES = [
   {id:17,icon:'👶',name:'ECA',slug:'eca',progress:32,q:44,tags:['Quiz','Resumo','Flash','PDF']},
 ]
 
+// Mapa EXATO: nome da disciplina no app -> nome(s) exato(s) no banco (questoes_oab.disciplina).
+// Evita o filtro por "primeira palavra" que misturava Penal/Processo Penal, Civil/Processo Civil etc.
+const PDF_DISC_MAP: Record<string,string[]> = {
+  'Constitucional':['Direito Constitucional'],
+  'Administrativo':['Direito Administrativo'],
+  'Penal':['Direito Penal'],
+  'Processo Penal':['Direito Processual Penal'],
+  'Civil':['Direito Civil'],
+  'Processo Civil':['Direito Processual Civil'],
+  'Trabalho':['Direito do Trabalho'],
+  'Proc. Trabalho':['Direito Processual do Trabalho'],
+  'Tributário':['Direito Tributário'],
+  'Empresarial':['Direito Empresarial'],
+  'Ética OAB':['Ética e Estatuto da OAB'],
+  'Consumidor':['Direito do Consumidor'],
+  'Direitos Humanos':['Direitos Humanos'],
+  'Ambiental':['Direito Ambiental'],
+  'Filosofia':['Filosofia do Direito','Filosofia e Hermenêutica do Direito','Hermenêutica Jurídica'],
+  'Internacional':['Direito Internacional','Direito Internacional Privado','Direito Internacional Público','Direito Internacional Público e Privado'],
+  'ECA':['Direito da Criança e do Adolescente'],
+}
+
 const DISC_MAP: Record<string, string> = {
   'Constitucional':'Constitucional','Administrativo':'Administrativo','Penal':'Penal',
   'Processo Penal':'Processo Penal','Civil':'Civil','Processo Civil':'Processo Civil',
@@ -1020,7 +1042,8 @@ function DisciplinesPage({ showUpgrade, profile, isPago, canAccessPremium, podeP
     setGerandoPDF(true)
     try{
       const resumo=RESUMOS[disc.slug]||`${disc.name} — Resumo em elaboração.`
-      const{data}=await supabase.rpc('buscar_questoes_disciplina_pdf',{disc:disc.name.split(' ')[0],lim:20})
+      const discs=PDF_DISC_MAP[disc.name]||[disc.name]
+      const{data}=await supabase.rpc('buscar_questoes_disciplina_pdf',{discs})
       await gerarPDF(disc,resumo,data||[])
     }finally{setGerandoPDF(false)}
   }
@@ -2514,6 +2537,7 @@ export default function TigerJusApp() {
   const { settings } = useAppSettings()
   const [profile,setProfile]=useState<Profile|null>(null)
   const [page,setPage]=useState('dashboard')
+  const [navHist,setNavHist]=useState<string[]>([])
   const [showPremiumGate,setShowPremiumGate]=useState(false)
   const [showUpgradeModal,setShowUpgradeModal]=useState(false)
   const [showRadar,setShowRadar]=useState(false)
@@ -2600,7 +2624,17 @@ export default function TigerJusApp() {
   const handleLogout=async()=>{await supabase.auth.signOut();router.push('/')}
   const handleUpgradeSelect=(planId:string,ciclo:'mensal'|'anual'='mensal')=>{setShowUpgradeModal(false);router.push(`/checkout?plan=${planId}&ciclo=${ciclo}`)}
   const showUpgrade=()=>{setShowPremiumGate(false);setShowUpgradeModal(true)}
-  const navTo=(key:string)=>{setPage(key);setMenuOpen(false)}
+  const navTo=(key:string)=>{ setNavHist(h=> key===page ? h : [...h,page].slice(-50)); setPage(key); setMenuOpen(false) }
+  const goBack=()=>{
+    if(navHist.length>0){
+      const prev=navHist[navHist.length-1]
+      setNavHist(navHist.slice(0,-1))
+      setPage(prev)
+    }else{
+      setPage('dashboard')
+    }
+    setMenuOpen(false)
+  }
 
   if(loading) return(
     <div style={{minHeight:'100vh',background:'var(--deep-black)',display:'flex',alignItems:'center',justifyContent:'center'}}>
@@ -2651,6 +2685,15 @@ export default function TigerJusApp() {
       )}
       <nav style={{position:'fixed',top:0,left:0,right:0,zIndex:100,display:'flex',alignItems:'center',justifyContent:'space-between',padding:'0 16px',height:60,background:'rgba(8,8,8,0.95)',backdropFilter:'blur(12px)',borderBottom:'1px solid rgba(255,255,255,0.06)'}}>
         <div style={{display:'flex',alignItems:'center',gap:8}}>
+          {page!=='dashboard'&&(
+            <button onClick={goBack} title="Voltar" aria-label="Voltar"
+              style={{display:'flex',alignItems:'center',gap:6,background:'linear-gradient(135deg,var(--gold),var(--orange))',color:'var(--deep-black)',border:'none',borderRadius:10,padding:'8px 13px',cursor:'pointer',fontFamily:'var(--font-body)',fontWeight:800,fontSize:13,flexShrink:0,boxShadow:'0 2px 12px rgba(212,168,67,0.35)',transition:'transform 0.15s,box-shadow 0.15s'}}
+              onMouseEnter={e=>{e.currentTarget.style.transform='translateY(-1px)';e.currentTarget.style.boxShadow='0 4px 16px rgba(212,168,67,0.5)'}}
+              onMouseLeave={e=>{e.currentTarget.style.transform='none';e.currentTarget.style.boxShadow='0 2px 12px rgba(212,168,67,0.35)'}}>
+              <span style={{fontSize:17,lineHeight:1,fontWeight:900}}>←</span>
+              <span className="nav-desktop" style={{whiteSpace:'nowrap'}}>Voltar</span>
+            </button>
+          )}
           {settings.logo_url
             ? <img src={settings.logo_url} alt={settings.site_name||'TigerJus'} style={{width:34,height:34,borderRadius:8,objectFit:'contain',flexShrink:0}}/>
             : <div style={{width:34,height:34,background:'linear-gradient(135deg,var(--gold),var(--orange))',borderRadius:8,display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'var(--font-display)',fontSize:16,fontWeight:900,color:'var(--deep-black)',flexShrink:0}}>T</div>}
