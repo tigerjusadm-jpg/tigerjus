@@ -49,6 +49,9 @@ const DISCIPLINES = [
   {id:15,icon:'📖',name:'Filosofia',slug:'filosofia',progress:15,q:30,tags:['Quiz','Resumo','Flash','PDF']},
   {id:16,icon:'🌐',name:'Internacional',slug:'internacional',progress:22,q:38,tags:['Quiz','Resumo','Flash','PDF']},
   {id:17,icon:'👶',name:'ECA',slug:'eca',progress:32,q:44,tags:['Quiz','Resumo','Flash','PDF']},
+  {id:18,icon:'🗳️',name:'Eleitoral',slug:'eleitoral',progress:0,q:8,tags:['Quiz','Resumo','Flash','PDF']},
+  {id:19,icon:'🏦',name:'Financeiro',slug:'financeiro',progress:0,q:8,tags:['Quiz','Resumo','Flash','PDF']},
+  {id:20,icon:'🛡️',name:'Previdenciário',slug:'previdenciario',progress:0,q:10,tags:['Quiz','Resumo','Flash','PDF']},
 ]
 
 // Mapa EXATO: nome da disciplina no app -> nome(s) exato(s) no banco (questoes_oab.disciplina).
@@ -71,6 +74,9 @@ const PDF_DISC_MAP: Record<string,string[]> = {
   'Filosofia':['Filosofia do Direito','Filosofia e Hermenêutica do Direito','Hermenêutica Jurídica'],
   'Internacional':['Direito Internacional','Direito Internacional Privado','Direito Internacional Público','Direito Internacional Público e Privado'],
   'ECA':['Direito da Criança e do Adolescente'],
+  'Eleitoral':['Direito Eleitoral'],
+  'Financeiro':['Direito Financeiro'],
+  'Previdenciário':['Direito Previdenciário'],
 }
 
 const DISC_MAP: Record<string, string> = {
@@ -80,6 +86,7 @@ const DISC_MAP: Record<string, string> = {
   'Empresarial':'Empresarial','Ética':'Ética OAB','Consumidor':'Consumidor',
   'Direitos Humanos':'Direitos Humanos','Ambiental':'Ambiental','Filosofia':'Filosofia',
   'Internacional':'Internacional','ECA':'ECA',
+  'Eleitoral':'Eleitoral','Financeiro':'Financeiro','Previdenciário':'Previdenciário',
 }
 
 // Ranking carregado do Supabase em RankingPage
@@ -1130,6 +1137,9 @@ const DISCIPLINA_ALIASES: Record<string, string[]> = {
   'Filosofia':['Filosofia do Direito','Filosofia','Sociologia Jurídica'],
   'Internacional':['Direito Internacional','Direito Internacional Público','Direito Internacional Privado','Internacional'],
   'ECA':['Direito da Criança e do Adolescente','ECA','Estatuto da Criança e do Adolescente','Direito da Criança'],
+  'Eleitoral':['Direito Eleitoral','Eleitoral'],
+  'Financeiro':['Direito Financeiro','Financeiro'],
+  'Previdenciário':['Direito Previdenciário','Previdenciário','Previdenciario'],
 }
 function getDisciplinaAliases(disciplina:string):string[]{return DISCIPLINA_ALIASES[disciplina]??[disciplina]}
 
@@ -1579,6 +1589,7 @@ const MAPA_DISCIPLINAS: Record<string,{name:string,icon:string}> = {
   'etica':{name:'Ética OAB',icon:'📜'},'consumidor':{name:'Consumidor',icon:'🛒'},
   'direitos-humanos':{name:'Direitos Humanos',icon:'🌍'},'ambiental':{name:'Ambiental',icon:'🌿'},
   'filosofia':{name:'Filosofia',icon:'📖'},'internacional':{name:'Internacional',icon:'🌐'},'eca':{name:'ECA',icon:'👶'},
+  'eleitoral':{name:'Eleitoral',icon:'🗳️'},'financeiro':{name:'Financeiro',icon:'🏦'},'previdenciario':{name:'Previdenciário',icon:'🛡️'},
 }
 
 function MapasMentaisPage({ canAccessPremium, showUpgrade }: any){
