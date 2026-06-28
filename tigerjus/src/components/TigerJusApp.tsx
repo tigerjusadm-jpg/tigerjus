@@ -1100,7 +1100,7 @@ function DisciplinesPage({ showUpgrade, profile, isPago, canAccessPremium, podeP
   return(
     <div style={{padding:'24px 20px',flex:1}}>
       <h1 style={{fontFamily:'var(--font-display)',fontSize:'clamp(22px,5vw,32px)',fontWeight:900,marginBottom:6}}>Disciplinas 📚</h1>
-      <p style={{fontSize:14,color:'var(--text-muted)',marginBottom:24}}>17 disciplinas com resumos, quizzes, flashcards e PDFs.</p>
+      <p style={{fontSize:14,color:'var(--text-muted)',marginBottom:24}}>20 disciplinas com resumos, quizzes, flashcards e PDFs.</p>
       <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(160px,1fr))',gap:12}}>
         {DISCIPLINES.map(d=>(
           <div key={d.id} style={{background:'var(--gray)',border:'1px solid rgba(255,255,255,0.05)',borderRadius:14,padding:16,cursor:'pointer',transition:'all 0.2s'}}
@@ -1562,6 +1562,42 @@ function PlanoBadgeSmall({plano}:{plano:string}){
       whiteSpace:'nowrap'}}>
       {c.label}
     </span>
+  )
+}
+
+function ResumosPage({ profile, showUpgrade, onNav }: any){
+  const [selected,setSelected]=useState<any>(null)
+  const resumoTier=getResumoTier(profile?.plano,profile?.role)
+  if(selected) return(
+    <div style={{padding:'24px 20px',flex:1}}>
+      <button onClick={()=>setSelected(null)} style={{display:'flex',alignItems:'center',gap:8,color:'var(--text-muted)',fontSize:13,border:'none',background:'none',cursor:'pointer',marginBottom:20,fontFamily:'var(--font-body)'}}>← Voltar aos resumos</button>
+      <div style={{display:'flex',alignItems:'center',gap:14,marginBottom:20}}>
+        <span style={{fontSize:36}}>{selected.icon}</span>
+        <div>
+          <h1 style={{fontFamily:'var(--font-display)',fontSize:'clamp(20px,5vw,28px)',fontWeight:900}}>{selected.name}</h1>
+          <p style={{fontSize:12,color:'var(--text-muted)'}}>Resumo baseado nas provas reais da OAB</p>
+        </div>
+      </div>
+      <ResumoSection disc={selected} onNav={onNav} resumoTier={resumoTier} showUpgrade={showUpgrade}/>
+    </div>
+  )
+  return(
+    <div style={{padding:'24px 20px',flex:1}}>
+      <h1 style={{fontFamily:'var(--font-display)',fontSize:'clamp(22px,5vw,32px)',fontWeight:900,marginBottom:6}}>Resumos 📒</h1>
+      <p style={{fontSize:14,color:'var(--text-muted)',marginBottom:24}}>Resumos inteligentes de cada disciplina, baseados nas questões reais dos exames 42º ao 46º da OAB.</p>
+      <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(160px,1fr))',gap:12}}>
+        {DISCIPLINES.map(d=>(
+          <div key={d.id} style={{background:'var(--gray)',border:'1px solid rgba(255,255,255,0.05)',borderRadius:14,padding:16,cursor:'pointer',transition:'all 0.2s'}}
+            onClick={()=>setSelected(d)}
+            onMouseEnter={e=>{e.currentTarget.style.borderColor='rgba(212,168,67,0.2)';e.currentTarget.style.transform='translateY(-2px)'}}
+            onMouseLeave={e=>{e.currentTarget.style.borderColor='rgba(255,255,255,0.05)';e.currentTarget.style.transform='translateY(0)'}}>
+            <div style={{fontSize:22,marginBottom:10}}>{d.icon}</div>
+            <div style={{fontSize:13,fontWeight:700,marginBottom:5}}>{d.name}</div>
+            <div style={{fontSize:11,color:'var(--text-muted)'}}>📖 Ver resumo</div>
+          </div>
+        ))}
+      </div>
+    </div>
   )
 }
 
@@ -2645,8 +2681,8 @@ export default function TigerJusApp() {
       {icon:'📋',label:'Simulados',key:'simulados'},
       {icon:'🃏',label:'Flashcards',key:'flashcards'},
       {icon:'📚',label:'Disciplinas',key:'disciplines'},
+      {icon:'📒',label:'Resumos',key:'resumos'},
       {icon:'📖',label:'Índice',key:'indice'},
-      {icon:'🗺️',label:'Mapas',key:'mapas'},
       {icon:'🧭',label:'Trilhas',key:'trilhas'},
     ]},
     {title:'INTELIGÊNCIA',items:[{icon:'🤖',label:'Tutor IA',key:'ia'}]},
@@ -2781,7 +2817,7 @@ export default function TigerJusApp() {
         {page==='ia'&&<IAPage freeIA={freeIA} setFreeIA={setFreeIA} showUpgrade={showUpgrade} profile={profile} isPago={userIsPago} iaIlimitada={iaIlimitada}/>}
         {page==='ranking'&&<RankingPage profile={profile} onNav={navTo}/>}
         {page==='indice'&&<IndiceJuridico showUpgrade={showUpgrade} isPago={canAccessPremium}/>}
-        {page==='mapas'&&<MapasMentaisPage canAccessPremium={canAccessPremium} showUpgrade={showUpgrade}/>}
+        {page==='resumos'&&<ResumosPage profile={profile} showUpgrade={showUpgrade} onNav={navTo}/>}
         {page==='trilhas'&&<TrilhasPage canAccessPremium={canAccessPremium} showUpgrade={showUpgrade} onNav={navTo}/>}
         {page==='referral'&&<ReferralPage profile={profile} showUpgrade={showUpgrade} isPago={userIsPago}/>}
       </div>
