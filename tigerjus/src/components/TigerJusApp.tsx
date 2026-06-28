@@ -684,7 +684,7 @@ function QuizPage({ freeQ, setFreeQ, showUpgrade, onXp, profile, isPago }: any) 
   const startQuiz=async()=>{
     setLoadingQ(true)
     let query=supabase.from('questoes_publicas').select('id,disciplina,enunciado,opcao_a,opcao_b,opcao_c,opcao_d')
-    if(disciplina)query=query.ilike('disciplina',`%${disciplina}%`)
+    if(disciplina){const card=DISC_MAP[disciplina]||disciplina;query=query.in('disciplina',PDF_DISC_MAP[card]||[card])}
     const{data,error}=await query
     if(error||!data||data.length===0){setLoadingQ(false);alert('Nenhuma questão encontrada.');return}
     const shuffled=[...data].sort(()=>Math.random()-0.5).slice(0,MODO_QTD[modo])
@@ -1207,17 +1207,9 @@ function QuizDisciplina({disciplina}:{disciplina:string}){
     fetchingRef.current=true;setLoading(true)
     const carregar=async()=>{
       try{
-        const aliases=getDisciplinaAliases(disciplina);let data:any[]=[];let error:any=null
-        for(const alias of aliases){
-          const res=await supabase.from('questoes_publicas').select('id,disciplina,enunciado,opcao_a,opcao_b,opcao_c,opcao_d').eq('disciplina',alias)
-          if(!res.error&&res.data&&res.data.length>0){data=res.data;error=null;break}
-          error=res.error
-        }
-        if(!error&&data.length===0){
-          const token=aliases[0].split(' ')[0]
-          const fb=await supabase.from('questoes_publicas').select('id,disciplina,enunciado,opcao_a,opcao_b,opcao_c,opcao_d').ilike('disciplina',`%${token}%`)
-          data=fb.data||[];error=fb.error
-        }
+        const discs=PDF_DISC_MAP[disciplina]||[disciplina]
+        const res=await supabase.from('questoes_publicas').select('id,disciplina,enunciado,opcao_a,opcao_b,opcao_c,opcao_d').in('disciplina',discs)
+        let data:any[]=res.data||[];let error:any=res.error
         if(error){setErro(true);return}
         const shuffled=[...data].sort(()=>Math.random()-0.5).slice(0,20)
         const formatted=shuffled.map((q:any)=>({id:q.id,disc:q.disciplina,q:q.enunciado,opts:[q.opcao_a,q.opcao_b,q.opcao_c,q.opcao_d],correct:null,exp:''}))
@@ -1326,16 +1318,9 @@ function FlashCards({disciplina}:{disciplina:string}){
     fetchingRef.current=true;setLoading(true)
     const carregar=async()=>{
       try{
-        const aliases=getDisciplinaAliases(disciplina);let data:any[]=[];let error:any=null
-        for(const alias of aliases){
-          const res=await supabase.from('flashcards').select('id,frente,verso').eq('disciplina',alias).eq('ativo',true).order('created_at',{ascending:true}).limit(50)
-          if(!res.error&&res.data&&res.data.length>0){data=res.data;error=null;break}
-          error=res.error
-        }
-        if(!error&&data.length===0){
-          const fb=await supabase.from('flashcards').select('id,frente,verso').ilike('disciplina',`%${getDisciplinaAliases(disciplina)[0].split(' ')[0]}%`).eq('ativo',true).limit(50)
-          data=fb.data||[];error=fb.error
-        }
+        const discs=PDF_DISC_MAP[disciplina]||[disciplina]
+        const res=await supabase.from('flashcards').select('id,frente,verso').in('disciplina',discs).eq('ativo',true).order('created_at',{ascending:true}).limit(50)
+        let data:any[]=res.data||[];let error:any=res.error
         if(error){setErro(true);return}
         const resultado=data.map((c:any)=>({id:c.id,frente:c.frente,verso:c.verso}))
         cacheRef.current.set(disciplina,resultado);setCards(resultado)
@@ -1423,11 +1408,11 @@ function SimuladosPage({ showUpgrade, freeQ, setFreeQ, onXp, profile, isPago, ca
   const iniciarSimuladoPratica=async(s:any)=>{
     if(!podeLiberarPratica(s)){showUpgrade();return}
     setLoadingProva(true)
-    const discMap:Record<string,string>={'Simulado Intensivo — Penal':'Penal','Ética e Estatuto OAB':'Ética'}
+    const discMap:Record<string,string>={'Simulado Intensivo — Penal':'Penal','Ética e Estatuto OAB':'Ética OAB'}
     const qtdMap:Record<string,number>={'Mini Simulado Rápido':10,'Simulado Intensivo — Penal':30,'Ética e Estatuto OAB':20,'Simulado Geral':60}
     const disc=discMap[s.t];const qtd=qtdMap[s.t]||20
     let query=supabase.from('questoes_publicas').select('id,disciplina,enunciado,opcao_a,opcao_b,opcao_c,opcao_d')
-    if(disc)query=query.ilike('disciplina',`%${disc}%`)
+    if(disc)query=query.in('disciplina',PDF_DISC_MAP[disc]||[disc])
     const{data}=await query
     if(!data||data.length===0){setLoadingProva(false);alert('Ainda não há questões suficientes para este simulado. Experimente o Mini Simulado Rápido!');return}
     const shuffled=[...data].sort(()=>Math.random()-0.5).slice(0,qtd)
