@@ -40,6 +40,9 @@ const DISCIPLINES = [
   { slug: 'filosofia',       name: 'Filosofia',         icon: '📖'  },
   { slug: 'internacional',   name: 'Internacional',     icon: '🌐'  },
   { slug: 'eca',             name: 'ECA',               icon: '👶'  },
+  { slug: 'eleitoral',       name: 'Eleitoral',         icon: '🗳️'  },
+  { slug: 'financeiro',      name: 'Financeiro',        icon: '🏦'  },
+  { slug: 'previdenciario',  name: 'Previdenciário',    icon: '🛡️'  },
 ]
 
 const TIPO_LABEL: Record<string, string> = {
