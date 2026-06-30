@@ -92,8 +92,15 @@ function PlanoDrawer({ user, adminId, onClose, onSaved }:{
     if (!confirm) { setConfirm(true); return }
     setSaving(true); setMsg('')
     const planoAnterior = user.plano
-    const { error } = await supabase.from('profiles').update({ plano: novoPlano }).eq('id', user.id)
-    if (error) { setMsg('❌ Erro: ' + error.message); setSaving(false); return }
+    // SEGURANÇA: mudança de plano vai pelo servidor (valida admin no banco), nunca direto pelo cliente.
+    const { data: { session } } = await supabase.auth.getSession()
+    const resp = await fetch('/api/admin/update-user', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session?.access_token || ''}` },
+      body: JSON.stringify({ action: 'update', targetId: user.id, plano: novoPlano, role: (user as any).role }),
+    })
+    const out = await resp.json().catch(() => ({} as any))
+    if (!resp.ok) { setMsg('❌ Erro: ' + (out?.error || 'falha ao alterar plano')); setSaving(false); return }
     await supabase.from('admin_audit_logs').insert({
       user_id: adminId, action_type: 'UPDATE', target_type: 'user_plan',
       target_id: user.id,
