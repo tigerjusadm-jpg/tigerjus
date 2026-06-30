@@ -93,6 +93,8 @@ const DISC_MAP: Record<string, string> = {
 // Reverse-mapeia o valor de questoes_publicas.disciplina -> nome do card via PDF_DISC_MAP.
 let _discCountsCache: Record<string, number> | null = null
 let _discCountsPromise: Promise<Record<string, number>> | null = null
+// Alvo de navegação vindo do Radar: disciplina escolhida pra estudar.
+let _radarTarget: any = null
 async function _loadDiscCounts(): Promise<Record<string, number>> {
   if (_discCountsCache) return _discCountsCache
   const rev: Record<string, string> = {}
@@ -125,16 +127,31 @@ const RESUMOS: Record<string, string> = {
   civil:`DIREITO CIVIL — RESUMO ESSENCIAL\n\nCAPACIDADE\n- Plena: maiores de 18 anos não incapazes\n- Absolutamente incapaz: menores de 16 anos (art. 3º CC)\n- Relativamente incapaz: 16-18 anos, ébrios habituais, pródigos\n\nRESPONSABILIDADE CIVIL\n- Subjetiva: necessita de culpa\n- Objetiva: independe de culpa (risco da atividade)`,
 }
 
-const RADAR_TEMAS = [
-  { disc:'Direito Constitucional', tema:'Direitos Fundamentais — Art. 5º', prob:94, tipo:'Lei seca', dica:'Foco em HC, MS, HD e MI. Caem todo exame.' },
-  { disc:'Direito Penal', tema:'Teoria do Crime — Dolo e Culpa', prob:91, tipo:'Jurisprudência', dica:'STJ e STF consolidaram entendimento sobre dolo eventual.' },
-  { disc:'Ética OAB', tema:'Sigilo Profissional e Incompatibilidades', prob:89, tipo:'Estatuto', dica:'Art. 34 do Estatuto. Questão garantida em todo exame.' },
-  { disc:'Processo Civil', tema:'Prazos e Recursos — CPC/2015', prob:86, tipo:'Lei seca', dica:'Prazo de 15 dias úteis para a maioria dos recursos.' },
-  { disc:'Direito Civil', tema:'Responsabilidade Civil Objetiva', prob:82, tipo:'Doutrina', dica:'CDC + CC/2002. Risco da atividade muito cobrado.' },
-  { disc:'Direito do Trabalho', tema:'Rescisão Contratual e FGTS', prob:79, tipo:'CLT', dica:'Multa de 40% sobre FGTS nas demissões sem justa causa.' },
-]
+function RadarModal({ onClose, onEstudar, podePDF }: { onClose: () => void; onEstudar: (d:any)=>void; podePDF?: boolean }) {
+  const discCounts = useDisciplineCounts()
+  const [gerando,setGerando] = useState<string|null>(null)
 
-function RadarModal({ onClose }: { onClose: () => void }) {
+  // DOMINÂNCIA REAL: calculada das provas cadastradas (mesma fonte das contagens).
+  const ranked = DISCIPLINES
+    .map(d => ({ d, n: discCounts[d.name] || 0 }))
+    .filter(x => x.n > 0)
+    .sort((a,b) => b.n - a.n)
+  const total = ranked.reduce((s,x) => s + x.n, 0) || 1
+  const itens = ranked.map(x => ({ ...x, pct: Math.round(1000 * x.n / total) / 10 }))
+
+  const baixarPDF = async (d:any) => {
+    if (gerando) return
+    setGerando(d.name)
+    try {
+      const discs = PDF_DISC_MAP[d.name] || [d.name]
+      const { data } = await supabase.rpc('buscar_questoes_disciplina_pdf', { discs })
+      await gerarPDF(d, RESUMOS[d.slug] || '', data || [])
+    } finally { setGerando(null) }
+  }
+
+  const cor = (p:number) => p >= 8 ? 'var(--success)' : p >= 5 ? 'var(--gold)' : 'var(--orange)'
+  const banda = (p:number) => p >= 8 ? 'Dominância altíssima' : p >= 5 ? 'Dominância alta' : p >= 2.5 ? 'Dominância média' : 'Incidência menor'
+
   return (
     <div style={{position:'fixed',inset:0,zIndex:400,background:'rgba(0,0,0,0.95)',backdropFilter:'blur(10px)',display:'flex',alignItems:'center',justifyContent:'center',padding:20,overflowY:'auto'}}>
       <div style={{width:'100%',maxWidth:700,background:'var(--gray)',border:'1px solid rgba(212,168,67,0.25)',borderRadius:24,padding:'32px 28px',position:'relative',maxHeight:'90vh',overflowY:'auto'}}>
@@ -143,35 +160,41 @@ function RadarModal({ onClose }: { onClose: () => void }) {
           <span style={{fontSize:28}}>🎯</span>
           <div>
             <h2 style={{fontFamily:'var(--font-display)',fontSize:24,fontWeight:900,marginBottom:2}}>Radar TigerJus</h2>
-            <p style={{fontSize:12,color:'var(--text-muted)'}}>Temas com maior probabilidade de cair no 47º Exame OAB</p>
+            <p style={{fontSize:12,color:'var(--text-muted)'}}>Matérias com maior dominância na próxima prova</p>
           </div>
         </div>
         <div style={{background:'rgba(212,168,67,0.06)',border:'1px solid rgba(212,168,67,0.15)',borderRadius:12,padding:'10px 14px',marginBottom:24,fontSize:12,color:'var(--text-muted)'}}>
-          📡 Baseado na análise dos últimos 5 exames (42º ao 46º) + jurisprudência recente STF/STJ
+          📡 Dominância real calculada sobre {total} questões das provas reais cadastradas. Quanto maior o peso histórico, maior a chance de pontuar.
         </div>
+        {itens.length === 0 ? (
+          <div style={{textAlign:'center',color:'var(--text-muted)',fontSize:13,padding:'30px 0'}}>Calculando dominância…</div>
+        ) : (
         <div style={{display:'flex',flexDirection:'column',gap:12}}>
-          {RADAR_TEMAS.map((t,i) => (
-            <div key={i} style={{background:'rgba(255,255,255,0.03)',border:'1px solid rgba(255,255,255,0.07)',borderRadius:14,padding:'16px 18px'}}>
+          {itens.map((t,i) => (
+            <div key={t.d.id} style={{background:'rgba(255,255,255,0.03)',border:'1px solid rgba(255,255,255,0.07)',borderRadius:14,padding:'16px 18px'}}>
               <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:8,flexWrap:'wrap',gap:8}}>
-                <div style={{flex:1}}>
-                  <div style={{fontSize:10,fontWeight:700,letterSpacing:1.5,textTransform:'uppercase',color:'var(--text-muted)',marginBottom:4}}>{t.disc}</div>
-                  <div style={{fontSize:14,fontWeight:700,color:'var(--white)'}}>{t.tema}</div>
+                <div style={{flex:1,minWidth:180}}>
+                  <div style={{fontSize:10,fontWeight:700,letterSpacing:1.5,textTransform:'uppercase',color:'var(--text-muted)',marginBottom:4}}>#{i+1} · {banda(t.pct)}</div>
+                  <div style={{fontSize:15,fontWeight:700,color:'var(--white)'}}>{t.d.icon} {t.d.name}</div>
                 </div>
                 <div style={{textAlign:'right',flexShrink:0}}>
-                  <div style={{fontFamily:'var(--font-display)',fontSize:22,fontWeight:900,color:t.prob>=90?'var(--success)':t.prob>=80?'var(--gold)':'var(--orange)'}}>{t.prob}%</div>
-                  <div style={{fontSize:10,color:'var(--text-muted)'}}>probabilidade</div>
+                  <div style={{fontFamily:'var(--font-display)',fontSize:22,fontWeight:900,color:cor(t.pct)}}>{t.pct}%</div>
+                  <div style={{fontSize:10,color:'var(--text-muted)'}}>{t.n} questões</div>
                 </div>
               </div>
-              <div style={{background:'rgba(255,255,255,0.06)',borderRadius:100,height:5,overflow:'hidden',marginBottom:8}}>
-                <div style={{width:`${t.prob}%`,height:'100%',background:`linear-gradient(90deg,${t.prob>=90?'var(--success)':t.prob>=80?'var(--gold)':'var(--orange)'},var(--orange))`,borderRadius:100,transition:'width 1s ease'}}/>
+              <div style={{background:'rgba(255,255,255,0.06)',borderRadius:100,height:5,overflow:'hidden',marginBottom:12}}>
+                <div style={{width:`${Math.min(t.pct*9,100)}%`,height:'100%',background:`linear-gradient(90deg,${cor(t.pct)},var(--orange))`,borderRadius:100,transition:'width 1s ease'}}/>
               </div>
-              <div style={{display:'flex',alignItems:'center',gap:8,flexWrap:'wrap'}}>
-                <span style={{fontSize:10,padding:'2px 8px',background:'rgba(58,143,232,0.1)',border:'1px solid rgba(58,143,232,0.2)',borderRadius:100,color:'#3a8fe8',fontWeight:600}}>{t.tipo}</span>
-                <span style={{fontSize:12,color:'var(--text-muted)'}}>💡 {t.dica}</span>
+              <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
+                <button onClick={()=>onEstudar(t.d)} style={{flex:1,minWidth:130,padding:'9px 14px',borderRadius:10,border:'none',background:'var(--gold)',color:'#1a1a1a',fontSize:12,fontWeight:700,cursor:'pointer',fontFamily:'var(--font-body)'}}>📚 Estudar questões</button>
+                {podePDF && (
+                  <button onClick={()=>baixarPDF(t.d)} disabled={gerando===t.d.name} style={{flex:1,minWidth:130,padding:'9px 14px',borderRadius:10,border:'1px solid rgba(212,168,67,0.4)',background:'transparent',color:'var(--gold)',fontSize:12,fontWeight:700,cursor:gerando===t.d.name?'wait':'pointer',fontFamily:'var(--font-body)',opacity:(gerando&&gerando!==t.d.name)?0.5:1}}>{gerando===t.d.name?'⏳ Gerando…':'📄 Baixar PDF'}</button>
+                )}
               </div>
             </div>
           ))}
         </div>
+        )}
       </div>
     </div>
   )
@@ -849,7 +872,8 @@ function IAPage({ freeIA, setFreeIA, showUpgrade, profile, isPago, iaIlimitada }
     const newMsgs=[...msgs,{role:'user',text:msg}]
     setMsgs(newMsgs);setLoading(true)
     try{
-      const res=await fetch('/api/ia',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({messages:newMsgs.slice(1).map(m=>({role:m.role,content:m.text})),userId:profile?.id,plan:profile?.plano||'gratuito'})})
+      const{data:{session}}=await supabase.auth.getSession()
+      const res=await fetch('/api/ia',{method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${session?.access_token||''}`},body:JSON.stringify({messages:newMsgs.slice(1).map(m=>({role:m.role,content:m.text}))})})
       const data=await res.json()
       if(data.error==='LIMIT_REACHED'){showUpgrade();return}
       setMsgs(p=>[...p,{role:'assistant',text:data.text||'Erro ao conectar.'}])
@@ -1070,6 +1094,8 @@ function DisciplinesPage({ showUpgrade, profile, isPago, canAccessPremium, podeP
   const [selected,setSelected]=useState<any>(null)
   const [subTab,setSubTab]=useState<'resumo'|'quiz'|'flash'|'pdf'|'leiseca'>('resumo')
   const [gerandoPDF,setGerandoPDF]=useState(false)
+  // Se veio do Radar com uma disciplina alvo, abre direto nas questões dela.
+  useEffect(()=>{ if(_radarTarget){ const alvo=_radarTarget; _radarTarget=null; setSelected(alvo); setSubTab('quiz') } },[])
   const resumoTier=getResumoTier(profile?.plano,profile?.role)
   const canMemorizacao=resumoTier==='memorizacao'
 
@@ -2741,7 +2767,7 @@ export default function TigerJusApp() {
       {notif&&<Notification msg={notif} onClose={()=>setNotif(null)}/>}
       {showPremiumGate&&<PremiumGate onClose={()=>setShowPremiumGate(false)} onUpgrade={showUpgrade}/>}
       {showUpgradeModal&&<UpgradeModal onClose={()=>setShowUpgradeModal(false)} onSelect={handleUpgradeSelect} planoAtual={profile?.plano} ehAdmin={isAdmin(profile?.role)}/>}
-      {showRadar&&<RadarModal onClose={()=>setShowRadar(false)}/>}
+      {showRadar&&<RadarModal onClose={()=>setShowRadar(false)} podePDF={podePDF} onEstudar={(d)=>{_radarTarget=d;setShowRadar(false);setPage('disciplines')}}/>}
       {settings.whatsapp_url&&!settings.maintenance_mode&&(
         <a href={settings.whatsapp_url} target="_blank" rel="noopener noreferrer" title="Falar com suporte" style={{position:'fixed',bottom:24,right:24,zIndex:150,width:52,height:52,borderRadius:'50%',background:'#25D366',display:'flex',alignItems:'center',justifyContent:'center',boxShadow:'0 4px 20px rgba(37,211,102,0.4)',textDecoration:'none',fontSize:24,transition:'transform 0.2s'}} onMouseEnter={e=>(e.currentTarget.style.transform='scale(1.1)')} onMouseLeave={e=>(e.currentTarget.style.transform='scale(1)')}>💬</a>
       )}
