@@ -9,6 +9,7 @@ interface DisciplineSummary {
   disciplina_slug: string
   resumo: string
   resumo_curto: string
+  resumo_memorizacao: string
   tipo: 'manual' | 'automatico' | 'ia'
   tags: string[]
   nivel_dificuldade: 'iniciante' | 'medio' | 'avancado'
@@ -56,7 +57,7 @@ const NIVEL_LABEL: Record<string, string> = {
 }
 
 const EMPTY: Omit<DisciplineSummary, 'disciplina_slug'> = {
-  resumo: '', resumo_curto: '', tipo: 'manual',
+  resumo: '', resumo_curto: '', resumo_memorizacao: '', tipo: 'manual',
   tags: [], nivel_dificuldade: 'medio', versao: 1, ativo: true,
 }
 
@@ -159,6 +160,7 @@ export default function ModuloResumos({ adminId }: { adminId?: string }) {
       setForm({
         resumo: existing.resumo,
         resumo_curto: existing.resumo_curto || '',
+        resumo_memorizacao: existing.resumo_memorizacao || '',
         tipo: existing.tipo as any,
         tags: existing.tags || [],
         nivel_dificuldade: existing.nivel_dificuldade as any,
@@ -180,6 +182,7 @@ export default function ModuloResumos({ adminId }: { adminId?: string }) {
       disciplina_slug: selected,
       resumo: form.resumo,
       resumo_curto: form.resumo_curto,
+      resumo_memorizacao: form.resumo_memorizacao,
       tipo: form.tipo,
       tags: form.tags,
       nivel_dificuldade: form.nivel_dificuldade,
@@ -402,6 +405,28 @@ export default function ModuloResumos({ adminId }: { adminId?: string }) {
                   </div>
                 </div>
 
+                {/* Resumo de memorização */}
+                <div style={{display:'flex',flexDirection:'column'}}>
+                  <label style={{fontSize:10,fontWeight:700,letterSpacing:2,textTransform:'uppercase',color:'#555',display:'block',marginBottom:6}}>
+                    RESUMO DE MEMORIZAÇÃO <span style={{color:'#444',fontWeight:400,textTransform:'none',letterSpacing:0}}>— bloco 📌 de fixação rápida ({form.resumo_memorizacao.length} chars)</span>
+                  </label>
+                  <textarea
+                    value={form.resumo_memorizacao}
+                    onChange={e => setForm(f => ({...f, resumo_memorizacao: e.target.value}))}
+                    placeholder={`📌 RESUMO DE MEMORIZAÇÃO — TIGERJUS · ${disc?.name?.toUpperCase()}\n⚡ Fixação rápida — ...\n\n1. PONTO-CHAVE — ...\n\n⚠️ Não confundir: ...`}
+                    style={{
+                      minHeight:220,
+                      background:'#1a1a1a', border:'1px solid rgba(255,255,255,0.1)',
+                      borderRadius:8, padding:'12px 14px',
+                      color:'#ccc', fontSize:13, lineHeight:1.8,
+                      outline:'none', resize:'vertical', fontFamily:'inherit',
+                    }}
+                  />
+                  <div style={{fontSize:10,color:'#444',marginTop:4}}>
+                    💡 Exibido na revisão rápida (modo memorização). Mesmo formato do resumo: linha em MAIÚSCULO vira título.
+                  </div>
+                </div>
+
                 {/* Tags */}
                 <div>
                   <label style={{fontSize:10,fontWeight:700,letterSpacing:2,textTransform:'uppercase',color:'#555',display:'block',marginBottom:6}}>TAGS</label>
@@ -445,6 +470,15 @@ export default function ModuloResumos({ adminId }: { adminId?: string }) {
                   <div style={{background:'#1a1a1a',border:'1px solid rgba(255,255,255,0.07)',borderRadius:16,padding:24,minHeight:200}}>
                     <ResumoPreview resumo={form.resumo} name={disc?.name || ''} />
                   </div>
+
+                  {form.resumo_memorizacao && (
+                    <div style={{marginTop:20}}>
+                      <div style={{fontSize:10,fontWeight:700,letterSpacing:2,textTransform:'uppercase',color:'#555',marginBottom:8}}>📌 Memorização</div>
+                      <div style={{background:'#1a1a1a',border:'1px solid rgba(255,255,255,0.07)',borderRadius:16,padding:24}}>
+                        <ResumoPreview resumo={form.resumo_memorizacao} name={disc?.name || ''} />
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             )}
