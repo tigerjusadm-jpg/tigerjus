@@ -44,10 +44,18 @@ ESCOPO RESTRITO — REGRA INEGOCIÁVEL:
 
 export async function POST(req: NextRequest) {
   try {
-    // SEGURANÇA: plano obtido sempre do banco — nunca do corpo da requisição.
-    const { messages, userId } = await req.json()
+    // SEGURANÇA: exige login. O userId vem do TOKEN verificado, nunca do corpo.
+    const authHeader = req.headers.get('authorization') || req.headers.get('Authorization') || ''
+    const token = authHeader.replace(/^Bearer\s+/i, '').trim()
+    if (!token) return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
+    const { data: { user: authUser }, error: authErr } = await supabase.auth.getUser(token)
+    if (authErr || !authUser) return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
+    const userId = authUser.id
 
-    if (userId) {
+    // plano obtido sempre do banco — nunca do corpo da requisição.
+    const { messages } = await req.json()
+
+    {
       // 1. Buscar perfil e configuração do plano simultaneamente
       const { data: profile } = await supabase
         .from('profiles')
@@ -113,24 +121,6 @@ export async function POST(req: NextRequest) {
 
       return NextResponse.json({ text })
     }
-
-    // Usuário não autenticado: usa Haiku com limite mínimo
-    const response = await anthropic.messages.create({
-      model:      'claude-haiku-4-5-20251001',
-      max_tokens: 512,
-      system:     SYSTEM_PROMPT,
-      messages:   messages.slice(-4).map((m: any) => ({
-        role:    m.role === 'assistant' ? 'assistant' : 'user',
-        content: m.content || m.text || '',
-      })),
-    })
-
-    const text = response.content
-      .filter((b: any) => b.type === 'text')
-      .map((b: any) => b.text)
-      .join('\n')
-
-    return NextResponse.json({ text })
 
   } catch (error: any) {
     console.error('IA Error:', error)
