@@ -11,7 +11,7 @@ interface DisciplineSummary {
   resumo_curto: string
   tipo: 'manual' | 'automatico' | 'ia'
   tags: string[]
-  nivel_dificuldade: 'basico' | 'intermediario' | 'avancado'
+  nivel_dificuldade: 'iniciante' | 'medio' | 'avancado'
   ultima_geracao_ia?: string | null
   versao: number
   ativo: boolean
@@ -52,12 +52,12 @@ const TIPO_COLOR: Record<string, string> = {
   manual: '#60a5fa', automatico: '#34d399', ia: '#a78bfa',
 }
 const NIVEL_LABEL: Record<string, string> = {
-  basico: 'Básico', intermediario: 'Intermediário', avancado: 'Avançado',
+  iniciante: 'Iniciante', medio: 'Médio', avancado: 'Avançado',
 }
 
 const EMPTY: Omit<DisciplineSummary, 'disciplina_slug'> = {
   resumo: '', resumo_curto: '', tipo: 'manual',
-  tags: [], nivel_dificuldade: 'intermediario', versao: 1, ativo: true,
+  tags: [], nivel_dificuldade: 'medio', versao: 1, ativo: true,
 }
 
 // ─── EDITOR DE TAGS ───────────────────────────────────────────────────────────
@@ -354,8 +354,8 @@ export default function ModuloResumos({ adminId }: { adminId?: string }) {
                     <label style={{fontSize:10,fontWeight:700,letterSpacing:2,textTransform:'uppercase',color:'#555',display:'block',marginBottom:6}}>NÍVEL</label>
                     <select value={form.nivel_dificuldade} onChange={e => setForm(f => ({...f, nivel_dificuldade: e.target.value as any}))}
                       style={{width:'100%',background:'#1a1a1a',border:'1px solid rgba(255,255,255,0.1)',borderRadius:8,padding:'8px 12px',color:'#fff',fontSize:13,outline:'none',colorScheme:'dark',fontFamily:'inherit'}}>
-                      <option value="basico">Básico</option>
-                      <option value="intermediario">Intermediário</option>
+                      <option value="iniciante">Iniciante</option>
+                      <option value="medio">Médio</option>
                       <option value="avancado">Avançado</option>
                     </select>
                   </div>
