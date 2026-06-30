@@ -2685,6 +2685,7 @@ export default function TigerJusApp() {
   const handleLogout=async()=>{await supabase.auth.signOut();router.push('/')}
   const handleUpgradeSelect=(planId:string,ciclo:'mensal'|'anual'='mensal')=>{setShowUpgradeModal(false);router.push(`/checkout?plan=${planId}&ciclo=${ciclo}`)}
   const showUpgrade=()=>{setShowPremiumGate(false);setShowUpgradeModal(true)}
+  const navOrRadar=(key:string)=>{ if(key==='radar'){ canAccessElite?setShowRadar(true):showUpgrade() } else navTo(key) }
   const navTo=(key:string)=>{ setNavHist(h=> key===page ? h : [...h,page].slice(-50)); setPage(key); setMenuOpen(false) }
   const goBack=()=>{
     if(navHist.length>0){
@@ -2706,7 +2707,7 @@ export default function TigerJusApp() {
   const SIDEBAR_GROUPS=[
     {title:'',items:[{icon:'🏠',label:'Início',key:'dashboard'}]},
     {title:'ESTUDAR',items:[
-      {icon:'📝',label:'Questões',key:'quiz'},
+      {icon:'📝',label:'Quiz',key:'quiz'},
       {icon:'📋',label:'Simulados',key:'simulados'},
       {icon:'🃏',label:'Flashcards',key:'flashcards'},
       {icon:'📚',label:'Disciplinas',key:'disciplines'},
@@ -2714,7 +2715,7 @@ export default function TigerJusApp() {
       {icon:'📖',label:'Índice',key:'indice'},
       {icon:'🧭',label:'Trilhas',key:'trilhas'},
     ]},
-    {title:'INTELIGÊNCIA',items:[{icon:'🤖',label:'Tutor IA',key:'ia'}]},
+    {title:'INTELIGÊNCIA',items:[{icon:'🤖',label:'Tutor IA',key:'ia'},{icon:'🎯',label:'Radar',key:'radar'}]},
     {title:'EVOLUIR',items:[
       {icon:'🏆',label:'Ranking',key:'ranking'},
       {icon:'🐯',label:'Indicar',key:'referral'},
@@ -2761,7 +2762,7 @@ export default function TigerJusApp() {
           <span style={{fontFamily:'var(--font-display)',fontSize:18,fontWeight:900,letterSpacing:2,background:'linear-gradient(135deg,var(--gold-light),var(--gold))',WebkitBackgroundClip:'text',WebkitTextFillColor:'transparent'}}>TIGERJUS</span>
         </div>
         <div className="nav-desktop tj-nav-items" style={{display:'flex',gap:'clamp(8px,1vw,14px)',alignItems:'center'}}>
-          {SIDEBAR.map(i=>(<button key={i.key} onClick={()=>navTo(i.key)} style={{color:page===i.key?'var(--gold)':'var(--text-muted)',fontSize:'clamp(9px,0.85vw,11px)',fontWeight:600,letterSpacing:'clamp(0.5px,0.1vw,1px)',textTransform:'uppercase',border:'none',background:'none',cursor:'pointer',fontFamily:'var(--font-body)',borderBottom:page===i.key?'2px solid var(--gold)':'2px solid transparent',paddingBottom:2,whiteSpace:'nowrap'}}>{i.label}</button>))}
+          {SIDEBAR.map(i=>(<button key={i.key} onClick={()=>navOrRadar(i.key)} style={{color:page===i.key?'var(--gold)':'var(--text-muted)',fontSize:'clamp(9px,0.85vw,11px)',fontWeight:600,letterSpacing:'clamp(0.5px,0.1vw,1px)',textTransform:'uppercase',border:'none',background:'none',cursor:'pointer',fontFamily:'var(--font-body)',borderBottom:page===i.key?'2px solid var(--gold)':'2px solid transparent',paddingBottom:2,whiteSpace:'nowrap'}}>{i.label}{i.key==='radar'&&!canAccessElite?' 🔒':''}</button>))}
         </div>
         <div style={{display:'flex',gap:8,alignItems:'center'}}>
           <span className="nav-desktop" style={{fontSize:12,color:'var(--text-muted)'}}>{profile?.nome?.split(' ')[0]||'Usuário'}</span>
@@ -2779,7 +2780,7 @@ export default function TigerJusApp() {
           {SIDEBAR_GROUPS.map(g=>(
             <div key={g.title||'inicio'}>
               {g.title&&<div style={{fontSize:9,fontWeight:700,letterSpacing:2,textTransform:'uppercase',color:'var(--text-dim)',padding:'12px 20px 4px'}}>{g.title}</div>}
-              {g.items.map(item=>(<button key={item.key} onClick={()=>navTo(item.key)} style={{display:'flex',alignItems:'center',gap:14,padding:'14px 20px',width:'100%',background:page===item.key?'rgba(212,168,67,0.08)':'none',border:'none',cursor:'pointer',fontFamily:'var(--font-body)',fontSize:15,color:page===item.key?'var(--gold)':'var(--white)',textAlign:'left',borderLeft:page===item.key?'3px solid var(--gold)':'3px solid transparent'}}><span style={{fontSize:18,width:24,textAlign:'center'}}>{item.icon}</span>{item.label}</button>))}
+              {g.items.map(item=>(<button key={item.key} onClick={()=>navOrRadar(item.key)} style={{display:'flex',alignItems:'center',gap:14,padding:'14px 20px',width:'100%',background:page===item.key?'rgba(212,168,67,0.08)':'none',border:'none',cursor:'pointer',fontFamily:'var(--font-body)',fontSize:15,color:page===item.key?'var(--gold)':'var(--white)',textAlign:'left',borderLeft:page===item.key?'3px solid var(--gold)':'3px solid transparent'}}><span style={{fontSize:18,width:24,textAlign:'center'}}>{item.icon}</span>{item.label}{item.key==='radar'&&!canAccessElite&&<span style={{marginLeft:'auto',fontSize:12}}>🔒</span>}</button>))}
             </div>
           ))}
           {/* ── Admin link — apenas para usuários admin ── */}
@@ -2805,7 +2806,7 @@ export default function TigerJusApp() {
           {SIDEBAR_GROUPS.map(g=>(
             <div key={g.title||'inicio'}>
               {g.title&&<div style={{fontSize:10,fontWeight:700,letterSpacing:'2.5px',textTransform:'uppercase',color:'var(--text-dim)',padding:'12px 14px 6px',marginTop:4}}>{g.title}</div>}
-              {g.items.map(item=>(<button key={item.key} className={`sidebar-item${page===item.key?' active':''}`} onClick={()=>navTo(item.key)}><span style={{fontSize:17,width:24,textAlign:'center'}}>{item.icon}</span> {item.label}</button>))}
+              {g.items.map(item=>(<button key={item.key} className={`sidebar-item${page===item.key?' active':''}`} onClick={()=>navOrRadar(item.key)}><span style={{fontSize:17,width:24,textAlign:'center'}}>{item.icon}</span> {item.label}{item.key==='radar'&&!canAccessElite&&<span style={{marginLeft:'auto',fontSize:12}}>🔒</span>}</button>))}
             </div>
           ))}
           <div style={{fontSize:10,fontWeight:700,letterSpacing:'2.5px',textTransform:'uppercase',color:'var(--text-dim)',padding:'12px 14px 6px',marginTop:8}}>CONTA</div>
