@@ -89,6 +89,34 @@ const DISC_MAP: Record<string, string> = {
   'Eleitoral':'Eleitoral','Financeiro':'Financeiro','Previdenciário':'Previdenciário',
 }
 
+// ── Contagem REAL de questões por disciplina (1 query leve, cacheada) ──────────
+// Reverse-mapeia o valor de questoes_publicas.disciplina -> nome do card via PDF_DISC_MAP.
+let _discCountsCache: Record<string, number> | null = null
+let _discCountsPromise: Promise<Record<string, number>> | null = null
+async function _loadDiscCounts(): Promise<Record<string, number>> {
+  if (_discCountsCache) return _discCountsCache
+  const rev: Record<string, string> = {}
+  for (const [card, vals] of Object.entries(PDF_DISC_MAP)) for (const v of vals) rev[v] = card
+  const { data } = await supabase.from('questoes_publicas').select('disciplina')
+  const counts: Record<string, number> = {}
+  for (const row of (data || []) as { disciplina: string }[]) {
+    const card = rev[row.disciplina]
+    if (card) counts[card] = (counts[card] || 0) + 1
+  }
+  _discCountsCache = counts
+  return counts
+}
+function useDisciplineCounts(): Record<string, number> {
+  const [counts, setCounts] = useState<Record<string, number>>(_discCountsCache || {})
+  useEffect(() => {
+    let alive = true
+    if (!_discCountsPromise) _discCountsPromise = _loadDiscCounts()
+    _discCountsPromise.then(c => { if (alive) setCounts(c) })
+    return () => { alive = false }
+  }, [])
+  return counts
+}
+
 // Ranking carregado do Supabase em RankingPage
 
 const RESUMOS: Record<string, string> = {
@@ -515,6 +543,7 @@ function Conquistas({ profile }: { profile: any }) {
 }
 
 function DashHome({ profile, onNav, onMini, showUpgrade, isPago, canAccessPremium, canAccessElite, onOpenRadar, freeQ, freeIA, limites }: any) {
+  const discCounts = useDisciplineCounts()
   const { settings: dashSettings } = useAppSettings()
   const [depoOpen, setDepoOpen] = useState(false)
   const xp=profile?.xp||0; const _niv=getNivelByXp(xp); const levelName=_niv.nome
@@ -635,8 +664,7 @@ function DashHome({ profile, onNav, onMini, showUpgrade, isPago, canAccessPremiu
             onMouseLeave={e=>{e.currentTarget.style.borderColor='rgba(255,255,255,0.05)';e.currentTarget.style.transform='translateY(0)'}}>
             <div style={{fontSize:22,marginBottom:10}}>{d.icon}</div>
             <div style={{fontSize:13,fontWeight:700,marginBottom:5}}>{d.name}</div>
-            <div style={{fontSize:11,color:'var(--text-muted)',marginBottom:8}}>{d.progress}% · {d.q}q</div>
-            <div style={{background:'rgba(255,255,255,0.06)',borderRadius:100,height:4,overflow:'hidden',marginBottom:8}}><div style={{width:`${d.progress}%`,height:'100%',background:'linear-gradient(90deg,var(--gold),var(--orange))',borderRadius:100}}/></div>
+            <div style={{fontSize:11,color:'var(--text-muted)',marginBottom:8}}>{discCounts[d.name] ?? '…'} questões</div>
             <div style={{display:'flex',gap:4,flexWrap:'wrap'}}>{d.tags.map(t=><span key={t} style={{fontSize:9,padding:'2px 6px',background:'rgba(212,168,67,0.07)',border:'1px solid rgba(212,168,67,0.15)',borderRadius:4,color:'var(--gold-dark)',fontWeight:600}}>{t}</span>)}</div>
           </div>
         ))}
@@ -1038,6 +1066,7 @@ async function gerarPDF(disciplina: any, resumo: string, questoes: any[]) {
 }
 
 function DisciplinesPage({ showUpgrade, profile, isPago, canAccessPremium, podePDF }: any) {
+  const discCounts = useDisciplineCounts()
   const [selected,setSelected]=useState<any>(null)
   const [subTab,setSubTab]=useState<'resumo'|'quiz'|'flash'|'pdf'|'leiseca'>('resumo')
   const [gerandoPDF,setGerandoPDF]=useState(false)
@@ -1064,7 +1093,7 @@ function DisciplinesPage({ showUpgrade, profile, isPago, canAccessPremium, podeP
         <span style={{fontSize:36}}>{selected.icon}</span>
         <div>
           <h1 style={{fontFamily:'var(--font-display)',fontSize:'clamp(20px,5vw,28px)',fontWeight:900}}>{selected.name}</h1>
-          <p style={{fontSize:12,color:'var(--text-muted)'}}>{selected.q} questões · {selected.progress}% concluído</p>
+          <p style={{fontSize:12,color:'var(--text-muted)'}}>{discCounts[selected.name] ?? '…'} questões</p>
         </div>
       </div>
       <div style={{display:'flex',gap:8,marginBottom:20,flexWrap:'wrap'}}>
@@ -1109,8 +1138,7 @@ function DisciplinesPage({ showUpgrade, profile, isPago, canAccessPremium, podeP
             onMouseLeave={e=>{e.currentTarget.style.borderColor='rgba(255,255,255,0.05)';e.currentTarget.style.transform='translateY(0)'}}>
             <div style={{fontSize:22,marginBottom:10}}>{d.icon}</div>
             <div style={{fontSize:13,fontWeight:700,marginBottom:5}}>{d.name}</div>
-            <div style={{fontSize:11,color:'var(--text-muted)',marginBottom:8}}>{d.progress}% · {d.q}q</div>
-            <div style={{background:'rgba(255,255,255,0.06)',borderRadius:100,height:4,overflow:'hidden',marginBottom:8}}><div style={{width:`${d.progress}%`,height:'100%',background:'linear-gradient(90deg,var(--gold),var(--orange))',borderRadius:100}}/></div>
+            <div style={{fontSize:11,color:'var(--text-muted)',marginBottom:8}}>{discCounts[d.name] ?? '…'} questões</div>
             <div style={{display:'flex',gap:4,flexWrap:'wrap'}}>{d.tags.map(t=><span key={t} style={{fontSize:9,padding:'2px 6px',background:'rgba(212,168,67,0.07)',border:'1px solid rgba(212,168,67,0.15)',borderRadius:4,color:'var(--gold-dark)',fontWeight:600}}>{t}</span>)}</div>
           </div>
         ))}
@@ -1144,6 +1172,7 @@ const DISCIPLINA_ALIASES: Record<string, string[]> = {
 function getDisciplinaAliases(disciplina:string):string[]{return DISCIPLINA_ALIASES[disciplina]??[disciplina]}
 
 function FlashCardsPage({ isPago, showUpgrade }: any){
+  const discCounts = useDisciplineCounts()
   const [disciplinaAtiva,setDisciplinaAtiva]=useState<string|null>(null)
   if(!isPago) return(
     <div style={{padding:'24px 20px',flex:1,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',textAlign:'center'}}>
@@ -1165,7 +1194,7 @@ function FlashCardsPage({ isPago, showUpgrade }: any){
             onMouseLeave={e=>{e.currentTarget.style.borderColor='rgba(255,255,255,0.05)';e.currentTarget.style.transform='translateY(0)'}}>
             <div style={{fontSize:28,marginBottom:10}}>{d.icon}</div>
             <div style={{fontSize:13,fontWeight:700,marginBottom:4}}>{d.name}</div>
-            <div style={{fontSize:11,color:'var(--text-muted)',marginBottom:10}}>{d.q} questões</div>
+            <div style={{fontSize:11,color:'var(--text-muted)',marginBottom:10}}>{discCounts[d.name] ?? '…'} questões</div>
             <div style={{display:'inline-flex',alignItems:'center',gap:5,fontSize:11,color:'var(--gold)',fontWeight:600}}>🃏 Ver flashcards →</div>
           </div>
         ))}
