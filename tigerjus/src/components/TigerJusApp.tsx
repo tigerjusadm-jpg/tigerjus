@@ -130,6 +130,7 @@ const RESUMOS: Record<string, string> = {
 function RadarModal({ onClose, onEstudar, podePDF }: { onClose: () => void; onEstudar: (d:any)=>void; podePDF?: boolean }) {
   const discCounts = useDisciplineCounts()
   const [gerando,setGerando] = useState<string|null>(null)
+  const [modo,setModo] = useState<'lista'|'top20'>('lista')
 
   // DOMINÂNCIA REAL: calculada das provas cadastradas (mesma fonte das contagens).
   const ranked = DISCIPLINES
@@ -163,9 +164,14 @@ function RadarModal({ onClose, onEstudar, podePDF }: { onClose: () => void; onEs
             <p style={{fontSize:12,color:'var(--text-muted)'}}>Matérias com maior dominância na próxima prova</p>
           </div>
         </div>
-        <div style={{background:'rgba(212,168,67,0.06)',border:'1px solid rgba(212,168,67,0.15)',borderRadius:12,padding:'10px 14px',marginBottom:24,fontSize:12,color:'var(--text-muted)'}}>
+        {modo==='top20' ? (
+          <RadarTop20 onBack={()=>setModo('lista')} podePDF={podePDF}/>
+        ) : (
+        <>
+        <div style={{background:'rgba(212,168,67,0.06)',border:'1px solid rgba(212,168,67,0.15)',borderRadius:12,padding:'10px 14px',marginBottom:16,fontSize:12,color:'var(--text-muted)'}}>
           📡 Dominância real calculada sobre {total} questões das provas reais cadastradas. Quanto maior o peso histórico, maior a chance de pontuar.
         </div>
+        <button onClick={()=>setModo('top20')} style={{width:'100%',marginBottom:22,padding:'14px',borderRadius:12,border:'none',background:'linear-gradient(135deg,var(--gold),var(--orange))',color:'var(--deep-black)',fontSize:14,fontWeight:800,cursor:'pointer',fontFamily:'var(--font-body)',display:'flex',alignItems:'center',justifyContent:'center',gap:8}}>🎯 Treinar as 40 questões mais prováveis</button>
         {itens.length === 0 ? (
           <div style={{textAlign:'center',color:'var(--text-muted)',fontSize:13,padding:'30px 0'}}>Calculando dominância…</div>
         ) : (
@@ -194,6 +200,8 @@ function RadarModal({ onClose, onEstudar, podePDF }: { onClose: () => void; onEs
             </div>
           ))}
         </div>
+        )}
+        </>
         )}
       </div>
     </div>
@@ -1340,6 +1348,148 @@ function QuizDisciplina({disciplina}:{disciplina:string}){
       <div style={{background:'rgba(255,255,255,0.06)',borderRadius:100,height:4,marginBottom:20,overflow:'hidden'}}><div style={{width:`${pct}%`,height:'100%',background:'linear-gradient(90deg,var(--gold),var(--orange))',borderRadius:100,transition:'width 0.4s'}}/></div>
       <div style={{background:'var(--gray)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:20,padding:'22px'}}>
         <div style={{display:'flex',gap:8,marginBottom:14}}><span style={{fontSize:10,fontWeight:700,letterSpacing:2,textTransform:'uppercase',color:'var(--gold)'}}>{q.disc}</span><span style={{fontSize:10,color:'var(--text-muted)'}}>· OAB Oficial</span></div>
+        <div style={{fontSize:'clamp(14px,3vw,17px)',fontWeight:600,lineHeight:1.7,marginBottom:20}}>{q.q}</div>
+        <div style={{display:'flex',flexDirection:'column',gap:10}}>
+          {q.opts.map((opt:string,i:number)=>{
+            let bg='rgba(255,255,255,0.03)',bc='rgba(255,255,255,0.08)',color='var(--white)'
+            if(checking&&i===sel){bg='rgba(212,168,67,0.08)';bc='rgba(212,168,67,0.6)';color='var(--gold)'}
+            if(answered){if(i===q.correct){bg='rgba(76,175,125,0.1)';bc='var(--success)';color='var(--success)'}else if(i===sel){bg='rgba(232,66,26,0.1)';bc='var(--danger)';color='var(--danger)'}}
+            return(<button key={i} onClick={()=>pick(i)} style={{display:'flex',alignItems:'flex-start',gap:12,background:bg,border:`1px solid ${bc}`,borderRadius:12,padding:'12px 14px',cursor:'pointer',transition:'all 0.2s',textAlign:'left',width:'100%',fontFamily:'var(--font-body)',fontSize:'clamp(13px,2.5vw,14px)',color}}><span style={{width:26,height:26,borderRadius:'50%',flexShrink:0,display:'flex',alignItems:'center',justifyContent:'center',fontSize:11,fontWeight:800,background:'rgba(255,255,255,0.06)',color:'var(--white)'}}>{String.fromCharCode(65+i)}</span><span style={{flex:1}}>{opt}</span></button>)
+          })}
+        </div>
+        {answered&&q.exp&&<div style={{marginTop:18,padding:14,background:'rgba(212,168,67,0.06)',border:'1px solid rgba(212,168,67,0.15)',borderRadius:12,fontSize:13,lineHeight:1.7,color:'var(--text-muted)'}}>{sel===q.correct?'✅ ':'❌ '}<strong style={{color:'var(--gold)'}}>{sel===q.correct?'Correto!':'Incorreto.'}</strong> {q.exp}</div>}
+        {answered&&<button className="btn-primary" style={{width:'100%',marginTop:16}} onClick={next}>{cur+1>=questions.length?'VER RESULTADO':'PRÓXIMA →'}</button>}
+      </div>
+    </div>
+  )
+}
+
+function RadarTop20({ onBack, podePDF }: { onBack: () => void; podePDF?: boolean }) {
+  const discCounts = useDisciplineCounts()
+  const [questions,setQuestions]=useState<any[]>([])
+  const [loading,setLoading]=useState(true)
+  const [erro,setErro]=useState(false)
+  const [started,setStarted]=useState(false)
+  const [cur,setCur]=useState(0)
+  const [sel,setSel]=useState<number|null>(null)
+  const [answered,setAnswered]=useState(false)
+  const [score,setScore]=useState(0)
+  const [done,setDone]=useState(false)
+  const [time,setTime]=useState(90)
+  const [checking,setChecking]=useState(false)
+  const [pdfLoad,setPdfLoad]=useState(false)
+  const fetchingRef=useRef(false)
+
+  useEffect(()=>{
+    if(Object.keys(discCounts).length===0)return
+    if(fetchingRef.current)return
+    fetchingRef.current=true;setLoading(true)
+    const carregar=async()=>{
+      try{
+        const N=40
+        const entries=DISCIPLINES.map(d=>({d,n:discCounts[d.name]||0})).filter(x=>x.n>0).sort((a,b)=>b.n-a.n)
+        const total=entries.reduce((s,x)=>s+x.n,0)||1
+        const alloc:any[]=entries.map(x=>({d:x.d,n:x.n,raw:N*x.n/total,base:0}))
+        alloc.forEach((a:any)=>{a.base=Math.floor(a.raw)})
+        let rem=N-alloc.reduce((s:number,a:any)=>s+a.base,0)
+        alloc.sort((a:any,b:any)=>(b.raw-b.base)-(a.raw-a.base))
+        for(let i=0;i<alloc.length&&rem>0;i++){alloc[i].base++;rem--}
+        const allDiscs:string[]=[]
+        for(const a of alloc){if(a.base>0)for(const v of (PDF_DISC_MAP[a.d.name]||[a.d.name]))allDiscs.push(v)}
+        const res=await supabase.from('questoes_publicas').select('id,disciplina,enunciado,opcao_a,opcao_b,opcao_c,opcao_d').in('disciplina',allDiscs)
+        if(res.error){setErro(true);return}
+        const rev:Record<string,string>={}
+        for(const [card,vals] of Object.entries(PDF_DISC_MAP))for(const v of vals)rev[v]=card
+        const buckets:Record<string,any[]>={}
+        for(const q of (res.data||[]) as any[]){const card=rev[q.disciplina]||q.disciplina;(buckets[card]=buckets[card]||[]).push(q)}
+        const picked:any[]=[]
+        for(const a of alloc){if(a.base<=0)continue;const pool=[...(buckets[a.d.name]||[])].sort(()=>Math.random()-0.5).slice(0,a.base);const dom=Math.round(1000*a.n/total)/10;for(const q of pool)picked.push({...q,_card:a.d.name,_icon:a.d.icon,_dom:dom})}
+        const mix=picked.sort(()=>Math.random()-0.5)
+        const formatted=mix.map((q:any)=>({id:q.id,disc:q._card,icon:q._icon,dom:q._dom,q:q.enunciado,opts:[q.opcao_a,q.opcao_b,q.opcao_c,q.opcao_d],correct:null,exp:''}))
+        setQuestions(formatted)
+      }catch{setErro(true)}
+      finally{setLoading(false);fetchingRef.current=false}
+    }
+    carregar()
+  },[discCounts])
+
+  useEffect(()=>{
+    if(!started||answered||done)return
+    const t=setInterval(()=>setTime(p=>{if(p<=1){clearInterval(t);responder(null);return 0}return p-1}),1000)
+    return()=>clearInterval(t)
+  },[started,answered,done,cur])
+
+  const responder=async(i:number|null)=>{
+    if(answered||checking)return
+    if(i!==null)setSel(i)
+    setChecking(true)
+    try{
+      const{data:{session}}=await supabase.auth.getSession()
+      const res=await fetch('/api/questao/validar',{method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${session?.access_token||''}`},body:JSON.stringify({questaoId:questions[cur].id,...(i!==null?{escolha:i}:{})})})
+      const data=await res.json()
+      if(res.ok){
+        const correctIdx=['A','B','C','D'].indexOf(data.letra_correta)
+        setQuestions(prev=>prev.map((qq,idx)=>idx===cur?{...qq,correct:correctIdx,exp:data.comentario||''}:qq))
+        setAnswered(true)
+        if(i!==null){
+          if(data.correto)setScore(p=>p+1)
+          ;(async()=>{try{const{data:{user}}=await supabase.auth.getUser();if(user)await supabase.from('quiz_resultados').insert({user_id:user.id,disciplina:questions[cur].disc,acertos:data.correto?1:0,total:1})}catch{/* silencioso */}})()
+        }
+      }else if(i!==null){setSel(null)}
+      else setAnswered(true)
+    }catch{
+      if(i!==null)setSel(null)
+      else setAnswered(true)
+    }finally{setChecking(false)}
+  }
+  const pick=(i:number)=>{responder(i)}
+  const next=()=>{if(cur+1>=questions.length){setDone(true);return}setCur(p=>p+1);setSel(null);setAnswered(false);setTime(90)}
+
+  const baixarPDFTop=async()=>{
+    if(pdfLoad||questions.length===0)return
+    setPdfLoad(true)
+    try{
+      const discsSet=new Set<string>()
+      for(const q of questions){for(const v of (PDF_DISC_MAP[q.disc]||[q.disc]))discsSet.add(v)}
+      const{data}=await supabase.rpc('buscar_questoes_disciplina_pdf',{discs:Array.from(discsSet)})
+      const full:any[]=data||[]
+      const ordenadas=questions.map(q=>full.find((r:any)=>r.enunciado===q.q)).filter(Boolean)
+      await gerarPDF({name:'Top 40 do Radar — Questões de maior dominância',icon:'🎯'},'',ordenadas)
+    }finally{setPdfLoad(false)}
+  }
+
+  const Voltar=()=>(<button onClick={onBack} style={{display:'flex',alignItems:'center',gap:6,color:'var(--text-muted)',fontSize:13,border:'none',background:'none',cursor:'pointer',marginBottom:16,fontFamily:'var(--font-body)'}}>← Voltar ao Radar</button>)
+
+  if(loading) return(<div><Voltar/><div style={{padding:'40px 0',textAlign:'center'}}><div style={{fontSize:36,marginBottom:12}}>⏳</div><div style={{fontSize:13,color:'var(--text-muted)'}}>Montando as <strong style={{color:'var(--gold)'}}>40 questões de maior dominância</strong>...</div></div></div>)
+  if(erro) return(<div><Voltar/><div style={{padding:'40px 0',textAlign:'center'}}><div style={{fontSize:36,marginBottom:12}}>⚠️</div><div style={{fontSize:14,fontWeight:700,marginBottom:8}}>Não foi possível carregar.</div><button className="btn-secondary" style={{fontSize:12}} onClick={()=>{fetchingRef.current=false;setErro(false);setLoading(true)}}>🔄 Tentar novamente</button></div></div>)
+  if(questions.length===0) return(<div><Voltar/><div style={{padding:'40px 0',textAlign:'center'}}><div style={{fontSize:40,marginBottom:12}}>📝</div><div style={{fontSize:14,fontWeight:700}}>Nenhuma questão disponível ainda.</div></div></div>)
+
+  if(!started) return(
+    <div style={{maxWidth:560}}>
+      <Voltar/>
+      <div style={{background:'var(--gray)',border:'1px solid rgba(212,168,67,0.25)',borderRadius:20,padding:24}}>
+        <div style={{fontSize:10,fontWeight:700,letterSpacing:'2px',textTransform:'uppercase',color:'var(--gold)',marginBottom:12}}>🎯 TOP 40 DO RADAR</div>
+        <div style={{fontSize:'clamp(22px,5vw,28px)',fontWeight:900,fontFamily:'var(--font-display)',marginBottom:8}}>{questions.length} questões de maior rendimento</div>
+        <div style={{fontSize:13,color:'var(--text-muted)',marginBottom:24,lineHeight:1.6}}>Questões reais da OAB, concentradas nas matérias que mais <strong style={{color:'var(--gold)'}}>dominam</strong> o exame. 90 segundos por questão.</div>
+        <button className="btn-primary" style={{width:'100%',fontSize:14,padding:14}} onClick={()=>{setStarted(true);setTime(90)}}>INICIAR TREINO →</button>
+        {podePDF && <button onClick={baixarPDFTop} disabled={pdfLoad} style={{width:'100%',marginTop:10,padding:12,borderRadius:12,border:'1px solid rgba(212,168,67,0.4)',background:'transparent',color:'var(--gold)',fontSize:13,fontWeight:700,cursor:pdfLoad?'wait':'pointer',fontFamily:'var(--font-body)'}}>{pdfLoad?'⏳ Gerando PDF…':'📄 Baixar as 40 em PDF'}</button>}
+      </div>
+    </div>
+  )
+
+  if(done){
+    const rate=Math.round((score/questions.length)*100);const aprovado=score>=Math.ceil(questions.length*0.625)
+    return(<div style={{maxWidth:560,textAlign:'center'}}><Voltar/><div style={{fontSize:54,marginBottom:16}}>{aprovado?'🏆':rate>=50?'📝':'💪'}</div><h2 style={{fontFamily:'var(--font-display)',fontSize:26,fontWeight:900,marginBottom:8}}>Treino Concluído!</h2><p style={{fontSize:13,color:'var(--text-muted)',marginBottom:20}}>{score} de {questions.length} corretas · Top 40 do Radar</p><div style={{background:aprovado?'rgba(76,175,125,0.1)':'rgba(232,98,26,0.1)',border:`1px solid ${aprovado?'var(--success)':'var(--orange)'}`,borderRadius:14,padding:16,marginBottom:20}}><div style={{fontSize:16,fontWeight:900,color:aprovado?'var(--success)':'var(--orange)',marginBottom:4}}>{aprovado?'✅ Na média OAB!':'❌ Abaixo da média OAB'}</div><div style={{fontSize:12,color:'var(--text-muted)'}}>{aprovado?`${rate}% de acerto.`:`Precisava de ${Math.ceil(questions.length*0.625)} acertos.`}</div></div><button className="btn-primary" style={{width:'100%'}} onClick={()=>{fetchingRef.current=false;setStarted(false);setDone(false);setScore(0);setCur(0);setSel(null);setAnswered(false);setLoading(true)}}>🔄 NOVO TREINO</button>{podePDF && <button onClick={baixarPDFTop} disabled={pdfLoad} style={{width:'100%',marginTop:10,padding:12,borderRadius:12,border:'1px solid rgba(212,168,67,0.4)',background:'transparent',color:'var(--gold)',fontSize:13,fontWeight:700,cursor:pdfLoad?'wait':'pointer',fontFamily:'var(--font-body)'}}>{pdfLoad?'⏳ Gerando PDF…':'📄 Baixar as 40 em PDF'}</button>}</div>)
+  }
+
+  const q=questions[cur];const pct=Math.round(((cur+(answered?1:0))/questions.length)*100)
+  return(
+    <div style={{maxWidth:680}}>
+      <Voltar/>
+      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:12}}><div style={{fontSize:12,color:'var(--text-muted)'}}>Q{cur+1}/{questions.length} · Top 40 do Radar</div><div style={{fontFamily:'var(--font-mono)',fontSize:16,fontWeight:700,color:time<20?'var(--danger)':'var(--gold)'}}>{String(Math.floor(time/60)).padStart(2,'0')}:{String(time%60).padStart(2,'0')}</div></div>
+      <div style={{background:'rgba(255,255,255,0.06)',borderRadius:100,height:4,marginBottom:20,overflow:'hidden'}}><div style={{width:`${pct}%`,height:'100%',background:'linear-gradient(90deg,var(--gold),var(--orange))',borderRadius:100,transition:'width 0.4s'}}/></div>
+      <div style={{background:'var(--gray)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:20,padding:'22px'}}>
+        <div style={{display:'flex',gap:8,marginBottom:14,alignItems:'center',flexWrap:'wrap'}}><span style={{fontSize:10,fontWeight:700,letterSpacing:2,textTransform:'uppercase',color:'var(--gold)'}}>{q.icon} {q.disc}</span><span style={{fontSize:10,padding:'2px 8px',background:'rgba(212,168,67,0.1)',border:'1px solid rgba(212,168,67,0.2)',borderRadius:100,color:'var(--gold)',fontWeight:700}}>{q.dom}% dominância</span></div>
         <div style={{fontSize:'clamp(14px,3vw,17px)',fontWeight:600,lineHeight:1.7,marginBottom:20}}>{q.q}</div>
         <div style={{display:'flex',flexDirection:'column',gap:10}}>
           {q.opts.map((opt:string,i:number)=>{
