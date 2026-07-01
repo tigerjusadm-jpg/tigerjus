@@ -29,8 +29,12 @@ function limparEExtrair(htmlBruto: string) {
     .replace(/<s>[\s\S]*?<\/s>/gi, '')
     .replace(/<del[\s\S]*?<\/del>/gi, '')
     .replace(/<span[^>]*line-through[\s\S]*?<\/span>/gi, '')
-    // remove links de anotação (Vide, Incluído, Redação dada, Vigência, Revogado...)
-    .replace(/<a\b[^>]*>[\s\S]*?<\/a>/gi, '')
+    // remove blocos de <script> e <style> (ex.: JS de segurança do rodapé do Planalto)
+    .replace(/<script[\s\S]*?<\/script>/gi, ' ')
+    .replace(/<style[\s\S]*?<\/style>/gi, ' ')
+    // mantém o TEXTO dos links (ex.: referências a artigos/leis), removendo só as tags <a>
+    // as anotações (Vide/Incluído/...) que sobrarem são limpas depois pela remoção de parênteses
+    .replace(/<a\b[^>]*>/gi, '').replace(/<\/a>/gi, '')
 
   let texto = html
     .replace(/<br\s*\/?>/gi, '\n')
@@ -42,6 +46,8 @@ function limparEExtrair(htmlBruto: string) {
     .replace(/&oacute;/gi, 'ó').replace(/&uacute;/gi, 'ú').replace(/&ccedil;/gi, 'ç')
     .replace(/&atilde;/gi, 'ã').replace(/&otilde;/gi, 'õ').replace(/&acirc;/gi, 'â')
     .replace(/&ecirc;/gi, 'ê').replace(/&ocirc;/gi, 'ô').replace(/&agrave;/gi, 'à')
+    .replace(/&#150;/g, '–').replace(/&#151;/g, '—')
+    .replace(/&#(\d+);/g, (_m: string, n: string) => { try { return String.fromCharCode(parseInt(n, 10)) } catch { return ' ' } })
     .replace(/[ \t\r\f\v]+/g, ' ')
 
   // remove parênteses de anotação remanescentes
@@ -49,6 +55,10 @@ function limparEExtrair(htmlBruto: string) {
     /\((?:Vide|Inclu[ií]d[oa]|Reda[çc][ãa]o dada|Vig[êe]ncia|Revogad[oa]|Renumerad[oa]|Regulamento)[^)]*\)/gi,
     ''
   )
+
+  // corta o rodapé do Planalto (nota do DOU + qualquer lixo residual depois dela)
+  const fimLei = texto.search(/Este texto n[ãa]o substitui/i)
+  if (fimLei > 0) texto = texto.slice(0, fimLei)
 
   // começa no primeiro "Art. 1"
   const ini = texto.search(/Art\.?\s*1\s*[ºo°]/)
@@ -63,11 +73,12 @@ function limparEExtrair(htmlBruto: string) {
     if (!m) continue
     const num = parseInt(m[1], 10)
     const bis = m[2] || ''
-    const label = `Art. ${m[1]}º${bis}`
+    // 1º ao 9º levam "º"; de 10 em diante é cardinal ("Art. 10", "Art. 83")
+    const label = `Art. ${m[1]}${num <= 9 ? 'º' : ''}${bis}`
     if (vistos.has(label)) continue
     let corpo = p.replace(/\s+/g, ' ').trim()
     if (corpo.length < 10) continue
-    if (corpo.length > 8000) corpo = corpo.slice(0, 8000)
+    if (corpo.length > 20000) corpo = corpo.slice(0, 20000)
     vistos.add(label)
     artigos.push({ artigo: label, num, texto: corpo })
   }
