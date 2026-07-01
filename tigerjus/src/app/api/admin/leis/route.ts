@@ -55,13 +55,14 @@ function limparEExtrair(htmlBruto: string) {
   // remove parênteses de anotação remanescentes (tolera espaço depois do "(")
   // OBS: mantém "(VETADO)" de propósito — é informativo pro aluno (mostra dispositivo vetado)
   texto = texto.replace(
-    /\(\s*(?:Vide|Inclu[ií]d[oa]|Reda[çc][ãa]o dada|Reda[çc][ãa]o|Vig[êe]ncia|Revogad[oa]|Renumerad[oa]|Regulamento|Promulga[çc][ãa]o|Produ[çc][ãa]o de efeito)[^)]*\)/gi,
+    /\(\s*(?:Vide|Inclu[ií]d[oa]|Reda[çc][ãa]o dada|Reda[çc][ãa]o|Vig[êe]ncia|Revogad[oa]|Renumerad[oa]|Regulamento|Promulga[çc][ãa]o|Produ[çc][ãa]o de efeito|Express[ãa]o substitu[íi]d[ao])[^)]*\)/gi,
     ''
   )
   // anotações de acréscimo por lei (ex.: "(Parágrafo acrescentado pela Lei nº 8.703...)")
   texto = texto.replace(/\([^)]*acresc(?:entad|id)[oa][^)]*\)/gi, '')
-  // "Vigência" solto (link de anotação sem parênteses) logo antes de um inciso romano
-  texto = texto.replace(/\bVig[êe]ncia\b(?=\s+[IVXLC]+\s*[-–])/g, '')
+  // "Vigência" solto (link de anotação do Planalto sem parênteses) — comum em leis muito emendadas (ECA).
+  // Protege usos legítimos ("a vigência", "período de vigência") via lista branca de palavras anteriores.
+  texto = texto.replace(/(?<!\b(?:a|à|da|de|do|em|na|no|sua|seu|toda|cuja|pela|entrada|perda|prazo|período)\s)\bVig[êe]ncia\b/gi, '')
   // ponto órfão logo após "(Vetado)"/"(VETADO)" — ex.: "(Vetado) ." -> "(Vetado)"
   texto = texto.replace(/(\((?:VETADO|Vetado)\))\s*\./g, '$1')
 
