@@ -46,6 +46,8 @@ function limparEExtrair(htmlBruto: string) {
     .replace(/&oacute;/gi, 'ó').replace(/&uacute;/gi, 'ú').replace(/&ccedil;/gi, 'ç')
     .replace(/&atilde;/gi, 'ã').replace(/&otilde;/gi, 'õ').replace(/&acirc;/gi, 'â')
     .replace(/&ecirc;/gi, 'ê').replace(/&ocirc;/gi, 'ô').replace(/&agrave;/gi, 'à')
+    .replace(/&quot;/gi, '"').replace(/&lt;/gi, '<').replace(/&gt;/gi, '>')
+    .replace(/&apos;/gi, "'").replace(/&#39;/g, "'")
     .replace(/&#150;/g, '–').replace(/&#151;/g, '—')
     .replace(/&#(\d+);/g, (_m: string, n: string) => { try { return String.fromCharCode(parseInt(n, 10)) } catch { return ' ' } })
     .replace(/[ \t\r\f\v]+/g, ' ')
@@ -56,6 +58,12 @@ function limparEExtrair(htmlBruto: string) {
     /\(\s*(?:Vide|Inclu[ií]d[oa]|Reda[çc][ãa]o dada|Reda[çc][ãa]o|Vig[êe]ncia|Revogad[oa]|Renumerad[oa]|Regulamento|Promulga[çc][ãa]o|Produ[çc][ãa]o de efeito)[^)]*\)/gi,
     ''
   )
+  // anotações de acréscimo por lei (ex.: "(Parágrafo acrescentado pela Lei nº 8.703...)")
+  texto = texto.replace(/\([^)]*acresc(?:entad|id)[oa][^)]*\)/gi, '')
+  // "Vigência" solto (link de anotação sem parênteses) logo antes de um inciso romano
+  texto = texto.replace(/\bVig[êe]ncia\b(?=\s+[IVXLC]+\s*[-–])/g, '')
+  // ponto órfão logo após "(Vetado)"/"(VETADO)" — ex.: "(Vetado) ." -> "(Vetado)"
+  texto = texto.replace(/(\((?:VETADO|Vetado)\))\s*\./g, '$1')
 
   // corta o rodapé do Planalto (nota do DOU + qualquer lixo residual depois dela)
   const fimLei = texto.search(/Este texto n[ãa]o substitui/i)
