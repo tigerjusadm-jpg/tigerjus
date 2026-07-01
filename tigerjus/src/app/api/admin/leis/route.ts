@@ -50,9 +50,10 @@ function limparEExtrair(htmlBruto: string) {
     .replace(/&#(\d+);/g, (_m: string, n: string) => { try { return String.fromCharCode(parseInt(n, 10)) } catch { return ' ' } })
     .replace(/[ \t\r\f\v]+/g, ' ')
 
-  // remove parênteses de anotação remanescentes
+  // remove parênteses de anotação remanescentes (tolera espaço depois do "(")
+  // OBS: mantém "(VETADO)" de propósito — é informativo pro aluno (mostra dispositivo vetado)
   texto = texto.replace(
-    /\((?:Vide|Inclu[ií]d[oa]|Reda[çc][ãa]o dada|Vig[êe]ncia|Revogad[oa]|Renumerad[oa]|Regulamento)[^)]*\)/gi,
+    /\(\s*(?:Vide|Inclu[ií]d[oa]|Reda[çc][ãa]o dada|Reda[çc][ãa]o|Vig[êe]ncia|Revogad[oa]|Renumerad[oa]|Regulamento|Promulga[çc][ãa]o|Produ[çc][ãa]o de efeito)[^)]*\)/gi,
     ''
   )
 
