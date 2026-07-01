@@ -1,5 +1,10 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { Agent } from 'undici'
+
+export const runtime = 'nodejs'
+export const maxDuration = 60
+
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -85,7 +90,22 @@ export async function POST(req: Request) {
       if (!/^https?:\/\/(www\.)?planalto\.gov\.br\//i.test(url))
         return NextResponse.json({ error: 'a URL deve ser do planalto.gov.br' }, { status: 400 })
 
-      const resp = await fetch(url)
+      const opts: any = {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+          'Accept-Language': 'pt-BR,pt;q=0.9',
+        },
+        // Planalto usa cert TLS antigo — afrouxa a verificação (conteúdo é público, sem risco)
+        dispatcher: new Agent({ connect: { rejectUnauthorized: false } }),
+      }
+      let resp: Response
+      try {
+        resp = await fetch(url, opts)
+      } catch (e: any) {
+        const causa = e?.cause?.code || e?.cause?.message || e?.message || 'desconhecido'
+        return NextResponse.json({ error: `não consegui acessar o Planalto (${causa})` }, { status: 502 })
+      }
       if (!resp.ok) return NextResponse.json({ error: `Planalto respondeu ${resp.status}` }, { status: 502 })
       const buf = await resp.arrayBuffer()
       // Planalto usa encoding antigo (windows-1252 / ISO-8859-1) — decodifica corretamente
