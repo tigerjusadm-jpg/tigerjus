@@ -127,6 +127,7 @@ const CMD_ITEMS: { label: string; icon: string; section?: AdminSection; action?:
   { label: 'Simulados',        icon: '📋', section: 'simulados'  },
   { label: 'Flashcards',       icon: '🃏', section: 'flashcards' },
   { label: 'Resumos',          icon: '📖', section: 'resumos'    },
+  { label: 'Lei Seca',         icon: '⚡', action: 'leis'        },
   { label: 'Media Library',    icon: '🖼️', section: 'media'      },
   { label: 'Planos',           icon: '💳', section: 'planos'     },
   { label: 'Configurações',    icon: '⚙️', section: 'settings'   },
@@ -149,6 +150,7 @@ function CommandPalette() {
   )
   const execute = (item: typeof CMD_ITEMS[0]) => {
     if (item.action === 'platform') { router.push('/plataforma'); return }
+    if (item.action === 'leis') { router.push('/admin/leis'); return }
     if (item.section) setSection(item.section)
     setCmdOpen(false)
   }
@@ -190,13 +192,14 @@ function CommandPalette() {
 }
 
 // ── Sidebar ── (Feature Flags e Audit Log removidos — placeholders sem função)
-const NAV_ITEMS: { label: string; icon: string; section: AdminSection; group: string }[] = [
+const NAV_ITEMS: { label: string; icon: string; section?: AdminSection; href?: string; group: string }[] = [
   { label: 'Dashboard',     icon: '🏠', section: 'overview',   group: 'principal' },
   { label: 'Usuários',      icon: '👥', section: 'usuarios',   group: 'conteudo'  },
   { label: 'Questões',      icon: '📝', section: 'questoes',   group: 'conteudo'  },
   { label: 'Simulados',     icon: '📋', section: 'simulados',  group: 'conteudo'  },
   { label: 'Flashcards',    icon: '🃏', section: 'flashcards', group: 'conteudo'  },
   { label: 'Resumos',       icon: '📖', section: 'resumos',    group: 'conteudo'  },
+  { label: 'Lei Seca',      icon: '⚡', href: '/admin/leis',   group: 'conteudo'  },
   { label: 'Media Library', icon: '🖼️', section: 'media',      group: 'conteudo'  },
   { label: 'Depoimentos',   icon: '⭐', section: 'depoimentos', group: 'conteudo'  },
   { label: 'Mapas Mentais', icon: '🗺️', section: 'mapas',       group: 'conteudo'  },
@@ -240,9 +243,9 @@ function Sidebar() {
                 </div>
               )}
               {items.map(item => {
-                const active = section === item.section
+                const active = !item.href && section === item.section
                 return (
-                  <button key={item.section} onClick={() => setSection(item.section)}
+                  <button key={item.section || item.href} onClick={() => { if (item.href) { router.push(item.href) } else if (item.section) { setSection(item.section) } }}
                     title={!sidebarOpen ? item.label : undefined}
                     style={{
                       display:'flex', alignItems:'center', gap:10,
