@@ -6,6 +6,7 @@ import { useAppSettings } from '@/contexts/AppSettingsContext'
 import RadarOAB from '@/components/RadarOAB'
 import DashboardTopBanner from '@/components/DashboardTopBanner'
 import LandingTopBanner from '@/components/LandingTopBanner'
+import LeiSecaPage from '@/components/LeiSecaPage'
 import { canAccess, isAdmin, getLimites, isPago, getQuizModes, getResumoTier, PLANOS_DISPLAY, getNivelByXp, getNextNivel, type Plano } from '@/lib/planos'
 
 interface Profile {
@@ -2889,6 +2890,7 @@ export default function TigerJusApp() {
       {icon:'📚',label:'Disciplinas',key:'disciplines'},
       {icon:'📒',label:'Resumos',key:'resumos'},
       {icon:'📖',label:'Índice',key:'indice'},
+      {icon:'📜',label:'Lei Seca',key:'leis'},
       {icon:'🧭',label:'Trilhas',key:'trilhas'},
     ]},
     {title:'INTELIGÊNCIA',items:[{icon:'🤖',label:'Tutor IA',key:'ia'},{icon:'🎯',label:'Radar',key:'radar'}]},
@@ -3023,6 +3025,7 @@ export default function TigerJusApp() {
         {page==='ia'&&<IAPage freeIA={freeIA} setFreeIA={setFreeIA} showUpgrade={showUpgrade} profile={profile} isPago={userIsPago} iaIlimitada={iaIlimitada}/>}
         {page==='ranking'&&<RankingPage profile={profile} onNav={navTo}/>}
         {page==='indice'&&<IndiceJuridico showUpgrade={showUpgrade} isPago={canAccessPremium}/>}
+        {page==='leis'&&<LeiSecaPage/>}
         {page==='resumos'&&<ResumosPage profile={profile} showUpgrade={showUpgrade} onNav={navTo}/>}
         {page==='trilhas'&&<TrilhasPage canAccessPremium={canAccessPremium} showUpgrade={showUpgrade} onNav={navTo}/>}
         {page==='referral'&&<ReferralPage profile={profile} showUpgrade={showUpgrade} isPago={userIsPago}/>}
