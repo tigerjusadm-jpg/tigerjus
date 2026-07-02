@@ -7,6 +7,7 @@ import RadarOAB from '@/components/RadarOAB'
 import DashboardTopBanner from '@/components/DashboardTopBanner'
 import LandingTopBanner from '@/components/LandingTopBanner'
 import LeiSecaPage from '@/components/LeiSecaPage'
+import ComentarioComLei from '@/components/ComentarioComLei'
 import { canAccess, isAdmin, getLimites, isPago, getQuizModes, getResumoTier, PLANOS_DISPLAY, getNivelByXp, getNextNivel, type Plano } from '@/lib/planos'
 
 interface Profile {
@@ -856,7 +857,7 @@ function QuizPage({ freeQ, setFreeQ, showUpgrade, onXp, profile, isPago }: any) 
               </button>)
             })}
           </div>
-          {answered&&q.exp&&<div style={{marginTop:20,padding:16,background:'rgba(212,168,67,0.06)',border:'1px solid rgba(212,168,67,0.15)',borderRadius:12,fontSize:13,lineHeight:1.7,color:'var(--text-muted)'}}>{sel===q.correct?'✅ ':'❌ '}<strong style={{color:'var(--gold)'}}>{sel===q.correct?'Correto!':'Incorreto.'}</strong> {q.exp}</div>}
+          {answered&&q.exp&&<div style={{marginTop:20,padding:16,background:'rgba(212,168,67,0.06)',border:'1px solid rgba(212,168,67,0.15)',borderRadius:12,fontSize:13,lineHeight:1.7,color:'var(--text-muted)'}}>{sel===q.correct?'✅ ':'❌ '}<strong style={{color:'var(--gold)'}}>{sel===q.correct?'Correto!':'Incorreto.'}</strong> <ComentarioComLei texto={q.exp}/></div>}
           {answered&&<button className="btn-primary" style={{width:'100%',marginTop:18}} onClick={next}>{cur+1>=questions.length?'VER RESULTADO':'PRÓXIMA →'}</button>}
         </div>
       </div>
@@ -1358,7 +1359,7 @@ function QuizDisciplina({disciplina}:{disciplina:string}){
             return(<button key={i} onClick={()=>pick(i)} style={{display:'flex',alignItems:'flex-start',gap:12,background:bg,border:`1px solid ${bc}`,borderRadius:12,padding:'12px 14px',cursor:'pointer',transition:'all 0.2s',textAlign:'left',width:'100%',fontFamily:'var(--font-body)',fontSize:'clamp(13px,2.5vw,14px)',color}}><span style={{width:26,height:26,borderRadius:'50%',flexShrink:0,display:'flex',alignItems:'center',justifyContent:'center',fontSize:11,fontWeight:800,background:'rgba(255,255,255,0.06)',color:'var(--white)'}}>{String.fromCharCode(65+i)}</span><span style={{flex:1}}>{opt}</span></button>)
           })}
         </div>
-        {answered&&q.exp&&<div style={{marginTop:18,padding:14,background:'rgba(212,168,67,0.06)',border:'1px solid rgba(212,168,67,0.15)',borderRadius:12,fontSize:13,lineHeight:1.7,color:'var(--text-muted)'}}>{sel===q.correct?'✅ ':'❌ '}<strong style={{color:'var(--gold)'}}>{sel===q.correct?'Correto!':'Incorreto.'}</strong> {q.exp}</div>}
+        {answered&&q.exp&&<div style={{marginTop:18,padding:14,background:'rgba(212,168,67,0.06)',border:'1px solid rgba(212,168,67,0.15)',borderRadius:12,fontSize:13,lineHeight:1.7,color:'var(--text-muted)'}}>{sel===q.correct?'✅ ':'❌ '}<strong style={{color:'var(--gold)'}}>{sel===q.correct?'Correto!':'Incorreto.'}</strong> <ComentarioComLei texto={q.exp}/></div>}
         {answered&&<button className="btn-primary" style={{width:'100%',marginTop:16}} onClick={next}>{cur+1>=questions.length?'VER RESULTADO':'PRÓXIMA →'}</button>}
       </div>
     </div>
@@ -1500,7 +1501,7 @@ function RadarTop20({ onBack, podePDF }: { onBack: () => void; podePDF?: boolean
             return(<button key={i} onClick={()=>pick(i)} style={{display:'flex',alignItems:'flex-start',gap:12,background:bg,border:`1px solid ${bc}`,borderRadius:12,padding:'12px 14px',cursor:'pointer',transition:'all 0.2s',textAlign:'left',width:'100%',fontFamily:'var(--font-body)',fontSize:'clamp(13px,2.5vw,14px)',color}}><span style={{width:26,height:26,borderRadius:'50%',flexShrink:0,display:'flex',alignItems:'center',justifyContent:'center',fontSize:11,fontWeight:800,background:'rgba(255,255,255,0.06)',color:'var(--white)'}}>{String.fromCharCode(65+i)}</span><span style={{flex:1}}>{opt}</span></button>)
           })}
         </div>
-        {answered&&q.exp&&<div style={{marginTop:18,padding:14,background:'rgba(212,168,67,0.06)',border:'1px solid rgba(212,168,67,0.15)',borderRadius:12,fontSize:13,lineHeight:1.7,color:'var(--text-muted)'}}>{sel===q.correct?'✅ ':'❌ '}<strong style={{color:'var(--gold)'}}>{sel===q.correct?'Correto!':'Incorreto.'}</strong> {q.exp}</div>}
+        {answered&&q.exp&&<div style={{marginTop:18,padding:14,background:'rgba(212,168,67,0.06)',border:'1px solid rgba(212,168,67,0.15)',borderRadius:12,fontSize:13,lineHeight:1.7,color:'var(--text-muted)'}}>{sel===q.correct?'✅ ':'❌ '}<strong style={{color:'var(--gold)'}}>{sel===q.correct?'Correto!':'Incorreto.'}</strong> <ComentarioComLei texto={q.exp}/></div>}
         {answered&&<button className="btn-primary" style={{width:'100%',marginTop:16}} onClick={next}>{cur+1>=questions.length?'VER RESULTADO':'PRÓXIMA →'}</button>}
       </div>
     </div>
@@ -1678,7 +1679,7 @@ function SimuladosPage({ showUpgrade, freeQ, setFreeQ, onXp, profile, isPago, ca
             <div style={{display:'flex',flexDirection:'column',gap:10}}>
               {q.opts.map((opt:string,i:number)=>{let bg='rgba(255,255,255,0.03)',bc='rgba(255,255,255,0.08)',color='var(--white)';if(checking&&i===sel){bg='rgba(212,168,67,0.08)';bc='rgba(212,168,67,0.6)';color='var(--gold)'}if(answered){if(i===q.correct){bg='rgba(76,175,125,0.1)';bc='var(--success)';color='var(--success)'}else if(i===sel){bg='rgba(232,66,26,0.1)';bc='var(--danger)';color='var(--danger)'}}return(<button key={i} onClick={()=>pick(i)} style={{display:'flex',alignItems:'flex-start',gap:12,background:bg,border:`1px solid ${bc}`,borderRadius:12,padding:'13px 15px',cursor:'pointer',transition:'all 0.2s',textAlign:'left',width:'100%',fontFamily:'var(--font-body)',fontSize:'clamp(13px,2.5vw,14px)',color}}><span style={{width:26,height:26,borderRadius:'50%',flexShrink:0,display:'flex',alignItems:'center',justifyContent:'center',fontSize:11,fontWeight:800,background:'rgba(255,255,255,0.06)',color:'var(--white)'}}>{String.fromCharCode(65+i)}</span><span style={{flex:1}}>{opt}</span></button>)})}
             </div>
-            {answered&&q.exp&&<div style={{marginTop:20,padding:16,background:'rgba(212,168,67,0.06)',border:'1px solid rgba(212,168,67,0.15)',borderRadius:12,fontSize:13,lineHeight:1.7,color:'var(--text-muted)'}}>{sel===q.correct?'✅ ':'❌ '}<strong style={{color:'var(--gold)'}}>{sel===q.correct?'Correto!':'Incorreto.'}</strong> {q.exp}</div>}
+            {answered&&q.exp&&<div style={{marginTop:20,padding:16,background:'rgba(212,168,67,0.06)',border:'1px solid rgba(212,168,67,0.15)',borderRadius:12,fontSize:13,lineHeight:1.7,color:'var(--text-muted)'}}>{sel===q.correct?'✅ ':'❌ '}<strong style={{color:'var(--gold)'}}>{sel===q.correct?'Correto!':'Incorreto.'}</strong> <ComentarioComLei texto={q.exp}/></div>}
             {answered&&<button className="btn-primary" style={{width:'100%',marginTop:18}} onClick={next}>{cur+1>=selectedSimulado.questions.length?'VER RESULTADO':'PRÓXIMA →'}</button>}
           </div>
         </div>
@@ -2407,7 +2408,7 @@ function IndiceJuridico({ showUpgrade, isPago }: any) {
                             return <div key={l} style={{fontSize:11,padding:'4px 10px',borderRadius:6,background:certa?'rgba(76,175,125,0.12)':'rgba(255,255,255,0.04)',border:`1px solid ${certa?'var(--success)':'rgba(255,255,255,0.08)'}`,color:certa?'var(--success)':'var(--text-muted)',flex:'1 1 40%'}}>{l}) {opt?.slice(0,60)}{opt?.length>60?'...':''}</div>
                           })}
                         </div>
-                        {q.comentario&&<div style={{marginTop:8,fontSize:11,color:'var(--text-muted)',borderTop:'1px solid rgba(255,255,255,0.06)',paddingTop:8}}>💡 {q.comentario.slice(0,150)}{q.comentario.length>150?'...':''}</div>}
+                        {q.comentario&&<div style={{marginTop:8,fontSize:11,color:'var(--text-muted)',borderTop:'1px solid rgba(255,255,255,0.06)',paddingTop:8}}>💡 <ComentarioComLei texto={q.comentario}/></div>}
                       </div>
                     ))}
                   </div>
@@ -2528,7 +2529,7 @@ function IndiceJuridico({ showUpgrade, isPago }: any) {
                         return opt?<div key={l} style={{fontSize:11,padding:'5px 10px',borderRadius:6,background:certa?'rgba(76,175,125,0.1)':'rgba(255,255,255,0.03)',border:`1px solid ${certa?'var(--success)':'rgba(255,255,255,0.07)'}`,color:certa?'var(--success)':'var(--text-muted)',flex:'1 1 40%',lineHeight:1.5}}><strong>{l})</strong> {opt.slice(0,70)}{opt.length>70?'...':''}</div>:null
                       })}
                     </div>
-                    {q.comentario&&<div style={{marginTop:10,padding:'10px 12px',background:'rgba(212,168,67,0.05)',border:'1px solid rgba(212,168,67,0.12)',borderRadius:8,fontSize:11,color:'var(--text-muted)',lineHeight:1.6}}>💡 {q.comentario.slice(0,160)}{q.comentario.length>160?'...':''}</div>}
+                    {q.comentario&&<div style={{marginTop:10,padding:'10px 12px',background:'rgba(212,168,67,0.05)',border:'1px solid rgba(212,168,67,0.12)',borderRadius:8,fontSize:11,color:'var(--text-muted)',lineHeight:1.6}}>💡 <ComentarioComLei texto={q.comentario}/></div>}
                   </div>
                 ))}
               </div>
