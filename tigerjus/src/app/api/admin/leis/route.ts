@@ -66,13 +66,21 @@ function limparEExtrair(htmlBruto: string) {
   // ponto órfão logo após "(Vetado)"/"(VETADO)" — ex.: "(Vetado) ." -> "(Vetado)"
   texto = texto.replace(/(\((?:VETADO|Vetado)\))\s*\./g, '$1')
 
-  // corta o rodapé do Planalto (nota do DOU). Leis com "decreto de aprovação" (ex.: CLT)
-  // têm o decreto + rodapé ANTES da lei real; nesse caso o corpo fica ENTRE o 1º e o último rodapé.
+  // Rodapé do DOU. Cuidado com leis "decreto de aprovação" (ex.: CLT): o rodapé pode aparecer
+  // no MEIO (logo após o decreto) e a lei real vir DEPOIS dele.
   const footers = [...texto.matchAll(/Este texto n[ãa]o substitui/gi)].map(m => m.index || 0)
   if (footers.length >= 2) {
+    // decreto + lei + rodapé final → o corpo real fica entre o 1º e o último rodapé
     texto = texto.slice(footers[0], footers[footers.length - 1])
   } else if (footers.length === 1) {
-    texto = texto.slice(0, footers[0])
+    const f = footers[0]
+    if (texto.length - f > f) {
+      // há mais texto DEPOIS do rodapé do que antes → rodapé do decreto no meio; a lei vem depois
+      texto = texto.slice(f)
+    } else {
+      // rodapé no fim → corta ele
+      texto = texto.slice(0, f)
+    }
   }
 
   // começa no primeiro "Art. 1"
@@ -163,6 +171,7 @@ export async function POST(req: Request) {
         .from('leis_secas')
         .select('id,lei_slug,lei_nome,artigo,artigo_num,texto,status,ordem')
         .order('ordem', { ascending: true })
+        .limit(5000)
       if (lei_slug) query = query.eq('lei_slug', lei_slug)
       const { data, error } = await query
       if (error) return NextResponse.json({ error: error.message }, { status: 500 })
