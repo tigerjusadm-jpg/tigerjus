@@ -6,6 +6,12 @@ const PRESETS = [
   { lei_slug: 'eaoab', lei_nome: 'Estatuto da OAB (Lei 8.906/1994)', url: 'https://www.planalto.gov.br/ccivil_03/leis/l8906.htm' },
   { lei_slug: 'cdc', lei_nome: 'Código de Defesa do Consumidor (Lei 8.078/1990)', url: 'https://www.planalto.gov.br/ccivil_03/leis/l8078compilado.htm' },
   { lei_slug: 'eca', lei_nome: 'Estatuto da Criança e do Adolescente (Lei 8.069/1990)', url: 'https://www.planalto.gov.br/ccivil_03/leis/l8069.htm' },
+  { lei_slug: 'cf', lei_nome: 'Constituição Federal (1988)', url: 'https://www.planalto.gov.br/ccivil_03/constituicao/constituicaocompilado.htm' },
+  { lei_slug: 'cp', lei_nome: 'Código Penal (Decreto-Lei 2.848/1940)', url: 'https://www.planalto.gov.br/ccivil_03/decreto-lei/del2848compilado.htm' },
+  { lei_slug: 'cc', lei_nome: 'Código Civil (Lei 10.406/2002)', url: 'https://www.planalto.gov.br/ccivil_03/leis/2002/l10406compilada.htm' },
+  { lei_slug: 'cpc', lei_nome: 'Código de Processo Civil (Lei 13.105/2015)', url: 'https://www.planalto.gov.br/ccivil_03/_ato2015-2018/2015/lei/l13105compilada.htm' },
+  { lei_slug: 'cpp', lei_nome: 'Código de Processo Penal (Decreto-Lei 3.689/1941)', url: 'https://www.planalto.gov.br/ccivil_03/decreto-lei/del3689compilado.htm' },
+  { lei_slug: 'clt', lei_nome: 'CLT (Decreto-Lei 5.452/1943)', url: 'https://www.planalto.gov.br/ccivil_03/decreto-lei/del5452compilado.htm' },
 ]
 
 const inp: any = { padding: '10px 12px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.15)', background: 'rgba(255,255,255,0.03)', color: '#fff', fontSize: 13, width: '100%' }
