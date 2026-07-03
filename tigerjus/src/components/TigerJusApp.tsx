@@ -928,8 +928,8 @@ function ResumoRenderer({ texto }: { texto: string }) {
         if (trim === trim.toUpperCase() && trim.length > 4 && !trim.startsWith('-') && !trim.startsWith('•'))
           return <div key={i} style={{fontFamily:'var(--font-display)',fontSize:16,fontWeight:900,color:'var(--white)',marginTop:i>0?20:0,marginBottom:8,letterSpacing:0.3}}>{trim}</div>
         if (trim.startsWith('- ') || trim.startsWith('• '))
-          return (<div key={i} style={{display:'flex',gap:8,marginBottom:4,paddingLeft:4}}><span style={{color:'var(--gold)',flexShrink:0,marginTop:2}}>▸</span><span>{trim.replace(/^[-•]\s/,'')}</span></div>)
-        return <div key={i} style={{marginBottom:4}}>{trim}</div>
+          return (<div key={i} style={{display:'flex',gap:8,marginBottom:4,paddingLeft:4}}><span style={{color:'var(--gold)',flexShrink:0,marginTop:2}}>▸</span><span><ComentarioComLei texto={trim.replace(/^[-•]\s/,'')}/></span></div>)
+        return <div key={i} style={{marginBottom:4}}><ComentarioComLei texto={trim}/></div>
       })}
     </div>
   )
@@ -1554,7 +1554,7 @@ function FlashCards({disciplina}:{disciplina:string}){
           </div>
           <div style={{position:'absolute',top:0,left:0,right:0,backfaceVisibility:'hidden',transform:'rotateY(180deg)',background:'linear-gradient(135deg,rgba(212,168,67,0.1),rgba(232,98,26,0.06))',border:'1px solid rgba(212,168,67,0.3)',borderRadius:20,padding:'24px 24px 20px',minHeight:180,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',textAlign:'center'}}>
             <div style={{fontSize:10,fontWeight:700,letterSpacing:2,textTransform:'uppercase',color:'var(--gold)',marginBottom:12}}>RESPOSTA</div>
-            <div style={{fontSize:13,lineHeight:1.8,color:'var(--text-muted)',whiteSpace:'pre-wrap',wordBreak:'break-word',overflowWrap:'anywhere',maxHeight:300,overflowY:'auto',width:'100%'}}>{card.verso}</div>
+            <div style={{fontSize:13,lineHeight:1.8,color:'var(--text-muted)',whiteSpace:'pre-wrap',wordBreak:'break-word',overflowWrap:'anywhere',maxHeight:300,overflowY:'auto',width:'100%'}}><ComentarioComLei texto={card.verso}/></div>
           </div>
         </div>
       </div>
