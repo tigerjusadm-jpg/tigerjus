@@ -45,10 +45,16 @@ let _promise: Promise<Set<string>> | null = null
 function getSlugs(): Promise<Set<string>> {
   if (_slugs) return Promise.resolve(_slugs)
   if (!_promise) {
-    _promise = supabase
-      .from('leis_secas').select('lei_slug').eq('status', 'publicado').limit(10000)
-      .then(({ data }) => { _slugs = new Set((data || []).map((r: any) => r.lei_slug)); return _slugs })
-      .catch(() => { _slugs = new Set<string>(); return _slugs! })
+    _promise = (async () => {
+      try {
+        const { data } = await supabase
+          .from('leis_secas').select('lei_slug').eq('status', 'publicado').limit(10000)
+        _slugs = new Set((data || []).map((r: any) => r.lei_slug))
+      } catch {
+        _slugs = new Set<string>()
+      }
+      return _slugs!
+    })()
   }
   return _promise
 }
