@@ -66,22 +66,27 @@ function limparEExtrair(htmlBruto: string) {
   // ponto órfão logo após "(Vetado)"/"(VETADO)" — ex.: "(Vetado) ." -> "(Vetado)"
   texto = texto.replace(/(\((?:VETADO|Vetado)\))\s*\./g, '$1')
 
-  // corta o rodapé do Planalto (nota do DOU + qualquer lixo residual depois dela)
-  const fimLei = texto.search(/Este texto n[ãa]o substitui/i)
-  if (fimLei > 0) texto = texto.slice(0, fimLei)
+  // corta o rodapé do Planalto (nota do DOU). Leis com "decreto de aprovação" (ex.: CLT)
+  // têm o decreto + rodapé ANTES da lei real; nesse caso o corpo fica ENTRE o 1º e o último rodapé.
+  const footers = [...texto.matchAll(/Este texto n[ãa]o substitui/gi)].map(m => m.index || 0)
+  if (footers.length >= 2) {
+    texto = texto.slice(footers[0], footers[footers.length - 1])
+  } else if (footers.length === 1) {
+    texto = texto.slice(0, footers[0])
+  }
 
   // começa no primeiro "Art. 1"
   const ini = texto.search(/Art\.?\s*1\s*[ºo°]/)
   if (ini > 0) texto = texto.slice(ini)
 
   // divide por "Art. N" (inclui bis: 3º-A)
-  const partes = texto.split(/(?=Art\.?\s*\d+\s*[ºo°]?(?:-[A-Z])?[.\s])/)
+  const partes = texto.split(/(?=Art\.?\s*\d+(?:\.\d{3})*\s*[ºo°]?(?:-[A-Z])?[.\s])/)
   const artigos: { artigo: string; num: number; texto: string }[] = []
   const vistos = new Set<string>()
   for (const p of partes) {
-    const m = p.match(/^Art\.?\s*(\d+)\s*[ºo°]?(-[A-Z])?/)
+    const m = p.match(/^Art\.?\s*(\d+(?:\.\d{3})*)\s*[ºo°]?(-[A-Z])?/)
     if (!m) continue
-    const num = parseInt(m[1], 10)
+    const num = parseInt(m[1].replace(/\./g, ''), 10)
     const bis = m[2] || ''
     // 1º ao 9º levam "º"; de 10 em diante é cardinal ("Art. 10", "Art. 83")
     const label = `Art. ${m[1]}${num <= 9 ? 'º' : ''}${bis}`
@@ -143,8 +148,12 @@ export async function POST(req: Request) {
         lei_slug, lei_nome, artigo: a.artigo, artigo_num: a.num,
         texto: a.texto, fonte_url: url, status: 'rascunho', ordem: i,
       }))
-      const { error } = await supabase.from('leis_secas').upsert(rows, { onConflict: 'lei_slug,artigo' })
-      if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+      // insere em LOTES — códigos grandes (CC ~2.046, CPC ~1.072) estouram o limite de uma requisição única
+      const LOTE = 400
+      for (let i = 0; i < rows.length; i += LOTE) {
+        const { error } = await supabase.from('leis_secas').upsert(rows.slice(i, i + LOTE), { onConflict: 'lei_slug,artigo' })
+        if (error) return NextResponse.json({ error: `lote ${i}-${i + LOTE}: ${error.message}`, inseridos: i }, { status: 500 })
+      }
       return NextResponse.json({ ok: true, total: artigos.length, amostra: artigos.slice(0, 5) })
     }
 
