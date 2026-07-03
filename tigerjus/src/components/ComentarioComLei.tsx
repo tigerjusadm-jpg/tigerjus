@@ -18,7 +18,6 @@ const LEIS: { slug: string; nome: string; pat: string }[] = [
   { slug: 'ced',   nome: 'Código de Ética da OAB',               pat: 'CED\\/?OAB|CED\\b|C[óo]digo de [ÉEée]tica(?:\\s+e Disciplina)?(?:\\s+d[ao]\\s+OAB)?' },
 ]
 
-// acha a PRIMEIRA lei citada numa janela de texto
 function acharLei(win: string): { slug: string; nome: string; idx: number; len: number } | null {
   let best: { slug: string; nome: string; idx: number; len: number } | null = null
   for (const L of LEIS) {
@@ -30,16 +29,42 @@ function acharLei(win: string): { slug: string; nome: string; idx: number; len: 
   return best
 }
 
-// insere ponto de milhar: 1234 -> "1.234"
 function comMilhar(n: number): string {
   return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, '.')
 }
-// rótulo no formato da tabela: "Art. 5º" / "Art. 121" / "Art. 1.234" / "Art. 17-A"
 function rotuloArtigo(num: number, bis: string): string {
   return `Art. ${comMilhar(num)}${num <= 9 ? 'º' : ''}${bis ? bis.toUpperCase() : ''}`
 }
 
-// ---- cache (1x por sessão) das leis que EXISTEM publicadas na base ----
+// referências de §§ e incisos citadas no trecho entre o número e a lei
+function refsDoMeio(meio: string): { paras: number[]; incisos: string[] } {
+  const paras: number[] = []
+  const incisos: string[] = []
+  const s = meio.search(/§/)
+  if (s >= 0) {
+    for (const m of meio.slice(s).matchAll(/(\d+)/g)) paras.push(parseInt(m[1], 10))
+  } else {
+    for (const m of meio.matchAll(/\b([IVXLCDM]{1,7})\b/g)) incisos.push(m[1].toUpperCase())
+  }
+  return { paras: [...new Set(paras)], incisos: [...new Set(incisos)] }
+}
+
+// extrai só os §§/incisos pedidos do corpo do artigo (retorna '' se não achar)
+function extrairTrecho(texto: string, paras: number[], incisos: string[]): string {
+  if (paras.length) {
+    const segs = texto.split(/(?=§\s*\d)/)
+    const out = segs.filter(x => { const m = x.match(/^§\s*(\d+)/); return m && paras.includes(parseInt(m[1], 10)) }).map(x => x.trim())
+    if (out.length) return out.join('\n\n')
+  }
+  if (incisos.length) {
+    const segs = texto.split(/(?=(?:^|[\s;])[IVXLCDM]{1,7}\s*[-–]\s)/)
+    const out = segs.filter(x => { const m = x.trim().match(/^([IVXLCDM]{1,7})\s*[-–]/); return m && incisos.includes(m[1].toUpperCase()) }).map(x => x.trim())
+    if (out.length) return out.join('\n\n')
+  }
+  return ''
+}
+
+// ---- cache (1x/sessão) das leis publicadas na base ----
 let _slugs: Set<string> | null = null
 let _promise: Promise<Set<string>> | null = null
 function getSlugs(): Promise<Set<string>> {
@@ -61,9 +86,8 @@ function getSlugs(): Promise<Set<string>> {
 
 type Node =
   | { t: 'txt'; v: string }
-  | { t: 'cite'; v: string; slug: string; leiNome: string; artigo: string; num: number }
+  | { t: 'cite'; v: string; slug: string; leiNome: string; artigo: string; num: number; paras: number[]; incisos: string[] }
 
-// quebra o comentário em texto + citações clicáveis (só linka lei presente em `slugs`)
 function parse(texto: string, slugs: Set<string>): Node[] {
   const nodes: Node[] = []
   const t = texto || ''
@@ -75,7 +99,6 @@ function parse(texto: string, slugs: Set<string>): Node[] {
     const numEnd = m.index + m[0].length
     const num = parseInt(m[2].replace(/\./g, ''), 10)
     const bis = m[3] || ''
-    // janela após o número (até 40 chars), sem atravessar outro "art" ou fim de frase
     let win = t.slice(numEnd, numEnd + 40)
     const prox = win.search(/\b(arts?\.?|artigos?)\b/i)
     if (prox >= 0) win = win.slice(0, prox)
@@ -83,9 +106,11 @@ function parse(texto: string, slugs: Set<string>): Node[] {
     if (corte >= 0) win = win.slice(0, corte)
     const lei = acharLei(win)
     if (lei && slugs.has(lei.slug)) {
-      const citeEnd = numEnd + lei.idx + lei.len
+      const leiStart = numEnd + lei.idx
+      const citeEnd = leiStart + lei.len
+      const { paras, incisos } = refsDoMeio(t.slice(numEnd, leiStart))
       if (artStart > last) nodes.push({ t: 'txt', v: t.slice(last, artStart) })
-      nodes.push({ t: 'cite', v: t.slice(artStart, citeEnd), slug: lei.slug, leiNome: lei.nome, artigo: rotuloArtigo(num, bis), num })
+      nodes.push({ t: 'cite', v: t.slice(artStart, citeEnd), slug: lei.slug, leiNome: lei.nome, artigo: rotuloArtigo(num, bis), num, paras, incisos })
       last = citeEnd
       anchor.lastIndex = citeEnd
     }
@@ -94,7 +119,6 @@ function parse(texto: string, slugs: Set<string>): Node[] {
   return nodes
 }
 
-// limpa o corpo do artigo no popup (mesma regra da Lei Seca)
 function limparCorpo(texto: string): string {
   let t = texto || ''
   t = t.replace(/^\s*Art\.?\s*[\d.]+\s*[ºo°]?(?:-[A-Z])?\.?\s*/i, '')
@@ -104,21 +128,22 @@ function limparCorpo(texto: string): string {
   return t
 }
 
-interface Alvo { slug: string; leiNome: string; artigo: string; num: number }
+interface Alvo { slug: string; leiNome: string; artigo: string; num: number; paras: number[]; incisos: string[]; ref: string }
 
 export default function ComentarioComLei({ texto }: { texto: string }) {
   const [slugs, setSlugs] = useState<Set<string> | null>(_slugs)
   const [alvo, setAlvo] = useState<Alvo | null>(null)
-  const [corpo, setCorpo] = useState('')
+  const [corpoFull, setCorpoFull] = useState('')
   const [carregando, setCarregando] = useState(false)
   const [erro, setErro] = useState('')
+  const [verComplet, setVerComplet] = useState(false)
 
   useEffect(() => { if (!slugs) getSlugs().then(s => setSlugs(new Set(s))) }, [slugs])
 
   useEffect(() => {
     if (!alvo) return
     let vivo = true
-    setCarregando(true); setErro(''); setCorpo('')
+    setCarregando(true); setErro(''); setCorpoFull(''); setVerComplet(false)
     ;(async () => {
       try {
         let { data } = await supabase
@@ -131,7 +156,7 @@ export default function ComentarioComLei({ texto }: { texto: string }) {
           data = r2.data
         }
         if (!vivo) return
-        if (data && data.length) setCorpo(limparCorpo(data[0].texto))
+        if (data && data.length) setCorpoFull(limparCorpo(data[0].texto))
         else setErro('Não encontrei esse artigo na base.')
       } catch {
         if (vivo) setErro('Não consegui abrir o artigo agora.')
@@ -143,6 +168,9 @@ export default function ComentarioComLei({ texto }: { texto: string }) {
   }, [alvo])
 
   const nodes = parse(texto, slugs || new Set())
+  const trecho = alvo ? extrairTrecho(corpoFull, alvo.paras, alvo.incisos) : ''
+  const temTrecho = !!trecho
+  const mostrar = (temTrecho && !verComplet) ? trecho : corpoFull
 
   return (
     <>
@@ -153,7 +181,7 @@ export default function ComentarioComLei({ texto }: { texto: string }) {
           ) : (
             <button
               key={i}
-              onClick={(e) => { e.stopPropagation(); setAlvo({ slug: n.slug, leiNome: n.leiNome, artigo: n.artigo, num: n.num }) }}
+              onClick={(e) => { e.stopPropagation(); setAlvo({ slug: n.slug, leiNome: n.leiNome, artigo: n.artigo, num: n.num, paras: n.paras, incisos: n.incisos, ref: n.v }) }}
               title={`Ver ${n.artigo} — ${n.leiNome}`}
               style={{ background: 'none', border: 'none', padding: 0, margin: 0, font: 'inherit', color: 'var(--gold)', textDecoration: 'underline', textUnderlineOffset: 2, cursor: 'pointer' }}
             >
@@ -175,15 +203,26 @@ export default function ComentarioComLei({ texto }: { texto: string }) {
             <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, marginBottom: 4 }}>
               <div>
                 <div style={{ fontFamily: 'var(--font-display)', fontSize: 18, fontWeight: 900, color: 'var(--gold)' }}>{alvo.artigo}</div>
-                <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{alvo.leiNome}</div>
+                <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{alvo.leiNome}{temTrecho && !verComplet ? ' · trecho citado' : ''}</div>
               </div>
               <button onClick={() => setAlvo(null)} aria-label="Fechar" style={{ background: 'none', border: 'none', color: 'var(--text-muted)', fontSize: 24, lineHeight: 1, cursor: 'pointer', padding: 0 }}>×</button>
             </div>
+
+            {temTrecho && (
+              <button
+                onClick={() => setVerComplet(v => !v)}
+                style={{ marginTop: 8, marginBottom: 4, background: 'none', border: '1px solid var(--tj-card-border,rgba(99,130,200,0.25))', borderRadius: 8, color: 'var(--gold)', fontSize: 11, fontWeight: 700, padding: '4px 10px', cursor: 'pointer' }}
+              >
+                {verComplet ? '↑ Ver só o trecho citado' : '↓ Ver artigo completo'}
+              </button>
+            )}
+
             <div style={{ marginTop: 12, fontSize: 14.5, color: 'rgba(255,255,255,0.9)', lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>
               {carregando && <span style={{ color: 'var(--text-muted)' }}>Carregando o artigo…</span>}
               {erro && <span style={{ color: 'var(--text-muted)' }}>{erro}</span>}
-              {!carregando && !erro && corpo}
+              {!carregando && !erro && mostrar}
             </div>
+
             <div style={{ marginTop: 16, textAlign: 'right' }}>
               <button onClick={() => setAlvo(null)} style={{ background: 'var(--gold)', color: '#1a1200', border: 'none', borderRadius: 10, padding: '8px 16px', fontSize: 13, fontWeight: 800, cursor: 'pointer' }}>Fechar</button>
             </div>
