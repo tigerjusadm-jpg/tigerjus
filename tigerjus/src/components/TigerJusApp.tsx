@@ -1583,7 +1583,7 @@ function SimuladosPage({ showUpgrade, freeQ, setFreeQ, onXp, profile, isPago, ca
   const [loadingProva,setLoadingProva]=useState(false)
   const [tab,setTab]=useState<'oficiais'|'pratica'>('oficiais')
   const [savedMap,setSavedMap]=useState<any>({})
-  const PROG_KEY='tj_simulados_progresso'
+  const PROG_KEY='tj_simulados_progresso:'+(profile?.id||'anon')
   const progKey=(sim:any)=>sim?.oficial?`oficial:${sim.id}`:`pratica:${sim.t}`
   const readMap=()=>{try{if(typeof window==='undefined')return {};const raw=localStorage.getItem(PROG_KEY);return raw?(JSON.parse(raw)||{}):{}}catch{return {}}}
   const writeMap=(m:any)=>{try{if(typeof window!=='undefined')localStorage.setItem(PROG_KEY,JSON.stringify(m))}catch{}}
@@ -1688,9 +1688,10 @@ function SimuladosPage({ showUpgrade, freeQ, setFreeQ, onXp, profile, isPago, ca
   },[running,done,cur,answered,score,selectedSimulado])
 
   useEffect(()=>{
+    try{if(typeof window!=='undefined')localStorage.removeItem('tj_simulados_progresso')}catch{}
     setSavedMap(readMap())
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  },[])
+  },[profile?.id])
 
   const continuarSimulado=(key:string)=>{
     const sp=readMap()[key];if(!sp)return
