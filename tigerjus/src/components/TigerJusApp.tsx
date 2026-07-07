@@ -1670,12 +1670,23 @@ function SimuladosPage({ showUpgrade, freeQ, setFreeQ, onXp, profile, isPago, ca
 
   if(running&&!done&&selectedSimulado){
     const q=selectedSimulado.questions[cur];const pct=Math.round(((cur+(answered?1:0))/selectedSimulado.questions.length)*100)
+    const respondidas=cur+(answered?1:0);const taxaAcerto=respondidas>0?Math.round((score/respondidas)*100):0
     const duracaoTotal=(selectedSimulado?.t&&selectedSimulado.t.includes('Mini'))?900:18000
     return(
       <div style={{padding:'24px 20px',flex:1}}>
         <div style={{maxWidth:680,margin:'0 auto'}}>
           <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:12}}><div style={{fontSize:12,color:'var(--text-muted)'}}>{selectedSimulado.edicao||selectedSimulado.t} · Q{cur+1}/{selectedSimulado.questions.length}</div></div>
           <div style={{marginBottom:16}}><CronometroSimulado segundosRestantes={time} duracaoTotalSegundos={duracaoTotal} /></div>
+          <div style={{display:'flex',gap:12,marginBottom:16}}>
+            <div style={{flex:1,background:'rgba(58,143,232,0.1)',border:'1px solid rgba(58,143,232,0.3)',borderRadius:14,padding:'14px 12px',textAlign:'center'}}>
+              <div style={{fontSize:11,fontWeight:800,letterSpacing:'1px',textTransform:'uppercase',color:'var(--text-muted)',marginBottom:5}}>Respondidas</div>
+              <div style={{fontFamily:'var(--font-display)',fontSize:34,fontWeight:900,color:'#60a5fa',lineHeight:1}}>{respondidas}<span style={{fontSize:16,color:'var(--text-muted)',fontWeight:700}}>/{selectedSimulado.questions.length}</span></div>
+            </div>
+            <div style={{flex:1,background:taxaAcerto>=50?'rgba(76,175,125,0.1)':'rgba(232,66,26,0.08)',border:`1px solid ${taxaAcerto>=50?'rgba(76,175,125,0.35)':'rgba(232,66,26,0.3)'}`,borderRadius:14,padding:'14px 12px',textAlign:'center'}}>
+              <div style={{fontSize:11,fontWeight:800,letterSpacing:'1px',textTransform:'uppercase',color:'var(--text-muted)',marginBottom:5}}>Taxa de acerto</div>
+              <div style={{fontFamily:'var(--font-display)',fontSize:34,fontWeight:900,color:taxaAcerto>=50?'var(--success)':'var(--danger)',lineHeight:1}}>{respondidas>0?`${taxaAcerto}%`:'—'}</div>
+            </div>
+          </div>
           <div style={{background:'rgba(255,255,255,0.06)',borderRadius:100,height:4,marginBottom:22,overflow:'hidden'}}><div style={{width:`${pct}%`,height:'100%',background:'linear-gradient(90deg,var(--gold),var(--orange))',borderRadius:100,transition:'width 0.4s'}}/></div>
           <div style={{background:'var(--gray)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:20,padding:'22px'}}>
             <div style={{display:'flex',gap:8,marginBottom:14}}><span style={{fontSize:10,fontWeight:700,letterSpacing:2,textTransform:'uppercase',color:'var(--gold)'}}>{q.disc}</span><span style={{fontSize:10,color:'var(--text-muted)'}}>· OAB Oficial</span></div>
