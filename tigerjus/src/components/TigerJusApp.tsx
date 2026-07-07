@@ -8,6 +8,7 @@ import DashboardTopBanner from '@/components/DashboardTopBanner'
 import LandingTopBanner from '@/components/LandingTopBanner'
 import LeiSecaPage from '@/components/LeiSecaPage'
 import ComentarioComLei from '@/components/ComentarioComLei'
+import CronometroSimulado from '@/components/CronometroSimulado'
 import { canAccess, isAdmin, getLimites, isPago, getQuizModes, getResumoTier, PLANOS_DISPLAY, getNivelByXp, getNextNivel, type Plano } from '@/lib/planos'
 
 interface Profile {
@@ -1667,11 +1668,12 @@ function SimuladosPage({ showUpgrade, freeQ, setFreeQ, onXp, profile, isPago, ca
 
   if(running&&!done&&selectedSimulado){
     const q=selectedSimulado.questions[cur];const pct=Math.round(((cur+(answered?1:0))/selectedSimulado.questions.length)*100)
-    const h=Math.floor(time/3600),m=Math.floor((time%3600)/60),s=time%60
+    const duracaoTotal=(selectedSimulado?.t&&selectedSimulado.t.includes('Mini'))?900:18000
     return(
       <div style={{padding:'24px 20px',flex:1}}>
         <div style={{maxWidth:680,margin:'0 auto'}}>
-          <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:12}}><div style={{fontSize:12,color:'var(--text-muted)'}}>{selectedSimulado.edicao||selectedSimulado.t} · Q{cur+1}/{selectedSimulado.questions.length}</div><div style={{fontFamily:'var(--font-mono)',fontSize:16,fontWeight:700,color:time<600?'var(--danger)':'var(--gold)'}}>{h>0?`${String(h).padStart(2,'0')}:`:''}{String(m).padStart(2,'0')}:{String(s).padStart(2,'0')}</div></div>
+          <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:12}}><div style={{fontSize:12,color:'var(--text-muted)'}}>{selectedSimulado.edicao||selectedSimulado.t} · Q{cur+1}/{selectedSimulado.questions.length}</div></div>
+          <div style={{marginBottom:16}}><CronometroSimulado segundosRestantes={time} duracaoTotalSegundos={duracaoTotal} /></div>
           <div style={{background:'rgba(255,255,255,0.06)',borderRadius:100,height:4,marginBottom:22,overflow:'hidden'}}><div style={{width:`${pct}%`,height:'100%',background:'linear-gradient(90deg,var(--gold),var(--orange))',borderRadius:100,transition:'width 0.4s'}}/></div>
           <div style={{background:'var(--gray)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:20,padding:'22px'}}>
             <div style={{display:'flex',gap:8,marginBottom:14}}><span style={{fontSize:10,fontWeight:700,letterSpacing:2,textTransform:'uppercase',color:'var(--gold)'}}>{q.disc}</span><span style={{fontSize:10,color:'var(--text-muted)'}}>· OAB Oficial</span></div>
