@@ -1582,6 +1582,7 @@ function SimuladosPage({ showUpgrade, freeQ, setFreeQ, onXp, profile, isPago, ca
   const [provasOAB,setProvasOAB]=useState<any[]>([])
   const [loadingProva,setLoadingProva]=useState(false)
   const [tab,setTab]=useState<'oficiais'|'pratica'>('oficiais')
+  const [savedProgress,setSavedProgress]=useState<any>(null)
 
   function planoMinimoParaSimulado(numeroExame:number):Plano{return planoMinimoExame(numeroExame)} // graduais: Start 35-40 · Pro 35-44 · Elite 35-46
   const BADGE_COR:Record<string,{bg:string;color:string;label:string}>={start:{bg:'rgba(59,130,246,0.15)',color:'#60a5fa',label:'START'},plus:{bg:'rgba(139,92,246,0.15)',color:'#a78bfa',label:'START'},pro:{bg:'rgba(236,72,153,0.15)',color:'#f472b6',label:'PRO'},elite:{bg:'rgba(212,168,67,0.12)',color:'var(--gold)',label:'ELITE'}}
@@ -1642,10 +1643,10 @@ function SimuladosPage({ showUpgrade, freeQ, setFreeQ, onXp, profile, isPago, ca
   },[])
 
   useEffect(()=>{
-    if(!running||answered||done)return
+    if(!running||done)return
     const t=setInterval(()=>setTime(p=>{if(p<=1){clearInterval(t);setDone(true);return 0}return p-1}),1000)
     return()=>clearInterval(t)
-  },[running,answered,done,cur])
+  },[running,done])
 
   const responder=async(i:number)=>{
     if(answered||checking)return
@@ -1667,6 +1668,37 @@ function SimuladosPage({ showUpgrade, freeQ, setFreeQ, onXp, profile, isPago, ca
   }
   const pick=(i:number)=>{ responder(i) }
   const next=()=>{if(cur+1>=selectedSimulado.questions.length){setDone(true);onXp('simulado_complete');return}setCur(p=>p+1);setSel(null);setAnswered(false)}
+
+  // Persistência de progresso (localStorage — mesmo aparelho). Cronômetro pausa ao sair.
+  useEffect(()=>{
+    if(typeof window==='undefined')return
+    try{
+      if(running&&!done&&selectedSimulado){
+        localStorage.setItem('tj_simulado_progresso',JSON.stringify({selectedSimulado,cur,sel,answered,score,time,savedAt:Date.now()}))
+      }else if(done){
+        localStorage.removeItem('tj_simulado_progresso')
+      }
+    }catch{}
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[running,done,cur,answered,score,selectedSimulado])
+
+  useEffect(()=>{
+    if(typeof window==='undefined')return
+    try{
+      const raw=localStorage.getItem('tj_simulado_progresso')
+      if(raw){const sp=JSON.parse(raw);if(sp&&sp.selectedSimulado&&sp.selectedSimulado.questions&&sp.selectedSimulado.questions.length){setSavedProgress(sp)}}
+    }catch{}
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[])
+
+  const continuarSimulado=()=>{
+    const sp=savedProgress;if(!sp)return
+    setSelectedSimulado(sp.selectedSimulado);setCur(sp.cur||0);setSel(sp.sel??null);setAnswered(!!sp.answered);setScore(sp.score||0);setTime(typeof sp.time==='number'?sp.time:18000);setDone(false);setRunning(true);setSavedProgress(null)
+  }
+  const descartarProgresso=()=>{
+    try{if(typeof window!=='undefined')localStorage.removeItem('tj_simulado_progresso')}catch{}
+    setSavedProgress(null)
+  }
 
   if(running&&!done&&selectedSimulado){
     const q=selectedSimulado.questions[cur];const pct=Math.round(((cur+(answered?1:0))/selectedSimulado.questions.length)*100)
@@ -1715,6 +1747,18 @@ function SimuladosPage({ showUpgrade, freeQ, setFreeQ, onXp, profile, isPago, ca
     <div style={{padding:'24px 20px',flex:1}}>
       <h1 style={{fontFamily:'var(--font-display)',fontSize:'clamp(22px,5vw,32px)',fontWeight:900,marginBottom:6}}>Simulados 📋</h1>
       <p style={{fontSize:14,color:'var(--text-muted)',marginBottom:20}}>Treine com provas reais da OAB e simulados temáticos.</p>
+      {savedProgress&&(
+        <div style={{background:'linear-gradient(135deg,rgba(212,168,67,0.14),rgba(232,98,26,0.06))',border:'1px solid rgba(212,168,67,0.35)',borderRadius:16,padding:'16px 18px',marginBottom:20,display:'flex',alignItems:'center',justifyContent:'space-between',flexWrap:'wrap',gap:12}}>
+          <div>
+            <div style={{fontSize:14,fontWeight:800,color:'var(--gold)',marginBottom:3}}>🔄 Simulado em andamento</div>
+            <div style={{fontSize:13,color:'var(--text-muted)'}}>{savedProgress?.selectedSimulado?.edicao||savedProgress?.selectedSimulado?.t||'Simulado'} · Q{(savedProgress?.cur||0)+1}/{savedProgress?.selectedSimulado?.questions?.length||'?'} · {savedProgress?.score||0} acertos até aqui</div>
+          </div>
+          <div style={{display:'flex',gap:8}}>
+            <button className="btn-primary" style={{fontSize:13,padding:'10px 18px'}} onClick={continuarSimulado}>Continuar ▶</button>
+            <button className="btn-secondary" style={{fontSize:13,padding:'10px 18px'}} onClick={descartarProgresso}>Recomeçar</button>
+          </div>
+        </div>
+      )}
       {!isPago&&<div style={{background:'rgba(212,168,67,0.06)',border:'1px solid rgba(212,168,67,0.15)',borderRadius:12,padding:'12px 16px',marginBottom:20,fontSize:13,color:'var(--gold)'}}>🔒 Plano gratuito: apenas Mini Simulados disponíveis. <button onClick={showUpgrade} style={{color:'var(--gold)',background:'none',border:'none',cursor:'pointer',fontSize:13,fontFamily:'var(--font-body)',fontWeight:700}}>Fazer upgrade →</button></div>}
       <div style={{display:'flex',gap:8,marginBottom:24,flexWrap:'wrap'}}>
         {([['oficiais','🏛️ Provas OAB'],['pratica','⚡ Temáticos']] as const).map(([key,label])=>(
