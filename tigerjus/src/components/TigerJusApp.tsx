@@ -1582,7 +1582,11 @@ function SimuladosPage({ showUpgrade, freeQ, setFreeQ, onXp, profile, isPago, ca
   const [provasOAB,setProvasOAB]=useState<any[]>([])
   const [loadingProva,setLoadingProva]=useState(false)
   const [tab,setTab]=useState<'oficiais'|'pratica'>('oficiais')
-  const [savedProgress,setSavedProgress]=useState<any>(null)
+  const [savedMap,setSavedMap]=useState<any>({})
+  const PROG_KEY='tj_simulados_progresso'
+  const progKey=(sim:any)=>sim?.oficial?`oficial:${sim.id}`:`pratica:${sim.t}`
+  const readMap=()=>{try{if(typeof window==='undefined')return {};const raw=localStorage.getItem(PROG_KEY);return raw?(JSON.parse(raw)||{}):{}}catch{return {}}}
+  const writeMap=(m:any)=>{try{if(typeof window!=='undefined')localStorage.setItem(PROG_KEY,JSON.stringify(m))}catch{}}
 
   function planoMinimoParaSimulado(numeroExame:number):Plano{return planoMinimoExame(numeroExame)} // graduais: Start 35-40 · Pro 35-44 · Elite 35-46
   const BADGE_COR:Record<string,{bg:string;color:string;label:string}>={start:{bg:'rgba(59,130,246,0.15)',color:'#60a5fa',label:'START'},plus:{bg:'rgba(139,92,246,0.15)',color:'#a78bfa',label:'START'},pro:{bg:'rgba(236,72,153,0.15)',color:'#f472b6',label:'PRO'},elite:{bg:'rgba(212,168,67,0.12)',color:'var(--gold)',label:'ELITE'}}
@@ -1670,34 +1674,30 @@ function SimuladosPage({ showUpgrade, freeQ, setFreeQ, onXp, profile, isPago, ca
   const next=()=>{if(cur+1>=selectedSimulado.questions.length){setDone(true);onXp('simulado_complete');return}setCur(p=>p+1);setSel(null);setAnswered(false)}
 
   // Persistência de progresso (localStorage — mesmo aparelho). Cronômetro pausa ao sair.
+  // Mapa: guarda VÁRIOS simulados em andamento ao mesmo tempo (um por prova).
   useEffect(()=>{
-    if(typeof window==='undefined')return
-    try{
-      if(running&&!done&&selectedSimulado){
-        localStorage.setItem('tj_simulado_progresso',JSON.stringify({selectedSimulado,cur,sel,answered,score,time,savedAt:Date.now()}))
-      }else if(done){
-        localStorage.removeItem('tj_simulado_progresso')
-      }
-    }catch{}
+    if(typeof window==='undefined'||!selectedSimulado)return
+    const key=progKey(selectedSimulado);const m=readMap()
+    if(running&&!done){
+      m[key]={selectedSimulado,cur,sel,answered,score,time,savedAt:Date.now()}
+    }else if(done){
+      delete m[key]
+    }else{return}
+    writeMap(m);setSavedMap(m)
   // eslint-disable-next-line react-hooks/exhaustive-deps
   },[running,done,cur,answered,score,selectedSimulado])
 
   useEffect(()=>{
-    if(typeof window==='undefined')return
-    try{
-      const raw=localStorage.getItem('tj_simulado_progresso')
-      if(raw){const sp=JSON.parse(raw);if(sp&&sp.selectedSimulado&&sp.selectedSimulado.questions&&sp.selectedSimulado.questions.length){setSavedProgress(sp);if(!sp.selectedSimulado.oficial)setTab('pratica')}}
-    }catch{}
+    setSavedMap(readMap())
   // eslint-disable-next-line react-hooks/exhaustive-deps
   },[])
 
-  const continuarSimulado=()=>{
-    const sp=savedProgress;if(!sp)return
-    setSelectedSimulado(sp.selectedSimulado);setCur(sp.cur||0);setSel(sp.sel??null);setAnswered(!!sp.answered);setScore(sp.score||0);setTime(typeof sp.time==='number'?sp.time:18000);setDone(false);setRunning(true);setSavedProgress(null)
+  const continuarSimulado=(key:string)=>{
+    const sp=readMap()[key];if(!sp)return
+    setSelectedSimulado(sp.selectedSimulado);setCur(sp.cur||0);setSel(sp.sel??null);setAnswered(!!sp.answered);setScore(sp.score||0);setTime(typeof sp.time==='number'?sp.time:18000);setDone(false);setRunning(true)
   }
-  const descartarProgresso=()=>{
-    try{if(typeof window!=='undefined')localStorage.removeItem('tj_simulado_progresso')}catch{}
-    setSavedProgress(null)
+  const descartarProgresso=(key:string)=>{
+    const m=readMap();delete m[key];writeMap(m);setSavedMap({...m})
   }
 
   if(running&&!done&&selectedSimulado){
@@ -1771,10 +1771,10 @@ function SimuladosPage({ showUpgrade, freeQ, setFreeQ, onXp, profile, isPago, ca
                     <div style={{display:'flex',gap:12,fontSize:11,color:'var(--text-muted)',flexWrap:'wrap'}}><span>📝 {prova.total_questoes}q</span><span>📊 {prova.taxa_aprovacao_oficial}% aprovação</span>{!liberado&&<span style={{color:'var(--text-dim)'}}>🔒 Requer {badge.label}</span>}</div>
                   </div>
                 </div>
-                {savedProgress&&savedProgress?.selectedSimulado?.id===prova.id?(
+                {savedMap['oficial:'+prova.id]?(
                   <div style={{display:'flex',gap:8,flexWrap:'wrap',justifyContent:'flex-end'}}>
-                    <button onClick={continuarSimulado} className="btn-primary" style={{fontSize:12,padding:'10px 18px'}}>▶ CONTINUAR</button>
-                    <button onClick={descartarProgresso} className="btn-secondary" style={{fontSize:12,padding:'10px 14px'}}>↺ Recomeçar</button>
+                    <button onClick={()=>continuarSimulado('oficial:'+prova.id)} className="btn-primary" style={{fontSize:12,padding:'10px 18px'}}>▶ CONTINUAR</button>
+                    <button onClick={()=>descartarProgresso('oficial:'+prova.id)} className="btn-secondary" style={{fontSize:12,padding:'10px 14px'}}>↺ Recomeçar</button>
                   </div>
                 ):(
                   <button onClick={()=>iniciarProvaOficial(prova)} className={liberado?'btn-primary':'btn-secondary'} style={{fontSize:12,padding:'10px 20px',opacity:liberado?1:0.7}} disabled={loadingProva}>{liberado?'▶ INICIAR':`🔒 ${badge.label}`}</button>
@@ -1792,10 +1792,10 @@ function SimuladosPage({ showUpgrade, freeQ, setFreeQ, onXp, profile, isPago, ca
               <div style={{fontSize:14,fontWeight:700,marginBottom:5}}>{s.t}</div>
               <div style={{fontSize:12,color:'var(--text-muted)',marginBottom:12}}>{s.info}</div>
               <div style={{display:'flex',gap:5,flexWrap:'wrap',marginBottom:16}}>{s.tags.map(tag=><span key={tag} style={{fontSize:10,padding:'2px 9px',borderRadius:100,fontWeight:700,background:'rgba(212,168,67,0.1)',color:'var(--gold)',border:'1px solid rgba(212,168,67,0.2)'}}>{tag}</span>)}</div>
-              {savedProgress&&savedProgress?.selectedSimulado?.t===s.t?(
+              {savedMap['pratica:'+s.t]?(
                 <div style={{display:'flex',gap:6}}>
-                  <button className="btn-gold-sm" style={{flex:1,fontSize:12}} onClick={continuarSimulado}>▶ CONTINUAR</button>
-                  <button className="btn-secondary" style={{fontSize:12,padding:'10px 12px'}} onClick={descartarProgresso}>↺</button>
+                  <button className="btn-gold-sm" style={{flex:1,fontSize:12}} onClick={()=>continuarSimulado('pratica:'+s.t)}>▶ CONTINUAR</button>
+                  <button className="btn-secondary" style={{fontSize:12,padding:'10px 12px'}} onClick={()=>descartarProgresso('pratica:'+s.t)}>↺</button>
                 </div>
               ):!podeLiberarPratica(s)?<button className="btn-secondary" style={{width:'100%',fontSize:12,padding:'10px'}} onClick={()=>showUpgrade()}>🔒 DESBLOQUEAR</button>:<button className="btn-gold-sm" style={{width:'100%',fontSize:12}} onClick={()=>iniciarSimuladoPratica(s)} disabled={loadingProva}>{loadingProva?'⏳':'INICIAR →'}</button>}
             </div>
