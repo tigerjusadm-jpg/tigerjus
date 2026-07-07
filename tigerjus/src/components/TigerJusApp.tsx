@@ -9,7 +9,7 @@ import LandingTopBanner from '@/components/LandingTopBanner'
 import LeiSecaPage from '@/components/LeiSecaPage'
 import ComentarioComLei from '@/components/ComentarioComLei'
 import CronometroSimulado from '@/components/CronometroSimulado'
-import { canAccess, isAdmin, getLimites, isPago, getQuizModes, getResumoTier, PLANOS_DISPLAY, getNivelByXp, getNextNivel, type Plano } from '@/lib/planos'
+import { canAccess, isAdmin, getLimites, isPago, getQuizModes, getResumoTier, planoMinimoExame, PLANOS_DISPLAY, getNivelByXp, getNextNivel, type Plano } from '@/lib/planos'
 
 interface Profile {
   id: string; nome: string; email: string; plano: string
@@ -762,7 +762,8 @@ function QuizPage({ freeQ, setFreeQ, showUpgrade, onXp, profile, isPago }: any) 
     setChecking(true)
     try{
       const{data:{session}}=await supabase.auth.getSession()
-      const res=await fetch('/api/questao/validar',{method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${session?.access_token||''}`},body:JSON.stringify({questaoId:questions[cur].id,...(i!==null?{escolha:i}:{})})})
+      const res=await fetch('/api/questao/validar',{method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${session?.access_token||''}`},body:JSON.stringify({questaoId:questions[cur].id,contexto:'quiz',...(i!==null?{escolha:i}:{})})})
+      if(res.status===403){setFreeQ(0);setSel(null);setChecking(false);showUpgrade();return}
       const data=await res.json()
       if(res.ok){
         const correctIdx=['A','B','C','D'].indexOf(data.letra_correta)
@@ -1581,8 +1582,13 @@ function SimuladosPage({ showUpgrade, freeQ, setFreeQ, onXp, profile, isPago, ca
   const [provasOAB,setProvasOAB]=useState<any[]>([])
   const [loadingProva,setLoadingProva]=useState(false)
   const [tab,setTab]=useState<'oficiais'|'pratica'>('oficiais')
+  const [savedMap,setSavedMap]=useState<any>({})
+  const PROG_KEY='tj_simulados_progresso'
+  const progKey=(sim:any)=>sim?.oficial?`oficial:${sim.id}`:`pratica:${sim.t}`
+  const readMap=()=>{try{if(typeof window==='undefined')return {};const raw=localStorage.getItem(PROG_KEY);return raw?(JSON.parse(raw)||{}):{}}catch{return {}}}
+  const writeMap=(m:any)=>{try{if(typeof window!=='undefined')localStorage.setItem(PROG_KEY,JSON.stringify(m))}catch{}}
 
-  function planoMinimoParaSimulado(_numeroExame:number):'start'{return 'start'} // matriz: simulado completo = Start+
+  function planoMinimoParaSimulado(numeroExame:number):Plano{return planoMinimoExame(numeroExame)} // graduais: Start 35-40 · Pro 35-44 · Elite 35-46
   const BADGE_COR:Record<string,{bg:string;color:string;label:string}>={start:{bg:'rgba(59,130,246,0.15)',color:'#60a5fa',label:'START'},plus:{bg:'rgba(139,92,246,0.15)',color:'#a78bfa',label:'START'},pro:{bg:'rgba(236,72,153,0.15)',color:'#f472b6',label:'PRO'},elite:{bg:'rgba(212,168,67,0.12)',color:'var(--gold)',label:'ELITE'}}
   function podeLiberarProva(prova:any):boolean{if(profile?.role==='admin')return true;return canAccess(profile?.plano,planoMinimoParaSimulado(prova.numero_exame))}
 
@@ -1613,29 +1619,12 @@ function SimuladosPage({ showUpgrade, freeQ, setFreeQ, onXp, profile, isPago, ca
     setLoadingProva(false)
   }
 
-  // ── SIMULADÃO TIGER ────────────────────────────────────────────────────────
-  // Monta uma "prova inédita" de 80 questões puxando de TODO o banco, distribuídas
-  // por disciplina na proporção histórica (dominância) de todas as provas inseridas.
-  const iniciarSimuladao=async()=>{
-    if(!(profile?.role==='admin'||canAccess(profile?.plano,'elite'))){showUpgrade();return}
-    setLoadingProva(true)
-    try{
-      // Montagem 100% no servidor (RPC): ranqueia por recorrência de tema, respeita
-      // a proporção por disciplina (moldes OAB) e faz o rodízio "baralho" por aluno.
-      // Retorna só campos seguros — o gabarito/comentário nunca vem pro cliente.
-      const{data,error}=await supabase.rpc('montar_simuladao')
-      if(error||!data||(data as any[]).length===0){alert('Não foi possível montar o Simuladão agora. Verifique se a classificação de temas (coluna tema) já foi aplicada no banco.');return}
-      const formatted=(data as any[]).map((q:any)=>({id:q.id,disc:q.disciplina,dificuldade:'OAB Oficial',q:q.enunciado,opts:[q.opcao_a,q.opcao_b,q.opcao_c,q.opcao_d],correct:null,exp:''}))
-      setSelectedSimulado({t:'Simuladão Tiger',edicao:'Simuladão Tiger',questions:formatted,simuladao:true})
-      setRunning(true);setCur(0);setSel(null);setAnswered(false);setScore(0);setDone(false);setTime(18000)
-    }finally{setLoadingProva(false)}
-  }
-
   const iniciarSimuladoPratica=async(s:any)=>{
     if(!podeLiberarPratica(s)){showUpgrade();return}
     setLoadingProva(true)
     const discMap:Record<string,string>={'Simulado Intensivo — Penal':'Penal','Ética e Estatuto OAB':'Ética OAB'}
-    const qtdMap:Record<string,number>={'Mini Simulado Rápido':10,'Simulado Intensivo — Penal':30,'Ética e Estatuto OAB':20,'Simulado Geral':60}
+    const miniQtd=getLimites(profile?.plano).mini_simulado
+    const qtdMap:Record<string,number>={'Mini Simulado Rápido':miniQtd,'Simulado Intensivo — Penal':30,'Ética e Estatuto OAB':20,'Simulado Geral':60}
     const disc=discMap[s.t];const qtd=qtdMap[s.t]||20
     let query=supabase.from('questoes_publicas').select('id,disciplina,enunciado,opcao_a,opcao_b,opcao_c,opcao_d')
     if(disc)query=query.in('disciplina',PDF_DISC_MAP[disc]||[disc])
@@ -1658,10 +1647,10 @@ function SimuladosPage({ showUpgrade, freeQ, setFreeQ, onXp, profile, isPago, ca
   },[])
 
   useEffect(()=>{
-    if(!running||answered||done)return
+    if(!running||done)return
     const t=setInterval(()=>setTime(p=>{if(p<=1){clearInterval(t);setDone(true);return 0}return p-1}),1000)
     return()=>clearInterval(t)
-  },[running,answered,done,cur])
+  },[running,done])
 
   const responder=async(i:number)=>{
     if(answered||checking)return
@@ -1684,14 +1673,52 @@ function SimuladosPage({ showUpgrade, freeQ, setFreeQ, onXp, profile, isPago, ca
   const pick=(i:number)=>{ responder(i) }
   const next=()=>{if(cur+1>=selectedSimulado.questions.length){setDone(true);onXp('simulado_complete');return}setCur(p=>p+1);setSel(null);setAnswered(false)}
 
+  // Persistência de progresso (localStorage — mesmo aparelho). Cronômetro pausa ao sair.
+  // Mapa: guarda VÁRIOS simulados em andamento ao mesmo tempo (um por prova).
+  useEffect(()=>{
+    if(typeof window==='undefined'||!selectedSimulado)return
+    const key=progKey(selectedSimulado);const m=readMap()
+    if(running&&!done){
+      m[key]={selectedSimulado,cur,sel,answered,score,time,savedAt:Date.now()}
+    }else if(done){
+      delete m[key]
+    }else{return}
+    writeMap(m);setSavedMap(m)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[running,done,cur,answered,score,selectedSimulado])
+
+  useEffect(()=>{
+    setSavedMap(readMap())
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[])
+
+  const continuarSimulado=(key:string)=>{
+    const sp=readMap()[key];if(!sp)return
+    setSelectedSimulado(sp.selectedSimulado);setCur(sp.cur||0);setSel(sp.sel??null);setAnswered(!!sp.answered);setScore(sp.score||0);setTime(typeof sp.time==='number'?sp.time:18000);setDone(false);setRunning(true)
+  }
+  const descartarProgresso=(key:string)=>{
+    const m=readMap();delete m[key];writeMap(m);setSavedMap({...m})
+  }
+
   if(running&&!done&&selectedSimulado){
     const q=selectedSimulado.questions[cur];const pct=Math.round(((cur+(answered?1:0))/selectedSimulado.questions.length)*100)
+    const respondidas=cur+(answered?1:0);const taxaAcerto=respondidas>0?Math.round((score/respondidas)*100):0
     const duracaoTotal=(selectedSimulado?.t&&selectedSimulado.t.includes('Mini'))?900:18000
     return(
       <div style={{padding:'24px 20px',flex:1}}>
         <div style={{maxWidth:680,margin:'0 auto'}}>
           <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:12}}><div style={{fontSize:12,color:'var(--text-muted)'}}>{selectedSimulado.edicao||selectedSimulado.t} · Q{cur+1}/{selectedSimulado.questions.length}</div></div>
           <div style={{marginBottom:16}}><CronometroSimulado segundosRestantes={time} duracaoTotalSegundos={duracaoTotal} /></div>
+          <div style={{display:'flex',gap:12,marginBottom:16}}>
+            <div style={{flex:1,background:'rgba(58,143,232,0.1)',border:'1px solid rgba(58,143,232,0.3)',borderRadius:14,padding:'14px 12px',textAlign:'center'}}>
+              <div style={{fontSize:11,fontWeight:800,letterSpacing:'1px',textTransform:'uppercase',color:'var(--text-muted)',marginBottom:5}}>Respondidas</div>
+              <div style={{fontFamily:'var(--font-display)',fontSize:34,fontWeight:900,color:'#60a5fa',lineHeight:1}}>{respondidas}<span style={{fontSize:16,color:'var(--text-muted)',fontWeight:700}}>/{selectedSimulado.questions.length}</span></div>
+            </div>
+            <div style={{flex:1,background:taxaAcerto>=50?'rgba(76,175,125,0.1)':'rgba(232,66,26,0.08)',border:`1px solid ${taxaAcerto>=50?'rgba(76,175,125,0.35)':'rgba(232,66,26,0.3)'}`,borderRadius:14,padding:'14px 12px',textAlign:'center'}}>
+              <div style={{fontSize:11,fontWeight:800,letterSpacing:'1px',textTransform:'uppercase',color:'var(--text-muted)',marginBottom:5}}>Taxa de acerto</div>
+              <div style={{fontFamily:'var(--font-display)',fontSize:34,fontWeight:900,color:taxaAcerto>=50?'var(--success)':'var(--danger)',lineHeight:1}}>{respondidas>0?`${taxaAcerto}%`:'—'}</div>
+            </div>
+          </div>
           <div style={{background:'rgba(255,255,255,0.06)',borderRadius:100,height:4,marginBottom:22,overflow:'hidden'}}><div style={{width:`${pct}%`,height:'100%',background:'linear-gradient(90deg,var(--gold),var(--orange))',borderRadius:100,transition:'width 0.4s'}}/></div>
           <div style={{background:'var(--gray)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:20,padding:'22px'}}>
             <div style={{display:'flex',gap:8,marginBottom:14}}><span style={{fontSize:10,fontWeight:700,letterSpacing:2,textTransform:'uppercase',color:'var(--gold)'}}>{q.disc}</span><span style={{fontSize:10,color:'var(--text-muted)'}}>· OAB Oficial</span></div>
@@ -1728,21 +1755,6 @@ function SimuladosPage({ showUpgrade, freeQ, setFreeQ, onXp, profile, isPago, ca
       </div>
       {tab==='oficiais'&&(
         <div>
-          {(()=>{const liberadoSimuladao=profile?.role==='admin'||canAccess(profile?.plano,'elite');return(
-          <div style={{background:'linear-gradient(135deg,rgba(212,168,67,0.16),rgba(232,98,26,0.09))',border:'1px solid rgba(212,168,67,0.4)',borderRadius:16,padding:'18px 20px',marginBottom:16,display:'flex',alignItems:'center',justifyContent:'space-between',flexWrap:'wrap',gap:14}}>
-            <div style={{display:'flex',alignItems:'center',gap:14,flex:1,minWidth:220}}>
-              <div style={{width:48,height:48,borderRadius:12,background:'linear-gradient(135deg,var(--gold),var(--orange))',display:'flex',alignItems:'center',justifyContent:'center',fontSize:24,flexShrink:0}}>🐯</div>
-              <div>
-                <div style={{display:'flex',alignItems:'center',gap:8,flexWrap:'wrap',marginBottom:4}}>
-                  <span style={{fontSize:15,fontWeight:800,color:'var(--gold)'}}>Simuladão Tiger</span>
-                  <span style={{fontSize:9,fontWeight:900,letterSpacing:'1px',background:'linear-gradient(135deg,var(--gold),var(--orange))',color:'#000',padding:'2px 8px',borderRadius:100}}>80 QUESTÕES</span>
-                </div>
-                <div style={{fontSize:12,color:'var(--text-muted)',lineHeight:1.5}}>Prova inédita com as questões de maior incidência de todas as provas do banco — todas as disciplinas, nos moldes da OAB. As que mais têm chance de cair.</div>
-              </div>
-            </div>
-            <button onClick={iniciarSimuladao} disabled={loadingProva} className={liberadoSimuladao?'btn-primary':'btn-secondary'} style={{fontSize:13,padding:'11px 22px',flexShrink:0,whiteSpace:'nowrap'}}>{loadingProva?'⏳ Montando...':liberadoSimuladao?'▶ INICIAR SIMULADÃO':'🔒 ELITE'}</button>
-          </div>
-          )})()}
           <div style={{background:'linear-gradient(135deg,rgba(212,168,67,0.08),rgba(232,98,26,0.04))',border:'1px solid rgba(212,168,67,0.2)',borderRadius:16,padding:18,marginBottom:20}}>
             <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:6,flexWrap:'wrap'}}><span style={{fontSize:18}}>📋</span><div style={{fontSize:14,fontWeight:700}}>Provas Oficiais da OAB</div><span style={{fontSize:11,color:'var(--text-muted)'}}>Acesso progressivo por plano</span></div>
             <div style={{display:'flex',gap:8,flexWrap:'wrap',marginTop:8}}>{Object.entries(BADGE_COR).map(([plano,b])=><span key={plano} style={{fontSize:10,fontWeight:800,letterSpacing:'1px',background:b.bg,color:b.color,padding:'3px 10px',borderRadius:100,border:`1px solid ${b.color}33`}}>{b.label}</span>)}</div>
@@ -1751,15 +1763,23 @@ function SimuladosPage({ showUpgrade, freeQ, setFreeQ, onXp, profile, isPago, ca
           <div style={{display:'flex',flexDirection:'column',gap:14}}>
             {provasOAB.map((prova,i)=>{
               const planoMin=planoMinimoParaSimulado(prova.numero_exame);const badge=BADGE_COR[planoMin];const liberado=podeLiberarProva(prova)
+              const spOf=savedMap['oficial:'+prova.id];const respOf=spOf?((spOf.cur||0)+(spOf.answered?1:0)):0;const txOf=respOf>0?Math.round((spOf.score||0)/respOf*100):0
               return(<div key={prova.id} style={{background:'var(--gray)',border:`1px solid ${liberado?'rgba(212,168,67,0.15)':'rgba(255,255,255,0.06)'}`,borderRadius:16,padding:'18px',display:'flex',alignItems:'center',justifyContent:'space-between',flexWrap:'wrap',gap:14,transition:'border-color 0.2s'}} onMouseEnter={e=>e.currentTarget.style.borderColor='rgba(212,168,67,0.25)'} onMouseLeave={e=>e.currentTarget.style.borderColor=liberado?'rgba(212,168,67,0.15)':'rgba(255,255,255,0.06)'}>
                 <div style={{display:'flex',alignItems:'center',gap:14}}>
                   <div style={{width:44,height:44,borderRadius:12,background:i===0?'linear-gradient(135deg,var(--gold),var(--orange))':'rgba(255,255,255,0.06)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:i===0?18:13,fontWeight:900,color:i===0?'#000':'var(--text-muted)',fontFamily:'var(--font-display)',flexShrink:0}}>{i===0?'🆕':`${prova.numero_exame}º`}</div>
                   <div>
                     <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:4,flexWrap:'wrap'}}><span style={{fontSize:14,fontWeight:700}}>{prova.edicao}</span>{i===0&&<span style={{fontSize:9,fontWeight:900,background:'linear-gradient(135deg,var(--gold),var(--orange))',color:'#000',padding:'2px 8px',borderRadius:100}}>RECENTE</span>}<span style={{fontSize:9,fontWeight:800,background:badge.bg,color:badge.color,padding:'2px 8px',borderRadius:100,border:`1px solid ${badge.color}44`}}>{liberado?'✓ ':''}{badge.label}</span></div>
-                    <div style={{display:'flex',gap:12,fontSize:11,color:'var(--text-muted)',flexWrap:'wrap'}}><span>📝 {prova.total_questoes}q</span><span>📊 {prova.taxa_aprovacao_oficial}% aprovação</span>{!liberado&&<span style={{color:'var(--text-dim)'}}>🔒 Requer {badge.label}</span>}</div>
+                    <div style={{display:'flex',gap:12,fontSize:11,color:'var(--text-muted)',flexWrap:'wrap'}}><span>📝 {prova.total_questoes}q</span>{spOf?<span style={{color:'var(--gold)',fontWeight:700}}>▶ {respOf}/{prova.total_questoes} respondidas{respOf>0?` · ${txOf}% acerto`:' · iniciado'}</span>:<span>📊 {prova.taxa_aprovacao_oficial}% aprovação</span>}{!liberado&&<span style={{color:'var(--text-dim)'}}>🔒 Requer {badge.label}</span>}</div>
                   </div>
                 </div>
-                <button onClick={()=>iniciarProvaOficial(prova)} className={liberado?'btn-primary':'btn-secondary'} style={{fontSize:12,padding:'10px 20px',opacity:liberado?1:0.7}} disabled={loadingProva}>{liberado?'▶ INICIAR':`🔒 ${badge.label}`}</button>
+                {savedMap['oficial:'+prova.id]?(
+                  <div style={{display:'flex',gap:8,flexWrap:'wrap',justifyContent:'flex-end'}}>
+                    <button onClick={()=>continuarSimulado('oficial:'+prova.id)} className="btn-primary" style={{fontSize:12,padding:'10px 18px'}}>▶ CONTINUAR</button>
+                    <button onClick={()=>descartarProgresso('oficial:'+prova.id)} className="btn-secondary" style={{fontSize:12,padding:'10px 14px'}}>↺ Recomeçar</button>
+                  </div>
+                ):(
+                  <button onClick={()=>iniciarProvaOficial(prova)} className={liberado?'btn-primary':'btn-secondary'} style={{fontSize:12,padding:'10px 20px',opacity:liberado?1:0.7}} disabled={loadingProva}>{liberado?'▶ INICIAR':`🔒 ${badge.label}`}</button>
+                )}
               </div>)
             })}
           </div>
@@ -1773,7 +1793,12 @@ function SimuladosPage({ showUpgrade, freeQ, setFreeQ, onXp, profile, isPago, ca
               <div style={{fontSize:14,fontWeight:700,marginBottom:5}}>{s.t}</div>
               <div style={{fontSize:12,color:'var(--text-muted)',marginBottom:12}}>{s.info}</div>
               <div style={{display:'flex',gap:5,flexWrap:'wrap',marginBottom:16}}>{s.tags.map(tag=><span key={tag} style={{fontSize:10,padding:'2px 9px',borderRadius:100,fontWeight:700,background:'rgba(212,168,67,0.1)',color:'var(--gold)',border:'1px solid rgba(212,168,67,0.2)'}}>{tag}</span>)}</div>
-              {!podeLiberarPratica(s)?<button className="btn-secondary" style={{width:'100%',fontSize:12,padding:'10px'}} onClick={()=>showUpgrade()}>🔒 DESBLOQUEAR</button>:<button className="btn-gold-sm" style={{width:'100%',fontSize:12}} onClick={()=>iniciarSimuladoPratica(s)} disabled={loadingProva}>{loadingProva?'⏳':'INICIAR →'}</button>}
+              {savedMap['pratica:'+s.t]?(
+                <div style={{display:'flex',gap:6}}>
+                  <button className="btn-gold-sm" style={{flex:1,fontSize:12}} onClick={()=>continuarSimulado('pratica:'+s.t)}>▶ CONTINUAR</button>
+                  <button className="btn-secondary" style={{fontSize:12,padding:'10px 12px'}} onClick={()=>descartarProgresso('pratica:'+s.t)}>↺</button>
+                </div>
+              ):!podeLiberarPratica(s)?<button className="btn-secondary" style={{width:'100%',fontSize:12,padding:'10px'}} onClick={()=>showUpgrade()}>🔒 DESBLOQUEAR</button>:<button className="btn-gold-sm" style={{width:'100%',fontSize:12}} onClick={()=>iniciarSimuladoPratica(s)} disabled={loadingProva}>{loadingProva?'⏳':'INICIAR →'}</button>}
             </div>
           ))}
         </div>
