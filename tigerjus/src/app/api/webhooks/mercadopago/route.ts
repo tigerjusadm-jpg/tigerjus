@@ -12,7 +12,7 @@ const supabase = createClient(
 //   MERCADOPAGO_WEBHOOK_SECRET  → habilita o cálculo da assinatura.
 //   MERCADOPAGO_WEBHOOK_ENFORCE → "true" rejeita requisições inválidas.
 // Sem o secret configurado, a validação é ignorada (comportamento idêntico
-// ao atual). Isso permite subir o código sem risco e ligar depois.
+// ao atual). Roda em TODA notificação (order, payment, etc.).
 function validarAssinaturaMP(
   req: NextRequest,
   dataIdFallback: string
@@ -65,24 +65,27 @@ export async function POST(req: NextRequest) {
     const body = await req.json()
     console.log('Webhook MP recebido:', JSON.stringify(body))
 
+    const dataId = body?.data?.id || body?.resource || ''
+
+    // 0) Validação de assinatura HMAC — roda em TODA notificação, antes de tudo.
+    const sig = validarAssinaturaMP(req, String(dataId))
+    const enforce = process.env.MERCADOPAGO_WEBHOOK_ENFORCE === 'true'
+    console.log(`Webhook HMAC: ${sig.motivo} | enforce: ${enforce}`)
+    if (enforce && !sig.ok) {
+      console.error(`❌ Webhook rejeitado por assinatura inválida: ${sig.motivo} (data.id ${dataId})`)
+      return NextResponse.json({ error: 'invalid signature' }, { status: 401 })
+    }
+
+    // 1) Filtrar apenas eventos de pagamento
     const tipo = body?.type || body?.action || ''
     const isPagamento = String(tipo).includes('payment')
-    const paymentId = body?.data?.id || body?.resource
+    const paymentId = dataId
 
     if (!isPagamento || !paymentId) {
       return NextResponse.json({ ok: true })
     }
 
-    // 0) Validação de assinatura HMAC (antes de qualquer processamento)
-    const sig = validarAssinaturaMP(req, String(paymentId))
-    const enforce = process.env.MERCADOPAGO_WEBHOOK_ENFORCE === 'true'
-    console.log(`Webhook HMAC: ${sig.motivo} | enforce: ${enforce}`)
-    if (enforce && !sig.ok) {
-      console.error(`❌ Webhook rejeitado por assinatura inválida: ${sig.motivo} (payment ${paymentId})`)
-      return NextResponse.json({ error: 'invalid signature' }, { status: 401 })
-    }
-
-    // 1) Confirmar status real do pagamento no Mercado Pago
+    // 2) Confirmar status real do pagamento no Mercado Pago
     const mpResponse = await fetch(`https://api.mercadopago.com/v1/payments/${paymentId}`, {
       headers: { 'Authorization': `Bearer ${process.env.MERCADOPAGO_ACCESS_TOKEN}` },
     })
@@ -93,7 +96,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: true })
     }
 
-    // 2) Identificar o usuário e plano
+    // 3) Identificar o usuário e plano
     const { data: assinatura } = await supabase
       .from('assinaturas')
       .select('id, user_id, plano')
@@ -108,14 +111,14 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: true })
     }
 
-    // 3) Marcar assinatura como ativa
+    // 4) Marcar assinatura como ativa
     await supabase
       .from('assinaturas')
       .update({ status: 'ativo', mp_payment_id: String(paymentId) })
       .eq('user_id', userId)
       .eq('status', 'pendente')
 
-    // 4) Liberar plano no perfil
+    // 5) Liberar plano no perfil
     await supabase
       .from('profiles')
       .update({ plano })
@@ -123,7 +126,7 @@ export async function POST(req: NextRequest) {
 
     console.log(`✅ Plano "${plano}" ativado para ${userId} (pagamento ${paymentId})`)
 
-    // ── 5) PROGRAMA TIGRE EMBAIXADOR ──────────────────────────────────────
+    // ── 6) PROGRAMA TIGRE EMBAIXADOR ──────────────────────────────────────
     // Bloco isolado: se falhar, não afeta a ativação do plano.
     try {
       // Buscar perfil do usuário que acabou de pagar
