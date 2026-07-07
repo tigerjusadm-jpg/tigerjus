@@ -1,10 +1,55 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import crypto from 'crypto'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
+
+// ── Validação de assinatura HMAC do Mercado Pago ────────────────────────────
+// Estágios controlados por env:
+//   MERCADOPAGO_WEBHOOK_SECRET  → habilita o cálculo da assinatura.
+//   MERCADOPAGO_WEBHOOK_ENFORCE → "true" rejeita requisições inválidas.
+// Sem o secret configurado, a validação é ignorada (comportamento idêntico
+// ao atual). Isso permite subir o código sem risco e ligar depois.
+function validarAssinaturaMP(
+  req: NextRequest,
+  dataIdFallback: string
+): { ok: boolean; motivo: string } {
+  const secret = process.env.MERCADOPAGO_WEBHOOK_SECRET
+  if (!secret) return { ok: true, motivo: 'secret-nao-configurado' }
+
+  const xSignature = req.headers.get('x-signature') || ''
+  const xRequestId = req.headers.get('x-request-id') || ''
+  if (!xSignature) return { ok: false, motivo: 'sem-x-signature' }
+
+  // x-signature vem como: "ts=1700000000,v1=abcdef..."
+  let ts = ''
+  let v1 = ''
+  for (const parte of xSignature.split(',')) {
+    const idx = parte.indexOf('=')
+    if (idx === -1) continue
+    const chave = parte.slice(0, idx).trim()
+    const valor = parte.slice(idx + 1).trim()
+    if (chave === 'ts') ts = valor
+    else if (chave === 'v1') v1 = valor
+  }
+  if (!ts || !v1) return { ok: false, motivo: 'x-signature-malformado' }
+
+  // data.id: preferir o da query string (?data.id=...); se alfanumérico, minúsculo.
+  const bruto = req.nextUrl.searchParams.get('data.id') || dataIdFallback || ''
+  const dataId = /[a-zA-Z]/.test(bruto) ? bruto.toLowerCase() : bruto
+
+  const manifest = `id:${dataId};request-id:${xRequestId};ts:${ts};`
+  const calculado = crypto.createHmac('sha256', secret).update(manifest).digest('hex')
+
+  // Comparação timing-safe (exige mesmo tamanho pra não lançar exceção)
+  const a = Buffer.from(calculado, 'utf8')
+  const b = Buffer.from(v1, 'utf8')
+  const match = a.length === b.length && crypto.timingSafeEqual(a, b)
+  return { ok: match, motivo: match ? 'match' : 'mismatch' }
+}
 
 // ── Lógica de badges por número de indicações ──────────────────────────────
 function calcularBadge(count: number): string | null {
@@ -26,6 +71,15 @@ export async function POST(req: NextRequest) {
 
     if (!isPagamento || !paymentId) {
       return NextResponse.json({ ok: true })
+    }
+
+    // 0) Validação de assinatura HMAC (antes de qualquer processamento)
+    const sig = validarAssinaturaMP(req, String(paymentId))
+    const enforce = process.env.MERCADOPAGO_WEBHOOK_ENFORCE === 'true'
+    console.log(`Webhook HMAC: ${sig.motivo} | enforce: ${enforce}`)
+    if (enforce && !sig.ok) {
+      console.error(`❌ Webhook rejeitado por assinatura inválida: ${sig.motivo} (payment ${paymentId})`)
+      return NextResponse.json({ error: 'invalid signature' }, { status: 401 })
     }
 
     // 1) Confirmar status real do pagamento no Mercado Pago
