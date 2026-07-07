@@ -9,7 +9,7 @@ import LandingTopBanner from '@/components/LandingTopBanner'
 import LeiSecaPage from '@/components/LeiSecaPage'
 import ComentarioComLei from '@/components/ComentarioComLei'
 import CronometroSimulado from '@/components/CronometroSimulado'
-import { canAccess, isAdmin, getLimites, isPago, getQuizModes, getResumoTier, PLANOS_DISPLAY, getNivelByXp, getNextNivel, type Plano } from '@/lib/planos'
+import { canAccess, isAdmin, getLimites, isPago, getQuizModes, getResumoTier, planoMinimoExame, PLANOS_DISPLAY, getNivelByXp, getNextNivel, type Plano } from '@/lib/planos'
 
 interface Profile {
   id: string; nome: string; email: string; plano: string
@@ -762,7 +762,8 @@ function QuizPage({ freeQ, setFreeQ, showUpgrade, onXp, profile, isPago }: any) 
     setChecking(true)
     try{
       const{data:{session}}=await supabase.auth.getSession()
-      const res=await fetch('/api/questao/validar',{method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${session?.access_token||''}`},body:JSON.stringify({questaoId:questions[cur].id,...(i!==null?{escolha:i}:{})})})
+      const res=await fetch('/api/questao/validar',{method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${session?.access_token||''}`},body:JSON.stringify({questaoId:questions[cur].id,contexto:'quiz',...(i!==null?{escolha:i}:{})})})
+      if(res.status===403){setFreeQ(0);setSel(null);setChecking(false);showUpgrade();return}
       const data=await res.json()
       if(res.ok){
         const correctIdx=['A','B','C','D'].indexOf(data.letra_correta)
@@ -1582,7 +1583,7 @@ function SimuladosPage({ showUpgrade, freeQ, setFreeQ, onXp, profile, isPago, ca
   const [loadingProva,setLoadingProva]=useState(false)
   const [tab,setTab]=useState<'oficiais'|'pratica'>('oficiais')
 
-  function planoMinimoParaSimulado(_numeroExame:number):'start'{return 'start'} // matriz: simulado completo = Start+
+  function planoMinimoParaSimulado(numeroExame:number):Plano{return planoMinimoExame(numeroExame)} // graduais: Start 35-40 · Pro 35-44 · Elite 35-46
   const BADGE_COR:Record<string,{bg:string;color:string;label:string}>={start:{bg:'rgba(59,130,246,0.15)',color:'#60a5fa',label:'START'},plus:{bg:'rgba(139,92,246,0.15)',color:'#a78bfa',label:'START'},pro:{bg:'rgba(236,72,153,0.15)',color:'#f472b6',label:'PRO'},elite:{bg:'rgba(212,168,67,0.12)',color:'var(--gold)',label:'ELITE'}}
   function podeLiberarProva(prova:any):boolean{if(profile?.role==='admin')return true;return canAccess(profile?.plano,planoMinimoParaSimulado(prova.numero_exame))}
 
@@ -1617,7 +1618,8 @@ function SimuladosPage({ showUpgrade, freeQ, setFreeQ, onXp, profile, isPago, ca
     if(!podeLiberarPratica(s)){showUpgrade();return}
     setLoadingProva(true)
     const discMap:Record<string,string>={'Simulado Intensivo — Penal':'Penal','Ética e Estatuto OAB':'Ética OAB'}
-    const qtdMap:Record<string,number>={'Mini Simulado Rápido':10,'Simulado Intensivo — Penal':30,'Ética e Estatuto OAB':20,'Simulado Geral':60}
+    const miniQtd=getLimites(profile?.plano).mini_simulado
+    const qtdMap:Record<string,number>={'Mini Simulado Rápido':miniQtd,'Simulado Intensivo — Penal':30,'Ética e Estatuto OAB':20,'Simulado Geral':60}
     const disc=discMap[s.t];const qtd=qtdMap[s.t]||20
     let query=supabase.from('questoes_publicas').select('id,disciplina,enunciado,opcao_a,opcao_b,opcao_c,opcao_d')
     if(disc)query=query.in('disciplina',PDF_DISC_MAP[disc]||[disc])
