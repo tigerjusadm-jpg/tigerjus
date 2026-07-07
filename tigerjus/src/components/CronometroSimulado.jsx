@@ -135,12 +135,12 @@ function IconeRelogio() {
 }
 
 export default function CronometroSimulado({
-  segundosRestantes,
+  segundosRestantes = undefined,
   duracaoTotalSegundos = 10800,
   autoIniciar = true,
-  onTempoEsgotado,
+  onTempoEsgotado = undefined,
   className = '',
-  style,
+  style = undefined,
 }) {
   const controlado = typeof segundosRestantes === 'number';
   const [internoSeg, setInternoSeg] = useState(duracaoTotalSegundos);
