@@ -1686,7 +1686,7 @@ function SimuladosPage({ showUpgrade, freeQ, setFreeQ, onXp, profile, isPago, ca
     if(typeof window==='undefined')return
     try{
       const raw=localStorage.getItem('tj_simulado_progresso')
-      if(raw){const sp=JSON.parse(raw);if(sp&&sp.selectedSimulado&&sp.selectedSimulado.questions&&sp.selectedSimulado.questions.length){setSavedProgress(sp)}}
+      if(raw){const sp=JSON.parse(raw);if(sp&&sp.selectedSimulado&&sp.selectedSimulado.questions&&sp.selectedSimulado.questions.length){setSavedProgress(sp);if(!sp.selectedSimulado.oficial)setTab('pratica')}}
     }catch{}
   // eslint-disable-next-line react-hooks/exhaustive-deps
   },[])
@@ -1747,18 +1747,6 @@ function SimuladosPage({ showUpgrade, freeQ, setFreeQ, onXp, profile, isPago, ca
     <div style={{padding:'24px 20px',flex:1}}>
       <h1 style={{fontFamily:'var(--font-display)',fontSize:'clamp(22px,5vw,32px)',fontWeight:900,marginBottom:6}}>Simulados 📋</h1>
       <p style={{fontSize:14,color:'var(--text-muted)',marginBottom:20}}>Treine com provas reais da OAB e simulados temáticos.</p>
-      {savedProgress&&(
-        <div style={{background:'linear-gradient(135deg,rgba(212,168,67,0.14),rgba(232,98,26,0.06))',border:'1px solid rgba(212,168,67,0.35)',borderRadius:16,padding:'16px 18px',marginBottom:20,display:'flex',alignItems:'center',justifyContent:'space-between',flexWrap:'wrap',gap:12}}>
-          <div>
-            <div style={{fontSize:14,fontWeight:800,color:'var(--gold)',marginBottom:3}}>🔄 Simulado em andamento</div>
-            <div style={{fontSize:13,color:'var(--text-muted)'}}>{savedProgress?.selectedSimulado?.edicao||savedProgress?.selectedSimulado?.t||'Simulado'} · Q{(savedProgress?.cur||0)+1}/{savedProgress?.selectedSimulado?.questions?.length||'?'} · {savedProgress?.score||0} acertos até aqui</div>
-          </div>
-          <div style={{display:'flex',gap:8}}>
-            <button className="btn-primary" style={{fontSize:13,padding:'10px 18px'}} onClick={continuarSimulado}>Continuar ▶</button>
-            <button className="btn-secondary" style={{fontSize:13,padding:'10px 18px'}} onClick={descartarProgresso}>Recomeçar</button>
-          </div>
-        </div>
-      )}
       {!isPago&&<div style={{background:'rgba(212,168,67,0.06)',border:'1px solid rgba(212,168,67,0.15)',borderRadius:12,padding:'12px 16px',marginBottom:20,fontSize:13,color:'var(--gold)'}}>🔒 Plano gratuito: apenas Mini Simulados disponíveis. <button onClick={showUpgrade} style={{color:'var(--gold)',background:'none',border:'none',cursor:'pointer',fontSize:13,fontFamily:'var(--font-body)',fontWeight:700}}>Fazer upgrade →</button></div>}
       <div style={{display:'flex',gap:8,marginBottom:24,flexWrap:'wrap'}}>
         {([['oficiais','🏛️ Provas OAB'],['pratica','⚡ Temáticos']] as const).map(([key,label])=>(
@@ -1783,7 +1771,14 @@ function SimuladosPage({ showUpgrade, freeQ, setFreeQ, onXp, profile, isPago, ca
                     <div style={{display:'flex',gap:12,fontSize:11,color:'var(--text-muted)',flexWrap:'wrap'}}><span>📝 {prova.total_questoes}q</span><span>📊 {prova.taxa_aprovacao_oficial}% aprovação</span>{!liberado&&<span style={{color:'var(--text-dim)'}}>🔒 Requer {badge.label}</span>}</div>
                   </div>
                 </div>
-                <button onClick={()=>iniciarProvaOficial(prova)} className={liberado?'btn-primary':'btn-secondary'} style={{fontSize:12,padding:'10px 20px',opacity:liberado?1:0.7}} disabled={loadingProva}>{liberado?'▶ INICIAR':`🔒 ${badge.label}`}</button>
+                {savedProgress&&savedProgress?.selectedSimulado?.id===prova.id?(
+                  <div style={{display:'flex',gap:8,flexWrap:'wrap',justifyContent:'flex-end'}}>
+                    <button onClick={continuarSimulado} className="btn-primary" style={{fontSize:12,padding:'10px 18px'}}>▶ CONTINUAR</button>
+                    <button onClick={descartarProgresso} className="btn-secondary" style={{fontSize:12,padding:'10px 14px'}}>↺ Recomeçar</button>
+                  </div>
+                ):(
+                  <button onClick={()=>iniciarProvaOficial(prova)} className={liberado?'btn-primary':'btn-secondary'} style={{fontSize:12,padding:'10px 20px',opacity:liberado?1:0.7}} disabled={loadingProva}>{liberado?'▶ INICIAR':`🔒 ${badge.label}`}</button>
+                )}
               </div>)
             })}
           </div>
@@ -1797,7 +1792,12 @@ function SimuladosPage({ showUpgrade, freeQ, setFreeQ, onXp, profile, isPago, ca
               <div style={{fontSize:14,fontWeight:700,marginBottom:5}}>{s.t}</div>
               <div style={{fontSize:12,color:'var(--text-muted)',marginBottom:12}}>{s.info}</div>
               <div style={{display:'flex',gap:5,flexWrap:'wrap',marginBottom:16}}>{s.tags.map(tag=><span key={tag} style={{fontSize:10,padding:'2px 9px',borderRadius:100,fontWeight:700,background:'rgba(212,168,67,0.1)',color:'var(--gold)',border:'1px solid rgba(212,168,67,0.2)'}}>{tag}</span>)}</div>
-              {!podeLiberarPratica(s)?<button className="btn-secondary" style={{width:'100%',fontSize:12,padding:'10px'}} onClick={()=>showUpgrade()}>🔒 DESBLOQUEAR</button>:<button className="btn-gold-sm" style={{width:'100%',fontSize:12}} onClick={()=>iniciarSimuladoPratica(s)} disabled={loadingProva}>{loadingProva?'⏳':'INICIAR →'}</button>}
+              {savedProgress&&savedProgress?.selectedSimulado?.t===s.t?(
+                <div style={{display:'flex',gap:6}}>
+                  <button className="btn-gold-sm" style={{flex:1,fontSize:12}} onClick={continuarSimulado}>▶ CONTINUAR</button>
+                  <button className="btn-secondary" style={{fontSize:12,padding:'10px 12px'}} onClick={descartarProgresso}>↺</button>
+                </div>
+              ):!podeLiberarPratica(s)?<button className="btn-secondary" style={{width:'100%',fontSize:12,padding:'10px'}} onClick={()=>showUpgrade()}>🔒 DESBLOQUEAR</button>:<button className="btn-gold-sm" style={{width:'100%',fontSize:12}} onClick={()=>iniciarSimuladoPratica(s)} disabled={loadingProva}>{loadingProva?'⏳':'INICIAR →'}</button>}
             </div>
           ))}
         </div>
