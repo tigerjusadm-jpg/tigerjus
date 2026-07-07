@@ -134,29 +134,31 @@ export function canAccess(
 // ───────────────────────────────────────────────────────────────────
 // LIMITES POR PLANO (fallback local)
 // Fonte definitiva: tabela plan_settings no banco
-// Elite: IA limitada a 500/dia no backend (plan_settings) — não Infinity
+// Elite: IA limitada a 80/dia no backend (plan_settings) — não Infinity
+// GRATUITO: SEM IA (0) — IA é benefício a partir do Start.
+// mini_simulado = nº de questões do mini-simulado (curto p/ grátis, moderado p/ start)
 // ───────────────────────────────────────────────────────────────────
 
 const LIMITES_FALLBACK: Record<Plano, Limites> = {
   gratuito: {
-    questoes: 15,        ia: 5,   flashcards: 0,        mini_simulado: 10,
+    questoes: 15,        ia: 0,   flashcards: 0,        mini_simulado: 5,
     permite_pdf: false,  permite_simulado_completo: false, permite_radar: false,
   },
   start: {
-    questoes: 50,        ia: 20,  flashcards: 20,       mini_simulado: 20,
+    questoes: 50,        ia: 20,  flashcards: 20,       mini_simulado: 10,
     permite_pdf: false,  permite_simulado_completo: true,  permite_radar: false,
   },
   plus: {
     // Legado: espelha o Pro (nenhum usuário ativo neste plano após migração)
-    questoes: Infinity,  ia: 40,  flashcards: 40,       mini_simulado: 50,
+    questoes: Infinity,  ia: 40,  flashcards: 40,       mini_simulado: 15,
     permite_pdf: true,   permite_simulado_completo: true,  permite_radar: false,
   },
   pro: {
-    questoes: Infinity,  ia: 40,  flashcards: 40,       mini_simulado: 50,
+    questoes: Infinity,  ia: 40,  flashcards: 40,       mini_simulado: 15,
     permite_pdf: true,   permite_simulado_completo: true,  permite_radar: false,
   },
   elite: {
-    questoes: Infinity,  ia: 80,  flashcards: Infinity, mini_simulado: 100,
+    questoes: Infinity,  ia: 80,  flashcards: Infinity, mini_simulado: 20,
     permite_pdf: true,   permite_simulado_completo: true,  permite_radar: true,
   },
 }
@@ -166,6 +168,18 @@ export function getLimites(
   _settings?: PlanSettingsMap | null
 ): Limites {
   return LIMITES_FALLBACK[normalizePlano(plano)]
+}
+
+// ───────────────────────────────────────────────────────────────────
+// SIMULADOS OFICIAIS GRADUAIS — abrem do exame mais antigo ao mais novo
+// Start: 35º–40º · Pro: 35º–44º · Elite: 35º–46º (todos)
+// Retorna o plano MÍNIMO necessário para liberar um exame.
+// ───────────────────────────────────────────────────────────────────
+export function planoMinimoExame(numeroExame: number | null | undefined): Plano {
+  const n = Number(numeroExame) || 0
+  if (n >= 45) return 'elite'   // 45º, 46º e mais recentes → Elite
+  if (n >= 41) return 'pro'     // 41º–44º → Pro
+  return 'start'                // 35º–40º (e anteriores) → Start
 }
 
 // ───────────────────────────────────────────────────────────────────
