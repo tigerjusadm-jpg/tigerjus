@@ -99,10 +99,12 @@ function parse(texto: string, slugs: Set<string>): Node[] {
     const numEnd = m.index + m[0].length
     const num = parseInt(m[2].replace(/\./g, ''), 10)
     const bis = m[3] || ''
-    let win = t.slice(numEnd, numEnd + 40)
+    // Janela ampliada: a lei costuma vir depois dos §§/incisos ("art. 26, §2º, I, do CDC").
+    let win = t.slice(numEnd, numEnd + 180)
     const prox = win.search(/\b(arts?\.?|artigos?)\b/i)
     if (prox >= 0) win = win.slice(0, prox)
-    const corte = win.search(/[.;]/)
+    // Corta no fim da frase (; ou ". ") sem quebrar no ponto interno do número da lei (ex.: 8.069, 8.906).
+    const corte = win.search(/;|\.(?=\s)/)
     if (corte >= 0) win = win.slice(0, corte)
     const lei = acharLei(win)
     if (lei && slugs.has(lei.slug)) {
