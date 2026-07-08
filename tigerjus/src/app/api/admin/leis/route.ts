@@ -165,6 +165,27 @@ export async function POST(req: Request) {
       return NextResponse.json({ ok: true, total: artigos.length, amostra: artigos.slice(0, 5) })
     }
 
+    if (action === 'importar_texto') {
+      const { texto, lei_slug, lei_nome } = body
+      if (!texto || !lei_slug || !lei_nome)
+        return NextResponse.json({ error: 'faltam texto, lei_slug ou lei_nome' }, { status: 400 })
+      const artigos = limparEExtrair(String(texto))
+      if (artigos.length === 0)
+        return NextResponse.json({ error: 'nenhum artigo extraído — confira se o texto colado tem "Art. 1º", "Art. 2º"…' }, { status: 422 })
+
+      await supabase.from('leis_secas').delete().eq('lei_slug', lei_slug).eq('status', 'rascunho')
+      const rows = artigos.map((a, i) => ({
+        lei_slug, lei_nome, artigo: a.artigo, artigo_num: a.num,
+        texto: a.texto, fonte_url: 'texto colado', status: 'rascunho', ordem: i,
+      }))
+      const LOTE = 400
+      for (let i = 0; i < rows.length; i += LOTE) {
+        const { error } = await supabase.from('leis_secas').upsert(rows.slice(i, i + LOTE), { onConflict: 'lei_slug,artigo' })
+        if (error) return NextResponse.json({ error: `lote ${i}-${i + LOTE}: ${error.message}`, inseridos: i }, { status: 500 })
+      }
+      return NextResponse.json({ ok: true, total: artigos.length, amostra: artigos.slice(0, 5) })
+    }
+
     if (action === 'listar') {
       const { lei_slug } = body
       let query = supabase
