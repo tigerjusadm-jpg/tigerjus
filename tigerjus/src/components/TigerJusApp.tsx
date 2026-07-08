@@ -611,7 +611,7 @@ function DashHome({ profile, onNav, onMini, showUpgrade, isPago, canAccessPremiu
             {icon:'📝',label:'Estudar questões',sub:'Quiz OAB',key:'quiz',lock:false,grad:'linear-gradient(135deg,rgba(212,168,67,0.16),rgba(232,98,26,0.08))',bd:'rgba(212,168,67,0.3)'},
             {icon:'📋',label:'Fazer simulado',sub:'Estilo OAB',key:'simulados',lock:false,grad:'linear-gradient(135deg,rgba(58,143,232,0.14),rgba(212,168,67,0.05))',bd:'rgba(58,143,232,0.28)'},
             {icon:'🎯',label:'Mini-simulado',sub:'10 questões aleatórias',key:'simulados',action:'mini',lock:false,grad:'linear-gradient(135deg,rgba(232,98,26,0.14),rgba(212,168,67,0.05))',bd:'rgba(232,98,26,0.28)'},
-            {icon:'🤖',label:'Tutor IA',sub:'Tire dúvidas',key:'ia',lock:false,grad:'linear-gradient(135deg,rgba(139,92,246,0.14),rgba(58,143,232,0.05))',bd:'rgba(139,92,246,0.28)'},
+            {icon:'🤖',label:'Tutor IA',sub:'Tire dúvidas',key:'ia',lock:!isPago,grad:'linear-gradient(135deg,rgba(139,92,246,0.14),rgba(58,143,232,0.05))',bd:'rgba(139,92,246,0.28)'},
             {icon:'🃏',label:'Revisar',sub:'Flashcards',key:'flashcards',lock:!isPago,grad:'linear-gradient(135deg,rgba(76,175,125,0.14),rgba(212,168,67,0.05))',bd:'rgba(76,175,125,0.28)'},
             {icon:'🧭',label:'Minha trilha',sub:'Onde focar agora',key:'trilhas',lock:!canAccessPremium,grad:'linear-gradient(135deg,rgba(212,168,67,0.16),rgba(58,143,232,0.06))',bd:'rgba(212,168,67,0.32)'},
           ].map(a=>(
@@ -2855,6 +2855,8 @@ export default function TigerJusApp() {
   const limites=getLimites(plano)
   const iaIlimitada=isAdmin(profile?.role)||false // Elite limitado a 500/dia pelo backend (plan_settings)
   const podePDF=!!(isAdmin(profile?.role)||limites.permite_pdf)
+  const NAV_REQ:Record<string,'start'|'pro'|'elite'>={ia:'start',flashcards:'start',resumos:'start',indice:'pro',trilhas:'pro',radar:'elite'}
+  const navLocked=(k:string)=>{const r=NAV_REQ[k];return r?!(isAdmin(profile?.role)||canAccess(plano,r)):false}
 
   useEffect(()=>{
     const init=async()=>{
@@ -3002,7 +3004,7 @@ export default function TigerJusApp() {
           <span style={{fontFamily:'var(--font-display)',fontSize:18,fontWeight:900,letterSpacing:2,background:'linear-gradient(135deg,var(--gold-light),var(--gold))',WebkitBackgroundClip:'text',WebkitTextFillColor:'transparent'}}>TIGERJUS</span>
         </div>
         <div className="nav-desktop tj-nav-items" style={{display:'flex',gap:'clamp(8px,1vw,14px)',alignItems:'center'}}>
-          {SIDEBAR.map(i=>(<button key={i.key} onClick={()=>navOrRadar(i.key)} style={{color:page===i.key?'var(--gold)':'var(--text-muted)',fontSize:'clamp(9px,0.85vw,11px)',fontWeight:600,letterSpacing:'clamp(0.5px,0.1vw,1px)',textTransform:'uppercase',border:'none',background:'none',cursor:'pointer',fontFamily:'var(--font-body)',borderBottom:page===i.key?'2px solid var(--gold)':'2px solid transparent',paddingBottom:2,whiteSpace:'nowrap'}}>{i.label}{i.key==='radar'&&!canAccessElite?' 🔒':''}</button>))}
+          {SIDEBAR.map(i=>(<button key={i.key} onClick={()=>navLocked(i.key)?showUpgrade():navOrRadar(i.key)} style={{color:page===i.key?'var(--gold)':'var(--text-muted)',fontSize:'clamp(9px,0.85vw,11px)',fontWeight:600,letterSpacing:'clamp(0.5px,0.1vw,1px)',textTransform:'uppercase',border:'none',background:'none',cursor:'pointer',fontFamily:'var(--font-body)',borderBottom:page===i.key?'2px solid var(--gold)':'2px solid transparent',paddingBottom:2,whiteSpace:'nowrap'}}>{i.label}{navLocked(i.key)?' 🔒':''}</button>))}
         </div>
         <div style={{display:'flex',gap:8,alignItems:'center'}}>
           <span className="nav-desktop" style={{fontSize:12,color:'var(--text-muted)'}}>{profile?.nome?.split(' ')[0]||'Usuário'}</span>
@@ -3020,7 +3022,7 @@ export default function TigerJusApp() {
           {SIDEBAR_GROUPS.map(g=>(
             <div key={g.title||'inicio'}>
               {g.title&&<div style={{fontSize:9,fontWeight:700,letterSpacing:2,textTransform:'uppercase',color:'var(--text-dim)',padding:'12px 20px 4px'}}>{g.title}</div>}
-              {g.items.map(item=>(<button key={item.key} onClick={()=>navOrRadar(item.key)} style={{display:'flex',alignItems:'center',gap:14,padding:'14px 20px',width:'100%',background:page===item.key?'rgba(212,168,67,0.08)':'none',border:'none',cursor:'pointer',fontFamily:'var(--font-body)',fontSize:15,color:page===item.key?'var(--gold)':'var(--white)',textAlign:'left',borderLeft:page===item.key?'3px solid var(--gold)':'3px solid transparent'}}><span style={{fontSize:18,width:24,textAlign:'center'}}>{item.icon}</span>{item.label}{item.key==='radar'&&!canAccessElite&&<span style={{marginLeft:'auto',fontSize:12}}>🔒</span>}</button>))}
+              {g.items.map(item=>(<button key={item.key} onClick={()=>navLocked(item.key)?showUpgrade():navOrRadar(item.key)} style={{display:'flex',alignItems:'center',gap:14,padding:'14px 20px',width:'100%',background:page===item.key?'rgba(212,168,67,0.08)':'none',border:'none',cursor:'pointer',fontFamily:'var(--font-body)',fontSize:15,color:page===item.key?'var(--gold)':'var(--white)',textAlign:'left',borderLeft:page===item.key?'3px solid var(--gold)':'3px solid transparent'}}><span style={{fontSize:18,width:24,textAlign:'center'}}>{item.icon}</span>{item.label}{navLocked(item.key)&&<span style={{marginLeft:'auto',fontSize:12}}>🔒</span>}</button>))}
             </div>
           ))}
           {/* ── Admin link — apenas para usuários admin ── */}
@@ -3046,7 +3048,7 @@ export default function TigerJusApp() {
           {SIDEBAR_GROUPS.map(g=>(
             <div key={g.title||'inicio'}>
               {g.title&&<div style={{fontSize:10,fontWeight:700,letterSpacing:'2.5px',textTransform:'uppercase',color:'var(--text-dim)',padding:'12px 14px 6px',marginTop:4}}>{g.title}</div>}
-              {g.items.map(item=>(<button key={item.key} className={`sidebar-item${page===item.key?' active':''}`} onClick={()=>navOrRadar(item.key)}><span style={{fontSize:17,width:24,textAlign:'center'}}>{item.icon}</span> {item.label}{item.key==='radar'&&!canAccessElite&&<span style={{marginLeft:'auto',fontSize:12}}>🔒</span>}</button>))}
+              {g.items.map(item=>(<button key={item.key} className={`sidebar-item${page===item.key?' active':''}`} onClick={()=>navLocked(item.key)?showUpgrade():navOrRadar(item.key)}><span style={{fontSize:17,width:24,textAlign:'center'}}>{item.icon}</span> {item.label}{navLocked(item.key)&&<span style={{marginLeft:'auto',fontSize:12}}>🔒</span>}</button>))}
             </div>
           ))}
           <div style={{fontSize:10,fontWeight:700,letterSpacing:'2.5px',textTransform:'uppercase',color:'var(--text-dim)',padding:'12px 14px 6px',marginTop:8}}>CONTA</div>
