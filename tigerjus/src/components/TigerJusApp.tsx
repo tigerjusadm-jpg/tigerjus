@@ -92,7 +92,10 @@ const DISC_MAP: Record<string, string> = {
   'Eleitoral':'Eleitoral','Financeiro':'Financeiro','Previdenciário':'Previdenciário',
 }
 
-// ── Contagem REAL de questões por disciplina (1 query leve, cacheada) ──────────
+// ── Contagem REAL de questões por disciplina (1 RPC leve, cacheada) ────────────
+// Usa a RPC contar_questoes_por_disciplina (group by feito no banco), em vez
+// de trazer todas as linhas pro cliente — evita o limite padrão de 1.000
+// linhas do Supabase conforme o banco de questões cresce.
 // Reverse-mapeia o valor de questoes_publicas.disciplina -> nome do card via PDF_DISC_MAP.
 let _discCountsCache: Record<string, number> | null = null
 let _discCountsPromise: Promise<Record<string, number>> | null = null
@@ -102,11 +105,21 @@ async function _loadDiscCounts(): Promise<Record<string, number>> {
   if (_discCountsCache) return _discCountsCache
   const rev: Record<string, string> = {}
   for (const [card, vals] of Object.entries(PDF_DISC_MAP)) for (const v of vals) rev[v] = card
-  const { data } = await supabase.from('questoes_publicas').select('disciplina')
+  const { data, error } = await supabase.rpc('contar_questoes_por_disciplina')
   const counts: Record<string, number> = {}
-  for (const row of (data || []) as { disciplina: string }[]) {
-    const card = rev[row.disciplina]
-    if (card) counts[card] = (counts[card] || 0) + 1
+  if (error || !data) {
+    // Fallback de segurança: se a RPC não existir ainda (migration não aplicada),
+    // volta pro comportamento anterior em vez de quebrar a tela.
+    const { data: rows } = await supabase.from('questoes_publicas').select('disciplina')
+    for (const row of (rows || []) as { disciplina: string }[]) {
+      const card = rev[row.disciplina]
+      if (card) counts[card] = (counts[card] || 0) + 1
+    }
+  } else {
+    for (const row of data as { disciplina: string; total: number }[]) {
+      const card = rev[row.disciplina]
+      if (card) counts[card] = (counts[card] || 0) + Number(row.total)
+    }
   }
   _discCountsCache = counts
   return counts
