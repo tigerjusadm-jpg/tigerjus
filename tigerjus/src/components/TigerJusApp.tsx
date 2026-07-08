@@ -1062,6 +1062,7 @@ function ResumoSection({ disc, onNav, resumoTier = 'none', showUpgrade }: { disc
 }
 
 function LeisecaSection({ disc, onNav, canMemorizacao = false, showUpgrade }: { disc: any; onNav?: (tab: string) => void; canMemorizacao?: boolean; showUpgrade?: () => void }) {
+  const leiPadrao=LEI_PADRAO_DISC[disc.slug]
   const [estado,setEstado]=useState<'loading'|'ok'|'vazio'>('loading')
   const [texto,setTexto]=useState('')
   const fetchingRef=useRef(false)
