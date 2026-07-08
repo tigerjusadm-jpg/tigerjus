@@ -957,7 +957,9 @@ function IAPage({ freeIA, setFreeIA, showUpgrade, profile, isPago, iaIlimitada }
   )
 }
 
-function ResumoRenderer({ texto }: { texto: string }) {
+const LEI_PADRAO_DISC:Record<string,string>={constitucional:'cf',penal:'cp','processo-penal':'cpp',civil:'cc','processo-civil':'cpc',trabalho:'clt','proc-trabalho':'clt',etica:'ced',tributario:'ctn',consumidor:'cdc',eca:'eca'}
+
+function ResumoRenderer({ texto, leiPadrao }: { texto: string; leiPadrao?: string }) {
   const linhas = texto.split('\n')
   return (
     <div style={{fontSize:14,lineHeight:1.9,color:'var(--text-muted)'}}>
@@ -967,8 +969,8 @@ function ResumoRenderer({ texto }: { texto: string }) {
         if (trim === trim.toUpperCase() && trim.length > 4 && !trim.startsWith('-') && !trim.startsWith('•'))
           return <div key={i} style={{fontFamily:'var(--font-display)',fontSize:16,fontWeight:900,color:'var(--white)',marginTop:i>0?20:0,marginBottom:8,letterSpacing:0.3}}>{trim}</div>
         if (trim.startsWith('- ') || trim.startsWith('• '))
-          return (<div key={i} style={{display:'flex',gap:8,marginBottom:4,paddingLeft:4}}><span style={{color:'var(--gold)',flexShrink:0,marginTop:2}}>▸</span><span><ComentarioComLei texto={trim.replace(/^[-•]\s/,'')}/></span></div>)
-        return <div key={i} style={{marginBottom:4}}><ComentarioComLei texto={trim}/></div>
+          return (<div key={i} style={{display:'flex',gap:8,marginBottom:4,paddingLeft:4}}><span style={{color:'var(--gold)',flexShrink:0,marginTop:2}}>▸</span><span><ComentarioComLei texto={trim.replace(/^[-•]\s/,'')} leiPadrao={leiPadrao}/></span></div>)
+        return <div key={i} style={{marginBottom:4}}><ComentarioComLei texto={trim} leiPadrao={leiPadrao}/></div>
       })}
     </div>
   )
@@ -1027,6 +1029,7 @@ function ResumoSection({ disc, onNav, resumoTier = 'none', showUpgrade }: { disc
   )
 
   const verCompleto=resumoTier==='completo'||resumoTier==='memorizacao'
+  const leiPadrao=LEI_PADRAO_DISC[disc.slug]
 
   if(resumoTier==='none') return(
     <div style={{background:'var(--gray)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:20,padding:32,textAlign:'center'}}>
@@ -1039,13 +1042,13 @@ function ResumoSection({ disc, onNav, resumoTier = 'none', showUpgrade }: { disc
 
   return(
     <div>
-      {resumoCurto&&<div style={{background:'rgba(212,168,67,0.06)',border:'1px solid rgba(212,168,67,0.15)',borderRadius:12,padding:'12px 16px',marginBottom:16,fontSize:13,color:'var(--gold)',lineHeight:1.6}}>{resumoCurto}</div>}
+      {resumoCurto&&<div style={{background:'rgba(212,168,67,0.06)',border:'1px solid rgba(212,168,67,0.15)',borderRadius:12,padding:'12px 16px',marginBottom:16,fontSize:13,color:'var(--gold)',lineHeight:1.6}}><ComentarioComLei texto={resumoCurto} leiPadrao={leiPadrao}/></div>}
       <div style={{background:'var(--gray)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:20,padding:'24px'}}>
         {verCompleto?(
-          <ResumoRenderer texto={texto}/>
+          <ResumoRenderer texto={texto} leiPadrao={leiPadrao}/>
         ):(
           <div style={{position:'relative'}}>
-            <div style={{maxHeight:300,overflow:'hidden'}}><ResumoRenderer texto={texto}/></div>
+            <div style={{maxHeight:300,overflow:'hidden'}}><ResumoRenderer texto={texto} leiPadrao={leiPadrao}/></div>
             <div style={{position:'absolute',bottom:0,left:0,right:0,height:180,background:'linear-gradient(to bottom,transparent,var(--gray))',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'flex-end',padding:'0 16px 20px'}}>
               <p style={{fontSize:11,color:'var(--text-muted)',marginBottom:10,textAlign:'center'}}>Resumo completo por disciplina no <strong style={{color:'var(--gold)'}}>Tiger Pro</strong></p>
               <button className="btn-primary" style={{fontSize:12,padding:'10px 22px'}} onClick={showUpgrade}>🔒 Desbloquear resumo completo</button>
@@ -1121,7 +1124,7 @@ function LeisecaSection({ disc, onNav, canMemorizacao = false, showUpgrade }: { 
         <div style={{fontSize:9,fontWeight:900,letterSpacing:'1.5px',background:'rgba(232,98,26,0.12)',border:'1px solid rgba(232,98,26,0.3)',color:'var(--orange)',padding:'4px 10px',borderRadius:100}}>✓ ELITE</div>
       </div>
       <div style={{background:'var(--gray)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:20,padding:'24px'}}>
-        <ResumoRenderer texto={texto}/>
+        <ResumoRenderer texto={texto} leiPadrao={leiPadrao}/>
       </div>
     </div>
   )
