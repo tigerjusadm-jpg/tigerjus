@@ -1643,6 +1643,19 @@ function SimuladosPage({ showUpgrade, freeQ, setFreeQ, onXp, profile, isPago, ca
     setLoadingProva(false)
   }
 
+  // ── SIMULADÃO TIGER (Elite) — montagem 100% no servidor via RPC ────────────
+  const iniciarSimuladao=async()=>{
+    if(!(profile?.role==='admin'||canAccess(profile?.plano,'elite'))){showUpgrade();return}
+    setLoadingProva(true)
+    try{
+      const{data,error}=await supabase.rpc('montar_simuladao')
+      if(error||!data||(data as any[]).length===0){alert('Não foi possível montar o Simuladão agora. Verifique se a classificação de temas (coluna tema) já foi aplicada no banco.');return}
+      const formatted=(data as any[]).map((q:any)=>({id:q.id,disc:q.disciplina,dificuldade:'OAB Oficial',q:q.enunciado,opts:[q.opcao_a,q.opcao_b,q.opcao_c,q.opcao_d],correct:null,exp:''}))
+      setSelectedSimulado({t:'Simuladão Tiger',edicao:'Simuladão Tiger',questions:formatted,simuladao:true})
+      setRunning(true);setCur(0);setSel(null);setAnswered(false);setScore(0);setDone(false);setTime(18000)
+    }finally{setLoadingProva(false)}
+  }
+
   const iniciarSimuladoPratica=async(s:any)=>{
     if(!podeLiberarPratica(s)){showUpgrade();return}
     setLoadingProva(true)
@@ -1780,6 +1793,21 @@ function SimuladosPage({ showUpgrade, freeQ, setFreeQ, onXp, profile, isPago, ca
       </div>
       {tab==='oficiais'&&(
         <div>
+          {(()=>{const liberadoSimuladao=profile?.role==='admin'||canAccess(profile?.plano,'elite');return(
+          <div style={{background:'linear-gradient(135deg,rgba(212,168,67,0.16),rgba(232,98,26,0.09))',border:'1px solid rgba(212,168,67,0.4)',borderRadius:16,padding:'18px 20px',marginBottom:16,display:'flex',alignItems:'center',justifyContent:'space-between',flexWrap:'wrap',gap:14}}>
+            <div style={{display:'flex',alignItems:'center',gap:14,flex:1,minWidth:220}}>
+              <div style={{width:48,height:48,borderRadius:12,background:'linear-gradient(135deg,var(--gold),var(--orange))',display:'flex',alignItems:'center',justifyContent:'center',fontSize:24,flexShrink:0}}>🐯</div>
+              <div>
+                <div style={{display:'flex',alignItems:'center',gap:8,flexWrap:'wrap',marginBottom:4}}>
+                  <span style={{fontSize:15,fontWeight:800,color:'var(--gold)'}}>Simuladão Tiger</span>
+                  <span style={{fontSize:9,fontWeight:900,letterSpacing:'1px',background:'linear-gradient(135deg,var(--gold),var(--orange))',color:'#000',padding:'2px 8px',borderRadius:100}}>80 QUESTÕES</span>
+                </div>
+                <div style={{fontSize:12,color:'var(--text-muted)',lineHeight:1.5}}>Prova inédita com as questões de maior incidência de todas as provas do banco — todas as disciplinas, nos moldes da OAB. As que mais têm chance de cair.</div>
+              </div>
+            </div>
+            <button onClick={iniciarSimuladao} disabled={loadingProva} className={liberadoSimuladao?'btn-primary':'btn-secondary'} style={{fontSize:13,padding:'11px 22px',flexShrink:0,whiteSpace:'nowrap'}}>{loadingProva?'⏳ Montando...':liberadoSimuladao?'▶ INICIAR SIMULADÃO':'🔒 ELITE'}</button>
+          </div>
+          )})()}
           <div style={{background:'linear-gradient(135deg,rgba(212,168,67,0.08),rgba(232,98,26,0.04))',border:'1px solid rgba(212,168,67,0.2)',borderRadius:16,padding:18,marginBottom:20}}>
             <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:6,flexWrap:'wrap'}}><span style={{fontSize:18}}>📋</span><div style={{fontSize:14,fontWeight:700}}>Provas Oficiais da OAB</div><span style={{fontSize:11,color:'var(--text-muted)'}}>Acesso progressivo por plano</span></div>
             <div style={{display:'flex',gap:8,flexWrap:'wrap',marginTop:8}}>{Object.entries(BADGE_COR).map(([plano,b])=><span key={plano} style={{fontSize:10,fontWeight:800,letterSpacing:'1px',background:b.bg,color:b.color,padding:'3px 10px',borderRadius:100,border:`1px solid ${b.color}33`}}>{b.label}</span>)}</div>
