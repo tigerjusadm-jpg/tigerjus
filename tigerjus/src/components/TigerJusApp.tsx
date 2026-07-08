@@ -1794,18 +1794,23 @@ function SimuladosPage({ showUpgrade, freeQ, setFreeQ, onXp, profile, isPago, ca
       {tab==='oficiais'&&(
         <div>
           {(()=>{const liberadoSimuladao=profile?.role==='admin'||canAccess(profile?.plano,'elite');return(
-          <div style={{background:'linear-gradient(135deg,rgba(212,168,67,0.16),rgba(232,98,26,0.09))',border:'1px solid rgba(212,168,67,0.4)',borderRadius:16,padding:'18px 20px',marginBottom:16,display:'flex',alignItems:'center',justifyContent:'space-between',flexWrap:'wrap',gap:14}}>
-            <div style={{display:'flex',alignItems:'center',gap:14,flex:1,minWidth:220}}>
-              <div style={{width:48,height:48,borderRadius:12,background:'linear-gradient(135deg,var(--gold),var(--orange))',display:'flex',alignItems:'center',justifyContent:'center',fontSize:24,flexShrink:0}}>🐯</div>
-              <div>
-                <div style={{display:'flex',alignItems:'center',gap:8,flexWrap:'wrap',marginBottom:4}}>
-                  <span style={{fontSize:15,fontWeight:800,color:'var(--gold)'}}>Simuladão Tiger</span>
-                  <span style={{fontSize:9,fontWeight:900,letterSpacing:'1px',background:'linear-gradient(135deg,var(--gold),var(--orange))',color:'#000',padding:'2px 8px',borderRadius:100}}>80 QUESTÕES</span>
+          <div style={{position:'relative',overflow:'hidden',borderRadius:20,marginBottom:20,padding:'26px 24px',background:'linear-gradient(120deg,#150f04 0%,#3d2608 42%,#b3760f 100%)',border:'1px solid rgba(212,168,67,0.6)',boxShadow:'0 0 0 1px rgba(212,168,67,0.2),0 14px 44px -10px rgba(232,98,26,0.5)'}}>
+            <style>{`@keyframes tjShine{0%{transform:translateX(-140%) skewX(-18deg)}55%,100%{transform:translateX(420%) skewX(-18deg)}}@keyframes tjGlow{0%,100%{box-shadow:0 0 16px 2px rgba(232,98,26,.55)}50%{box-shadow:0 0 30px 7px rgba(232,98,26,.9)}}`}</style>
+            <div style={{position:'absolute',top:0,left:0,width:'34%',height:'100%',background:'linear-gradient(105deg,transparent,rgba(255,255,255,0.22),transparent)',animation:'tjShine 5s ease-in-out infinite',pointerEvents:'none'}}/>
+            <div style={{position:'absolute',top:15,right:-42,transform:'rotate(45deg)',background:'var(--danger)',color:'#fff',fontSize:10,fontWeight:900,letterSpacing:2,padding:'5px 48px',boxShadow:'0 2px 8px rgba(0,0,0,0.4)'}}>NOVO</div>
+            <div style={{position:'relative',display:'flex',alignItems:'center',gap:20,flexWrap:'wrap'}}>
+              <div style={{fontSize:54,lineHeight:1,filter:'drop-shadow(0 3px 8px rgba(0,0,0,0.55))'}}>🐯</div>
+              <div style={{flex:1,minWidth:230}}>
+                <div style={{display:'flex',gap:8,marginBottom:10,flexWrap:'wrap'}}>
+                  <span style={{fontSize:10,fontWeight:900,letterSpacing:2,background:'#000',color:'#f0c04a',padding:'4px 11px',borderRadius:100,border:'1px solid #f0c04a'}}>★ EXCLUSIVO ELITE</span>
+                  <span style={{fontSize:10,fontWeight:900,letterSpacing:2,background:'#f0c04a',color:'#241701',padding:'4px 11px',borderRadius:100}}>80 QUESTÕES</span>
                 </div>
-                <div style={{fontSize:12,color:'var(--text-muted)',lineHeight:1.5}}>Prova inédita com as questões de maior incidência de todas as provas do banco — todas as disciplinas, nos moldes da OAB. As que mais têm chance de cair.</div>
+                <div style={{fontFamily:'var(--font-display)',fontSize:'clamp(30px,5.5vw,46px)',fontWeight:900,lineHeight:0.95,letterSpacing:1,color:'#fff',textShadow:'0 3px 14px rgba(0,0,0,0.45)'}}>SIMULADÃO <span style={{color:'#f5c84a'}}>TIGER</span></div>
+                <div style={{marginTop:9,fontSize:14,fontWeight:800,letterSpacing:0.5,color:'#ffe4b0'}}>AS 80 QUESTÕES QUE MAIS CAEM NA OAB 🔥</div>
+                <div style={{marginTop:5,fontSize:12,color:'rgba(255,255,255,0.72)',lineHeight:1.5}}>Prova inédita com os temas de maior incidência de todas as provas — nos moldes da OAB.</div>
               </div>
+              <button onClick={iniciarSimuladao} disabled={loadingProva} style={{flexShrink:0,fontSize:15,fontWeight:900,letterSpacing:1,padding:'16px 30px',borderRadius:14,border:'none',cursor:liberadoSimuladao?'pointer':'not-allowed',color:liberadoSimuladao?'#241701':'#fff',background:liberadoSimuladao?'linear-gradient(135deg,#ffd76a,#e8621a)':'rgba(0,0,0,0.4)',animation:liberadoSimuladao?'tjGlow 2s ease-in-out infinite':'none'}}>{loadingProva?'⏳ MONTANDO...':liberadoSimuladao?'▶ INICIAR AGORA':'🔒 ELITE'}</button>
             </div>
-            <button onClick={iniciarSimuladao} disabled={loadingProva} className={liberadoSimuladao?'btn-primary':'btn-secondary'} style={{fontSize:13,padding:'11px 22px',flexShrink:0,whiteSpace:'nowrap'}}>{loadingProva?'⏳ Montando...':liberadoSimuladao?'▶ INICIAR SIMULADÃO':'🔒 ELITE'}</button>
           </div>
           )})()}
           <div style={{background:'linear-gradient(135deg,rgba(212,168,67,0.08),rgba(232,98,26,0.04))',border:'1px solid rgba(212,168,67,0.2)',borderRadius:16,padding:18,marginBottom:20}}>
