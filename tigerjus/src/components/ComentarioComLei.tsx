@@ -88,7 +88,7 @@ type Node =
   | { t: 'txt'; v: string }
   | { t: 'cite'; v: string; slug: string; leiNome: string; artigo: string; num: number; paras: number[]; incisos: string[] }
 
-function parse(texto: string, slugs: Set<string>): Node[] {
+function parse(texto: string, slugs: Set<string>, leiPadrao?: string): Node[] {
   const nodes: Node[] = []
   const t = texto || ''
   const anchor = /\b(arts?\.?|artigos?)\s+(\d+(?:\.\d{3})*)\s*[ºo°]?\s*(-[A-Za-z])?/gi
@@ -115,6 +115,14 @@ function parse(texto: string, slugs: Set<string>): Node[] {
       nodes.push({ t: 'cite', v: t.slice(artStart, citeEnd), slug: lei.slug, leiNome: lei.nome, artigo: rotuloArtigo(num, bis), num, paras, incisos })
       last = citeEnd
       anchor.lastIndex = citeEnd
+    } else if (leiPadrao && slugs.has(leiPadrao)) {
+      // Nenhuma lei nomeada por perto: usa a lei padrão da disciplina (ex.: resumo de Constitucional → CF).
+      const Lp = LEIS.find(L => L.slug === leiPadrao)
+      const { paras, incisos } = refsDoMeio(win)
+      if (artStart > last) nodes.push({ t: 'txt', v: t.slice(last, artStart) })
+      nodes.push({ t: 'cite', v: t.slice(artStart, numEnd), slug: leiPadrao, leiNome: Lp ? Lp.nome : '', artigo: rotuloArtigo(num, bis), num, paras, incisos })
+      last = numEnd
+      anchor.lastIndex = numEnd
     }
   }
   if (last < t.length) nodes.push({ t: 'txt', v: t.slice(last) })
@@ -132,7 +140,7 @@ function limparCorpo(texto: string): string {
 
 interface Alvo { slug: string; leiNome: string; artigo: string; num: number; paras: number[]; incisos: string[]; ref: string }
 
-export default function ComentarioComLei({ texto }: { texto: string }) {
+export default function ComentarioComLei({ texto, leiPadrao }: { texto: string; leiPadrao?: string }) {
   const [slugs, setSlugs] = useState<Set<string> | null>(_slugs)
   const [alvo, setAlvo] = useState<Alvo | null>(null)
   const [corpoFull, setCorpoFull] = useState('')
@@ -169,7 +177,7 @@ export default function ComentarioComLei({ texto }: { texto: string }) {
     return () => { vivo = false }
   }, [alvo])
 
-  const nodes = parse(texto, slugs || new Set())
+  const nodes = parse(texto, slugs || new Set(), leiPadrao)
   const trecho = alvo ? extrairTrecho(corpoFull, alvo.paras, alvo.incisos) : ''
   const temTrecho = !!trecho
   const mostrar = (temTrecho && !verComplet) ? trecho : corpoFull
