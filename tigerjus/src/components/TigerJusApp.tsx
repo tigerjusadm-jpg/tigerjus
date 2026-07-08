@@ -122,6 +122,29 @@ function useDisciplineCounts(): Record<string, number> {
   return counts
 }
 
+// ── Contagem TOTAL de questões publicadas (1 query leve, cacheada) ─────────
+// Usa count exact/head para não trazer as linhas — só o número.
+let _totalQuestoesCache: number | null = null
+let _totalQuestoesPromise: Promise<number> | null = null
+async function _loadTotalQuestoes(): Promise<number> {
+  if (_totalQuestoesCache !== null) return _totalQuestoesCache
+  const { count } = await supabase
+    .from('questoes_publicas')
+    .select('id', { count: 'exact', head: true })
+  _totalQuestoesCache = count || 0
+  return _totalQuestoesCache
+}
+function useTotalQuestoes(): number | null {
+  const [total, setTotal] = useState<number | null>(_totalQuestoesCache)
+  useEffect(() => {
+    let alive = true
+    if (!_totalQuestoesPromise) _totalQuestoesPromise = _loadTotalQuestoes()
+    _totalQuestoesPromise.then(t => { if (alive) setTotal(t) })
+    return () => { alive = false }
+  }, [])
+  return total
+}
+
 // Ranking carregado do Supabase em RankingPage
 
 const RESUMOS: Record<string, string> = {
@@ -720,6 +743,7 @@ function DashHome({ profile, onNav, onMini, showUpgrade, isPago, canAccessPremiu
 }
 
 function QuizPage({ freeQ, setFreeQ, showUpgrade, onXp, profile, isPago }: any) {
+  const totalQuestoes = useTotalQuestoes()
   const [disciplina,setDisciplina]=useState('')
   const [modo,setModo]=useState<'Fácil'|'Médio'|'Difícil'>('Fácil')
   const [started,setStarted]=useState(false)
@@ -785,8 +809,8 @@ function QuizPage({ freeQ, setFreeQ, showUpgrade, onXp, profile, isPago }: any) 
   if(!started) return(
     <div style={{padding:'24px 20px',flex:1}}>
       <h1 style={{fontFamily:'var(--font-display)',fontSize:'clamp(22px,5vw,32px)',fontWeight:900,marginBottom:6}}>Quiz OAB 📝</h1>
-      <p style={{fontSize:14,color:'var(--text-muted)',marginBottom:6}}>Questões reais dos exames 42º ao 46º da OAB.</p>
-      <div style={{display:'inline-flex',alignItems:'center',gap:6,background:'rgba(212,168,67,0.08)',border:'1px solid rgba(212,168,67,0.2)',borderRadius:100,padding:'5px 12px',fontSize:11,color:'var(--gold)',marginBottom:24}}>📋 400 questões reais no banco</div>
+      <p style={{fontSize:14,color:'var(--text-muted)',marginBottom:6}}>Questões reais das provas oficiais da OAB/FGV.</p>
+      <div style={{display:'inline-flex',alignItems:'center',gap:6,background:'rgba(212,168,67,0.08)',border:'1px solid rgba(212,168,67,0.2)',borderRadius:100,padding:'5px 12px',fontSize:11,color:'var(--gold)',marginBottom:24}}>📋 {totalQuestoes !== null ? totalQuestoes.toLocaleString('pt-BR') : '…'} questões reais no banco</div>
       {temCota&&<div style={{background:'rgba(212,168,67,0.06)',border:'1px solid rgba(212,168,67,0.15)',borderRadius:12,padding:'12px 16px',marginBottom:20,fontSize:13,color:'var(--gold)'}}>⚡ <strong>{freeQ} questões restantes hoje</strong>. {isPago?'Suba para o Pro e tenha questões ilimitadas.':'Faça upgrade para mais questões por dia.'}</div>}
       <div style={{maxWidth:560,background:'var(--gray)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:20,padding:'24px'}}>
         <div style={{marginBottom:20}}>
@@ -1852,7 +1876,7 @@ function ResumosPage({ profile, showUpgrade, onNav }: any){
   return(
     <div style={{padding:'24px 20px',flex:1}}>
       <h1 style={{fontFamily:'var(--font-display)',fontSize:'clamp(22px,5vw,32px)',fontWeight:900,marginBottom:6}}>Resumos 📒</h1>
-      <p style={{fontSize:14,color:'var(--text-muted)',marginBottom:24}}>Resumos inteligentes de cada disciplina, baseados nas questões reais dos exames 42º ao 46º da OAB.</p>
+      <p style={{fontSize:14,color:'var(--text-muted)',marginBottom:24}}>Resumos inteligentes de cada disciplina, baseados em todas as provas oficiais da OAB/FGV cadastradas na plataforma.</p>
       <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(160px,1fr))',gap:12}}>
         {DISCIPLINES.map(d=>(
           <div key={d.id} style={{background:'var(--gray)',border:'1px solid rgba(255,255,255,0.05)',borderRadius:14,padding:16,cursor:'pointer',transition:'all 0.2s'}}
