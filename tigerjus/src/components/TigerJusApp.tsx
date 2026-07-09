@@ -882,6 +882,18 @@ function QuizPage({ freeQ, setFreeQ, showUpgrade, onXp, profile, isPago }: any) 
           <div style={{fontFamily:'var(--font-mono)',fontSize:18,fontWeight:700,color:time<20?'var(--danger)':'var(--gold)'}}>{String(Math.floor(time/60)).padStart(2,'0')}:{String(time%60).padStart(2,'0')}</div>
         </div>
         <div style={{background:'rgba(255,255,255,0.06)',borderRadius:100,height:4,marginBottom:24,overflow:'hidden'}}><div style={{width:`${pct}%`,height:'100%',background:'linear-gradient(90deg,var(--gold),var(--orange))',borderRadius:100,transition:'width 0.4s'}}/></div>
+        {(() => { const resp=cur+(answered?1:0); const taxa=resp>0?Math.round(score/resp*100):0; return (
+          <div style={{display:'flex',gap:12,marginBottom:24}}>
+            <div style={{flex:1,background:'rgba(58,143,232,0.1)',border:'1px solid rgba(58,143,232,0.3)',borderRadius:14,padding:'12px',textAlign:'center'}}>
+              <div style={{fontSize:10,fontWeight:800,letterSpacing:'1px',textTransform:'uppercase',color:'var(--text-muted)',marginBottom:4}}>Respondidas</div>
+              <div style={{fontFamily:'var(--font-display)',fontSize:28,fontWeight:900,color:'#60a5fa',lineHeight:1}}>{resp}<span style={{fontSize:14,color:'var(--text-muted)',fontWeight:700}}>/{questions.length}</span></div>
+            </div>
+            <div style={{flex:1,background:taxa>=50?'rgba(76,175,125,0.1)':'rgba(232,66,26,0.08)',border:`1px solid ${taxa>=50?'rgba(76,175,125,0.35)':'rgba(232,66,26,0.3)'}`,borderRadius:14,padding:'12px',textAlign:'center'}}>
+              <div style={{fontSize:10,fontWeight:800,letterSpacing:'1px',textTransform:'uppercase',color:'var(--text-muted)',marginBottom:4}}>Taxa de acerto</div>
+              <div style={{fontFamily:'var(--font-display)',fontSize:28,fontWeight:900,color:taxa>=50?'var(--success)':'var(--danger)',lineHeight:1}}>{resp>0?`${taxa}%`:'—'}</div>
+            </div>
+          </div>
+        ) })()}
         <div style={{background:'var(--gray)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:20,padding:'24px'}}>
           <div style={{display:'flex',gap:8,marginBottom:14}}><span style={{fontSize:10,fontWeight:700,letterSpacing:2,textTransform:'uppercase',color:'var(--gold)'}}>{q.disc}</span><span style={{fontSize:10,color:'var(--text-muted)'}}>· OAB Oficial</span></div>
           <div style={{fontSize:'clamp(14px,3vw,18px)',fontWeight:600,lineHeight:1.6,marginBottom:24}}>{q.q}</div>
@@ -1624,6 +1636,9 @@ function SimuladosPage({ showUpgrade, freeQ, setFreeQ, onXp, profile, isPago, ca
   const [loadingProva,setLoadingProva]=useState(false)
   const [tab,setTab]=useState<'oficiais'|'pratica'>('oficiais')
   const [savedMap,setSavedMap]=useState<any>({})
+  const [tematicaDisc,setTematicaDisc]=useState('')
+  const [bestMap,setBestMap]=useState<any>({})
+  const BEST_KEY='tj_simulado_best:'+(profile?.id||'anon')
   const PROG_KEY='tj_simulados_progresso:'+(profile?.id||'anon')
   const progKey=(sim:any)=>sim?.oficial?`oficial:${sim.id}`:`pratica:${sim.t}`
   const readMap=()=>{try{if(typeof window==='undefined')return {};const raw=localStorage.getItem(PROG_KEY);return raw?(JSON.parse(raw)||{}):{}}catch{return {}}}
@@ -1634,10 +1649,8 @@ function SimuladosPage({ showUpgrade, freeQ, setFreeQ, onXp, profile, isPago, ca
   function podeLiberarProva(prova:any):boolean{if(profile?.role==='admin')return true;return canAccess(profile?.plano,planoMinimoParaSimulado(prova.numero_exame))}
 
   const SIMULADOS_PRATICA=[
-    {icon:'⚡',t:'Mini Simulado Rápido',info:'10 questões aleatórias · 15min · Grátis',tags:['Grátis'],lock:false},
-    {icon:'🔥',t:'Simulado Intensivo — Penal',info:'30 questões · 45min',tags:['Start'],lock:true},
-    {icon:'📜',t:'Ética e Estatuto OAB',info:'20 questões · 30min',tags:['Start'],lock:true},
-    {icon:'🏛️',t:'Simulado Geral',info:'60 questões · 4h',tags:['Start'],lock:true},
+    {icon:'⚡',t:'Mini Simulado Rápido',info:'questões aleatórias · 15min · aquecimento',tags:['Grátis'],dif:'Fácil',mins:15,lock:false},
+    {icon:'🏛️',t:'Simulado Geral',info:'80 questões · 5h · igual ao dia da prova',tags:['Start'],dif:'Difícil',mins:300,lock:true},
   ]
 
   function podeLiberarPratica(s:any):boolean{
@@ -1676,17 +1689,27 @@ function SimuladosPage({ showUpgrade, freeQ, setFreeQ, onXp, profile, isPago, ca
   const iniciarSimuladoPratica=async(s:any)=>{
     if(!podeLiberarPratica(s)){showUpgrade();return}
     setLoadingProva(true)
-    const discMap:Record<string,string>={'Simulado Intensivo — Penal':'Penal','Ética e Estatuto OAB':'Ética OAB'}
     const miniQtd=getLimites(profile?.plano).mini_simulado
-    const qtdMap:Record<string,number>={'Mini Simulado Rápido':miniQtd,'Simulado Intensivo — Penal':30,'Ética e Estatuto OAB':20,'Simulado Geral':60}
-    const disc=discMap[s.t];const qtd=qtdMap[s.t]||20
-    let query=supabase.from('questoes_publicas').select('id,disciplina,enunciado,opcao_a,opcao_b,opcao_c,opcao_d')
-    if(disc)query=query.in('disciplina',PDF_DISC_MAP[disc]||[disc])
-    const{data}=await query
+    const qtd = s.t.includes('Mini') ? miniQtd : (s.t.includes('Geral') ? 80 : 20)
+    const mins = s.mins || 30
+    const{data}=await supabase.from('questoes_publicas').select('id,disciplina,enunciado,opcao_a,opcao_b,opcao_c,opcao_d')
     if(!data||data.length===0){setLoadingProva(false);alert('Ainda não há questões suficientes para este simulado. Experimente o Mini Simulado Rápido!');return}
     const shuffled=[...data].sort(()=>Math.random()-0.5).slice(0,qtd)
     const formatted=shuffled.map((q:any)=>({id:q.id,disc:q.disciplina,dificuldade:'OAB Oficial',q:q.enunciado,opts:[q.opcao_a,q.opcao_b,q.opcao_c,q.opcao_d],correct:null,exp:''}))
-    setSelectedSimulado({...s,questions:formatted});setRunning(true);setCur(0);setSel(null);setAnswered(false);setScore(0);setDone(false);setTime(s.t.includes('Mini')?900:18000)
+    setSelectedSimulado({...s,questions:formatted});setRunning(true);setCur(0);setSel(null);setAnswered(false);setScore(0);setDone(false);setTime(mins*60)
+    setLoadingProva(false)
+  }
+
+  const iniciarTematico=async(disc:string)=>{
+    if(!disc)return
+    if(!isPago&&profile?.role!=='admin'){showUpgrade();return}
+    setLoadingProva(true)
+    const{data}=await supabase.from('questoes_publicas').select('id,disciplina,enunciado,opcao_a,opcao_b,opcao_c,opcao_d').in('disciplina',PDF_DISC_MAP[disc]||[disc])
+    if(!data||data.length===0){setLoadingProva(false);alert('Ainda não há questões suficientes de '+disc+' para um temático. Tente outra disciplina.');return}
+    const shuffled=[...data].sort(()=>Math.random()-0.5).slice(0,20)
+    const formatted=shuffled.map((q:any)=>({id:q.id,disc:q.disciplina,dificuldade:'OAB Oficial',q:q.enunciado,opts:[q.opcao_a,q.opcao_b,q.opcao_c,q.opcao_d],correct:null,exp:''}))
+    const sim={icon:'🎯',t:'Temático — '+disc,info:'20 questões · 30min',tags:['Start'],dif:'Médio',mins:30}
+    setSelectedSimulado({...sim,questions:formatted});setRunning(true);setCur(0);setSel(null);setAnswered(false);setScore(0);setDone(false);setTime(1800)
     setLoadingProva(false)
   }
 
@@ -1744,8 +1767,21 @@ function SimuladosPage({ showUpgrade, freeQ, setFreeQ, onXp, profile, isPago, ca
   useEffect(()=>{
     try{if(typeof window!=='undefined')localStorage.removeItem('tj_simulados_progresso')}catch{}
     setSavedMap(readMap())
+    try{if(typeof window!=='undefined'){const rb=localStorage.getItem(BEST_KEY);setBestMap(rb?(JSON.parse(rb)||{}):{})}}catch{}
   // eslint-disable-next-line react-hooks/exhaustive-deps
   },[profile?.id])
+
+  useEffect(()=>{
+    if(!done||!selectedSimulado||typeof window==='undefined')return
+    try{
+      const key=progKey(selectedSimulado)
+      const total=selectedSimulado.questions.length||1
+      const rate=Math.round((score/total)*100)
+      const rb=localStorage.getItem(BEST_KEY);const m=rb?(JSON.parse(rb)||{}):{}
+      if(!(key in m)||rate>m[key]){m[key]=rate;localStorage.setItem(BEST_KEY,JSON.stringify(m));setBestMap(m)}
+    }catch{}
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[done])
 
   const continuarSimulado=(key:string)=>{
     const sp=readMap()[key];if(!sp)return
@@ -1862,11 +1898,31 @@ function SimuladosPage({ showUpgrade, freeQ, setFreeQ, onXp, profile, isPago, ca
       )}
       {tab==='pratica'&&(
         <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(240px,1fr))',gap:14}}>
-          {SIMULADOS_PRATICA.map(s=>(
-            <div key={s.t} style={{background:'var(--gray)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:16,padding:20,transition:'all 0.2s',cursor:'pointer'}} onMouseEnter={e=>{e.currentTarget.style.borderColor='rgba(212,168,67,0.18)';e.currentTarget.style.transform='translateY(-2px)'}} onMouseLeave={e=>{e.currentTarget.style.borderColor='rgba(255,255,255,0.06)';e.currentTarget.style.transform='translateY(0)'}}>
-              <div style={{fontSize:26,marginBottom:12}}>{s.icon}</div>
+          <div style={{gridColumn:'1/-1',background:'linear-gradient(135deg,rgba(212,168,67,0.12),rgba(232,98,26,0.05))',border:'1px solid rgba(212,168,67,0.3)',borderRadius:16,padding:20}}>
+            <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:6,flexWrap:'wrap'}}><span style={{fontSize:24}}>🎯</span><div style={{fontSize:15,fontWeight:800}}>Temático por Disciplina</div><span style={{fontSize:10,padding:'2px 9px',borderRadius:100,fontWeight:700,background:'rgba(255,255,255,0.06)',color:'var(--text-muted)'}}>Médio</span></div>
+            <div style={{fontSize:12,color:'var(--text-muted)',marginBottom:12}}>Escolha a matéria e treine 20 questões (30min) só dela. Ideal pra reforçar seu ponto fraco.</div>
+            {(()=>{const bk='pratica:Temático — '+tematicaDisc;const best=bestMap[bk];const prog=savedMap[bk];return(
+            <div style={{display:'flex',gap:8,flexWrap:'wrap',alignItems:'center'}}>
+              <select value={tematicaDisc} onChange={e=>setTematicaDisc(e.target.value)} style={{flex:'1 1 180px',background:'#1c1c1c',border:'1px solid rgba(255,255,255,0.1)',borderRadius:10,padding:'11px 14px',color:'#fff',fontSize:13,fontFamily:'var(--font-body)',colorScheme:'dark'}}>
+                <option value="">Escolha a disciplina…</option>
+                {Object.keys(PDF_DISC_MAP).map(d=><option key={d} value={d}>{d}</option>)}
+              </select>
+              {prog?(<>
+                <button className="btn-gold-sm" style={{fontSize:12}} onClick={()=>continuarSimulado(bk)}>▶ CONTINUAR</button>
+                <button className="btn-secondary" style={{fontSize:12,padding:'11px 12px'}} onClick={()=>descartarProgresso(bk)}>↺</button>
+              </>):(
+                <button className="btn-gold-sm" style={{fontSize:12}} disabled={!tematicaDisc||loadingProva} onClick={()=>iniciarTematico(tematicaDisc)}>{loadingProva?'⏳':'INICIAR →'}</button>
+              )}
+              {best!==undefined&&<span style={{fontSize:11,color:'var(--gold)',fontWeight:700,width:'100%'}}>🏆 Seu melhor em {tematicaDisc}: {best}%</span>}
+            </div>
+            )})()}
+          </div>
+          {SIMULADOS_PRATICA.map(s=>{const bk='pratica:'+s.t;const best=bestMap[bk];return(
+            <div key={s.t} style={{background:'var(--gray)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:16,padding:20,transition:'all 0.2s'}} onMouseEnter={e=>{e.currentTarget.style.borderColor='rgba(212,168,67,0.18)';e.currentTarget.style.transform='translateY(-2px)'}} onMouseLeave={e=>{e.currentTarget.style.borderColor='rgba(255,255,255,0.06)';e.currentTarget.style.transform='translateY(0)'}}>
+              <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:12}}><span style={{fontSize:26}}>{s.icon}</span><span style={{fontSize:10,padding:'2px 9px',borderRadius:100,fontWeight:700,background:'rgba(255,255,255,0.06)',color:'var(--text-muted)'}}>{s.dif}</span></div>
               <div style={{fontSize:14,fontWeight:700,marginBottom:5}}>{s.t}</div>
-              <div style={{fontSize:12,color:'var(--text-muted)',marginBottom:12}}>{s.info}</div>
+              <div style={{fontSize:12,color:'var(--text-muted)',marginBottom:10}}>{s.info}</div>
+              {best!==undefined&&<div style={{fontSize:11,color:'var(--gold)',fontWeight:700,marginBottom:10}}>🏆 Seu melhor: {best}%</div>}
               <div style={{display:'flex',gap:5,flexWrap:'wrap',marginBottom:16}}>{s.tags.map(tag=><span key={tag} style={{fontSize:10,padding:'2px 9px',borderRadius:100,fontWeight:700,background:'rgba(212,168,67,0.1)',color:'var(--gold)',border:'1px solid rgba(212,168,67,0.2)'}}>{tag}</span>)}</div>
               {savedMap['pratica:'+s.t]?(
                 <div style={{display:'flex',gap:6}}>
@@ -1875,7 +1931,7 @@ function SimuladosPage({ showUpgrade, freeQ, setFreeQ, onXp, profile, isPago, ca
                 </div>
               ):!podeLiberarPratica(s)?<button className="btn-secondary" style={{width:'100%',fontSize:12,padding:'10px'}} onClick={()=>showUpgrade()}>🔒 DESBLOQUEAR</button>:<button className="btn-gold-sm" style={{width:'100%',fontSize:12}} onClick={()=>iniciarSimuladoPratica(s)} disabled={loadingProva}>{loadingProva?'⏳':'INICIAR →'}</button>}
             </div>
-          ))}
+          )})}
         </div>
       )}
     </div>
