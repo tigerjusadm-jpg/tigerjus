@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabase'
 import { useAppSettings } from '@/contexts/AppSettingsContext'
 import RadarOAB from '@/components/RadarOAB'
 import ComunidadeChat from '@/components/ComunidadeChat'
+import MeuPerfilPage from '@/components/MeuPerfilPage'
 import DashboardTopBanner from '@/components/DashboardTopBanner'
 import LandingTopBanner from '@/components/LandingTopBanner'
 import LeiSecaPage from '@/components/LeiSecaPage'
@@ -3193,6 +3194,7 @@ export default function TigerJusApp() {
     {title:'EVOLUIR',items:[
       {icon:'🏆',label:'Ranking',key:'ranking'},
       {icon:'💬',label:'Comunidade',key:'comunidade'},
+      {icon:'👤',label:'Meu Perfil',key:'perfil'},
       {icon:'🐯',label:'Indicar',key:'referral'},
     ]},
   ]
@@ -3329,6 +3331,7 @@ export default function TigerJusApp() {
         {page==='trilhas'&&<TrilhasPage canAccessPremium={canAccessPremium} showUpgrade={showUpgrade} onNav={navTo}/>}
         {page==='referral'&&<ReferralPage profile={profile} showUpgrade={showUpgrade} isPago={userIsPago}/>}
         {page==='comunidade'&&<ComunidadeChat profile={profile} showUpgrade={showUpgrade} onlineIds={onlineIds}/>}
+        {page==='perfil'&&<MeuPerfilPage profile={profile} onUpdate={(c:any)=>setProfile((pr:any)=>pr?{...pr,...c}:pr)}/>}
         </div>
       </div>
       <style>{`
