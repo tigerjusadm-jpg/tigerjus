@@ -11,6 +11,7 @@ const XP_ACTIONS: Record<string, number> = {
   daily_login: 50,
   streak_bonus: 200,
   quiz_complete: 150,
+  questao_dia: 150,
 }
 const LEVELS = [
   { nivel: 1, name: 'Filhote',         min: 0,     max: 999    },
@@ -50,7 +51,7 @@ export async function POST(req: NextRequest) {
     // FIX: removido "level_name" — coluna inexistente que quebrava o UPDATE inteiro
     const { data: profile } = await supabase
       .from('profiles')
-      .select('xp, nivel, streak, ultimo_acesso, questoes_respondidas, questoes_corretas')
+      .select('xp, nivel, streak, ultimo_acesso, questoes_respondidas, questoes_corretas, ultima_questao_dia')
       .eq('id', userId)
       .single()
     if (!profile) return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
@@ -63,8 +64,11 @@ export async function POST(req: NextRequest) {
       const yesterdayStr = yesterday.toISOString().split('T')[0]
       newStreak = lastAccess === yesterdayStr ? newStreak + 1 : 1
     }
+    // Questão do dia: bônus de 150 XP concedido só UMA vez por dia (trava no servidor)
+    const jaResgatouQDia = action === 'questao_dia' && profile.ultima_questao_dia === today
+    const xpConcedido = jaResgatouQDia ? 0 : xpEarned
     const oldXp = profile.xp || 0
-    const newXp = oldXp + xpEarned
+    const newXp = oldXp + xpConcedido
     const oldLevel = getLevel(oldXp)
     const newLevel = getLevel(newXp)
     const leveledUp = newLevel.name !== oldLevel.name
@@ -81,17 +85,20 @@ export async function POST(req: NextRequest) {
     } else if (action === 'question_wrong') {
       updates.questoes_respondidas = (profile.questoes_respondidas || 0) + 1
     }
+    if (action === 'questao_dia' && !jaResgatouQDia) {
+      updates.ultima_questao_dia = today
+    }
     await supabase.from('profiles').update(updates).eq('id', userId)
     // xp_historico é opcional — falha silenciosa se a tabela não existir
-    if (xpEarned > 0) {
+    if (xpConcedido > 0) {
       await supabase.from('xp_historico').insert({
         user_id: userId,
-        xp: xpEarned,
+        xp: xpConcedido,
         motivo: action,
       })
     }
     return NextResponse.json({
-      xp_earned: xpEarned,
+      xp_earned: xpConcedido,
       total_xp: newXp,
       level: newLevel,
       leveled_up: leveledUp,
