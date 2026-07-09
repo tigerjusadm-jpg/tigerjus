@@ -51,11 +51,12 @@ export default function ComunidadeChat(props: any) {
 
   async function autorDe(userId: string) {
     if (cacheAutor.current[userId]) return cacheAutor.current[userId]
+    // resolve pela lista segura de membros (evita bloqueio de RLS ao ler perfis de outros)
     try {
-      const { data } = await supabase.from('profiles').select('nome,avatar_url').eq('id', userId).single()
-      const a = { nome: data?.nome || 'Usuário', avatar_url: data?.avatar_url || null }
-      cacheAutor.current[userId] = a; return a
-    } catch { return { nome: 'Usuário', avatar_url: null } }
+      const { data } = await supabase.rpc('membros_comunidade')
+      ;(data as any[] || []).forEach((m: any) => { cacheAutor.current[m.id] = { nome: m.nome, avatar_url: m.avatar_url } })
+    } catch { /* ignora */ }
+    return cacheAutor.current[userId] || { nome: 'Usuário', avatar_url: null }
   }
 
   // membros (Pro/Elite) via função segura
@@ -66,6 +67,7 @@ export default function ComunidadeChat(props: any) {
         const { data } = await supabase.rpc('membros_comunidade')
         const lista = (data as any[]) || []
         lista.forEach((m: any) => { cacheAutor.current[m.id] = { nome: m.nome, avatar_url: m.avatar_url } })
+        if (meuId) cacheAutor.current[meuId] = { nome: profile?.nome || 'Você', avatar_url: profile?.avatar_url || null }
         setMembros(lista)
       } catch { /* ignora */ }
     })()
@@ -215,27 +217,29 @@ export default function ComunidadeChat(props: any) {
           {!carregando && msgs.length === 0 && <div style={{ color: 'var(--text-muted)', textAlign: 'center', marginTop: 30 }}>Ainda não há mensagens. Seja o primeiro a falar! 🐯</div>}
           {msgs.map(m => {
             const meu = m.user_id === meuId
-            const nome = m.autor?.nome || cacheAutor.current[m.user_id]?.nome || 'Usuário'
-            const avatar = m.autor?.avatar_url || cacheAutor.current[m.user_id]?.avatar_url || null
+            const membroInfo = membros.find((mm: any) => mm.id === m.user_id)
+            const info = meu ? { nome: profile?.nome, avatar_url: profile?.avatar_url } : (membroInfo || m.autor || cacheAutor.current[m.user_id] || {})
+            const nome = info?.nome || 'Usuário'
+            const avatar = info?.avatar_url || null
             const meMencionou = Array.isArray(m.mencionados) && meuId && m.mencionados.includes(meuId)
             const pai = m.reply_a ? msgPorId.current[m.reply_a] : null
             return (
               <div key={m.id} style={{ display: 'flex', gap: 10, flexDirection: meu ? 'row-reverse' : 'row', alignItems: 'flex-end' }}>
-                <div style={{ width: 34, height: 34, borderRadius: '50%', flexShrink: 0, overflow: 'hidden', background: 'linear-gradient(135deg,var(--gold),var(--orange))', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 800, color: '#241701' }}>
+                <div style={{ width: 34, height: 34, borderRadius: '50%', flexShrink: 0, overflow: 'hidden', background: meu ? 'linear-gradient(135deg,var(--gold),var(--orange))' : 'linear-gradient(135deg,#5a7fd0,#3a4d94)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 800, color: meu ? '#241701' : '#fff' }}>
                   {avatar ? <img src={avatar} alt={nome} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : iniciais(nome)}
                 </div>
                 <div style={{ maxWidth: '76%', display: 'flex', flexDirection: 'column', alignItems: meu ? 'flex-end' : 'flex-start' }}>
                   <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 3, display: 'flex', gap: 8, alignItems: 'center' }}>
-                    <span style={{ fontWeight: 700, color: meu ? 'var(--gold)' : 'var(--white)' }}>{meu ? 'Você' : nome}</span>
+                    <span style={{ fontWeight: 700, color: meu ? 'var(--gold)' : '#8fb3ff' }}>{meu ? 'Você' : nome}</span>
                     <span>{hora(m.criado_em)}</span>
                     <button onClick={() => { setReplyTo(m); inputRef.current?.focus() }} title="Responder" style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: 11, padding: 0 }}>responder</button>
                     {isAdmin && <button onClick={() => apagar(m.id)} style={{ background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer', fontSize: 11, padding: 0 }}>apagar</button>}
                     {isAdmin && !meu && <button onClick={() => banir(m.user_id, nome)} style={{ background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer', fontSize: 11, padding: 0 }}>banir</button>}
                   </div>
-                  <div style={{ padding: '9px 13px', borderRadius: 14, borderTopRightRadius: meu ? 4 : 14, borderTopLeftRadius: meu ? 14 : 4, background: meu ? 'linear-gradient(135deg,rgba(212,168,67,0.22),rgba(232,98,26,0.14))' : 'var(--gray)', border: '1px solid ' + (meMencionou ? 'var(--gold)' : (meu ? 'rgba(212,168,67,0.35)' : 'rgba(255,255,255,0.07)')), boxShadow: meMencionou ? '0 0 0 1px var(--gold)' : 'none', fontSize: 14, lineHeight: 1.45, color: 'var(--white)', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+                  <div style={{ padding: '9px 13px', borderRadius: 14, borderTopRightRadius: meu ? 4 : 14, borderTopLeftRadius: meu ? 14 : 4, background: meu ? 'linear-gradient(135deg,rgba(212,168,67,0.22),rgba(232,98,26,0.14))' : 'linear-gradient(135deg,rgba(96,140,210,0.16),rgba(96,140,210,0.06))', border: '1px solid ' + (meMencionou ? 'var(--gold)' : (meu ? 'rgba(212,168,67,0.35)' : 'rgba(96,140,210,0.3)')), boxShadow: meMencionou ? '0 0 0 1px var(--gold)' : 'none', fontSize: 14, lineHeight: 1.45, color: 'var(--white)', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
                     {pai && (
                       <div style={{ borderLeft: '3px solid var(--gold)', padding: '2px 8px', marginBottom: 6, background: 'rgba(255,255,255,0.04)', borderRadius: 4, fontSize: 12 }}>
-                        <span style={{ color: 'var(--gold)', fontWeight: 700 }}>{pai.autor?.nome || cacheAutor.current[pai.user_id]?.nome || 'Usuário'}</span>
+                        <span style={{ color: 'var(--gold)', fontWeight: 700 }}>{(membros.find((mm:any)=>mm.id===pai.user_id)?.nome) || (pai.user_id===meuId?profile?.nome:null) || pai.autor?.nome || 'Usuário'}</span>
                         <span style={{ color: 'var(--text-muted)', display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 260 }}>{pai.texto}</span>
                       </div>
                     )}
