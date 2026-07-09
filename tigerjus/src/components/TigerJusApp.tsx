@@ -3052,6 +3052,8 @@ export default function TigerJusApp() {
   const [menuOpen,setMenuOpen]=useState(false)
 
   const plano=profile?.plano
+  const [onlineIds,setOnlineIds]=useState<string[]>([])
+  const [mencoes,setMencoes]=useState(0)
   const userIsPago=!!(isAdmin(profile?.role)||isPago(plano))
   const canAccessPremium=!!(isAdmin(profile?.role)||canAccess(plano,'pro'))
   const canAccessElite=!!(isAdmin(profile?.role)||canAccess(plano,'elite'))
@@ -3131,6 +3133,33 @@ export default function TigerJusApp() {
   const showUpgrade=()=>{setShowPremiumGate(false);setShowUpgradeModal(true)}
   const navOrRadar=(key:string)=>{ if(key==='radar'){ canAccessElite?setShowRadar(true):showUpgrade() } else navTo(key) }
   const navTo=(key:string)=>{ setNavHist(h=> key===page ? h : [...h,page].slice(-50)); setPage(key); setMenuOpen(false) }
+
+  // Presença GLOBAL (quem está usando a plataforma agora) + contador de menções não lidas
+  useEffect(()=>{
+    const uid=profile?.id
+    if(!uid) return
+    const pl=String(profile?.plano||'').toLowerCase()
+    const podeCom = pl==='pro'||pl==='elite'||profile?.role==='admin'
+    const pres=supabase.channel('plataforma-online',{config:{presence:{key:uid}}})
+      .on('presence',{event:'sync'},()=>{ const st:Record<string,any[]>=pres.presenceState(); setOnlineIds(Object.keys(st)) })
+      .subscribe(async(status:string)=>{ if(status==='SUBSCRIBED'){ await pres.track({user_id:uid}) } })
+    let notifCh:any=null
+    if(podeCom){
+      supabase.from('chat_notificacoes').select('id',{count:'exact',head:true}).eq('user_id',uid).eq('lida',false).then(({count}:any)=>setMencoes(count||0))
+      notifCh=supabase.channel('minhas-notif-'+uid)
+        .on('postgres_changes',{event:'INSERT',schema:'public',table:'chat_notificacoes',filter:'user_id=eq.'+uid},()=>setMencoes((c:number)=>c+1))
+        .subscribe()
+    }
+    return ()=>{ supabase.removeChannel(pres); if(notifCh) supabase.removeChannel(notifCh) }
+  },[profile?.id])
+
+  // Ao abrir a Comunidade, marca menções como lidas (badge some)
+  useEffect(()=>{
+    if(page==='comunidade' && profile?.id){
+      supabase.from('chat_notificacoes').update({lida:true}).eq('user_id',profile.id).eq('lida',false).then(()=>{})
+      setMencoes(0)
+    }
+  },[page,profile?.id])
   const goBack=()=>{
     if(navHist.length>0){
       const prev=navHist[navHist.length-1]
@@ -3226,7 +3255,7 @@ export default function TigerJusApp() {
           {SIDEBAR_GROUPS.map(g=>(
             <div key={g.title||'inicio'}>
               {g.title&&<div style={{fontSize:9,fontWeight:700,letterSpacing:2,textTransform:'uppercase',color:'var(--text-dim)',padding:'12px 20px 4px'}}>{g.title}</div>}
-              {g.items.map(item=>(<button key={item.key} onClick={()=>navLocked(item.key)?showUpgrade():navOrRadar(item.key)} style={{display:'flex',alignItems:'center',gap:14,padding:'14px 20px',width:'100%',background:page===item.key?'rgba(212,168,67,0.08)':'none',border:'none',cursor:'pointer',fontFamily:'var(--font-body)',fontSize:15,color:page===item.key?'var(--gold)':'var(--white)',textAlign:'left',borderLeft:page===item.key?'3px solid var(--gold)':'3px solid transparent'}}><span style={{fontSize:18,width:24,textAlign:'center'}}>{item.icon}</span>{item.label}{navLocked(item.key)&&<span style={{marginLeft:'auto',fontSize:12}}>🔒</span>}</button>))}
+              {g.items.map(item=>(<button key={item.key} onClick={()=>navLocked(item.key)?showUpgrade():navOrRadar(item.key)} style={{display:'flex',alignItems:'center',gap:14,padding:'14px 20px',width:'100%',background:page===item.key?'rgba(212,168,67,0.08)':'none',border:'none',cursor:'pointer',fontFamily:'var(--font-body)',fontSize:15,color:page===item.key?'var(--gold)':'var(--white)',textAlign:'left',borderLeft:page===item.key?'3px solid var(--gold)':'3px solid transparent'}}><span style={{fontSize:18,width:24,textAlign:'center'}}>{item.icon}</span>{item.label}{item.key==='comunidade'&&mencoes>0?<span style={{marginLeft:8,background:'var(--danger)',color:'#fff',fontSize:10,fontWeight:800,borderRadius:100,padding:'1px 7px'}}>{mencoes}</span>:null}{navLocked(item.key)&&<span style={{marginLeft:'auto',fontSize:12}}>🔒</span>}</button>))}
             </div>
           ))}
           {/* ── Admin link — apenas para usuários admin ── */}
@@ -3252,7 +3281,7 @@ export default function TigerJusApp() {
           {SIDEBAR_GROUPS.map(g=>(
             <div key={g.title||'inicio'}>
               {g.title&&<div style={{fontSize:10,fontWeight:700,letterSpacing:'2.5px',textTransform:'uppercase',color:'var(--text-dim)',padding:'12px 14px 6px',marginTop:4}}>{g.title}</div>}
-              {g.items.map(item=>(<button key={item.key} className={`sidebar-item${page===item.key?' active':''}`} onClick={()=>navLocked(item.key)?showUpgrade():navOrRadar(item.key)}><span style={{fontSize:17,width:24,textAlign:'center'}}>{item.icon}</span> {item.label}{navLocked(item.key)&&<span style={{marginLeft:'auto',fontSize:12}}>🔒</span>}</button>))}
+              {g.items.map(item=>(<button key={item.key} className={`sidebar-item${page===item.key?' active':''}`} onClick={()=>navLocked(item.key)?showUpgrade():navOrRadar(item.key)}><span style={{fontSize:17,width:24,textAlign:'center'}}>{item.icon}</span> {item.label}{item.key==='comunidade'&&mencoes>0?<span style={{marginLeft:8,background:'var(--danger)',color:'#fff',fontSize:10,fontWeight:800,borderRadius:100,padding:'1px 7px'}}>{mencoes}</span>:null}{navLocked(item.key)&&<span style={{marginLeft:'auto',fontSize:12}}>🔒</span>}</button>))}
             </div>
           ))}
           <div style={{fontSize:10,fontWeight:700,letterSpacing:'2.5px',textTransform:'uppercase',color:'var(--text-dim)',padding:'12px 14px 6px',marginTop:8}}>CONTA</div>
@@ -3299,7 +3328,7 @@ export default function TigerJusApp() {
         {page==='resumos'&&<ResumosPage profile={profile} showUpgrade={showUpgrade} onNav={navTo}/>}
         {page==='trilhas'&&<TrilhasPage canAccessPremium={canAccessPremium} showUpgrade={showUpgrade} onNav={navTo}/>}
         {page==='referral'&&<ReferralPage profile={profile} showUpgrade={showUpgrade} isPago={userIsPago}/>}
-        {page==='comunidade'&&<ComunidadeChat profile={profile} showUpgrade={showUpgrade}/>}
+        {page==='comunidade'&&<ComunidadeChat profile={profile} showUpgrade={showUpgrade} onlineIds={onlineIds}/>}
         </div>
       </div>
       <style>{`
