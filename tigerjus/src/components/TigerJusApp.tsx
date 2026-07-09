@@ -353,26 +353,78 @@ function PremiumGate({ onClose, onUpgrade }: { onClose:()=>void; onUpgrade:()=>v
   )
 }
 
-function QuestaoDodia({onNav}:{onNav:(k:string)=>void}){
-  const [q,setQ]=useState<{disciplina:string;enunciado:string}|null>(null)
+function QuestaoDodia({onNav,onXp,profile}:{onNav:(k:string)=>void;onXp?:(a:string)=>void;profile?:any}){
+  const [q,setQ]=useState<any>(null)
+  const [aberto,setAberto]=useState(false)
+  const [sel,setSel]=useState<number|null>(null)
+  const [answered,setAnswered]=useState(false)
+  const [correctIdx,setCorrectIdx]=useState<number|null>(null)
+  const [coment,setComent]=useState('')
+  const [checking,setChecking]=useState(false)
+  const [jaHoje,setJaHoje]=useState(false)
+  const hojeStr=new Date().toISOString().split('T')[0]
+  const lsKey='tj_qdia:'+(profile?.id||'anon')+':'+hojeStr
   useEffect(()=>{
-    // Seleciona questão do dia usando a data como semente — determinística para todos os usuários
-    const hoje=new Date(); const seed=(hoje.getDate()*7+hoje.getMonth()*31)%400
-    supabase.from('questoes_publicas').select('disciplina,enunciado')
-      .range(seed,seed).limit(1).then(({data})=>{ if(data?.[0])setQ(data[0]) })
+    try{if(typeof window!=='undefined'&&localStorage.getItem(lsKey))setJaHoje(true)}catch{}
+    ;(async()=>{
+      // Questão do dia determinística: mesma pra todos no mesmo dia, cobrindo o banco todo
+      const dia=Math.floor(Date.now()/86400000)
+      const {count}=await supabase.from('questoes_publicas').select('id',{count:'exact',head:true})
+      const off=count?dia%count:0
+      const {data}=await supabase.from('questoes_publicas').select('id,disciplina,enunciado,opcao_a,opcao_b,opcao_c,opcao_d').order('id').range(off,off)
+      if(data?.[0])setQ(data[0])
+    })()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   },[])
   const disc=q?.disciplina||'OAB'
-  const trecho=q?.enunciado?.slice(0,60)+(q&&q.enunciado.length>60?'...':'')
-  return(
-    <div style={{background:'linear-gradient(135deg,rgba(212,168,67,0.1),rgba(232,98,26,0.06))',border:'1px solid rgba(212,168,67,0.2)',borderRadius:16,padding:18,marginBottom:16,cursor:'pointer'}} onClick={()=>onNav('quiz')}>
-      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',flexWrap:'wrap',gap:10}}>
-        <div>
-          <div style={{fontSize:10,fontWeight:700,letterSpacing:2,textTransform:'uppercase',color:'var(--gold)',marginBottom:4}}>⚡ QUESTÃO DO DIA</div>
-          <div style={{fontWeight:700,fontSize:15}}>{q?`${disc} — ${trecho}`:'Carregando...'}</div>
-          <div style={{fontSize:12,color:'var(--text-muted)',marginTop:4}}>+150 XP bônus ao responder hoje</div>
+  const opts:string[]=q?[q.opcao_a,q.opcao_b,q.opcao_c,q.opcao_d]:[]
+  const responder=async(i:number)=>{
+    if(answered||checking||!q)return
+    setSel(i);setChecking(true)
+    try{
+      const{data:{session}}=await supabase.auth.getSession()
+      const res=await fetch('/api/questao/validar',{method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${session?.access_token||''}`},body:JSON.stringify({questaoId:q.id,escolha:i})})
+      const data=await res.json()
+      if(res.ok){
+        setCorrectIdx(['A','B','C','D'].indexOf(data.letra_correta))
+        setComent(data.comentario||'')
+        setAnswered(true)
+        if(!jaHoje){try{if(typeof window!=='undefined')localStorage.setItem(lsKey,'1')}catch{}setJaHoje(true);if(onXp)onXp('questao_dia')}
+      }else setSel(null)
+    }catch{setSel(null)}finally{setChecking(false)}
+  }
+  const wrap:React.CSSProperties={background:'linear-gradient(135deg,rgba(212,168,67,0.1),rgba(232,98,26,0.06))',border:'1px solid rgba(212,168,67,0.2)',borderRadius:16,padding:18,marginBottom:16}
+  if(!aberto){
+    const trecho=q?.enunciado?.slice(0,60)+(q&&q.enunciado.length>60?'...':'')
+    return(
+      <div style={{...wrap,cursor:q?'pointer':'default'}} onClick={()=>q&&setAberto(true)}>
+        <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',flexWrap:'wrap',gap:10}}>
+          <div>
+            <div style={{fontSize:10,fontWeight:700,letterSpacing:2,textTransform:'uppercase',color:'var(--gold)',marginBottom:4}}>⚡ QUESTÃO DO DIA</div>
+            <div style={{fontWeight:700,fontSize:15}}>{q?`${disc} — ${trecho}`:'Carregando...'}</div>
+            <div style={{fontSize:12,color:'var(--text-muted)',marginTop:4}}>{jaHoje?'✅ Respondida hoje — +150 XP creditados':'+150 XP bônus ao responder hoje'}</div>
+          </div>
+          <button className="btn-gold-sm">{jaHoje?'✅ Feita':'Responder →'}</button>
         </div>
-        <button className="btn-gold-sm">+150 XP</button>
       </div>
+    )
+  }
+  return(
+    <div style={wrap}>
+      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:12,gap:10}}>
+        <div style={{fontSize:10,fontWeight:700,letterSpacing:2,textTransform:'uppercase',color:'var(--gold)'}}>⚡ QUESTÃO DO DIA · {disc}</div>
+        {jaHoje&&<span style={{fontSize:11,color:'var(--gold)',fontWeight:700}}>+150 XP ✅</span>}
+      </div>
+      <div style={{fontSize:14,fontWeight:600,lineHeight:1.6,marginBottom:16}}>{q?.enunciado}</div>
+      <div style={{display:'flex',flexDirection:'column',gap:8}}>
+        {opts.map((opt,i)=>{
+          let bg='rgba(255,255,255,0.03)',bc='rgba(255,255,255,0.08)',color='var(--white)'
+          if(checking&&i===sel){bg='rgba(212,168,67,0.08)';bc='rgba(212,168,67,0.6)';color='var(--gold)'}
+          if(answered){if(i===correctIdx){bg='rgba(76,175,125,0.1)';bc='var(--success)';color='var(--success)'}else if(i===sel){bg='rgba(232,66,26,0.1)';bc='var(--danger)';color='var(--danger)'}}
+          return(<button key={i} onClick={()=>responder(i)} disabled={answered} style={{display:'flex',alignItems:'flex-start',gap:10,background:bg,border:`1px solid ${bc}`,borderRadius:10,padding:'11px 14px',cursor:answered?'default':'pointer',textAlign:'left',width:'100%',fontFamily:'var(--font-body)',fontSize:13,color}}><span style={{width:22,height:22,borderRadius:'50%',flexShrink:0,display:'flex',alignItems:'center',justifyContent:'center',fontSize:10,fontWeight:800,background:'rgba(255,255,255,0.06)'}}>{String.fromCharCode(65+i)}</span><span style={{flex:1}}>{opt}</span></button>)
+        })}
+      </div>
+      {answered&&<div style={{marginTop:14,padding:14,background:'rgba(212,168,67,0.06)',border:'1px solid rgba(212,168,67,0.15)',borderRadius:10,fontSize:12.5,lineHeight:1.7,color:'var(--text-muted)'}}>{sel===correctIdx?'✅ ':'❌ '}<strong style={{color:'var(--gold)'}}>{sel===correctIdx?'Correto!':'Incorreto.'}</strong> +150 XP creditados hoje 🎉 <ComentarioComLei texto={coment}/></div>}
     </div>
   )
 }
@@ -620,7 +672,7 @@ function Conquistas({ profile }: { profile: any }) {
   )
 }
 
-function DashHome({ profile, onNav, onMini, showUpgrade, isPago, canAccessPremium, canAccessElite, onOpenRadar, freeQ, freeIA, limites }: any) {
+function DashHome({ profile, onNav, onMini, showUpgrade, isPago, canAccessPremium, canAccessElite, onOpenRadar, freeQ, freeIA, limites, onXp }: any) {
   const discCounts = useDisciplineCounts()
   const { settings: dashSettings } = useAppSettings()
   const [depoOpen, setDepoOpen] = useState(false)
@@ -688,7 +740,7 @@ function DashHome({ profile, onNav, onMini, showUpgrade, isPago, canAccessPremiu
         ))}
       </div>
       <EvolucaoChart profile={profile}/>
-      <QuestaoDodia onNav={onNav}/>
+      <QuestaoDodia onNav={onNav} onXp={onXp} profile={profile}/>
       <div style={{background:canAccessElite?'linear-gradient(135deg,rgba(58,143,232,0.1),rgba(212,168,67,0.06))':'linear-gradient(135deg,rgba(58,143,232,0.08),rgba(212,168,67,0.06))',border:`1px solid ${canAccessElite?'rgba(58,143,232,0.25)':'rgba(58,143,232,0.2)'}`,borderRadius:16,padding:20,marginBottom:20,cursor:'pointer',transition:'all 0.2s'}}
         onClick={canAccessElite?onOpenRadar:showUpgrade}
         onMouseEnter={e=>{e.currentTarget.style.transform='translateY(-2px)';e.currentTarget.style.boxShadow='0 8px 24px rgba(0,0,0,0.3)'}}
@@ -3235,7 +3287,7 @@ export default function TigerJusApp() {
         </aside>
         <div style={{flex:1,minWidth:0,display:'flex',flexDirection:'column'}}>
           <div style={{padding:'0 20px'}}><DashTicker/></div>
-        {page==='dashboard'&&<DashHome profile={profile} onNav={navTo} onMini={()=>{setSimIntentMini(true);navTo('simulados')}} showUpgrade={showUpgrade} isPago={userIsPago} canAccessPremium={canAccessPremium} canAccessElite={canAccessElite} onOpenRadar={()=>setShowRadar(true)} freeQ={freeQ} freeIA={freeIA} limites={limites}/>}
+        {page==='dashboard'&&<DashHome profile={profile} onNav={navTo} onMini={()=>{setSimIntentMini(true);navTo('simulados')}} showUpgrade={showUpgrade} isPago={userIsPago} canAccessPremium={canAccessPremium} canAccessElite={canAccessElite} onOpenRadar={()=>setShowRadar(true)} freeQ={freeQ} freeIA={freeIA} limites={limites} onXp={handleXp}/>}
         {page==='disciplines'&&<DisciplinesPage showUpgrade={showUpgrade} profile={profile} isPago={userIsPago} canAccessPremium={canAccessPremium} podePDF={podePDF}/>}
         {page==='quiz'&&<QuizPage freeQ={freeQ} setFreeQ={setFreeQ} showUpgrade={showUpgrade} onXp={handleXp} profile={profile} isPago={userIsPago}/>}
         {page==='flashcards'&&<FlashCardsPage isPago={userIsPago} showUpgrade={showUpgrade}/>}
