@@ -381,16 +381,23 @@ function DashTicker(){
     '🔥 Constância vence talento — faça sua questão de hoje.',
     '⚖️ Cada questão te aproxima da aprovação.',
     '🐯 Pense como um Tigre: foco, disciplina, evolução.',
-    '📈 Premium libera IA ilimitada, simulados completos e o Radar OAB.',
     '🎯 30 minutos focados hoje valem mais que 3 horas amanhã.',
+    '💪 Disciplina é fazer mesmo sem vontade. Bora pra cima!',
+    '📈 O Elite libera IA ilimitada, simulados completos e o Radar OAB.',
+    '⭐ Um dia você vai olhar pra trás e agradecer por não ter desistido.',
+    '🚀 A aprovação começa na questão que você faz AGORA.',
   ]
   const [i,setI]=useState(0)
-  useEffect(()=>{const t=setInterval(()=>setI(p=>(p+1)%frases.length),4500);return()=>clearInterval(t)},[frases.length])
+  useEffect(()=>{const t=setInterval(()=>setI(p=>(p+1)%frases.length),5000);return()=>clearInterval(t)},[frases.length])
   return(
-    <div style={{display:'flex',alignItems:'center',gap:10,background:'rgba(212,168,67,0.06)',border:'1px solid rgba(212,168,67,0.16)',borderRadius:12,padding:'10px 14px',marginBottom:16,overflow:'hidden'}}>
-      <span style={{fontSize:9,fontWeight:800,letterSpacing:1.5,textTransform:'uppercase',color:'var(--gold)',whiteSpace:'nowrap',flexShrink:0}}>TIGER</span>
-      <span key={i} style={{fontSize:13,color:'var(--text-muted)',animation:'tjFade 0.5s ease'}}>{frases[i]}</span>
-      <style>{`@keyframes tjFade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}`}</style>
+    <div style={{position:'sticky',top:68,zIndex:20,margin:'0 0 18px',borderRadius:14,padding:'13px 18px',overflow:'hidden',background:'linear-gradient(120deg,rgba(212,168,67,0.20),rgba(232,98,26,0.11))',border:'1px solid rgba(212,168,67,0.42)',boxShadow:'0 8px 26px -14px rgba(232,98,26,0.55)',display:'flex',alignItems:'center',gap:14}}>
+      <style>{`@keyframes tjFade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}@keyframes tjDot{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.35;transform:scale(.65)}}@keyframes tjSheen{0%{transform:translateX(-160%) skewX(-18deg)}60%,100%{transform:translateX(520%) skewX(-18deg)}}`}</style>
+      <div style={{position:'absolute',top:0,left:0,width:'30%',height:'100%',background:'linear-gradient(105deg,transparent,rgba(255,255,255,0.14),transparent)',animation:'tjSheen 6s ease-in-out infinite',pointerEvents:'none'}}/>
+      <span style={{display:'inline-flex',alignItems:'center',gap:8,flexShrink:0,position:'relative'}}>
+        <span style={{width:9,height:9,borderRadius:'50%',background:'var(--gold)',boxShadow:'0 0 10px var(--gold)',animation:'tjDot 1.4s ease-in-out infinite'}}/>
+        <span style={{fontSize:12,fontWeight:900,letterSpacing:2,textTransform:'uppercase',color:'var(--gold)',whiteSpace:'nowrap'}}>TIGER</span>
+      </span>
+      <span key={i} style={{position:'relative',fontSize:'clamp(15px,2.4vw,18px)',fontWeight:800,color:'#fff',lineHeight:1.3,letterSpacing:0.2,animation:'tjFade 0.5s ease'}}>{frases[i]}</span>
     </div>
   )
 }
@@ -631,7 +638,6 @@ function DashHome({ profile, onNav, onMini, showUpgrade, isPago, canAccessPremiu
       </div>
       {/* ── Banner de imagem configurável pelo admin ── */}
       <DashboardTopBanner/>
-      <DashTicker/>
       <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',flexWrap:'wrap',gap:12,marginBottom:20}}>
         <div>
           <h1 style={{fontFamily:'var(--font-display)',fontSize:'clamp(22px,5vw,32px)',fontWeight:900,marginBottom:6}}>Olá, {primeiroNome}! 🐯</h1>
@@ -3211,6 +3217,8 @@ export default function TigerJusApp() {
             <RadarOAB/>
           </div>
         </aside>
+        <div style={{flex:1,minWidth:0,display:'flex',flexDirection:'column'}}>
+          <div style={{padding:'0 20px'}}><DashTicker/></div>
         {page==='dashboard'&&<DashHome profile={profile} onNav={navTo} onMini={()=>{setSimIntentMini(true);navTo('simulados')}} showUpgrade={showUpgrade} isPago={userIsPago} canAccessPremium={canAccessPremium} canAccessElite={canAccessElite} onOpenRadar={()=>setShowRadar(true)} freeQ={freeQ} freeIA={freeIA} limites={limites}/>}
         {page==='disciplines'&&<DisciplinesPage showUpgrade={showUpgrade} profile={profile} isPago={userIsPago} canAccessPremium={canAccessPremium} podePDF={podePDF}/>}
         {page==='quiz'&&<QuizPage freeQ={freeQ} setFreeQ={setFreeQ} showUpgrade={showUpgrade} onXp={handleXp} profile={profile} isPago={userIsPago}/>}
@@ -3223,6 +3231,7 @@ export default function TigerJusApp() {
         {page==='resumos'&&<ResumosPage profile={profile} showUpgrade={showUpgrade} onNav={navTo}/>}
         {page==='trilhas'&&<TrilhasPage canAccessPremium={canAccessPremium} showUpgrade={showUpgrade} onNav={navTo}/>}
         {page==='referral'&&<ReferralPage profile={profile} showUpgrade={showUpgrade} isPago={userIsPago}/>}
+        </div>
       </div>
       <style>{`
         .tj-upgrade-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;}
