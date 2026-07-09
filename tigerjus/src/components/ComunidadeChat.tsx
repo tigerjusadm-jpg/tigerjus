@@ -30,6 +30,7 @@ export default function ComunidadeChat(props: any) {
   const [carregando, setCarregando] = useState(true)
   const [enviando, setEnviando] = useState(false)
   const [aviso, setAviso] = useState('')
+  const [online, setOnline] = useState<any[]>([])
   const fimRef = useRef<HTMLDivElement | null>(null)
   const cacheAutor = useRef<Record<string, { nome: string; avatar_url: string | null }>>({})
 
@@ -72,7 +73,7 @@ export default function ComunidadeChat(props: any) {
     })()
 
     const ch = supabase
-      .channel('comunidade-elite')
+      .channel('comunidade-elite', { config: { presence: { key: meuId || 'anon' } } })
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'chat_mensagens' }, async (payload: any) => {
         const m = payload.new
         if (m.deletado) return
@@ -84,7 +85,17 @@ export default function ComunidadeChat(props: any) {
         const m = payload.new
         setMsgs(prev => (m.deletado ? prev.filter(x => x.id !== m.id) : prev))
       })
-      .subscribe()
+      .on('presence', { event: 'sync' }, () => {
+        const st: Record<string, any[]> = ch.presenceState()
+        const vistos: Record<string, any> = {}
+        Object.values(st).forEach((arr: any[]) => arr.forEach((pp: any) => { if (pp.user_id) vistos[pp.user_id] = pp }))
+        setOnline(Object.values(vistos))
+      })
+      .subscribe(async (status: string) => {
+        if (status === 'SUBSCRIBED') {
+          await ch.track({ user_id: meuId, nome: profile?.nome || 'Usuário', avatar_url: profile?.avatar_url || null })
+        }
+      })
 
     return () => { vivo = false; supabase.removeChannel(ch) }
   }, [isElite])
@@ -134,6 +145,18 @@ export default function ComunidadeChat(props: any) {
         <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(20px,4vw,26px)', fontWeight: 900, display: 'flex', alignItems: 'center', gap: 10 }}>
           Comunidade <span style={{ color: 'var(--gold)' }}>Elite</span>
           <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: 1, background: 'rgba(76,175,125,0.15)', color: 'var(--success)', padding: '3px 9px', borderRadius: 100, display: 'inline-flex', alignItems: 'center', gap: 5 }}><span style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--success)' }} /> AO VIVO</span>
+          {online.length > 0 && (
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, marginLeft: 'auto' }}>
+              <span style={{ display: 'inline-flex' }}>
+                {online.slice(0, 4).map((o: any, idx: number) => (
+                  <span key={o.user_id || idx} title={o.nome} style={{ width: 24, height: 24, borderRadius: '50%', marginLeft: idx === 0 ? 0 : -8, border: '2px solid var(--tj-bg,#0a0f1e)', overflow: 'hidden', background: 'linear-gradient(135deg,var(--gold),var(--orange))', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 800, color: '#241701' }}>
+                    {o.avatar_url ? <img src={o.avatar_url} alt={o.nome} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : iniciais(o.nome || '?')}
+                  </span>
+                ))}
+              </span>
+              <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--success)' }}>{online.length} online</span>
+            </span>
+          )}
         </h1>
         <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>Seja respeitoso. Mensagens em tempo real com toda a comunidade Elite.</p>
       </div>
