@@ -1,6 +1,7 @@
 'use client'
 import { useEffect, useRef, useState } from 'react'
 import { supabase } from '@/lib/supabase'
+import { TigerAvatar, isTigerId } from '@/components/TigerAvatars'
 
 /**
  * Comunidade PRO + ELITE — chat em tempo real com:
@@ -183,7 +184,7 @@ export default function ComunidadeChat(props: any) {
             <button key={m.id} onClick={() => mencionar(m)} title={`Mencionar @${primeiroNome(m.nome)}`} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '7px 8px', background: 'none', border: 'none', borderRadius: 8, cursor: 'pointer', textAlign: 'left', opacity: on ? 1 : 0.5 }}>
               <span style={{ position: 'relative', flexShrink: 0 }}>
                 <span style={{ width: 30, height: 30, borderRadius: '50%', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(135deg,var(--gold),var(--orange))', fontSize: 11, fontWeight: 800, color: '#241701' }}>
-                  {m.avatar_url ? <img src={m.avatar_url} alt={m.nome} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : iniciais(m.nome)}
+                  {isTigerId(m.avatar_url) ? <TigerAvatar id={m.avatar_url} size={30} /> : (m.avatar_url ? <img src={m.avatar_url} alt={m.nome} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : iniciais(m.nome))}
                 </span>
                 <span style={{ position: 'absolute', right: -1, bottom: -1, width: 10, height: 10, borderRadius: '50%', background: on ? 'var(--success)' : '#6b7280', border: '2px solid var(--tj-bg,#0a0f1e)' }} />
               </span>
@@ -226,7 +227,7 @@ export default function ComunidadeChat(props: any) {
             return (
               <div key={m.id} style={{ display: 'flex', gap: 10, flexDirection: meu ? 'row-reverse' : 'row', alignItems: 'flex-end' }}>
                 <div style={{ width: 34, height: 34, borderRadius: '50%', flexShrink: 0, overflow: 'hidden', background: meu ? 'linear-gradient(135deg,var(--gold),var(--orange))' : 'linear-gradient(135deg,#5a7fd0,#3a4d94)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 800, color: meu ? '#241701' : '#fff' }}>
-                  {avatar ? <img src={avatar} alt={nome} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : iniciais(nome)}
+                  {isTigerId(avatar) ? <TigerAvatar id={avatar} size={34} /> : (avatar ? <img src={avatar} alt={nome} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : iniciais(nome))}
                 </div>
                 <div style={{ maxWidth: '76%', display: 'flex', flexDirection: 'column', alignItems: meu ? 'flex-end' : 'flex-start' }}>
                   <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 3, display: 'flex', gap: 8, alignItems: 'center' }}>
