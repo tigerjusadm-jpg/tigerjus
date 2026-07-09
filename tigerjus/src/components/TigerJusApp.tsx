@@ -883,10 +883,8 @@ function QuizPage({ freeQ, setFreeQ, showUpgrade, onXp, profile, isPago }: any) 
   return(
     <div style={{padding:'24px 20px',flex:1}}>
       <div style={{maxWidth:680,margin:'0 auto'}}>
-        <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:12}}>
-          <div style={{fontSize:13,color:'var(--text-muted)'}}>Q{cur+1}/{questions.length} · {modo}</div>
-          <div style={{fontFamily:'var(--font-mono)',fontSize:18,fontWeight:700,color:time<20?'var(--danger)':'var(--gold)'}}>{String(Math.floor(time/60)).padStart(2,'0')}:{String(time%60).padStart(2,'0')}</div>
-        </div>
+        <div style={{fontSize:13,color:'var(--text-muted)',marginBottom:12}}>Q{cur+1}/{questions.length} · {modo}</div>
+        <div style={{marginBottom:16}}><CronometroSimulado segundosRestantes={time} duracaoTotalSegundos={MODO_TEMPO[modo]} /></div>
         <div style={{background:'rgba(255,255,255,0.06)',borderRadius:100,height:4,marginBottom:24,overflow:'hidden'}}><div style={{width:`${pct}%`,height:'100%',background:'linear-gradient(90deg,var(--gold),var(--orange))',borderRadius:100,transition:'width 0.4s'}}/></div>
         {(() => { const resp=cur+(answered?1:0); const taxa=resp>0?Math.round(score/resp*100):0; return (
           <div style={{display:'flex',gap:12,marginBottom:24}}>
@@ -1700,7 +1698,23 @@ function SimuladosPage({ showUpgrade, freeQ, setFreeQ, onXp, profile, isPago, ca
     const mins = s.mins || 30
     const{data}=await supabase.from('questoes_publicas').select('id,disciplina,enunciado,opcao_a,opcao_b,opcao_c,opcao_d')
     if(!data||data.length===0){setLoadingProva(false);alert('Ainda não há questões suficientes para este simulado. Experimente o Mini Simulado Rápido!');return}
-    const shuffled=[...data].sort(()=>Math.random()-0.5).slice(0,qtd)
+    let shuffled:any[]
+    if(s.t.includes('Geral')){
+      // Fiel ao dia da prova: distribui as 80 proporcional à participação real de cada
+      // disciplina no banco (as questões vêm de provas OAB reais, exames 35–46).
+      const porDisc:Record<string,any[]>={}
+      for(const q of data){(porDisc[q.disciplina]=porDisc[q.disciplina]||[]).push(q)}
+      const alloc=Object.keys(porDisc).map(d=>{const exato=qtd*porDisc[d].length/data.length;const base=Math.floor(exato);return{d,base,resto:exato-base}})
+      let soma=alloc.reduce((a,x)=>a+x.base,0)
+      alloc.sort((a,b)=>b.resto-a.resto)
+      for(let i=0;soma<qtd&&i<alloc.length;i++){alloc[i].base++;soma++}
+      let escolhidas:any[]=[]
+      for(const a of alloc){escolhidas=escolhidas.concat([...porDisc[a.d]].sort(()=>Math.random()-0.5).slice(0,a.base))}
+      if(escolhidas.length<qtd){const ids=new Set(escolhidas.map(x=>x.id));escolhidas=escolhidas.concat(data.filter((q:any)=>!ids.has(q.id)).sort(()=>Math.random()-0.5).slice(0,qtd-escolhidas.length))}
+      shuffled=escolhidas.sort(()=>Math.random()-0.5)
+    }else{
+      shuffled=[...data].sort(()=>Math.random()-0.5).slice(0,qtd)
+    }
     const formatted=shuffled.map((q:any)=>({id:q.id,disc:q.disciplina,dificuldade:'OAB Oficial',q:q.enunciado,opts:[q.opcao_a,q.opcao_b,q.opcao_c,q.opcao_d],correct:null,exp:''}))
     setSelectedSimulado({...s,questions:formatted});setRunning(true);setCur(0);setSel(null);setAnswered(false);setScore(0);setDone(false);setTime(mins*60)
     setLoadingProva(false)
