@@ -782,10 +782,10 @@ function QuizPage({ freeQ, setFreeQ, showUpgrade, onXp, profile, isPago }: any) 
   const temCota=Number.isFinite(freeQ)
 
   useEffect(()=>{
-    if(!started||answered||done)return
-    const t=setInterval(()=>setTime(p=>{if(p<=1){clearInterval(t);responder(null);return 0}return p-1}),1000)
+    if(!started||done)return
+    const t=setInterval(()=>setTime(p=>{if(p<=1){clearInterval(t);setDone(true);return 0}return p-1}),1000)
     return()=>clearInterval(t)
-  },[started,answered,done,cur])
+  },[started,done])
 
   const startQuiz=async()=>{
     setLoadingQ(true)
@@ -795,7 +795,7 @@ function QuizPage({ freeQ, setFreeQ, showUpgrade, onXp, profile, isPago }: any) 
     if(error||!data||data.length===0){setLoadingQ(false);alert('Nenhuma questão encontrada.');return}
     const shuffled=[...data].sort(()=>Math.random()-0.5).slice(0,MODO_QTD[modo])
     setQuestions(shuffled.map((q:any)=>({id:q.id,disc:q.disciplina,q:q.enunciado,opts:[q.opcao_a,q.opcao_b,q.opcao_c,q.opcao_d],correct:null,exp:''})))
-    setLoadingQ(false);setStarted(true);setCur(0);setSel(null);setAnswered(false);setScore(0);setDone(false);setTime(MODO_TEMPO[modo])
+    setLoadingQ(false);setStarted(true);setCur(0);setSel(null);setAnswered(false);setScore(0);setDone(false);setTime(shuffled.length*MODO_TEMPO[modo])
   }
 
   // Valida a resposta no servidor. i=null => tempo esgotou (revela sem pontuar).
@@ -823,7 +823,7 @@ function QuizPage({ freeQ, setFreeQ, showUpgrade, onXp, profile, isPago }: any) 
   }
 
   const pick=(i:number)=>{ responder(i) }
-  const next=()=>{if(cur+1>=questions.length){setDone(true);onXp('quiz_complete');return}setCur(p=>p+1);setSel(null);setAnswered(false);setTime(MODO_TEMPO[modo])}
+  const next=()=>{if(cur+1>=questions.length){setDone(true);onXp('quiz_complete');return}setCur(p=>p+1);setSel(null);setAnswered(false)}
   const restart=()=>{setStarted(false);setDone(false);setScore(0);setCur(0)}
 
   if(!started) return(
@@ -885,7 +885,7 @@ function QuizPage({ freeQ, setFreeQ, showUpgrade, onXp, profile, isPago }: any) 
     <div style={{padding:'24px 20px',flex:1}}>
       <div style={{maxWidth:680,margin:'0 auto'}}>
         <div style={{fontSize:13,color:'var(--text-muted)',marginBottom:12}}>Q{cur+1}/{questions.length} · {modo}</div>
-        <div style={{marginBottom:16}}><CronometroSimulado segundosRestantes={time} duracaoTotalSegundos={MODO_TEMPO[modo]} /></div>
+        <div style={{marginBottom:16}}><CronometroSimulado segundosRestantes={time} duracaoTotalSegundos={questions.length*MODO_TEMPO[modo]} /></div>
         <div style={{background:'rgba(255,255,255,0.06)',borderRadius:100,height:4,marginBottom:24,overflow:'hidden'}}><div style={{width:`${pct}%`,height:'100%',background:'linear-gradient(90deg,var(--gold),var(--orange))',borderRadius:100,transition:'width 0.4s'}}/></div>
         {(() => { const resp=cur+(answered?1:0); const taxa=resp>0?Math.round(score/resp*100):0; return (
           <div style={{display:'flex',gap:12,marginBottom:24}}>
