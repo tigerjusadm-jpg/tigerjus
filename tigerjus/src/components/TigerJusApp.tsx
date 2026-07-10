@@ -2840,206 +2840,102 @@ const REFERRAL_TIERS = [
 
 function ReferralPage({profile,showUpgrade,isPago}:any){
   const [copiado,setCopiado]=useState(false)
-  const [recompensas,setRecompensas]=useState<any[]>([])
-  const [loadingR,setLoadingR]=useState(false)
+  const [saldo,setSaldo]=useState(0)
+  const [extrato,setExtrato]=useState<any[]>([])
+  const [ativos,setAtivos]=useState(0)
+  const [loading,setLoading]=useState(false)
 
   const refLink = typeof window!=='undefined'
     ? `${window.location.origin}/login?ref=${profile?.referral_code||''}`
     : `https://www.tigerjus.com.br/login?ref=${profile?.referral_code||''}`
 
-  const count       = profile?.referral_count   || 0
-  const badge       = profile?.ambassador_badge  || null
-  const diasBonus   = profile?.referral_days_bonus || 0
-  const discountPct = profile?.referral_discount_pct || 0
-  const isElite     = profile?.plano === 'elite'
-
-  // Próximo tier
-  const proximoTier = REFERRAL_TIERS.find(t => t.count > count)
-  const tierAtual   = [...REFERRAL_TIERS].reverse().find(t => t.count <= count)
-  const pctProgresso = proximoTier
-    ? Math.round(((count - (tierAtual?.count||0)) / (proximoTier.count - (tierAtual?.count||0))) * 100)
-    : 100
+  const pctAtual = ativos>=10?10:ativos>=5?7:ativos>=2?5:3
+  const TIERS=[{pct:3,label:'1 indicado ativo'},{pct:5,label:'2 a 4 ativos'},{pct:7,label:'5 a 9 ativos'},{pct:10,label:'10+ ativos'}]
 
   useEffect(()=>{
     if(!profile?.id)return
-    setLoadingR(true)
-    supabase.from('referral_rewards').select('*').eq('referrer_id',profile.id).order('granted_at',{ascending:false}).limit(20)
-      .then(({data})=>{setRecompensas(data||[]);setLoadingR(false)})
-  },[profile?.id])
+    setLoading(true)
+    ;(async()=>{
+      const {data:cart}=await supabase.from('carteira_creditos').select('saldo').eq('user_id',profile.id).maybeSingle()
+      setSaldo(Number(cart?.saldo)||0)
+      const {data:tx}=await supabase.from('carteira_transacoes').select('*').eq('user_id',profile.id).order('criado_em',{ascending:false}).limit(30)
+      setExtrato(tx||[])
+      if(profile?.referral_code){
+        const {count}=await supabase.from('profiles').select('id',{count:'exact',head:true}).eq('referred_by',profile.referral_code).neq('plano','gratuito')
+        setAtivos(count||0)
+      }
+      setLoading(false)
+    })()
+  },[profile?.id,profile?.referral_code])
 
   const copiarLink=async()=>{
     try{
       if(navigator.clipboard&&window.isSecureContext){await navigator.clipboard.writeText(refLink)}
       else{const t=document.createElement('textarea');t.value=refLink;document.body.appendChild(t);t.select();document.execCommand('copy');document.body.removeChild(t)}
-      setCopiado(true)
-      setTimeout(()=>setCopiado(false),2500)
+      setCopiado(true);setTimeout(()=>setCopiado(false),2500)
     }catch{alert('Copie o link manualmente: '+refLink)}
   }
+  const fmt=(v:number)=>`R$ ${(Math.round(v*100)/100).toFixed(2).replace('.',',')}`
+  const LBL:React.CSSProperties={fontSize:10,fontWeight:800,letterSpacing:'2px',textTransform:'uppercase',color:'var(--text-muted)',marginBottom:12}
 
   return(
     <div style={{padding:'24px 20px',flex:1,overflowY:'auto'}}>
-      <h1 style={{fontFamily:'var(--font-display)',fontSize:'clamp(22px,5vw,32px)',fontWeight:900,marginBottom:6}}>
-        Programa Tigre Embaixador 🐯
-      </h1>
-      <p style={{fontSize:14,color:'var(--text-muted)',marginBottom:24}}>
-        Indique amigos e evolua. A cada indicação que assinar, você ganha recompensas.
-      </p>
+      <h1 style={{fontFamily:'var(--font-display)',fontSize:'clamp(22px,5vw,32px)',fontWeight:900,marginBottom:6}}>Programa Tigre Embaixador 🐯</h1>
+      <p style={{fontSize:14,color:'var(--text-muted)',marginBottom:24}}>Indique amigos e ganhe <b>comissão em R$</b> toda vez que eles pagarem. Quanto mais indicados ativos, maior a sua porcentagem.</p>
 
-      {/* Badge atual */}
-      {badge&&(
-        <div style={{background:'linear-gradient(135deg,rgba(212,168,67,0.12),rgba(232,98,26,0.06))',border:'1px solid rgba(212,168,67,0.25)',borderRadius:16,padding:'16px 20px',marginBottom:20,display:'flex',alignItems:'center',gap:16}}>
-          <span style={{fontSize:36}}>{REFERRAL_TIERS.find(t=>t.badge===badge)?.icon||'🏅'}</span>
-          <div>
-            <div style={{fontSize:10,fontWeight:700,letterSpacing:'2px',textTransform:'uppercase',color:'var(--gold)',marginBottom:4}}>SEU BADGE ATUAL</div>
-            <div style={{fontFamily:'var(--font-display)',fontSize:20,fontWeight:900}}>{badge}</div>
-            <div style={{fontSize:12,color:'var(--text-muted)',marginTop:2}}>{count} indicaç{count===1?'ão':'ões'} convertida{count!==1?'s':''}</div>
-          </div>
-          {isElite&&discountPct>0&&(
-            <div style={{marginLeft:'auto',textAlign:'center'}}>
-              <div style={{fontFamily:'var(--font-display)',fontSize:28,fontWeight:900,color:'var(--success)'}}>{discountPct}%</div>
-              <div style={{fontSize:11,color:'var(--text-muted)'}}>desconto acum.</div>
-            </div>
-          )}
-          {!isElite&&diasBonus>0&&(
-            <div style={{marginLeft:'auto',textAlign:'center'}}>
-              <div style={{fontFamily:'var(--font-display)',fontSize:28,fontWeight:900,color:'var(--gold)'}}>{diasBonus}</div>
-              <div style={{fontSize:11,color:'var(--text-muted)'}}>dias ganhos</div>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Progresso ao próximo badge */}
-      {!isElite&&proximoTier&&(
-        <div style={{background:'var(--gray)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:16,padding:'20px',marginBottom:20}}>
-          <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:12,flexWrap:'wrap',gap:8}}>
-            <div>
-              <div style={{fontSize:12,color:'var(--text-muted)',marginBottom:4}}>Próximo nível</div>
-              <div style={{fontWeight:700,fontSize:15}}>
-                {proximoTier.icon} {proximoTier.badge}
-                <span style={{fontSize:12,color:'var(--text-muted)',marginLeft:8}}>· {proximoTier.reward}</span>
-              </div>
-            </div>
-            <div style={{fontSize:12,color:'var(--text-muted)'}}>
-              <strong style={{color:'var(--gold)'}}>{count}</strong> / {proximoTier.count} indicações
-            </div>
-          </div>
-          <div style={{background:'rgba(255,255,255,0.06)',borderRadius:100,height:10,overflow:'hidden'}}>
-            <div style={{width:`${pctProgresso}%`,height:'100%',background:'linear-gradient(90deg,var(--gold),var(--orange))',borderRadius:100,transition:'width 1s ease'}}/>
-          </div>
-          <div style={{marginTop:8,fontSize:12,color:'var(--text-muted)'}}>
-            Faltam <strong style={{color:'var(--gold)'}}>{proximoTier.count-count}</strong> indicaç{(proximoTier.count-count)===1?'ão':'ões'} para ser <strong style={{color:'var(--gold)'}}>{proximoTier.badge}</strong>
-          </div>
-        </div>
-      )}
-
-      {/* Elite: info de desconto */}
-      {isElite&&(
-        <div style={{background:'linear-gradient(135deg,rgba(232,98,26,0.1),rgba(212,168,67,0.06))',border:'1px solid rgba(232,98,26,0.25)',borderRadius:16,padding:'20px',marginBottom:20}}>
-          <div style={{fontSize:10,fontWeight:700,letterSpacing:'2px',textTransform:'uppercase',color:'var(--orange)',marginBottom:8}}>👑 ELITE EMBAIXADOR</div>
-          <p style={{fontSize:14,color:'var(--text-muted)',lineHeight:1.7,marginBottom:12}}>
-            A cada indicação convertida, você acumula <strong style={{color:'var(--orange)'}}>5% de desconto</strong> na sua próxima renovação. Máximo de 50%.
-          </p>
-          <div style={{display:'flex',alignItems:'center',gap:12}}>
-            <div style={{fontFamily:'var(--font-display)',fontSize:32,fontWeight:900,color:'var(--success)'}}>{discountPct}%</div>
-            <div>
-              <div style={{fontSize:13,fontWeight:700}}>desconto acumulado</div>
-              <div style={{fontSize:11,color:'var(--text-muted)'}}>em {count} indicaç{count===1?'ão':'ões'} convertida{count!==1?'s':''}</div>
-            </div>
-            {discountPct<50&&<div style={{marginLeft:'auto',fontSize:12,color:'var(--text-muted)'}}>faltam {(50-discountPct)/5} indicações para 50%</div>}
-          </div>
-        </div>
-      )}
-
-      {/* Link de indicação */}
-      <div style={{background:'var(--gray)',border:'1px solid rgba(212,168,67,0.2)',borderRadius:16,padding:'20px',marginBottom:20}}>
-        <div style={{fontSize:10,fontWeight:700,letterSpacing:'2px',textTransform:'uppercase',color:'var(--gold)',marginBottom:12}}>🔗 SEU LINK DE INDICAÇÃO</div>
-        <div style={{background:'rgba(255,255,255,0.04)',border:'1px solid rgba(255,255,255,0.08)',borderRadius:10,padding:'12px 14px',fontSize:12,fontFamily:'var(--font-mono)',color:'var(--text-muted)',marginBottom:12,wordBreak:'break-all',lineHeight:1.5}}>
-          {refLink}
-        </div>
-        <div style={{display:'flex',gap:10,flexWrap:'wrap'}}>
-          <button
-            className="btn-primary"
-            style={{flex:1,minWidth:140,fontSize:13,padding:'10px 16px',background:copiado?'var(--success)':undefined,borderColor:copiado?'var(--success)':undefined}}
-            onClick={copiarLink}
-          >
-            {copiado?'✅ Link copiado!':'📋 Copiar link'}
-          </button>
-          <a
-            href={`https://wa.me/?text=${encodeURIComponent(`🐯 Estou estudando para a OAB no TigerJus — a plataforma mais inteligente de Direito! Crie sua conta grátis: ${refLink}`)}`}
-            target="_blank" rel="noopener noreferrer"
-            style={{flex:1,minWidth:140,display:'flex',alignItems:'center',justifyContent:'center',gap:8,background:'#25D366',border:'none',borderRadius:10,padding:'10px 16px',fontSize:13,fontWeight:700,color:'#fff',textDecoration:'none'}}
-          >
-            💬 Compartilhar no WhatsApp
-          </a>
+      <div style={{background:'linear-gradient(135deg,rgba(212,168,67,0.14),rgba(232,98,26,0.06))',border:'1px solid rgba(212,168,67,0.3)',borderRadius:18,padding:'22px 24px',marginBottom:20}}>
+        <div style={{fontSize:10,fontWeight:800,letterSpacing:'2px',textTransform:'uppercase',color:'var(--gold)',marginBottom:6}}>💰 Minha carteira</div>
+        <div style={{fontFamily:'var(--font-display)',fontSize:40,fontWeight:900,lineHeight:1,marginBottom:12}}>{fmt(saldo)}</div>
+        <div style={{display:'flex',gap:20,flexWrap:'wrap',fontSize:13,color:'var(--text-muted)'}}>
+          <span><b style={{color:'#fff'}}>{ativos}</b> indicado{ativos!==1?'s':''} ativo{ativos!==1?'s':''}</span>
+          <span>comissão atual: <b style={{color:'var(--gold)'}}>{pctAtual}%</b></span>
         </div>
       </div>
 
-      {/* Como funciona */}
-      <div style={{marginBottom:20}}>
-        <div style={{fontSize:10,fontWeight:700,letterSpacing:'2px',textTransform:'uppercase',color:'var(--text-muted)',marginBottom:12}}>COMO FUNCIONA</div>
-        <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(200px,1fr))',gap:12}}>
-          {[
-            {n:'01',t:'Compartilhe seu link',d:'Envie para amigos, grupos de WhatsApp, Instagram ou turma de faculdade.'},
-            {n:'02',t:'Amigo se cadastra',d:'Ele clica no seu link, cria a conta grátis e explora a plataforma.'},
-            {n:'03',t:'Amigo assina um plano',d:'Quando ele fizer upgrade, você recebe sua recompensa automaticamente.'},
-            {n:'04',t:'Você evolui',d:isElite?'Acumula 5% de desconto por indicação (máximo 50%).':'Acumula dias extras e sobe de badge — Recrutador → Bronze → Prata → Ouro.'},
-          ].map(s=>(
-            <div key={s.n} style={{borderLeft:'2px solid rgba(212,168,67,0.2)',paddingLeft:14}}>
-              <div style={{fontFamily:'var(--font-mono)',fontSize:11,color:'var(--gold)',marginBottom:6}}>{s.n}</div>
-              <div style={{fontWeight:700,fontSize:13,marginBottom:4}}>{s.t}</div>
-              <div style={{fontSize:12,color:'var(--text-muted)',lineHeight:1.6}}>{s.d}</div>
+      <div style={{background:'var(--gray)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:16,padding:20,marginBottom:24}}>
+        <div style={LBL}>Seu link de indicação</div>
+        <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
+          <input readOnly value={refLink} style={{flex:'1 1 220px',background:'rgba(255,255,255,0.03)',border:'1px solid rgba(255,255,255,0.1)',borderRadius:10,padding:'11px 14px',color:'#fff',fontSize:13}}/>
+          <button className="btn-gold-sm" style={{fontSize:12}} onClick={copiarLink}>{copiado?'✓ Copiado':'Copiar link'}</button>
+        </div>
+      </div>
+
+      <div style={{marginBottom:24}}>
+        <div style={LBL}>Comissão por indicados ativos</div>
+        <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(120px,1fr))',gap:10}}>
+          {TIERS.map(t=>{const aqui=pctAtual===t.pct;return(
+            <div key={t.pct} style={{background:aqui?'rgba(212,168,67,0.1)':'var(--gray)',border:`1px solid ${aqui?'var(--gold)':'rgba(255,255,255,0.06)'}`,borderRadius:14,padding:'14px 12px',textAlign:'center'}}>
+              <div style={{fontFamily:'var(--font-display)',fontSize:26,fontWeight:900,color:'var(--gold)'}}>{t.pct}%</div>
+              <div style={{fontSize:11,color:'var(--text-muted)',marginTop:2}}>{t.label}</div>
+              {aqui&&<div style={{fontSize:10,color:'var(--success)',fontWeight:700,marginTop:6}}>✓ você está aqui</div>}
+            </div>
+          )})}
+        </div>
+        <div style={{fontSize:11,color:'var(--text-muted)',marginTop:10,lineHeight:1.6}}>A porcentagem é calculada pelos indicados que estão <b>pagando naquele mês</b>. Se um cancelar, sua base cai; se renovar, sobe. A comissão incide sobre o valor líquido de cada pagamento e é recorrente enquanto o indicado continuar assinante.</div>
+      </div>
+
+      <div>
+        <div style={LBL}>Extrato da carteira</div>
+        {loading&&<div style={{fontSize:13,color:'var(--text-muted)'}}>Carregando…</div>}
+        {!loading&&extrato.length===0&&(
+          <div style={{background:'var(--gray)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:14,padding:20,textAlign:'center',fontSize:13,color:'var(--text-muted)'}}>Ainda sem movimentações. Quando um indicado pagar, a comissão aparece aqui. 💸</div>
+        )}
+        <div style={{display:'flex',flexDirection:'column',gap:8}}>
+          {extrato.map(t=>(
+            <div key={t.id} style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:12,background:'var(--gray)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:12,padding:'12px 16px'}}>
+              <div style={{minWidth:0}}>
+                <div style={{fontSize:13,fontWeight:700}}>{t.tipo==='comissao'?`Comissão ${t.percentual_aplicado}%`:(t.descricao||t.tipo)}</div>
+                <div style={{fontSize:11,color:'var(--text-muted)'}}>{new Date(t.criado_em).toLocaleDateString('pt-BR')}{t.valor_bruto?` · indicado pagou ${fmt(Number(t.valor_bruto))}`:''}</div>
+              </div>
+              <div style={{fontFamily:'var(--font-display)',fontSize:15,fontWeight:900,color:Number(t.valor)>=0?'var(--success)':'var(--danger)',whiteSpace:'nowrap'}}>{Number(t.valor)>=0?'+':''}{fmt(Number(t.valor))}</div>
             </div>
           ))}
         </div>
+        <div style={{fontSize:11,color:'var(--text-muted)',marginTop:14,textAlign:'center'}}>Em breve: usar o crédito na sua assinatura ou presentear um amigo. 🎁</div>
       </div>
-
-      {/* Tiers */}
-      <div style={{marginBottom:20}}>
-        <div style={{fontSize:10,fontWeight:700,letterSpacing:'2px',textTransform:'uppercase',color:'var(--text-muted)',marginBottom:12}}>NÍVEIS DO PROGRAMA</div>
-        <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(180px,1fr))',gap:10}}>
-          {REFERRAL_TIERS.map(t=>{
-            const atingido=count>=t.count
-            return(
-              <div key={t.badge} style={{background:atingido?'rgba(212,168,67,0.08)':'var(--gray)',border:`1px solid ${atingido?'rgba(212,168,67,0.3)':'rgba(255,255,255,0.06)'}`,borderRadius:12,padding:'14px 16px',opacity:atingido?1:0.6,transition:'all 0.2s'}}>
-                <div style={{fontSize:24,marginBottom:8}}>{t.icon}</div>
-                <div style={{fontSize:12,fontWeight:700,marginBottom:4,color:atingido?'var(--white)':'var(--text-muted)'}}>{t.badge}</div>
-                <div style={{fontSize:11,color:'var(--gold)',marginBottom:4}}>{t.count} indicaç{t.count===1?'ão':'ões'}</div>
-                <div style={{fontSize:11,color:'var(--text-muted)'}}>{t.reward}</div>
-                {atingido&&<div style={{marginTop:8,fontSize:10,fontWeight:700,color:'var(--success)'}}>✓ CONQUISTADO</div>}
-              </div>
-            )
-          })}
-        </div>
-      </div>
-
-      {/* Histórico de recompensas */}
-      {recompensas.length>0&&(
-        <div>
-          <div style={{fontSize:10,fontWeight:700,letterSpacing:'2px',textTransform:'uppercase',color:'var(--text-muted)',marginBottom:12}}>HISTÓRICO DE RECOMPENSAS</div>
-          <div style={{display:'flex',flexDirection:'column',gap:8}}>
-            {recompensas.map(r=>(
-              <div key={r.id} style={{display:'flex',alignItems:'center',gap:12,background:'var(--gray)',border:'1px solid rgba(255,255,255,0.05)',borderRadius:10,padding:'12px 14px'}}>
-                <span style={{fontSize:18}}>{r.reward_type==='discount'?'💸':'🎁'}</span>
-                <div style={{flex:1}}>
-                  <div style={{fontSize:13,fontWeight:600}}>
-                    {r.reward_type==='discount'?`+${r.reward_value}% desconto acumulado`:`+${r.reward_value} dias extras`}
-                  </div>
-                  <div style={{fontSize:11,color:'var(--text-muted)'}}>
-                    {new Date(r.granted_at).toLocaleDateString('pt-BR')}
-                  </div>
-                </div>
-                <div style={{fontSize:11,fontWeight:700,color:'var(--success)'}}>✓</div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
     </div>
   )
 }
-// ── FIM DO PROGRAMA TIGRE EMBAIXADOR ──────────────────────────────────────────
-
 export default function TigerJusApp() {
   const router=useRouter()
   const { settings } = useAppSettings()
