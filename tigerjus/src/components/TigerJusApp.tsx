@@ -366,8 +366,9 @@ function QuestaoDodia({onNav,onXp,profile}:{onNav:(k:string)=>void;onXp?:(a:stri
   const [jaHoje,setJaHoje]=useState(false)
   const hojeStr=new Date().toISOString().split('T')[0]
   const lsKey='tj_qdia:'+(profile?.id||'anon')+':'+hojeStr
+  const respondidaHoje = jaHoje || (profile?.ultima_questao_dia===hojeStr)
   useEffect(()=>{
-    try{if(typeof window!=='undefined'&&localStorage.getItem(lsKey))setJaHoje(true)}catch{}
+    try{if(typeof window!=='undefined'){const raw=localStorage.getItem(lsKey);if(raw){setJaHoje(true);setAnswered(true);try{const o=JSON.parse(raw);if(o&&typeof o.sel==='number'){setSel(o.sel);setCorrectIdx(typeof o.correctIdx==='number'?o.correctIdx:null);setComent(o.coment||'')}}catch{}}}}catch{}
     ;(async()=>{
       // Questão do dia determinística: mesma pra todos no mesmo dia, cobrindo o banco todo
       const dia=Math.floor(Date.now()/86400000)
@@ -381,7 +382,7 @@ function QuestaoDodia({onNav,onXp,profile}:{onNav:(k:string)=>void;onXp?:(a:stri
   const disc=q?.disciplina||'OAB'
   const opts:string[]=q?[q.opcao_a,q.opcao_b,q.opcao_c,q.opcao_d]:[]
   const responder=async(i:number)=>{
-    if(answered||checking||!q)return
+    if(answered||checking||!q||respondidaHoje)return
     setSel(i);setChecking(true)
     try{
       const{data:{session}}=await supabase.auth.getSession()
@@ -391,7 +392,7 @@ function QuestaoDodia({onNav,onXp,profile}:{onNav:(k:string)=>void;onXp?:(a:stri
         setCorrectIdx(['A','B','C','D'].indexOf(data.letra_correta))
         setComent(data.comentario||'')
         setAnswered(true)
-        if(!jaHoje){try{if(typeof window!=='undefined')localStorage.setItem(lsKey,'1')}catch{}setJaHoje(true);if(onXp)onXp('questao_dia')}
+        if(!jaHoje){try{if(typeof window!=='undefined')localStorage.setItem(lsKey,JSON.stringify({sel:i,correctIdx:['A','B','C','D'].indexOf(data.letra_correta),coment:data.comentario||''}))}catch{}setJaHoje(true);if(onXp)onXp('questao_dia')}
       }else setSel(null)
     }catch{setSel(null)}finally{setChecking(false)}
   }
@@ -404,9 +405,9 @@ function QuestaoDodia({onNav,onXp,profile}:{onNav:(k:string)=>void;onXp?:(a:stri
           <div>
             <div style={{fontSize:10,fontWeight:700,letterSpacing:2,textTransform:'uppercase',color:'var(--gold)',marginBottom:4}}>⚡ QUESTÃO DO DIA</div>
             <div style={{fontWeight:700,fontSize:15}}>{q?`${disc} — ${trecho}`:'Carregando...'}</div>
-            <div style={{fontSize:12,color:'var(--text-muted)',marginTop:4}}>{jaHoje?'✅ Respondida hoje — +150 XP creditados':'+150 XP bônus ao responder hoje'}</div>
+            <div style={{fontSize:12,color:'var(--text-muted)',marginTop:4}}>{respondidaHoje?'✅ Respondida hoje — +150 XP creditados':'+150 XP bônus ao responder hoje'}</div>
           </div>
-          <button className="btn-gold-sm">{jaHoje?'✅ Feita':'Responder →'}</button>
+          <button className="btn-gold-sm">{respondidaHoje?'✅ Feita':'Responder →'}</button>
         </div>
       </div>
     )
@@ -415,7 +416,7 @@ function QuestaoDodia({onNav,onXp,profile}:{onNav:(k:string)=>void;onXp?:(a:stri
     <div style={wrap}>
       <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:12,gap:10}}>
         <div style={{fontSize:10,fontWeight:700,letterSpacing:2,textTransform:'uppercase',color:'var(--gold)'}}>⚡ QUESTÃO DO DIA · {disc}</div>
-        {jaHoje&&<span style={{fontSize:11,color:'var(--gold)',fontWeight:700}}>+150 XP ✅</span>}
+        {respondidaHoje&&<span style={{fontSize:11,color:'var(--gold)',fontWeight:700}}>+150 XP ✅</span>}
       </div>
       <div style={{fontSize:14,fontWeight:600,lineHeight:1.6,marginBottom:16}}>{q?.enunciado}</div>
       <div style={{display:'flex',flexDirection:'column',gap:8}}>
@@ -423,10 +424,11 @@ function QuestaoDodia({onNav,onXp,profile}:{onNav:(k:string)=>void;onXp?:(a:stri
           let bg='rgba(255,255,255,0.03)',bc='rgba(255,255,255,0.08)',color='var(--white)'
           if(checking&&i===sel){bg='rgba(212,168,67,0.08)';bc='rgba(212,168,67,0.6)';color='var(--gold)'}
           if(answered){if(i===correctIdx){bg='rgba(76,175,125,0.1)';bc='var(--success)';color='var(--success)'}else if(i===sel){bg='rgba(232,66,26,0.1)';bc='var(--danger)';color='var(--danger)'}}
-          return(<button key={i} onClick={()=>responder(i)} disabled={answered} style={{display:'flex',alignItems:'flex-start',gap:10,background:bg,border:`1px solid ${bc}`,borderRadius:10,padding:'11px 14px',cursor:answered?'default':'pointer',textAlign:'left',width:'100%',fontFamily:'var(--font-body)',fontSize:13,color}}><span style={{width:22,height:22,borderRadius:'50%',flexShrink:0,display:'flex',alignItems:'center',justifyContent:'center',fontSize:10,fontWeight:800,background:'rgba(255,255,255,0.06)'}}>{String.fromCharCode(65+i)}</span><span style={{flex:1}}>{opt}</span></button>)
+          return(<button key={i} onClick={()=>responder(i)} disabled={answered||respondidaHoje} style={{display:'flex',alignItems:'flex-start',gap:10,background:bg,border:`1px solid ${bc}`,borderRadius:10,padding:'11px 14px',cursor:(answered||respondidaHoje)?'default':'pointer',textAlign:'left',width:'100%',fontFamily:'var(--font-body)',fontSize:13,color}}><span style={{width:22,height:22,borderRadius:'50%',flexShrink:0,display:'flex',alignItems:'center',justifyContent:'center',fontSize:10,fontWeight:800,background:'rgba(255,255,255,0.06)'}}>{String.fromCharCode(65+i)}</span><span style={{flex:1}}>{opt}</span></button>)
         })}
       </div>
-      {answered&&<div style={{marginTop:14,padding:14,background:'rgba(212,168,67,0.06)',border:'1px solid rgba(212,168,67,0.15)',borderRadius:10,fontSize:12.5,lineHeight:1.7,color:'var(--text-muted)'}}>{sel===correctIdx?'✅ ':'❌ '}<strong style={{color:'var(--gold)'}}>{sel===correctIdx?'Correto!':'Incorreto.'}</strong> +150 XP creditados hoje 🎉 <ComentarioComLei texto={coment}/></div>}
+      {respondidaHoje&&!answered&&<div style={{marginTop:14,padding:14,background:'rgba(76,175,125,0.08)',border:'1px solid rgba(76,175,125,0.2)',borderRadius:10,fontSize:12.5,color:'var(--success)',fontWeight:600}}>✅ Você já respondeu a questão de hoje. Volte amanhã para uma nova! 🐯</div>}
+      {answered&&<div style={{marginTop:14,padding:14,background:'rgba(212,168,67,0.06)',border:'1px solid rgba(212,168,67,0.15)',borderRadius:10,fontSize:12.5,lineHeight:1.7,color:'var(--text-muted)'}}>{sel===null||correctIdx===null?'✅ ':(sel===correctIdx?'✅ ':'❌ ')}<strong style={{color:'var(--gold)'}}>{sel===null||correctIdx===null?'Você já respondeu hoje.':(sel===correctIdx?'Correto!':'Incorreto.')}</strong> +150 XP creditados hoje 🎉 {coment?<ComentarioComLei texto={coment}/>:null}</div>}
     </div>
   )
 }
