@@ -6,6 +6,7 @@ import { useAppSettings } from '@/contexts/AppSettingsContext'
 import RadarOAB from '@/components/RadarOAB'
 import ComunidadeChat from '@/components/ComunidadeChat'
 import MeuPerfilPage from '@/components/MeuPerfilPage'
+import { TigerAvatar, isTigerId } from '@/components/TigerAvatars'
 import DashboardTopBanner from '@/components/DashboardTopBanner'
 import LandingTopBanner from '@/components/LandingTopBanner'
 import LeiSecaPage from '@/components/LeiSecaPage'
@@ -2308,7 +2309,7 @@ function RankingPage({profile,onNav}:any){
     level:getNivelByXp(p.xp||0).nome,icon:getNivelByXp(p.xp||0).icon,
     xp:p.xp||0,streak:p.streak||0,
     questoes:p.questoes_respondidas||0,acertos:p.questoes_corretas||0,
-    plano:p.plano||'gratuito',badge:p.ambassador_badge,
+    plano:p.plano||'gratuito',badge:p.ambassador_badge,avatar_url:p.avatar_url,
     metric,me:p.id===profile?.id,
   })
 
@@ -2438,7 +2439,7 @@ function RankingPage({profile,onNav}:any){
                   <div key={idx} style={{textAlign:'center',minWidth:90,flex:isFirst?'0 0 110px':'0 0 90px',
                     transform:isFirst?'scale(1.05)':'none',transition:'transform 0.2s',
                     filter:r.me?'drop-shadow(0 0 8px rgba(212,168,67,0.5))':'none'}}>
-                    <div style={{fontSize:isFirst?28:22,marginBottom:4}}>{r.icon}</div>
+                    <div style={{marginBottom:4,display:'flex',justifyContent:'center'}}>{isTigerId(r.avatar_url)?<span style={{width:isFirst?44:34,height:isFirst?44:34,borderRadius:'50%',overflow:'hidden',display:'inline-block'}}><TigerAvatar id={r.avatar_url} size={isFirst?44:34}/></span>:<span style={{fontSize:isFirst?28:22}}>{r.icon}</span>}</div>
                     <div style={{fontSize:isFirst?12:10,fontWeight:700,marginBottom:1,color:r.me?'var(--gold)':'var(--white)'}}>{r.name}{r.me?' 👈':''}</div>
                     <div style={{fontSize:9,color:'var(--text-muted)',marginBottom:6}}>{r.level}</div>
                     <div style={{height:h,background:grad,borderRadius:'10px 10px 0 0',
@@ -2471,8 +2472,8 @@ function RankingPage({profile,onNav}:any){
                 {/* Avatar */}
                 <div style={{width:34,height:34,borderRadius:'50%',flexShrink:0,
                   background:'linear-gradient(135deg,rgba(212,168,67,0.2),rgba(232,98,26,0.1))',
-                  display:'flex',alignItems:'center',justifyContent:'center',fontSize:18}}>
-                  {r.icon}
+                  display:'flex',alignItems:'center',justifyContent:'center',fontSize:18,overflow:'hidden'}}>
+                  {isTigerId(r.avatar_url)?<TigerAvatar id={r.avatar_url} size={34}/>:r.icon}
                 </div>
                 {/* Info */}
                 <div style={{flex:1,minWidth:0}}>
@@ -2514,8 +2515,8 @@ function RankingPage({profile,onNav}:any){
                 </div>
                 <div style={{width:34,height:34,borderRadius:'50%',
                   background:'linear-gradient(135deg,rgba(212,168,67,0.2),rgba(232,98,26,0.1))',
-                  display:'flex',alignItems:'center',justifyContent:'center',fontSize:18}}>
-                  {getNivelByXp(profile?.xp||0).icon}
+                  display:'flex',alignItems:'center',justifyContent:'center',fontSize:18,overflow:'hidden'}}>
+                  {isTigerId(profile?.avatar_url)?<TigerAvatar id={profile?.avatar_url} size={34}/>:getNivelByXp(profile?.xp||0).icon}
                 </div>
                 <div style={{flex:1,minWidth:0}}>
                   <div style={{display:'flex',alignItems:'center',gap:6}}>
