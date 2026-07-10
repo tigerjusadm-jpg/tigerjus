@@ -126,94 +126,62 @@ export async function POST(req: NextRequest) {
 
     console.log(`✅ Plano "${plano}" ativado para ${userId} (pagamento ${paymentId})`)
 
-    // ── 6) PROGRAMA TIGRE EMBAIXADOR ──────────────────────────────────────
+    // ── 6) COMISSÃO DE INDICAÇÃO — Programa Tigre Embaixador 2.0 ──────────
+    // A cada pagamento aprovado do indicado, credita comissão em R$ na
+    // carteira do indicador. % dinâmico pela qtd de indicados ATIVOS no mês
+    // (1=3% · 2-4=5% · 5-9=7% · 10+=10%), sobre o líquido (valor − taxa MP).
     // Bloco isolado: se falhar, não afeta a ativação do plano.
     try {
-      // Buscar perfil do usuário que acabou de pagar
       const { data: perfilPagador } = await supabase
-        .from('profiles')
-        .select('id, referred_by, plano')
-        .eq('id', userId)
-        .maybeSingle()
+        .from('profiles').select('id, referred_by').eq('id', userId).maybeSingle()
 
-      if (!perfilPagador?.referred_by) {
-        // Usuário não foi indicado por ninguém — nada a fazer
-        console.log('Referral: usuário sem indicação.')
-      } else {
-        // Verifica se essa indicação já foi recompensada (evita duplicatas)
-        const { data: recompensaExistente } = await supabase
-          .from('referral_rewards')
-          .select('id')
-          .eq('referred_id', userId)
-          .maybeSingle()
+      if (perfilPagador?.referred_by) {
+        const { data: indicador } = await supabase
+          .from('profiles').select('id, referral_code')
+          .eq('referral_code', perfilPagador.referred_by).maybeSingle()
 
-        if (recompensaExistente) {
-          console.log('Referral: indicação já recompensada anteriormente.')
-        } else {
-          // Buscar o perfil de quem indicou pelo referral_code
-          const { data: indicador } = await supabase
-            .from('profiles')
-            .select('id, plano, referral_count, ambassador_badge, referral_days_bonus, referral_discount_pct')
-            .eq('referral_code', perfilPagador.referred_by)
-            .maybeSingle()
+        if (indicador?.id && indicador.id !== userId) {
+          const valorPago = Number(payment?.transaction_amount) || 0
+          if (valorPago > 0) {
+            const { data: cfgTaxa } = await supabase
+              .from('app_settings').select('value').eq('key', 'comissao_taxa_mp_percent').maybeSingle()
+            const taxaMp = Number(cfgTaxa?.value) || 1.0
+            const liquido = valorPago * (1 - taxaMp / 100)
 
-          if (!indicador) {
-            console.log('Referral: código de indicação não encontrado:', perfilPagador.referred_by)
-          } else {
-            const novoCount = (indicador.referral_count || 0) + 1
-            const novoBadge = calcularBadge(novoCount)
+            const { count: ativos } = await supabase
+              .from('profiles').select('id', { count: 'exact', head: true })
+              .eq('referred_by', indicador.referral_code).neq('plano', 'gratuito')
+            const nAtivos = ativos || 0
+            const pct = nAtivos >= 10 ? 10 : nAtivos >= 5 ? 7 : nAtivos >= 2 ? 5 : 3
+            const comissao = Math.round(liquido * (pct / 100) * 10000) / 10000
 
-            let updateIndicador: Record<string, any> = {
-              referral_count: novoCount,
-              ambassador_badge: novoBadge,
-            }
+            const { error: txErr } = await supabase.from('carteira_transacoes').insert({
+              user_id: indicador.id,
+              tipo: 'comissao',
+              valor: comissao,
+              descricao: `Comissao ${pct}% - indicado pagou R$ ${valorPago.toFixed(2)}`,
+              referred_id: userId,
+              payment_id: String(paymentId),
+              valor_bruto: valorPago,
+              valor_liquido: Math.round(liquido * 100) / 100,
+              percentual_aplicado: pct,
+              ativos_no_mes: nAtivos,
+            })
 
-            let rewardType  = 'days'
-            let rewardValue = 15
-
-            if (indicador.plano === 'elite') {
-              // Elite: acumula 5% de desconto por indicação (teto 50%)
-              const pctAtual  = indicador.referral_discount_pct || 0
-              const novoPct   = Math.min(50, pctAtual + 5)
-              updateIndicador.referral_discount_pct = novoPct
-              rewardType  = 'discount'
-              rewardValue = 5
-              console.log(`Referral Elite: ${indicador.id} → +5% desconto (total ${novoPct}%)`)
+            if (txErr && (txErr as any).code === '23505') {
+              console.log('Comissao ja creditada para este pagamento (idempotencia).')
+            } else if (txErr) {
+              console.error('Erro ao creditar comissao:', txErr.message)
             } else {
-              // Não-Elite: +15 dias no plano atual
-              const diasAtuais = indicador.referral_days_bonus || 0
-              updateIndicador.referral_days_bonus = diasAtuais + 15
-              rewardType  = 'days'
-              rewardValue = 15
-              console.log(`Referral: ${indicador.id} → +15 dias (total ${diasAtuais + 15} dias)`)
+              console.log(`Comissao R$ ${comissao.toFixed(4)} (${pct}%, ${nAtivos} ativos) para indicador ${indicador.id}`)
             }
-
-            // Atualiza o indicador
-            await supabase
-              .from('profiles')
-              .update(updateIndicador)
-              .eq('id', indicador.id)
-
-            // Registra a recompensa
-            await supabase
-              .from('referral_rewards')
-              .insert({
-                referrer_id:  indicador.id,
-                referred_id:  userId,
-                payment_id:   String(paymentId),
-                reward_type:  rewardType,
-                reward_value: rewardValue,
-              })
-
-            console.log(`🎁 Recompensa concedida: ${rewardType} +${rewardValue} para ${indicador.id} | badge: ${novoBadge}`)
           }
         }
       }
     } catch (refErr) {
-      // Erro no sistema de referral — apenas loga, não quebra o fluxo principal
-      console.error('Referral reward error (non-critical):', refErr)
+      console.error('Comissao de indicacao (nao-critico):', refErr)
     }
-    // ── FIM DO PROGRAMA TIGRE EMBAIXADOR ─────────────────────────────────
+    // ── FIM DA COMISSÃO DE INDICAÇÃO ─────────────────────────────────────
 
     return NextResponse.json({ ok: true })
 
