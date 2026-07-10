@@ -2844,6 +2844,12 @@ function ReferralPage({profile,showUpgrade,isPago}:any){
   const [extrato,setExtrato]=useState<any[]>([])
   const [ativos,setAtivos]=useState(0)
   const [loading,setLoading]=useState(false)
+  const [uPlano,setUPlano]=useState('pro')
+  const [uCiclo,setUCiclo]=useState('mensal')
+  const [uPresente,setUPresente]=useState(false)
+  const [uEmail,setUEmail]=useState('')
+  const [usando,setUsando]=useState(false)
+  const [uMsg,setUMsg]=useState<{tipo:string,txt:string}|null>(null)
 
   const refLink = typeof window!=='undefined'
     ? `${window.location.origin}/login?ref=${profile?.referral_code||''}`
@@ -2851,22 +2857,44 @@ function ReferralPage({profile,showUpgrade,isPago}:any){
 
   const pctAtual = ativos>=10?10:ativos>=5?7:ativos>=2?5:3
   const TIERS=[{pct:3,label:'1 indicado ativo'},{pct:5,label:'2 a 4 ativos'},{pct:7,label:'5 a 9 ativos'},{pct:10,label:'10+ ativos'}]
+  const PRECOS:Record<string,number>={start:4.99,pro:9.99,elite:24.99}
+  const precoUso = uCiclo==='anual' ? Math.round(PRECOS[uPlano]*12*100)/100 : PRECOS[uPlano]
 
-  useEffect(()=>{
+  const carregar=async()=>{
     if(!profile?.id)return
     setLoading(true)
-    ;(async()=>{
-      const {data:cart}=await supabase.from('carteira_creditos').select('saldo').eq('user_id',profile.id).maybeSingle()
-      setSaldo(Number(cart?.saldo)||0)
-      const {data:tx}=await supabase.from('carteira_transacoes').select('*').eq('user_id',profile.id).order('criado_em',{ascending:false}).limit(30)
-      setExtrato(tx||[])
-      if(profile?.referral_code){
-        const {count}=await supabase.from('profiles').select('id',{count:'exact',head:true}).eq('referred_by',profile.referral_code).neq('plano','gratuito')
-        setAtivos(count||0)
-      }
-      setLoading(false)
-    })()
+    const {data:cart}=await supabase.from('carteira_creditos').select('saldo').eq('user_id',profile.id).maybeSingle()
+    setSaldo(Number(cart?.saldo)||0)
+    const {data:tx}=await supabase.from('carteira_transacoes').select('*').eq('user_id',profile.id).order('criado_em',{ascending:false}).limit(30)
+    setExtrato(tx||[])
+    if(profile?.referral_code){
+      const {count}=await supabase.from('profiles').select('id',{count:'exact',head:true}).eq('referred_by',profile.referral_code).neq('plano','gratuito')
+      setAtivos(count||0)
+    }
+    setLoading(false)
+  }
+  useEffect(()=>{carregar()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   },[profile?.id,profile?.referral_code])
+
+  const usarCredito=async()=>{
+    if(usando)return
+    if(uPresente && !uEmail.trim()){setUMsg({tipo:'erro',txt:'Digite o e-mail de quem vai receber.'});return}
+    setUsando(true);setUMsg(null)
+    try{
+      const{data:{session}}=await supabase.auth.getSession()
+      const res=await fetch('/api/carteira/usar',{method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${session?.access_token||''}`},body:JSON.stringify({plano:uPlano,ciclo:uCiclo,...(uPresente?{alvo_email:uEmail.trim()}:{})})})
+      const data=await res.json()
+      if(res.ok&&data.ok){
+        setUMsg({tipo:'ok',txt:uPresente?`Assinatura ${uPlano.toUpperCase()} presenteada para ${uEmail.trim()}! 🎁`:`Sua assinatura ${uPlano.toUpperCase()} foi ativada com o crédito! 🎉`})
+        setUEmail('')
+        await carregar()
+      }else{
+        setUMsg({tipo:'erro',txt:data.error||'Não foi possível concluir.'})
+      }
+    }catch{setUMsg({tipo:'erro',txt:'Erro de conexão. Tente de novo.'})}
+    finally{setUsando(false)}
+  }
 
   const copiarLink=async()=>{
     try{
@@ -2877,6 +2905,7 @@ function ReferralPage({profile,showUpgrade,isPago}:any){
   }
   const fmt=(v:number)=>`R$ ${(Math.round(v*100)/100).toFixed(2).replace('.',',')}`
   const LBL:React.CSSProperties={fontSize:10,fontWeight:800,letterSpacing:'2px',textTransform:'uppercase',color:'var(--text-muted)',marginBottom:12}
+  const inp:React.CSSProperties={flex:'1 1 120px',background:'#1c1c1c',border:'1px solid rgba(255,255,255,0.1)',borderRadius:10,padding:'11px 14px',color:'#fff',fontSize:13,colorScheme:'dark' as any}
 
   return(
     <div style={{padding:'24px 20px',flex:1,overflowY:'auto'}}>
@@ -2890,6 +2919,29 @@ function ReferralPage({profile,showUpgrade,isPago}:any){
           <span><b style={{color:'#fff'}}>{ativos}</b> indicado{ativos!==1?'s':''} ativo{ativos!==1?'s':''}</span>
           <span>comissão atual: <b style={{color:'var(--gold)'}}>{pctAtual}%</b></span>
         </div>
+      </div>
+
+      <div style={{background:'var(--gray)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:16,padding:20,marginBottom:20}}>
+        <div style={LBL}>💳 Usar meu crédito</div>
+        <div style={{display:'flex',gap:8,marginBottom:14}}>
+          <button onClick={()=>{setUPresente(false);setUMsg(null)}} style={{flex:1,padding:'10px',borderRadius:10,border:`1px solid ${!uPresente?'var(--gold)':'rgba(255,255,255,0.1)'}`,background:!uPresente?'rgba(212,168,67,0.1)':'transparent',color:'#fff',fontSize:13,fontWeight:700,cursor:'pointer'}}>Minha assinatura</button>
+          <button onClick={()=>{setUPresente(true);setUMsg(null)}} style={{flex:1,padding:'10px',borderRadius:10,border:`1px solid ${uPresente?'var(--gold)':'rgba(255,255,255,0.1)'}`,background:uPresente?'rgba(212,168,67,0.1)':'transparent',color:'#fff',fontSize:13,fontWeight:700,cursor:'pointer'}}>🎁 Presentear</button>
+        </div>
+        {uPresente&&(
+          <input value={uEmail} onChange={e=>setUEmail(e.target.value)} placeholder="E-mail de quem vai receber (conta já existente)" style={{width:'100%',boxSizing:'border-box',background:'rgba(255,255,255,0.03)',border:'1px solid rgba(255,255,255,0.1)',borderRadius:10,padding:'11px 14px',color:'#fff',fontSize:13,marginBottom:12}}/>
+        )}
+        <div style={{display:'flex',gap:8,marginBottom:12,flexWrap:'wrap'}}>
+          <select value={uPlano} onChange={e=>setUPlano(e.target.value)} style={inp}>
+            <option value="start">Start</option><option value="pro">Pro</option><option value="elite">Elite</option>
+          </select>
+          <select value={uCiclo} onChange={e=>setUCiclo(e.target.value)} style={inp}>
+            <option value="mensal">Mensal (30 dias)</option><option value="anual">Anual (12 meses)</option>
+          </select>
+        </div>
+        <div style={{fontSize:13,color:'var(--text-muted)',marginBottom:12}}>Custo: <b style={{color:'#fff'}}>{fmt(precoUso)}</b> · Seu saldo: <b style={{color:saldo>=precoUso?'var(--success)':'var(--danger)'}}>{fmt(saldo)}</b></div>
+        {uMsg&&<div style={{fontSize:12.5,padding:'11px 14px',borderRadius:10,marginBottom:12,lineHeight:1.5,background:uMsg.tipo==='ok'?'rgba(76,175,125,0.1)':'rgba(232,66,26,0.1)',color:uMsg.tipo==='ok'?'var(--success)':'var(--danger)',border:`1px solid ${uMsg.tipo==='ok'?'rgba(76,175,125,0.3)':'rgba(232,66,26,0.3)'}`}}>{uMsg.txt}</div>}
+        <button className="btn-gold-sm" style={{width:'100%',fontSize:13,opacity:(saldo<precoUso||usando)?0.5:1,cursor:(saldo<precoUso||usando)?'default':'pointer'}} disabled={saldo<precoUso||usando} onClick={usarCredito}>{usando?'Processando…':saldo<precoUso?'Saldo insuficiente':`Usar ${fmt(precoUso)} do crédito`}</button>
+        <div style={{fontSize:11,color:'var(--text-muted)',marginTop:10,lineHeight:1.5}}>Sem tirar dinheiro: o crédito vira assinatura na plataforma — sua ou de quem você quiser presentear. Se a pessoa já for assinante, os dias somam ao vencimento.</div>
       </div>
 
       <div style={{background:'var(--gray)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:16,padding:20,marginBottom:24}}>
@@ -2931,7 +2983,6 @@ function ReferralPage({profile,showUpgrade,isPago}:any){
             </div>
           ))}
         </div>
-        <div style={{fontSize:11,color:'var(--text-muted)',marginTop:14,textAlign:'center'}}>Em breve: usar o crédito na sua assinatura ou presentear um amigo. 🎁</div>
       </div>
     </div>
   )
