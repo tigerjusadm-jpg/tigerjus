@@ -502,9 +502,12 @@
 }
 
 /* ── Mobile ───────────────────────────────────────────────── */
+.only-mobile { display: none; }
+
 @media (max-width: 768px) {
   .navbar          { padding: 16px 20px; }
   .dash-sidebar    { display: none; }
+  .only-mobile     { display: block; }
   .section         { @apply py-16 px-5; }
   .tj-grid-overlay { display: none; }
   .tj-radial-glow  { opacity: 0.5; }
