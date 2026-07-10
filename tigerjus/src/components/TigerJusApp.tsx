@@ -743,7 +743,7 @@ function DashHome({ profile, onNav, onMini, showUpgrade, isPago, canAccessPremiu
           </div>
         ))}
       </div>
-      <div className="only-mobile" style={{marginBottom:20}}><RadarOAB/></div>
+      <div style={{marginBottom:20}}><RadarOAB/></div>
       <EvolucaoChart profile={profile}/>
       <QuestaoDodia onNav={onNav} onXp={onXp} profile={profile}/>
       <div style={{background:canAccessElite?'linear-gradient(135deg,rgba(58,143,232,0.1),rgba(212,168,67,0.06))':'linear-gradient(135deg,rgba(58,143,232,0.08),rgba(212,168,67,0.06))',border:`1px solid ${canAccessElite?'rgba(58,143,232,0.25)':'rgba(58,143,232,0.2)'}`,borderRadius:16,padding:20,marginBottom:20,cursor:'pointer',transition:'all 0.2s'}}
@@ -3317,7 +3317,6 @@ export default function TigerJusApp() {
               <div style={{fontSize:11,color:'var(--text-muted)',marginBottom:10}}>{limites.questoes===Infinity?'Questões ilimitadas':`${freeQ} questões`} · {limites.ia===Infinity?'IA ilimitada':`${freeIA} perguntas IA`}</div>
               {!userIsPago&&<button className="btn-gold-sm" style={{width:'100%',fontSize:11}} onClick={()=>setShowUpgradeModal(true)}>🚀 FAZER UPGRADE</button>}
             </div>
-            <RadarOAB/>
           </div>
         </aside>
         <div style={{flex:1,minWidth:0,display:'flex',flexDirection:'column'}}>
