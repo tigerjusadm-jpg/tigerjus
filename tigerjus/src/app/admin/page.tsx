@@ -13,6 +13,7 @@ import ModuloCentralBanners from '@/components/ModuloCentralBanners'  // ← NOV
 import ModuloSimulados from '@/components/ModuloSimulados'
 import ModuloFlashcards from '@/components/ModuloFlashcards'
 import ModuloPlanos from '@/components/ModuloPlanos'
+import ModuloIndicacoes from '@/components/ModuloIndicacoes'
 import ModuloDepoimentos from '@/components/ModuloDepoimentos'
 import ModuloMapasMentais from '@/components/ModuloMapasMentais'
 
@@ -122,6 +123,7 @@ function renderSection(section: AdminSection | string, adminId?: string) {
     case 'banners':   return <ModuloCentralBanners adminId={adminId} />
     case 'simulados': return <ModuloSimulados adminId={adminId} />
     case 'planos':    return <ModuloPlanos adminId={adminId} />
+    case 'indicacoes': return <ModuloIndicacoes adminId={adminId} />
     case 'depoimentos': return <ModuloDepoimentos adminId={adminId} />
     case 'mapas':     return <ModuloMapasMentais adminId={adminId} />
     case 'flashcards':return <ModuloFlashcards adminId={adminId} />
