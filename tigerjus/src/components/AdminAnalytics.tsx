@@ -81,6 +81,13 @@ export default function AdminAnalytics() {
   const [retencao, setRetencao] = useState<any[]>([])
   const [indicadores, setIndicadores] = useState<any[]>([])
   const [busca, setBusca] = useState('')
+  const [editando, setEditando] = useState<any | null>(null)
+  const [form, setForm] = useState<any>({})
+  const [salvando, setSalvando] = useState(false)
+  const [erroEdit, setErroEdit] = useState('')
+  const [confirmaNome, setConfirmaNome] = useState('')
+  const [modoExcluir, setModoExcluir] = useState(false)
+  const [recarregar, setRecarregar] = useState(0)
   const [load, setLoad] = useState(true)
 
   useEffect(() => {
@@ -112,7 +119,7 @@ export default function AdminAnalytics() {
       } finally { if (vivo) setLoad(false) }
     })()
     return () => { vivo = false }
-  }, [dias])
+  }, [dias, recarregar])
 
   const leads = acoes.filter(a => a.tipo === 'lead_quente')
   const churn = acoes.filter(a => a.tipo === 'churn_risco')
@@ -132,6 +139,47 @@ export default function AdminAnalytics() {
     if (!q) return users
     return users.filter(u => [u.nome, u.email, u.cidade, u.uf, u.faculdade, u.plano].some((v: any) => String(v || '').toLowerCase().includes(q)))
   }, [users, busca])
+
+  function abrirEdicao(u: any) {
+    setEditando(u)
+    setForm({ nome: u.nome || '', email: u.email || '', telefone: u.telefone || '', plano: String(u.plano || 'gratuito').toLowerCase(), cidade: u.cidade || '', uf: u.uf || '', faculdade: u.faculdade || '', periodo: u.periodo || '' })
+    setErroEdit(''); setModoExcluir(false); setConfirmaNome('')
+  }
+
+  async function salvarUsuario() {
+    if (!editando || salvando) return
+    setSalvando(true); setErroEdit('')
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      const res = await fetch('/api/admin/usuario', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session?.access_token ?? ''}` },
+        body: JSON.stringify({ id: editando.id, ...form }),
+      })
+      const j = await res.json()
+      if (!res.ok) { setErroEdit(j.error || 'Não foi possível salvar.'); return }
+      setEditando(null); setRecarregar(n => n + 1)
+    } catch { setErroEdit('Falha de conexão.') }
+    finally { setSalvando(false) }
+  }
+
+  async function excluirUsuario() {
+    if (!editando || salvando) return
+    if (confirmaNome.trim() !== String(editando.nome || '').trim()) { setErroEdit('Digite o nome exatamente como aparece para confirmar.'); return }
+    setSalvando(true); setErroEdit('')
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      const res = await fetch('/api/admin/usuario', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session?.access_token ?? ''}` },
+        body: JSON.stringify({ id: editando.id }),
+      })
+      const j = await res.json()
+      if (!res.ok) { setErroEdit(j.error || 'Não foi possível excluir.'); return }
+      setEditando(null); setRecarregar(n => n + 1)
+    } catch { setErroEdit('Falha de conexão.') }
+    finally { setSalvando(false) }
+  }
 
   function exportarCSV() {
     const cols = ['nome', 'email', 'telefone', 'plano', 'cidade', 'uf', 'faculdade', 'periodo', 'xp', 'ultimo_acesso', 'dias_inativo', 'acessos']
@@ -313,7 +361,7 @@ export default function AdminAnalytics() {
                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
                   <thead>
                     <tr style={{ position: 'sticky', top: 0, background: '#1a1a1a' }}>
-                      {['Nome', 'E-mail', 'WhatsApp', 'Plano', 'Cidade/UF', 'Faculdade', 'Per.', 'XP', 'Inativo', 'Acessos'].map(h => (
+                      {['Nome', 'E-mail', 'WhatsApp', 'Plano', 'Cidade/UF', 'Faculdade', 'Per.', 'XP', 'Inativo', 'Acessos', ''].map(h => (
                         <th key={h} style={{ textAlign: 'left', padding: '9px 8px', color: C.muted, fontWeight: 700, fontSize: 10, textTransform: 'uppercase', letterSpacing: 1, borderBottom: '1px solid rgba(255,255,255,0.08)', whiteSpace: 'nowrap' }}>{h}</th>
                       ))}
                     </tr>
@@ -334,6 +382,9 @@ export default function AdminAnalytics() {
                           <td style={{ padding: '9px 8px', color: C.gold, fontWeight: 700 }}>{fmt(Number(u.xp))}</td>
                           <td style={{ padding: '9px 8px', color: inat >= 7 ? C.red : '#999', fontWeight: inat >= 7 ? 700 : 400, whiteSpace: 'nowrap' }}>{inat >= 999 ? 'nunca' : `${inat}d`}</td>
                           <td style={{ padding: '9px 8px', color: '#999' }}>{fmt(Number(u.acessos))}</td>
+                          <td style={{ padding: '9px 8px' }}>
+                            <button onClick={() => abrirEdicao(u)} title="Editar / excluir" style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 6, cursor: 'pointer', fontSize: 12, padding: '4px 9px' }}>✏️</button>
+                          </td>
                         </tr>
                       )
                     })}
@@ -400,6 +451,84 @@ export default function AdminAnalytics() {
             </>
           )}
         </>
+      )}
+
+      {/* ── Modal editar / excluir usuário ── */}
+      {editando && (
+        <div onClick={() => !salvando && setEditando(null)}
+          style={{ position: 'fixed', inset: 0, zIndex: 600, background: 'rgba(0,0,0,0.75)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+          <div onClick={e => e.stopPropagation()}
+            style={{ width: '100%', maxWidth: 560, maxHeight: '88vh', overflowY: 'auto', background: '#1a1a1a', border: '1px solid rgba(212,168,67,0.25)', borderRadius: 16, padding: 22 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+              <div style={{ fontSize: 17, fontWeight: 900, color: '#fff' }}>Editar usuário</div>
+              <button onClick={() => setEditando(null)} style={{ background: 'none', border: 'none', color: '#666', fontSize: 20, cursor: 'pointer' }}>×</button>
+            </div>
+            <div style={{ fontSize: 12, color: C.muted, marginBottom: 18 }}>Alterações valem imediatamente. Mudar o e-mail troca também o login da pessoa.</div>
+
+            {!modoExcluir ? (
+              <>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                  {[
+                    { k: 'nome', l: 'Nome', span: 2 },
+                    { k: 'email', l: 'E-mail (login)', span: 2 },
+                    { k: 'telefone', l: 'WhatsApp (DDD + número)', span: 1 },
+                    { k: 'cidade', l: 'Cidade', span: 1 },
+                    { k: 'uf', l: 'UF', span: 1 },
+                    { k: 'periodo', l: 'Período', span: 1 },
+                    { k: 'faculdade', l: 'Faculdade', span: 2 },
+                  ].map(f => (
+                    <div key={f.k} style={{ gridColumn: f.span === 2 ? '1 / -1' : undefined }}>
+                      <label style={{ display: 'block', fontSize: 10, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase', color: C.muted, marginBottom: 5 }}>{f.l}</label>
+                      <input value={form[f.k] ?? ''} onChange={e => setForm({ ...form, [f.k]: e.target.value })}
+                        style={{ width: '100%', background: '#111', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, padding: '9px 11px', color: '#fff', fontSize: 13, outline: 'none' }} />
+                    </div>
+                  ))}
+                  <div style={{ gridColumn: '1 / -1' }}>
+                    <label style={{ display: 'block', fontSize: 10, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase', color: C.muted, marginBottom: 5 }}>Plano</label>
+                    <select value={form.plano ?? 'gratuito'} onChange={e => setForm({ ...form, plano: e.target.value })}
+                      style={{ width: '100%', background: '#111', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, padding: '9px 11px', color: '#fff', fontSize: 13, outline: 'none' }}>
+                      {['gratuito', 'start', 'pro', 'elite'].map(p => <option key={p} value={p}>{p.toUpperCase()}</option>)}
+                    </select>
+                  </div>
+                </div>
+
+                {erroEdit && <div style={{ marginTop: 12, fontSize: 12, color: C.red, fontWeight: 600 }}>{erroEdit}</div>}
+
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 20, gap: 10 }}>
+                  <button onClick={() => { setModoExcluir(true); setErroEdit('') }}
+                    style={{ background: 'none', border: '1px solid rgba(248,113,113,0.4)', color: C.red, borderRadius: 8, padding: '9px 14px', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>🗑 Excluir usuário</button>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <button onClick={() => setEditando(null)} disabled={salvando}
+                      style={{ background: 'none', border: '1px solid rgba(255,255,255,0.12)', color: '#999', borderRadius: 8, padding: '9px 16px', fontSize: 13, cursor: 'pointer' }}>Cancelar</button>
+                    <button onClick={salvarUsuario} disabled={salvando}
+                      style={{ background: C.gold, border: 'none', color: '#111', borderRadius: 8, padding: '9px 20px', fontSize: 13, fontWeight: 800, cursor: 'pointer' }}>{salvando ? 'Salvando…' : '💾 Salvar'}</button>
+                  </div>
+                </div>
+              </>
+            ) : (
+              <div>
+                <div style={{ background: 'rgba(248,113,113,0.08)', border: '1px solid rgba(248,113,113,0.3)', borderRadius: 10, padding: 14, marginBottom: 14 }}>
+                  <div style={{ fontSize: 13, fontWeight: 800, color: C.red, marginBottom: 6 }}>⚠️ Isso é irreversível</div>
+                  <div style={{ fontSize: 12, color: '#bbb', lineHeight: 1.6 }}>
+                    A conta de <b style={{ color: '#fff' }}>{editando.nome}</b> ({editando.email}) será excluída, junto com o login. O histórico dessa pessoa se perde.
+                  </div>
+                </div>
+                <label style={{ display: 'block', fontSize: 11, color: C.muted, marginBottom: 6 }}>
+                  Para confirmar, digite o nome exatamente: <b style={{ color: '#fff' }}>{editando.nome}</b>
+                </label>
+                <input value={confirmaNome} onChange={e => setConfirmaNome(e.target.value)} placeholder={editando.nome}
+                  style={{ width: '100%', background: '#111', border: '1px solid rgba(248,113,113,0.35)', borderRadius: 8, padding: '9px 11px', color: '#fff', fontSize: 13, outline: 'none' }} />
+                {erroEdit && <div style={{ marginTop: 10, fontSize: 12, color: C.red, fontWeight: 600 }}>{erroEdit}</div>}
+                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 18 }}>
+                  <button onClick={() => { setModoExcluir(false); setErroEdit(''); setConfirmaNome('') }} disabled={salvando}
+                    style={{ background: 'none', border: '1px solid rgba(255,255,255,0.12)', color: '#999', borderRadius: 8, padding: '9px 16px', fontSize: 13, cursor: 'pointer' }}>Voltar</button>
+                  <button onClick={excluirUsuario} disabled={salvando || confirmaNome.trim() !== String(editando.nome || '').trim()}
+                    style={{ background: confirmaNome.trim() === String(editando.nome || '').trim() ? C.red : '#333', border: 'none', color: '#fff', borderRadius: 8, padding: '9px 20px', fontSize: 13, fontWeight: 800, cursor: 'pointer' }}>{salvando ? 'Excluindo…' : 'Excluir definitivamente'}</button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
       )}
     </div>
   )
