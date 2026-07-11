@@ -57,8 +57,12 @@ function abrirEmail(i: any) {
 function abrirWhats(i: any) {
   const t = (TEMPLATES[i.tipo] || TEMPLATES.churn_risco)(i)
   const tel = soDigitos(i.telefone)
-  const txt = encodeURIComponent(t.corpo)
-  window.open(tel ? `https://wa.me/55${tel}?text=${txt}` : `https://wa.me/?text=${txt}`, '_blank')
+  if (!tel) {
+    copiar(t.corpo)
+    alert(`${i.nome || 'Este usuário'} ainda não informou o WhatsApp.\n\nA mensagem foi COPIADA — cole no WhatsApp se você tiver o contato por outro meio.\n\n(O campo WhatsApp agora existe no perfil e no checkout: novos usuários vão preencher.)`)
+    return
+  }
+  window.open(`https://wa.me/55${tel}?text=${encodeURIComponent(t.corpo)}`, '_blank')
 }
 async function copiar(txt: string) {
   try { await navigator.clipboard.writeText(txt) } catch { /* ignora */ }
@@ -130,7 +134,7 @@ export default function AdminAnalytics() {
   }, [users, busca])
 
   function exportarCSV() {
-    const cols = ['nome', 'email', 'plano', 'cidade', 'uf', 'faculdade', 'periodo', 'xp', 'ultimo_acesso', 'dias_inativo', 'acessos']
+    const cols = ['nome', 'email', 'telefone', 'plano', 'cidade', 'uf', 'faculdade', 'periodo', 'xp', 'ultimo_acesso', 'dias_inativo', 'acessos']
     const linhas = [cols.join(','), ...usersFiltrados.map(u => cols.map(c => `"${String(u[c] ?? '').replace(/"/g, '""')}"`).join(','))]
     const blob = new Blob([linhas.join('\n')], { type: 'text/csv;charset=utf-8;' })
     const a = document.createElement('a')
@@ -173,13 +177,13 @@ export default function AdminAnalytics() {
             <div style={{ minWidth: 0 }}>
               <div style={{ fontSize: 13, fontWeight: 700, color: '#eee', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{i.nome || '—'}</div>
               <div style={{ fontSize: 11, color: C.muted, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                {i.email || '—'}{i.uf ? ` · ${i.cidade || ''}/${i.uf}` : ''} · <span style={{ textTransform: 'uppercase' }}>{i.plano}</span>
+                {i.email || '—'}{i.telefone ? ` · 📱 ${i.telefone}` : ''}{i.uf ? ` · ${i.cidade || ''}/${i.uf}` : ''} · <span style={{ textTransform: 'uppercase' }}>{i.plano}</span>
               </div>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
               <span style={{ fontSize: 11, color: cor, fontWeight: 800, whiteSpace: 'nowrap' }}>{rotulo(i)}</span>
               <button onClick={() => abrirEmail(i)} title="Enviar e-mail com texto pronto" style={btnAcao}>📧</button>
-              <button onClick={() => abrirWhats(i)} title="Abrir WhatsApp com texto pronto" style={btnAcao}>💬</button>
+              <button onClick={() => abrirWhats(i)} title={i.telefone ? `WhatsApp: ${i.telefone}` : 'Sem WhatsApp cadastrado — copia a mensagem'} style={{ ...btnAcao, opacity: i.telefone ? 1 : 0.4 }}>💬</button>
               <button onClick={() => copiar(i.email || '')} title="Copiar e-mail" style={btnAcao}>📋</button>
             </div>
           </div>
@@ -309,7 +313,7 @@ export default function AdminAnalytics() {
                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
                   <thead>
                     <tr style={{ position: 'sticky', top: 0, background: '#1a1a1a' }}>
-                      {['Nome', 'E-mail', 'Plano', 'Cidade/UF', 'Faculdade', 'Per.', 'XP', 'Inativo', 'Acessos'].map(h => (
+                      {['Nome', 'E-mail', 'WhatsApp', 'Plano', 'Cidade/UF', 'Faculdade', 'Per.', 'XP', 'Inativo', 'Acessos'].map(h => (
                         <th key={h} style={{ textAlign: 'left', padding: '9px 8px', color: C.muted, fontWeight: 700, fontSize: 10, textTransform: 'uppercase', letterSpacing: 1, borderBottom: '1px solid rgba(255,255,255,0.08)', whiteSpace: 'nowrap' }}>{h}</th>
                       ))}
                     </tr>
@@ -322,6 +326,7 @@ export default function AdminAnalytics() {
                         <tr key={i} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
                           <td style={{ padding: '9px 8px', color: '#eee', fontWeight: 600, whiteSpace: 'nowrap' }}>{u.nome || '—'}</td>
                           <td style={{ padding: '9px 8px', color: '#999' }}>{u.email || '—'}</td>
+                          <td style={{ padding: '9px 8px', color: u.telefone ? '#34d399' : '#555' }}>{u.telefone || '—'}</td>
                           <td style={{ padding: '9px 8px' }}><span style={{ fontSize: 10, fontWeight: 800, padding: '2px 8px', borderRadius: 100, background: pago ? 'rgba(52,211,153,0.15)' : 'rgba(255,255,255,0.06)', color: pago ? C.green : '#888', textTransform: 'uppercase' }}>{u.plano}</span></td>
                           <td style={{ padding: '9px 8px', color: '#999', whiteSpace: 'nowrap' }}>{u.cidade ? `${u.cidade}/${u.uf || ''}` : '—'}</td>
                           <td style={{ padding: '9px 8px', color: '#999', maxWidth: 150, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{u.faculdade || '—'}</td>
