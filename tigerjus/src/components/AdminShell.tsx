@@ -25,6 +25,7 @@ export type AdminSection =
   | 'resumos'
   | 'media'
   | 'planos'
+  | 'indicacoes'
   | 'flags'
   | 'settings'
   | 'depoimentos'
@@ -289,7 +290,7 @@ function Topbar({ adminEmail }: { adminEmail: string }) {
     overview:'Dashboard', usuarios:'Usuários', questoes:'Questões',
     simulados:'Simulados', flashcards:'Flashcards', resumos:'Resumos',
     media:'Media Library', planos:'Planos', flags:'Feature Flags',
-    settings:'Configurações', depoimentos:'Depoimentos', mapas:'Mapas Mentais', audit:'Audit Log',
+    settings:'Configurações', depoimentos:'Depoimentos', mapas:'Mapas Mentais', audit:'Audit Log', indicacoes:'Indicações',
   }
   const handleLogout = async () => {
     await supabase.auth.signOut()
