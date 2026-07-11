@@ -51,9 +51,11 @@ function CheckoutContent() {
   const [authChecked, setAuthChecked] = useState(false)
   const [copied, setCopied] = useState(false)
 
+  // ── WhatsApp: canal de suporte/avisos da assinatura (salvo em profiles) ──
+  const [whats, setWhats] = useState('')
+  const [whatsErro, setWhatsErro] = useState('')
+
   // ── GATE DE LOGIN: exige conta antes de qualquer pagamento ──
-  // Sem isso, alguém que cai direto em /checkout?plan=... paga sem userId,
-  // o webhook não acha o dono e a assinatura fica órfã.
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => {
       if (!user) {
@@ -62,12 +64,14 @@ function CheckoutContent() {
       }
       setUser(user)
       setAuthChecked(true)
+      // pré-preenche o WhatsApp se o usuário já tiver informado antes
+      supabase.from('profiles').select('telefone').eq('id', user.id).single()
+        .then(({ data }: any) => { if (data?.telefone) setWhats(data.telefone) })
     })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // Lê o desconto anual do banco (só para EXIBIÇÃO). O valor real é recalculado
-  // e travado no servidor (api/payment/create) — aqui é apenas visual.
+  // Lê o desconto anual do banco (só para EXIBIÇÃO).
   useEffect(() => {
     if (!ehAnual) return
     supabase
@@ -92,6 +96,16 @@ function CheckoutContent() {
   }, [pixData, pixDone])
 
   const fmt = (s: number) => `${String(Math.floor(s/60)).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`
+
+  // Salva o WhatsApp no perfil. Retorna false se inválido.
+  const salvarWhats = async () => {
+    const tel = whats.replace(/\D/g, '')
+    if (!tel) { setWhatsErro('Informe seu WhatsApp com DDD.'); return false }
+    if (tel.length < 10 || tel.length > 11) { setWhatsErro('WhatsApp inválido. Use DDD + número (ex.: 11987654321).'); return false }
+    setWhatsErro('')
+    if (user?.id) await supabase.from('profiles').update({ telefone: tel }).eq('id', user.id)
+    return true
+  }
 
   const copiarPix = async () => {
     const codigo = pixData?.copy_paste || ''
@@ -131,8 +145,8 @@ function CheckoutContent() {
   }
 
   const createPixPayment = async () => {
-    // Rede de segurança: nunca dispara pagamento sem usuário identificado.
     if (!user?.id) { irParaLogin(); return }
+    if (!(await salvarWhats())) return
     setLoading(true)
     try {
       const res = await fetch('/api/payment/create', {
@@ -161,8 +175,8 @@ function CheckoutContent() {
   }
 
   const handleCard = async () => {
-    // Rede de segurança: nunca dispara pagamento sem usuário identificado.
     if (!user?.id) { irParaLogin(); return }
+    if (!(await salvarWhats())) return
     setCardLoading(true)
     try {
       const res = await fetch('/api/payment/create', {
@@ -184,8 +198,6 @@ function CheckoutContent() {
     </div>
   )
 
-  // Enquanto verifica a sessão, não pisca a tela de pagamento.
-  // (Se não estiver logado, irParaLogin() já redirecionou.)
   if (!authChecked) return (
     <div style={{minHeight:'100vh',background:'var(--deep-black)',display:'flex',alignItems:'center',justifyContent:'center'}}>
       <div style={{textAlign:'center'}}>
@@ -245,6 +257,27 @@ function CheckoutContent() {
             <div style={{fontSize:13,color:'var(--text-muted)',marginTop:4}}>TigerJus {plan.name} — R${precoExibido}{sufixoCiclo}</div>
           </div>
           <div style={{padding:24}}>
+
+            {/* WhatsApp — pedido antes do pagamento (canal de suporte e avisos) */}
+            {!pixData && !pixDone && (
+              <div style={{marginBottom:20}}>
+                <label style={{display:'block',fontSize:11,fontWeight:700,letterSpacing:1,textTransform:'uppercase',color:'var(--text-muted)',marginBottom:7}}>
+                  Seu WhatsApp <span style={{color:'var(--gold)'}}>*</span>
+                </label>
+                <input
+                  value={whats}
+                  onChange={e => { setWhats(e.target.value); if (whatsErro) setWhatsErro('') }}
+                  placeholder="DDD + número (ex.: 11987654321)"
+                  inputMode="numeric"
+                  maxLength={15}
+                  style={{width:'100%',background:'var(--gray-mid)',border:`1px solid ${whatsErro?'var(--danger)':'rgba(255,255,255,0.1)'}`,borderRadius:10,padding:'12px 14px',color:'var(--white)',fontSize:14,fontFamily:'var(--font-body)',outline:'none'}}
+                />
+                {whatsErro
+                  ? <div style={{fontSize:12,color:'var(--danger)',marginTop:6}}>{whatsErro}</div>
+                  : <div style={{fontSize:12,color:'var(--text-muted)',marginTop:6}}>Usamos para confirmar seu acesso e avisar sobre a assinatura. Sem spam. 🐯</div>}
+              </div>
+            )}
+
             <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:24,padding:'11px 14px',borderRadius:8,border:'1px solid rgba(212,168,67,0.3)',background:'rgba(212,168,67,0.1)',color:'var(--gold)',fontSize:13,fontWeight:700,fontFamily:'var(--font-body)'}}>
               ⚡ Pagamento via PIX
             </div>
