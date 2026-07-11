@@ -3084,7 +3084,8 @@ export default function TigerJusApp() {
   // ── ANALYTICS: rastreador de eventos (marketing) ──
   const [sessao]=useState(()=> Math.random().toString(36).slice(2)+Date.now().toString(36))
   const trackEvent=(evento:string,aba?:string,meta?:any)=>{
-    try{ if(profile?.id){ supabase.from('analytics_eventos').insert({user_id:profile.id,sessao,evento,aba:aba??null,plano:(profile as any)?.plano??null,meta:meta??{}}).then(()=>{},()=>{}) } }catch{}
+    // admin não polui as métricas de marketing
+    try{ if(profile?.id && profile?.role!=='admin'){ supabase.from('analytics_eventos').insert({user_id:profile.id,sessao,evento,aba:aba??null,plano:(profile as any)?.plano??null,meta:meta??{}}).then(()=>{},()=>{}) } }catch{}
   }
   const handleUpgradeSelect=(planId:string,ciclo:'mensal'|'anual'='mensal')=>{trackEvent('checkout_start',undefined,{plan:planId,ciclo});setShowUpgradeModal(false);router.push(`/checkout?plan=${planId}&ciclo=${ciclo}`)}
   const showUpgrade=()=>{setShowPremiumGate(false);setShowUpgradeModal(true);trackEvent('upgrade_click',page)}
