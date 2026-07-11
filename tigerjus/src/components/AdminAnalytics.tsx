@@ -26,7 +26,43 @@ const C = {
   muted: '#666',
 }
 
+const btnAcao: React.CSSProperties = { background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 6, cursor: 'pointer', fontSize: 12, padding: '4px 7px', lineHeight: 1 }
+
 type Tab = 'geral' | 'acoes' | 'usuarios' | 'demografia' | 'retencao'
+
+// ── Templates de abordagem (tom humano, não corporativo — converte mais) ──
+const primeiroNome = (n: string) => String(n || '').trim().split(/\s+/)[0] || 'tudo bem'
+
+const TEMPLATES: Record<string, (i: any) => { assunto: string; corpo: string }> = {
+  churn_risco: (i) => ({
+    assunto: `${primeiroNome(i.nome)}, tá tudo bem?`,
+    corpo: `Oi ${primeiroNome(i.nome)}, tudo bem?\n\nAqui é o pessoal do TigerJus. Vi que você não entra há uns dias e queria saber: está tudo certo? Travou em alguma matéria, ou faltou tempo?\n\nSe tiver qualquer dificuldade com a plataforma, me responde aqui que eu te ajudo pessoalmente.\n\nSua aprovação continua sendo nosso objetivo. 🐯\n\nAbraço!`,
+  }),
+  lead_quente: (i) => ({
+    assunto: `${primeiroNome(i.nome)}, ficou alguma dúvida sobre o plano?`,
+    corpo: `Oi ${primeiroNome(i.nome)}, tudo bem?\n\nVi que você deu uma olhada nos planos do TigerJus. Ficou alguma dúvida? Posso te explicar o que muda na prática.\n\nCom o plano pago você destrava as questões ilimitadas, os simulados completos e a IA sem limite — que é o que mais ajuda na reta final.\n\nQualquer dúvida, é só responder aqui.\n\nAbraço! 🐯`,
+  }),
+  power_free: (i) => ({
+    assunto: `${primeiroNome(i.nome)}, você está estudando muito! 🔥`,
+    corpo: `Oi ${primeiroNome(i.nome)}, tudo bem?\n\nReparei que você tem usado bastante o TigerJus — parabéns pela constância, é isso que aprova!\n\nComo você já está usando bastante, acho que vale te contar: no plano pago as questões e a IA ficam ilimitadas, e você libera os simulados completos. Dá pra estudar sem esbarrar em limite nenhum.\n\nSe quiser, posso te explicar o que muda.\n\nBons estudos! 🐯`,
+  }),
+}
+
+function soDigitos(t?: string) { return String(t || '').replace(/\D/g, '') }
+
+function abrirEmail(i: any) {
+  const t = (TEMPLATES[i.tipo] || TEMPLATES.churn_risco)(i)
+  window.open(`mailto:${encodeURIComponent(i.email || '')}?subject=${encodeURIComponent(t.assunto)}&body=${encodeURIComponent(t.corpo)}`, '_blank')
+}
+function abrirWhats(i: any) {
+  const t = (TEMPLATES[i.tipo] || TEMPLATES.churn_risco)(i)
+  const tel = soDigitos(i.telefone)
+  const txt = encodeURIComponent(t.corpo)
+  window.open(tel ? `https://wa.me/55${tel}?text=${txt}` : `https://wa.me/?text=${txt}`, '_blank')
+}
+async function copiar(txt: string) {
+  try { await navigator.clipboard.writeText(txt) } catch { /* ignora */ }
+}
 
 export default function AdminAnalytics() {
   const [tab, setTab] = useState<Tab>('geral')
@@ -123,7 +159,13 @@ export default function AdminAnalytics() {
         <div style={{ fontSize: 13, fontWeight: 800, color: '#fff' }}>{titulo}</div>
         <span style={{ fontSize: 11, fontWeight: 800, background: cor, color: '#111', padding: '2px 9px', borderRadius: 100 }}>{itens.length}</span>
       </div>
-      <div style={{ fontSize: 11, color: C.muted, marginBottom: 12 }}>{sub}</div>
+      <div style={{ fontSize: 11, color: C.muted, marginBottom: 10 }}>{sub}</div>
+      {itens.length > 0 && (
+        <button onClick={() => copiar(itens.map(x => x.email).filter(Boolean).join(', '))}
+          style={{ marginBottom: 10, fontSize: 11, fontWeight: 700, padding: '5px 10px', borderRadius: 7, cursor: 'pointer', border: '1px solid rgba(255,255,255,0.12)', background: 'transparent', color: '#999' }}>
+          📋 Copiar todos os e-mails ({itens.length})
+        </button>
+      )}
       {itens.length === 0 && <div style={{ fontSize: 12, color: '#444' }}>Ninguém nesta lista agora.</div>}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 300, overflowY: 'auto' }}>
         {itens.map((i, k) => (
@@ -134,7 +176,12 @@ export default function AdminAnalytics() {
                 {i.email || '—'}{i.uf ? ` · ${i.cidade || ''}/${i.uf}` : ''} · <span style={{ textTransform: 'uppercase' }}>{i.plano}</span>
               </div>
             </div>
-            <div style={{ fontSize: 11, color: cor, fontWeight: 800, whiteSpace: 'nowrap' }}>{rotulo(i)}</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+              <span style={{ fontSize: 11, color: cor, fontWeight: 800, whiteSpace: 'nowrap' }}>{rotulo(i)}</span>
+              <button onClick={() => abrirEmail(i)} title="Enviar e-mail com texto pronto" style={btnAcao}>📧</button>
+              <button onClick={() => abrirWhats(i)} title="Abrir WhatsApp com texto pronto" style={btnAcao}>💬</button>
+              <button onClick={() => copiar(i.email || '')} title="Copiar e-mail" style={btnAcao}>📋</button>
+            </div>
           </div>
         ))}
       </div>
