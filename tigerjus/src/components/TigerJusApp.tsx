@@ -3081,10 +3081,16 @@ export default function TigerJusApp() {
   }
 
   const handleLogout=async()=>{await supabase.auth.signOut();router.push('/')}
-  const handleUpgradeSelect=(planId:string,ciclo:'mensal'|'anual'='mensal')=>{setShowUpgradeModal(false);router.push(`/checkout?plan=${planId}&ciclo=${ciclo}`)}
-  const showUpgrade=()=>{setShowPremiumGate(false);setShowUpgradeModal(true)}
+  // ── ANALYTICS: rastreador de eventos (marketing) ──
+  const [sessao]=useState(()=> Math.random().toString(36).slice(2)+Date.now().toString(36))
+  const trackEvent=(evento:string,aba?:string,meta?:any)=>{
+    try{ if(profile?.id){ supabase.from('analytics_eventos').insert({user_id:profile.id,sessao,evento,aba:aba??null,plano:(profile as any)?.plano??null,meta:meta??{}}).then(()=>{},()=>{}) } }catch{}
+  }
+  const handleUpgradeSelect=(planId:string,ciclo:'mensal'|'anual'='mensal')=>{trackEvent('checkout_start',undefined,{plan:planId,ciclo});setShowUpgradeModal(false);router.push(`/checkout?plan=${planId}&ciclo=${ciclo}`)}
+  const showUpgrade=()=>{setShowPremiumGate(false);setShowUpgradeModal(true);trackEvent('upgrade_click',page)}
   const navOrRadar=(key:string)=>{ if(key==='radar'){ canAccessElite?setShowRadar(true):showUpgrade() } else navTo(key) }
-  const navTo=(key:string)=>{ setNavHist(h=> key===page ? h : [...h,page].slice(-50)); setPage(key); setMenuOpen(false) }
+  const navTo=(key:string)=>{ setNavHist(h=> key===page ? h : [...h,page].slice(-50)); setPage(key); setMenuOpen(false); trackEvent('page_view',key) }
+  useEffect(()=>{ if(!profile?.id) return; trackEvent('session_start'); trackEvent('page_view',page); const iv=setInterval(()=>{ if(typeof document==='undefined'||document.visibilityState==='visible') trackEvent('session_ping') },45000); return ()=>clearInterval(iv) },[profile?.id])
 
   // Presença GLOBAL (quem está usando a plataforma agora) + contador de menções não lidas
   useEffect(()=>{
