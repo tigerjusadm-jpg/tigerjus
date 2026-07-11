@@ -19,6 +19,7 @@ export interface FeatureFlag {
 export type AdminSection =
   | 'overview'
   | 'marketing'
+  | 'banners'
   | 'usuarios'
   | 'questoes'
   | 'simulados'
@@ -130,6 +131,7 @@ const CMD_ITEMS: { label: string; icon: string; section?: AdminSection; action?:
   { label: 'Resumos',          icon: '📖', section: 'resumos'    },
   { label: 'Lei Seca',         icon: '⚡', action: 'leis'        },
   { label: 'Media Library',    icon: '🖼️', section: 'media'      },
+  { label: 'Banners',          icon: '🎯', section: 'banners'    },
   { label: 'Planos',           icon: '💳', section: 'planos'     },
   { label: 'Indicações',       icon: '🤝', section: 'indicacoes' },
   { label: 'Configurações',    icon: '⚙️', section: 'settings'   },
@@ -204,6 +206,7 @@ const NAV_ITEMS: { label: string; icon: string; section?: AdminSection; href?: s
   { label: 'Resumos',       icon: '📖', section: 'resumos',    group: 'conteudo'  },
   { label: 'Lei Seca',      icon: '⚡', href: '/admin/leis',   group: 'conteudo'  },
   { label: 'Media Library', icon: '🖼️', section: 'media',      group: 'conteudo'  },
+  { label: 'Banners',      icon: '🎯', section: 'banners',    group: 'conteudo'  },
   { label: 'Depoimentos',   icon: '⭐', section: 'depoimentos', group: 'conteudo'  },
   { label: 'Mapas Mentais', icon: '🗺️', section: 'mapas',       group: 'conteudo'  },
   { label: 'Planos',        icon: '💳', section: 'planos',     group: 'sistema'   },
@@ -290,7 +293,7 @@ function Topbar({ adminEmail }: { adminEmail: string }) {
   const SECTION_LABELS: Record<AdminSection, string> = {
     overview:'Dashboard', marketing:'Inteligência de Marketing', usuarios:'Usuários', questoes:'Questões',
     simulados:'Simulados', flashcards:'Flashcards', resumos:'Resumos',
-    media:'Media Library', planos:'Planos',
+    media:'Media Library', banners:'Central de Banners', planos:'Planos',
     settings:'Configurações', depoimentos:'Depoimentos', mapas:'Mapas Mentais', indicacoes:'Indicações',
   }
   const handleLogout = async () => {
