@@ -18,6 +18,7 @@ export interface FeatureFlag {
 
 export type AdminSection =
   | 'overview'
+  | 'marketing'
   | 'usuarios'
   | 'questoes'
   | 'simulados'
@@ -26,11 +27,9 @@ export type AdminSection =
   | 'media'
   | 'planos'
   | 'indicacoes'
-  | 'flags'
   | 'settings'
   | 'depoimentos'
   | 'mapas'
-  | 'audit'
 
 interface SettingsCtx {
   settings: AppSetting[]
@@ -120,9 +119,10 @@ function AdminUIProvider({ children }: { children: ReactNode }) {
   )
 }
 
-// ── Command Palette ── (Feature Flags e Audit Log removidos — sem funcionalidade ativa)
+// ── Command Palette ──
 const CMD_ITEMS: { label: string; icon: string; section?: AdminSection; action?: string }[] = [
   { label: 'Dashboard',        icon: '🏠', section: 'overview'   },
+  { label: 'Marketing / Analytics', icon: '📊', section: 'marketing' },
   { label: 'Usuários',         icon: '👥', section: 'usuarios'   },
   { label: 'Questões',         icon: '📝', section: 'questoes'   },
   { label: 'Simulados',        icon: '📋', section: 'simulados'  },
@@ -193,9 +193,10 @@ function CommandPalette() {
   )
 }
 
-// ── Sidebar ── (Feature Flags e Audit Log removidos — placeholders sem função)
+// ── Sidebar ──
 const NAV_ITEMS: { label: string; icon: string; section?: AdminSection; href?: string; group: string }[] = [
   { label: 'Dashboard',     icon: '🏠', section: 'overview',   group: 'principal' },
+  { label: 'Marketing',     icon: '📊', section: 'marketing',  group: 'principal' },
   { label: 'Usuários',      icon: '👥', section: 'usuarios',   group: 'conteudo'  },
   { label: 'Questões',      icon: '📝', section: 'questoes',   group: 'conteudo'  },
   { label: 'Simulados',     icon: '📋', section: 'simulados',  group: 'conteudo'  },
@@ -287,10 +288,10 @@ function Topbar({ adminEmail }: { adminEmail: string }) {
   const { sidebarOpen, setSidebarOpen, setCmdOpen, section } = useAdminUI()
   const router = useRouter()
   const SECTION_LABELS: Record<AdminSection, string> = {
-    overview:'Dashboard', usuarios:'Usuários', questoes:'Questões',
+    overview:'Dashboard', marketing:'Inteligência de Marketing', usuarios:'Usuários', questoes:'Questões',
     simulados:'Simulados', flashcards:'Flashcards', resumos:'Resumos',
-    media:'Media Library', planos:'Planos', flags:'Feature Flags',
-    settings:'Configurações', depoimentos:'Depoimentos', mapas:'Mapas Mentais', audit:'Audit Log', indicacoes:'Indicações',
+    media:'Media Library', planos:'Planos',
+    settings:'Configurações', depoimentos:'Depoimentos', mapas:'Mapas Mentais', indicacoes:'Indicações',
   }
   const handleLogout = async () => {
     await supabase.auth.signOut()
