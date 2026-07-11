@@ -23,6 +23,7 @@ export default function MeuPerfilPage(props: any) {
   const [cidade, setCidade] = useState<string>(profile?.cidade || '')
   const [uf, setUf] = useState<string>(profile?.uf || '')
   const [bio, setBio] = useState<string>(profile?.bio || '')
+  const [telefone, setTelefone] = useState<string>(profile?.telefone || '')
   const [salvando, setSalvando] = useState(false)
   const [msg, setMsg] = useState<{ tipo: 'ok' | 'erro'; txt: string } | null>(null)
 
@@ -34,7 +35,9 @@ export default function MeuPerfilPage(props: any) {
     if (salvando) return
     if (!nome.trim()) { setMsg({ tipo: 'erro', txt: 'Coloque seu nome.' }); return }
     setSalvando(true); setMsg(null)
-    const campos = { nome: nome.trim(), avatar_url: avatar, faculdade: faculdade.trim() || null, periodo: periodo || null, cidade: cidade.trim() || null, uf: uf || null, bio: bio.trim() || null }
+    const tel = telefone.replace(/\D/g, '')
+    if (tel && (tel.length < 10 || tel.length > 11)) { setMsg({ tipo: 'erro', txt: 'WhatsApp inválido. Use DDD + número (ex.: 11987654321).' }); setSalvando(false); return }
+    const campos = { nome: nome.trim(), avatar_url: avatar, telefone: tel || null, faculdade: faculdade.trim() || null, periodo: periodo || null, cidade: cidade.trim() || null, uf: uf || null, bio: bio.trim() || null }
     const { error } = await supabase.from('profiles').update(campos).eq('id', profile.id)
     if (error) { setMsg({ tipo: 'erro', txt: 'Não foi possível salvar. Tente novamente.' }) }
     else { setMsg({ tipo: 'ok', txt: 'Perfil salvo! ✓' }); if (onUpdate) onUpdate(campos) }
@@ -79,6 +82,10 @@ export default function MeuPerfilPage(props: any) {
           <div style={{ gridColumn: '1 / -1' }}>
             <label style={label}>Faculdade</label>
             <input style={input} value={faculdade} maxLength={80} onChange={e => setFaculdade(e.target.value)} placeholder="Ex.: Universidade de São Paulo" />
+          </div>
+          <div style={{ gridColumn: '1 / -1' }}>
+            <label style={label}>WhatsApp <span style={{ color: 'var(--text-muted)', fontWeight: 400, textTransform: 'none' }}>(com DDD — usamos só para avisos importantes)</span></label>
+            <input style={input} value={telefone} maxLength={15} onChange={e => setTelefone(e.target.value)} placeholder="Ex.: 11987654321" inputMode="numeric" />
           </div>
           <div>
             <label style={label}>Período</label>
