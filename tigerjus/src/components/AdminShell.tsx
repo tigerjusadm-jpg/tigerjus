@@ -130,6 +130,7 @@ const CMD_ITEMS: { label: string; icon: string; section?: AdminSection; action?:
   { label: 'Lei Seca',         icon: '⚡', action: 'leis'        },
   { label: 'Media Library',    icon: '🖼️', section: 'media'      },
   { label: 'Planos',           icon: '💳', section: 'planos'     },
+  { label: 'Indicações',       icon: '🤝', section: 'indicacoes' },
   { label: 'Configurações',    icon: '⚙️', section: 'settings'   },
   { label: 'Depoimentos',      icon: '⭐', section: 'depoimentos' },
   { label: 'Mapas Mentais',    icon: '🗺️', section: 'mapas'      },
@@ -204,6 +205,7 @@ const NAV_ITEMS: { label: string; icon: string; section?: AdminSection; href?: s
   { label: 'Depoimentos',   icon: '⭐', section: 'depoimentos', group: 'conteudo'  },
   { label: 'Mapas Mentais', icon: '🗺️', section: 'mapas',       group: 'conteudo'  },
   { label: 'Planos',        icon: '💳', section: 'planos',     group: 'sistema'   },
+  { label: 'Indicações',    icon: '🤝', section: 'indicacoes', group: 'sistema'   },
   { label: 'Configurações', icon: '⚙️', section: 'settings',   group: 'sistema'   },
 ]
 
