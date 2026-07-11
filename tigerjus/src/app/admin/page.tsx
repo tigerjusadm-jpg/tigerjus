@@ -3,13 +3,13 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import AdminShell, { type AdminSection } from '@/components/AdminShell'
+import AdminAnalytics from '@/components/AdminAnalytics'          // ← NOVO: dashboard de marketing
 import ModuloResumos from '@/components/ModuloResumos'
 import ModuloUsuarios from '@/components/ModuloUsuarios'
-import ModuloFlags from '@/components/ModuloFlags'
 import ModuloQuestoes from '@/components/ModuloQuestoes'
 import ModuloConfiguracoes from '@/components/ModuloConfiguracoes'
 import ModuloMediaLibrary from '@/components/ModuloMediaLibrary'
-import ModuloCentralBanners from '@/components/ModuloCentralBanners'  // ← NOVO
+import ModuloCentralBanners from '@/components/ModuloCentralBanners'
 import ModuloSimulados from '@/components/ModuloSimulados'
 import ModuloFlashcards from '@/components/ModuloFlashcards'
 import ModuloPlanos from '@/components/ModuloPlanos'
@@ -79,7 +79,7 @@ function SectionOverview() {
           ATALHOS RÁPIDOS
         </div>
         <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
-          {['👥 Usuários','📝 Questões','📋 Simulados','🃏 Flashcards','📖 Resumos','🚩 Feature Flags','⚙️ Configurações','🎯 Banners'].map(label => (
+          {['📊 Marketing','👥 Usuários','📝 Questões','📋 Simulados','🃏 Flashcards','📖 Resumos','🎯 Banners','⚙️ Configurações'].map(label => (
             <div key={label} style={{background:'rgba(255,255,255,0.04)',border:'1px solid rgba(255,255,255,0.07)',borderRadius:8,padding:'7px 13px',fontSize:12,color:'#888'}}>
               {label}
             </div>
@@ -110,24 +110,26 @@ function SectionPlaceholder({ section }: { section: string }) {
 }
 
 // ─── Render por seção ─────────────────────────────────────────────────────────
+// Nota: 'flags' (ModuloFlags) foi removido — não estava no menu e não tinha
+// funcionalidade ativa. 'banners' segue disponível (agora acessível pelo menu).
 
 function renderSection(section: AdminSection | string, adminId?: string) {
   switch (section) {
-    case 'overview': return <SectionOverview />
-    case 'resumos':  return <ModuloResumos adminId={adminId} />
-    case 'usuarios': return <ModuloUsuarios adminId={adminId} />
-    case 'flags':    return <ModuloFlags adminId={adminId} />
-    case 'questoes': return <ModuloQuestoes adminId={adminId} />
-    case 'settings': return <ModuloConfiguracoes adminId={adminId} />
-    case 'media':    return <ModuloMediaLibrary adminId={adminId} />
-    case 'banners':   return <ModuloCentralBanners adminId={adminId} />
-    case 'simulados': return <ModuloSimulados adminId={adminId} />
-    case 'planos':    return <ModuloPlanos adminId={adminId} />
-    case 'indicacoes': return <ModuloIndicacoes adminId={adminId} />
+    case 'overview':    return <SectionOverview />
+    case 'marketing':   return <AdminAnalytics />
+    case 'resumos':     return <ModuloResumos adminId={adminId} />
+    case 'usuarios':    return <ModuloUsuarios adminId={adminId} />
+    case 'questoes':    return <ModuloQuestoes adminId={adminId} />
+    case 'settings':    return <ModuloConfiguracoes adminId={adminId} />
+    case 'media':       return <ModuloMediaLibrary adminId={adminId} />
+    case 'banners':     return <ModuloCentralBanners adminId={adminId} />
+    case 'simulados':   return <ModuloSimulados adminId={adminId} />
+    case 'planos':      return <ModuloPlanos adminId={adminId} />
+    case 'indicacoes':  return <ModuloIndicacoes adminId={adminId} />
     case 'depoimentos': return <ModuloDepoimentos adminId={adminId} />
-    case 'mapas':     return <ModuloMapasMentais adminId={adminId} />
-    case 'flashcards':return <ModuloFlashcards adminId={adminId} />
-    default:          return <SectionPlaceholder section={section as string} />
+    case 'mapas':       return <ModuloMapasMentais adminId={adminId} />
+    case 'flashcards':  return <ModuloFlashcards adminId={adminId} />
+    default:            return <SectionPlaceholder section={section as string} />
   }
 }
 
