@@ -60,6 +60,19 @@ export async function POST(req: Request) {
       alvoTexto = `presente para ${emailNorm}`
     }
 
+    // ── Nunca REBAIXAR: bloqueia usar crédito num plano inferior ao atual ──
+    const RANK: Record<string, number> = { gratuito: 0, start: 1, pro: 2, elite: 3 }
+    const { data: alvoAtual } = await supabase.from('profiles').select('plano').eq('id', alvoId).maybeSingle()
+    const rankAtual = RANK[alvoAtual?.plano || 'gratuito'] ?? 0
+    const rankNovo = RANK[plano] ?? 0
+    if (rankNovo < rankAtual) {
+      return NextResponse.json({
+        error: ehPresente
+          ? `Essa conta já tem o plano ${alvoAtual?.plano} (superior a ${plano}). Escolha um plano igual ou melhor.`
+          : `Você já tem o plano ${alvoAtual?.plano}, superior a ${plano}. Use o crédito num plano igual ou melhor — ou presenteie alguém.`
+      }, { status: 400 })
+    }
+
     // ── DÉBITO ATÔMICO (confere saldo + debita numa transação travada) ──
     const tipo = ehPresente ? 'uso_presente' : 'uso_assinatura'
     const desc = `Assinatura ${plano} (${ehAnual ? 'anual' : 'mensal'}) — ${alvoTexto}`
