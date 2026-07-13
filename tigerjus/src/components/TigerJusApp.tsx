@@ -12,7 +12,7 @@ import LandingTopBanner from '@/components/LandingTopBanner'
 import LeiSecaPage from '@/components/LeiSecaPage'
 import ComentarioComLei from '@/components/ComentarioComLei'
 import CronometroSimulado from '@/components/CronometroSimulado'
-import { canAccess, isAdmin, getLimites, isPago, getQuizModes, getResumoTier, planoMinimoExame, PLANOS_DISPLAY, getNivelByXp, getNextNivel, type Plano } from '@/lib/planos'
+import { canAccess, isAdmin, getLimites, isPago, getQuizModes, getResumoTier, planoMinimoExame, getNivelByXp, getNextNivel, type Plano } from '@/lib/planos'
 
 interface Profile {
   id: string; nome: string; email: string; plano: string
