@@ -26,9 +26,12 @@ const C = {
   muted: '#666',
 }
 
+const lblC: React.CSSProperties = { display: 'block', fontSize: 10, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase', color: '#666', marginBottom: 5 }
+const inpC: React.CSSProperties = { width: '100%', background: '#111', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, padding: '9px 11px', color: '#fff', fontSize: 13, outline: 'none' }
+const btnSec: React.CSSProperties = { fontSize: 11, fontWeight: 700, padding: '6px 11px', borderRadius: 7, cursor: 'pointer', border: '1px solid rgba(255,255,255,0.12)', background: 'transparent', color: '#999' }
 const btnAcao: React.CSSProperties = { background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 6, cursor: 'pointer', fontSize: 12, padding: '4px 7px', lineHeight: 1 }
 
-type Tab = 'geral' | 'acoes' | 'usuarios' | 'demografia' | 'retencao'
+type Tab = 'geral' | 'acoes' | 'usuarios' | 'demografia' | 'retencao' | 'campanhas'
 
 // ── Templates de abordagem (tom humano, não corporativo — converte mais) ──
 const primeiroNome = (n: string) => String(n || '').trim().split(/\s+/)[0] || 'tudo bem'
@@ -46,6 +49,31 @@ const TEMPLATES: Record<string, (i: any) => { assunto: string; corpo: string }> 
     assunto: `${primeiroNome(i.nome)}, você está estudando muito! 🔥`,
     corpo: `Oi ${primeiroNome(i.nome)}, tudo bem?\n\nReparei que você tem usado bastante o TigerJus — parabéns pela constância, é isso que aprova!\n\nComo você já está usando bastante, acho que vale te contar: no plano pago as questões e a IA ficam ilimitadas, e você libera os simulados completos. Dá pra estudar sem esbarrar em limite nenhum.\n\nSe quiser, posso te explicar o que muda.\n\nBons estudos! 🐯`,
   }),
+}
+
+const TEMPLATES_CAMPANHA: { id: string; nome: string; assunto: string; corpo: string }[] = [
+  { id: 'motivacao', nome: '🔥 Motivação / constância',
+    assunto: 'A aprovação é construída hoje, {nome}',
+    corpo: 'Oi {nome}, tudo bem?\n\nUma verdade sobre a OAB: não é quem estuda 10 horas num dia que passa — é quem estuda 1 hora todo dia.\n\nSeparei um lembrete pra você: entra no TigerJus hoje e faz pelo menos a Questão do Dia. São 2 minutos. É assim que se constrói aprovação.\n\nVocê consegue. 🐯' },
+  { id: 'progresso', nome: '📈 Progresso / retomada',
+    assunto: '{nome}, seu histórico no TigerJus está te esperando',
+    corpo: 'Oi {nome}!\n\nVocê já começou sua caminhada no TigerJus — e cada questão que você respondeu ficou salva no seu progresso.\n\nQue tal continuar de onde parou? Seu ranking e seu XP continuam lá, prontos pra crescer.\n\nBora? 🐯' },
+  { id: 'novidade', nome: '🆕 Novidade / feature',
+    assunto: 'Novidade no TigerJus, {nome} 🐯',
+    corpo: 'Oi {nome}!\n\nTemos novidade no TigerJus: o SIMULADÃO TIGER — uma prova inédita com as 80 questões dos temas que MAIS CAEM na OAB, montadas a partir de todas as provas anteriores.\n\nÉ o treino mais parecido com a prova real que você vai encontrar.\n\nEntra lá e testa! 🐯' },
+  { id: 'reta_final', nome: '⏰ Reta final / urgência',
+    assunto: '{nome}, o exame está chegando',
+    corpo: 'Oi {nome}, tudo bem?\n\nO próximo Exame da OAB está se aproximando — e a diferença entre passar e repetir costuma estar nas últimas semanas de preparação.\n\nNo TigerJus você tem o Radar OAB (os temas com maior chance de cair) e os simulados completos pra treinar no ritmo da prova.\n\nVamos com tudo? 🐯' },
+  { id: 'upgrade', nome: '🚀 Oferta / upgrade',
+    assunto: '{nome}, destrave tudo no TigerJus',
+    corpo: 'Oi {nome}, tudo bem?\n\nVi que você está usando o TigerJus — que bom!\n\nSe quiser ir além, nos planos pagos você libera: questões ilimitadas, IA sem limite, simulados completos e o Radar OAB.\n\nQualquer dúvida sobre os planos, é só responder aqui que eu te explico.\n\nAbraço! 🐯' },
+  { id: 'comunidade', nome: '💬 Chamar pra Comunidade',
+    assunto: '{nome}, vem trocar ideia com a gente',
+    corpo: 'Oi {nome}!\n\nVocê sabia que o TigerJus tem uma Comunidade onde os alunos trocam dúvidas e dicas em tempo real?\n\nÉ um espaço pra não estudar sozinho — tirar dúvida de matéria, compartilhar estratégia, se motivar junto.\n\nTe espero lá! 🐯' },
+]
+
+function aplicar(txt: string, u: any) {
+  return String(txt).replace(/\{nome\}/g, primeiroNome(u?.nome))
 }
 
 function soDigitos(t?: string) { return String(t || '').replace(/\D/g, '') }
@@ -88,6 +116,19 @@ export default function AdminAnalytics() {
   const [confirmaNome, setConfirmaNome] = useState('')
   const [modoExcluir, setModoExcluir] = useState(false)
   const [recarregar, setRecarregar] = useState(0)
+  // campanhas
+  const [fPlanos, setFPlanos] = useState<string[]>([])
+  const [fUf, setFUf] = useState('')
+  const [fFac, setFFac] = useState('')
+  const [fPeriodo, setFPeriodo] = useState('')
+  const [fInativoMin, setFInativoMin] = useState('')
+  const [fSoWhats, setFSoWhats] = useState(false)
+  const [segmento, setSegmento] = useState<any[]>([])
+  const [buscandoSeg, setBuscandoSeg] = useState(false)
+  const [tplId, setTplId] = useState('motivacao')
+  const [assunto, setAssunto] = useState(TEMPLATES_CAMPANHA[0].assunto)
+  const [corpo, setCorpo] = useState(TEMPLATES_CAMPANHA[0].corpo)
+  const [filtros, setFiltros] = useState<any[]>([])
   const [load, setLoad] = useState(true)
 
   useEffect(() => {
@@ -95,7 +136,7 @@ export default function AdminAnalytics() {
     setLoad(true)
     ;(async () => {
       try {
-        const [a, f, t, ac, us, dm, rc, rt, ind] = await Promise.all([
+        const [a, f, t, ac, us, dm, rc, rt, ind, fl] = await Promise.all([
           supabase.rpc('admin_abas_top', { dias }),
           supabase.rpc('admin_funil', { dias }),
           supabase.rpc('admin_tempo_dia', { dias: Math.min(dias, 30) }),
@@ -105,6 +146,7 @@ export default function AdminAnalytics() {
           supabase.rpc('admin_receita'),
           supabase.rpc('admin_retencao'),
           supabase.rpc('admin_indicadores_top'),
+          supabase.rpc('admin_filtros_disponiveis'),
         ])
         if (!vivo) return
         setAbas((a.data as any[]) || [])
@@ -116,6 +158,7 @@ export default function AdminAnalytics() {
         setReceita((rc.data as any[]) || [])
         setRetencao((rt.data as any[]) || [])
         setIndicadores((ind.data as any[]) || [])
+        setFiltros((fl.data as any[]) || [])
       } finally { if (vivo) setLoad(false) }
     })()
     return () => { vivo = false }
@@ -181,6 +224,47 @@ export default function AdminAnalytics() {
     finally { setSalvando(false) }
   }
 
+  async function buscarSegmento() {
+    setBuscandoSeg(true)
+    try {
+      const { data } = await supabase.rpc('admin_segmento', {
+        p_planos: fPlanos.length ? fPlanos : null,
+        p_uf: fUf || null,
+        p_cidade: null,
+        p_faculdade: fFac || null,
+        p_periodo: fPeriodo || null,
+        p_inativo_min: fInativoMin ? Number(fInativoMin) : null,
+        p_inativo_max: null,
+        p_so_whatsapp: fSoWhats,
+      })
+      setSegmento((data as any[]) || [])
+    } catch { setSegmento([]) }
+    finally { setBuscandoSeg(false) }
+  }
+
+  function escolherTpl(id: string) {
+    const t = TEMPLATES_CAMPANHA.find(x => x.id === id)
+    if (!t) return
+    setTplId(id); setAssunto(t.assunto); setCorpo(t.corpo)
+  }
+
+  function enviarEmailCampanha(u: any) {
+    window.open(`mailto:${encodeURIComponent(u.email || '')}?subject=${encodeURIComponent(aplicar(assunto, u))}&body=${encodeURIComponent(aplicar(corpo, u))}`, '_blank')
+  }
+  function enviarWhatsCampanha(u: any) {
+    const tel = soDigitos(u.telefone)
+    const txt = aplicar(corpo, u)
+    if (!tel) { copiar(txt); alert(`${u.nome || 'Este usuário'} não tem WhatsApp cadastrado.\n\nA mensagem foi copiada.`); return }
+    window.open(`https://wa.me/55${tel}?text=${encodeURIComponent(txt)}`, '_blank')
+  }
+  function exportarSegmentoCSV() {
+    const cols = ['nome', 'email', 'telefone', 'plano', 'cidade', 'uf', 'faculdade', 'periodo', 'xp', 'dias_inativo']
+    const linhas = [cols.join(','), ...segmento.map(u => cols.map(c => `"${String(u[c] ?? '').replace(/"/g, '""')}"`).join(','))]
+    const blob = new Blob([linhas.join('\n')], { type: 'text/csv;charset=utf-8;' })
+    const a = document.createElement('a')
+    a.href = URL.createObjectURL(blob); a.download = `tigerjus_campanha_${new Date().toISOString().slice(0, 10)}.csv`; a.click()
+  }
+
   function exportarCSV() {
     const cols = ['nome', 'email', 'telefone', 'plano', 'cidade', 'uf', 'faculdade', 'periodo', 'xp', 'ultimo_acesso', 'dias_inativo', 'acessos']
     const linhas = [cols.join(','), ...usersFiltrados.map(u => cols.map(c => `"${String(u[c] ?? '').replace(/"/g, '""')}"`).join(','))]
@@ -203,6 +287,7 @@ export default function AdminAnalytics() {
     { k: 'usuarios', l: '👥 Usuários', n: users.length },
     { k: 'demografia', l: '🗺️ Demografia' },
     { k: 'retencao', l: '💰 Receita & Retenção' },
+    { k: 'campanhas', l: '📣 Campanhas' },
   ]
 
   const listaAcao = (titulo: string, sub: string, itens: any[], cor: string, rotulo: (i: any) => string) => (
@@ -452,6 +537,129 @@ export default function AdminAnalytics() {
           )}
         </>
       )}
+
+          {tab === 'campanhas' && (
+            <>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(300px,1fr))', gap: 16 }}>
+                {/* 1) Público */}
+                <div style={C.card}>
+                  <div style={{ fontSize: 13, fontWeight: 800, color: '#fff', marginBottom: 3 }}>1. Escolha o público</div>
+                  <div style={{ fontSize: 11, color: C.muted, marginBottom: 14 }}>Combine os filtros. Vazio = todos.</div>
+
+                  <label style={lblC}>Planos</label>
+                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 12 }}>
+                    {['gratuito', 'start', 'pro', 'elite'].map(p => {
+                      const on = fPlanos.includes(p)
+                      return (
+                        <button key={p} onClick={() => setFPlanos(on ? fPlanos.filter(x => x !== p) : [...fPlanos, p])}
+                          style={{ fontSize: 11, fontWeight: 700, padding: '5px 11px', borderRadius: 100, cursor: 'pointer', textTransform: 'uppercase', border: '1px solid ' + (on ? C.gold : 'rgba(255,255,255,0.12)'), background: on ? 'rgba(212,168,67,0.15)' : 'transparent', color: on ? C.gold : '#888' }}>{p}</button>
+                      )
+                    })}
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                    <div>
+                      <label style={lblC}>Estado (UF)</label>
+                      <select value={fUf} onChange={e => setFUf(e.target.value)} style={inpC}>
+                        <option value="">Todos</option>
+                        {filtros.filter(f => f.dimensao === 'uf').map((f, i) => <option key={i} value={f.valor}>{f.valor} ({f.qtd})</option>)}
+                      </select>
+                    </div>
+                    <div>
+                      <label style={lblC}>Período</label>
+                      <select value={fPeriodo} onChange={e => setFPeriodo(e.target.value)} style={inpC}>
+                        <option value="">Todos</option>
+                        {filtros.filter(f => f.dimensao === 'periodo').map((f, i) => <option key={i} value={f.valor}>{f.valor} ({f.qtd})</option>)}
+                      </select>
+                    </div>
+                    <div style={{ gridColumn: '1 / -1' }}>
+                      <label style={lblC}>Faculdade</label>
+                      <select value={fFac} onChange={e => setFFac(e.target.value)} style={inpC}>
+                        <option value="">Todas</option>
+                        {filtros.filter(f => f.dimensao === 'faculdade').map((f, i) => <option key={i} value={f.valor}>{f.valor} ({f.qtd})</option>)}
+                      </select>
+                    </div>
+                    <div>
+                      <label style={lblC}>Inativo há (dias)</label>
+                      <input value={fInativoMin} onChange={e => setFInativoMin(e.target.value.replace(/\D/g, ''))} placeholder="ex.: 7" inputMode="numeric" style={inpC} />
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'flex-end' }}>
+                      <label style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 12, color: '#bbb', cursor: 'pointer', paddingBottom: 9 }}>
+                        <input type="checkbox" checked={fSoWhats} onChange={e => setFSoWhats(e.target.checked)} />
+                        Só com WhatsApp
+                      </label>
+                    </div>
+                  </div>
+
+                  <button onClick={buscarSegmento} disabled={buscandoSeg}
+                    style={{ width: '100%', marginTop: 14, background: C.gold, color: '#111', border: 'none', borderRadius: 8, padding: '10px', fontSize: 13, fontWeight: 800, cursor: 'pointer' }}>
+                    {buscandoSeg ? 'Buscando…' : '🔎 Ver público'}
+                  </button>
+                </div>
+
+                {/* 2) Mensagem */}
+                <div style={C.card}>
+                  <div style={{ fontSize: 13, fontWeight: 800, color: '#fff', marginBottom: 3 }}>2. Escreva a mensagem</div>
+                  <div style={{ fontSize: 11, color: C.muted, marginBottom: 12 }}>Use <b style={{ color: C.gold }}>{'{nome}'}</b> pra personalizar com o nome da pessoa.</div>
+
+                  <label style={lblC}>Modelo pronto</label>
+                  <select value={tplId} onChange={e => escolherTpl(e.target.value)} style={{ ...inpC, marginBottom: 12 }}>
+                    {TEMPLATES_CAMPANHA.map(t => <option key={t.id} value={t.id}>{t.nome}</option>)}
+                  </select>
+
+                  <label style={lblC}>Assunto (e-mail)</label>
+                  <input value={assunto} onChange={e => setAssunto(e.target.value)} style={{ ...inpC, marginBottom: 12 }} />
+
+                  <label style={lblC}>Mensagem</label>
+                  <textarea value={corpo} onChange={e => setCorpo(e.target.value)} rows={9}
+                    style={{ ...inpC, resize: 'vertical', lineHeight: 1.6, fontFamily: 'inherit' }} />
+                </div>
+              </div>
+
+              {/* 3) Disparo */}
+              <div style={C.card}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10, marginBottom: 4 }}>
+                  <div style={{ fontSize: 13, fontWeight: 800, color: '#fff' }}>3. Enviar</div>
+                  {segmento.length > 0 && (
+                    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                      <button onClick={() => copiar(segmento.map(u => u.email).filter(Boolean).join(', '))} style={btnSec}>📋 Copiar e-mails ({segmento.length})</button>
+                      <button onClick={() => copiar(segmento.map(u => u.telefone).filter(Boolean).map(t => '55' + t).join(', '))} style={btnSec}>📱 Copiar WhatsApps ({segmento.filter(u => u.telefone).length})</button>
+                      <button onClick={exportarSegmentoCSV} style={{ ...btnSec, borderColor: C.gold, color: C.gold }}>⬇ Baixar CSV</button>
+                    </div>
+                  )}
+                </div>
+                <div style={{ fontSize: 11, color: C.muted, marginBottom: 14 }}>
+                  {segmento.length === 0
+                    ? 'Escolha o público acima e clique em "Ver público".'
+                    : `${segmento.length} pessoa(s) no segmento. Envie individualmente (mensagem já personalizada) ou copie a lista para disparo em massa.`}
+                </div>
+
+                {segmento.length > 0 && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 420, overflowY: 'auto' }}>
+                    {segmento.map((u, k) => (
+                      <div key={k} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, padding: '9px 12px', background: 'rgba(255,255,255,0.03)', borderRadius: 8, borderLeft: `3px solid ${C.gold}` }}>
+                        <div style={{ minWidth: 0 }}>
+                          <div style={{ fontSize: 13, fontWeight: 700, color: '#eee', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{u.nome || '—'}</div>
+                          <div style={{ fontSize: 11, color: C.muted, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {u.email}{u.telefone ? ` · 📱 ${u.telefone}` : ''} · <span style={{ textTransform: 'uppercase' }}>{u.plano}</span>{u.uf ? ` · ${u.uf}` : ''}{Number(u.dias_inativo) >= 7 ? ` · ${u.dias_inativo}d inativo` : ''}
+                          </div>
+                        </div>
+                        <div style={{ display: 'flex', gap: 7, flexShrink: 0 }}>
+                          <button onClick={() => enviarEmailCampanha(u)} title="Enviar e-mail" style={btnAcao}>📧</button>
+                          <button onClick={() => enviarWhatsCampanha(u)} title={u.telefone ? `WhatsApp: ${u.telefone}` : 'Sem WhatsApp — copia a mensagem'} style={{ ...btnAcao, opacity: u.telefone ? 1 : 0.4 }}>💬</button>
+                          <button onClick={() => copiar(aplicar(corpo, u))} title="Copiar mensagem personalizada" style={btnAcao}>📋</button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                <div style={{ marginTop: 14, fontSize: 11, color: C.muted, background: 'rgba(212,168,67,0.06)', border: '1px solid rgba(212,168,67,0.15)', borderRadius: 8, padding: '9px 12px' }}>
+                  💡 Para disparo automático em massa (e medir aberturas/cliques), é preciso conectar um serviço de e-mail.
+                </div>
+              </div>
+            </>
+          )}
 
       {/* ── Modal editar / excluir usuário ── */}
       {editando && (
