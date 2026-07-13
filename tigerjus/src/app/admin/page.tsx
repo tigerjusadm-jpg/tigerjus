@@ -109,8 +109,6 @@ function SectionPlaceholder({ section }: { section: string }) {
 }
 
 // ─── Render por seção ─────────────────────────────────────────────────────────
-// Nota: 'flags' (ModuloFlags) foi removido — não estava no menu e não tinha
-// funcionalidade ativa. 'banners' segue disponível (agora acessível pelo menu).
 
 function renderSection(section: AdminSection | string, adminId?: string) {
   switch (section) {
