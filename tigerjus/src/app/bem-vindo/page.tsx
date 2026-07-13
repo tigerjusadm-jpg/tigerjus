@@ -32,7 +32,6 @@ export default function BemVindoPage() {
           <div style={{marginTop:16}}>
             {[
               {icon:'🎯',label:'Radar TigerJus'},
-              {icon:'🗺️',label:'Mapas mentais'},
               {icon:'📄',label:'PDFs exclusivos'},
               {icon:'⚡',label:'Simulados completos OAB'},
             ].map(i => (
