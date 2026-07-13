@@ -7,7 +7,7 @@ const DEFAULT_EMAIL = 'contato@tigerjus.com.br'
 const DEFAULT_TEXTO = `Bem-vindo ao TigerJus. Ao criar uma conta, você concorda com estes Termos.
 
 ## 1. Sobre o serviço
-Plataforma de estudos para a 1ª fase da OAB, com questões, simulados, resumos, flashcards, mapas mentais e gamificação.
+Plataforma de estudos para a 1ª fase da OAB, com questões, simulados, resumos, flashcards e gamificação.
 
 ## 2. Conta
 Você é responsável pela sua senha e pelas atividades na sua conta. Os dados de cadastro devem ser verdadeiros. A conta é pessoal e intransferível.
