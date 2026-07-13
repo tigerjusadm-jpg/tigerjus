@@ -30,7 +30,6 @@ export type AdminSection =
   | 'indicacoes'
   | 'settings'
   | 'depoimentos'
-  | 'mapas'
 
 interface SettingsCtx {
   settings: AppSetting[]
@@ -136,7 +135,6 @@ const CMD_ITEMS: { label: string; icon: string; section?: AdminSection; action?:
   { label: 'Indicações',       icon: '🤝', section: 'indicacoes' },
   { label: 'Configurações',    icon: '⚙️', section: 'settings'   },
   { label: 'Depoimentos',      icon: '⭐', section: 'depoimentos' },
-  { label: 'Mapas Mentais',    icon: '🗺️', section: 'mapas'      },
   { label: 'Ir para plataforma', icon: '🐯', action: 'platform'  },
 ]
 
@@ -208,7 +206,6 @@ const NAV_ITEMS: { label: string; icon: string; section?: AdminSection; href?: s
   { label: 'Media Library', icon: '🖼️', section: 'media',      group: 'conteudo'  },
   { label: 'Banners',      icon: '🎯', section: 'banners',    group: 'conteudo'  },
   { label: 'Depoimentos',   icon: '⭐', section: 'depoimentos', group: 'conteudo'  },
-  { label: 'Mapas Mentais', icon: '🗺️', section: 'mapas',       group: 'conteudo'  },
   { label: 'Planos',        icon: '💳', section: 'planos',     group: 'sistema'   },
   { label: 'Indicações',    icon: '🤝', section: 'indicacoes', group: 'sistema'   },
   { label: 'Configurações', icon: '⚙️', section: 'settings',   group: 'sistema'   },
@@ -294,7 +291,7 @@ function Topbar({ adminEmail }: { adminEmail: string }) {
     overview:'Dashboard', marketing:'Inteligência de Marketing', usuarios:'Usuários', questoes:'Questões',
     simulados:'Simulados', flashcards:'Flashcards', resumos:'Resumos',
     media:'Media Library', banners:'Central de Banners', planos:'Planos',
-    settings:'Configurações', depoimentos:'Depoimentos', mapas:'Mapas Mentais', indicacoes:'Indicações',
+    settings:'Configurações', depoimentos:'Depoimentos', indicacoes:'Indicações',
   }
   const handleLogout = async () => {
     await supabase.auth.signOut()
