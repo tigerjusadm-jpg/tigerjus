@@ -16,6 +16,7 @@ const PERIODOS = ['1º', '2º', '3º', '4º', '5º', '6º', '7º', '8º', '9º',
 export default function MeuPerfilPage(props: any) {
   const profile = props?.profile
   const onUpdate = props?.onUpdate
+  const onXp = props?.onXp
   const [avatar, setAvatar] = useState<string>(isTigerId(profile?.avatar_url) ? profile.avatar_url : TIGER_IDS[0])
   const [nome, setNome] = useState<string>(profile?.nome || '')
   const [faculdade, setFaculdade] = useState<string>(profile?.faculdade || '')
@@ -26,6 +27,20 @@ export default function MeuPerfilPage(props: any) {
   const [telefone, setTelefone] = useState<string>(profile?.telefone || '')
   const [salvando, setSalvando] = useState(false)
   const [msg, setMsg] = useState<{ tipo: 'ok' | 'erro'; txt: string } | null>(null)
+  const [bonusGanho, setBonusGanho] = useState(false)
+
+  const checklist = [
+    { ok: !!nome.trim(), l: 'Nome' },
+    { ok: !!telefone.replace(/\D/g, ''), l: 'WhatsApp' },
+    { ok: !!faculdade.trim(), l: 'Faculdade' },
+    { ok: !!cidade.trim(), l: 'Cidade' },
+    { ok: !!uf, l: 'UF' },
+    { ok: !!periodo, l: 'Período' },
+  ]
+  const preenchidos = checklist.filter(c => c.ok).length
+  const pct = Math.round(preenchidos / checklist.length * 100)
+  const completo = preenchidos === checklist.length
+  const jaGanhou = profile?.perfil_xp_dado === true || bonusGanho
 
   if (!profile?.id) {
     return <div style={{ flex: 1, padding: 40, textAlign: 'center', color: 'var(--text-muted)' }}>Faça login para editar seu perfil.</div>
@@ -40,7 +55,17 @@ export default function MeuPerfilPage(props: any) {
     const campos = { nome: nome.trim(), avatar_url: avatar, telefone: tel || null, faculdade: faculdade.trim() || null, periodo: periodo || null, cidade: cidade.trim() || null, uf: uf || null, bio: bio.trim() || null }
     const { error } = await supabase.from('profiles').update(campos).eq('id', profile.id)
     if (error) { setMsg({ tipo: 'erro', txt: 'Não foi possível salvar. Tente novamente.' }) }
-    else { setMsg({ tipo: 'ok', txt: 'Perfil salvo! ✓' }); if (onUpdate) onUpdate(campos) }
+    else {
+      if (onUpdate) onUpdate(campos)
+      const estaCompleto = !!(campos.nome && campos.telefone && campos.faculdade && campos.cidade && campos.uf && campos.periodo)
+      if (estaCompleto && !jaGanhou && onXp) {
+        onXp('perfil_completo')
+        setBonusGanho(true)
+        setMsg({ tipo: 'ok', txt: 'Perfil completo! 🎉 +300 XP creditados.' })
+      } else {
+        setMsg({ tipo: 'ok', txt: 'Perfil salvo! ✓' })
+      }
+    }
     setSalvando(false)
   }
 
@@ -62,6 +87,28 @@ export default function MeuPerfilPage(props: any) {
             <div style={{ fontSize: 11, color: 'var(--gold)', fontWeight: 700, marginTop: 4, textTransform: 'uppercase' }}>{profile?.plano || ''}</div>
           </div>
         </div>
+
+        {/* bônus de perfil completo */}
+        {!jaGanhou && (
+          <div style={{ marginBottom: 22, padding: 16, borderRadius: 16, background: completo ? 'linear-gradient(135deg,rgba(76,175,125,0.14),rgba(76,175,125,0.05))' : 'linear-gradient(135deg,rgba(212,168,67,0.12),rgba(232,98,26,0.05))', border: `1px solid ${completo ? 'rgba(76,175,125,0.35)' : 'rgba(212,168,67,0.3)'}` }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap', marginBottom: 10 }}>
+              <div style={{ fontSize: 14, fontWeight: 800, color: completo ? 'var(--success)' : 'var(--gold)' }}>
+                {completo ? '✅ Perfil completo — salve e ganhe +300 XP!' : '🎁 Complete seu perfil e ganhe +300 XP'}
+              </div>
+              <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--text-muted)' }}>{preenchidos}/{checklist.length}</div>
+            </div>
+            <div style={{ height: 8, borderRadius: 100, background: 'rgba(255,255,255,0.08)', overflow: 'hidden', marginBottom: 10 }}>
+              <div style={{ height: '100%', width: pct + '%', borderRadius: 100, background: completo ? 'var(--success)' : 'linear-gradient(90deg,var(--gold),var(--orange))', transition: 'width .3s' }} />
+            </div>
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+              {checklist.map(c => (
+                <span key={c.l} style={{ fontSize: 11, fontWeight: 700, padding: '3px 9px', borderRadius: 100, background: c.ok ? 'rgba(76,175,125,0.15)' : 'rgba(255,255,255,0.05)', color: c.ok ? 'var(--success)' : 'var(--text-muted)' }}>
+                  {c.ok ? '✓' : '○'} {c.l}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* galeria de avatares */}
         <label style={label}>Escolha seu tigre</label>
