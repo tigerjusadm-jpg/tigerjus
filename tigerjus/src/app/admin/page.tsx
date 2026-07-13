@@ -15,7 +15,6 @@ import ModuloFlashcards from '@/components/ModuloFlashcards'
 import ModuloPlanos from '@/components/ModuloPlanos'
 import ModuloIndicacoes from '@/components/ModuloIndicacoes'
 import ModuloDepoimentos from '@/components/ModuloDepoimentos'
-import ModuloMapasMentais from '@/components/ModuloMapasMentais'
 
 // ─── Seção Overview ───────────────────────────────────────────────────────────
 
@@ -127,7 +126,6 @@ function renderSection(section: AdminSection | string, adminId?: string) {
     case 'planos':      return <ModuloPlanos adminId={adminId} />
     case 'indicacoes':  return <ModuloIndicacoes adminId={adminId} />
     case 'depoimentos': return <ModuloDepoimentos adminId={adminId} />
-    case 'mapas':       return <ModuloMapasMentais adminId={adminId} />
     case 'flashcards':  return <ModuloFlashcards adminId={adminId} />
     default:            return <SectionPlaceholder section={section as string} />
   }
