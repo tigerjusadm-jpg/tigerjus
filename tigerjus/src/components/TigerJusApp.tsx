@@ -745,6 +745,16 @@ function DashHome({ profile, onNav, onMini, showUpgrade, isPago, canAccessPremiu
       </div>
       <div style={{marginBottom:20}}><RadarOAB/></div>
       <EvolucaoChart profile={profile}/>
+      {(()=>{const pf=profile;const faltando=!(pf?.nome&&pf?.telefone&&pf?.faculdade&&pf?.cidade&&pf?.uf&&pf?.periodo);if(!faltando||pf?.perfil_xp_dado)return null;return(
+      <div onClick={()=>onNav('perfil')} style={{cursor:'pointer',marginBottom:16,padding:'14px 18px',borderRadius:14,background:'linear-gradient(135deg,rgba(212,168,67,0.14),rgba(232,98,26,0.06))',border:'1px solid rgba(212,168,67,0.3)',display:'flex',alignItems:'center',gap:14,flexWrap:'wrap'}}>
+        <div style={{fontSize:30,flexShrink:0}}>🎁</div>
+        <div style={{flex:1,minWidth:180}}>
+          <div style={{fontSize:14,fontWeight:800,color:'var(--gold)',marginBottom:2}}>Complete seu perfil e ganhe +300 XP</div>
+          <div style={{fontSize:12,color:'var(--text-muted)'}}>Leva 1 minuto — escolha seu avatar de tigre e conte de onde você é.</div>
+        </div>
+        <button className="btn-gold-sm" style={{flexShrink:0}}>Completar →</button>
+      </div>
+      )})()}
       <QuestaoDodia onNav={onNav} onXp={onXp} profile={profile}/>
       <div style={{background:canAccessElite?'linear-gradient(135deg,rgba(58,143,232,0.1),rgba(212,168,67,0.06))':'linear-gradient(135deg,rgba(58,143,232,0.08),rgba(212,168,67,0.06))',border:`1px solid ${canAccessElite?'rgba(58,143,232,0.25)':'rgba(58,143,232,0.2)'}`,borderRadius:16,padding:20,marginBottom:20,cursor:'pointer',transition:'all 0.2s'}}
         onClick={canAccessElite?onOpenRadar:showUpgrade}
@@ -3214,7 +3224,7 @@ export default function TigerJusApp() {
         {page==='trilhas'&&<TrilhasPage canAccessPremium={canAccessPremium} showUpgrade={showUpgrade} onNav={navTo}/>}
         {page==='referral'&&<ReferralPage profile={profile} showUpgrade={showUpgrade} isPago={userIsPago}/>}
         {page==='comunidade'&&<ComunidadeChat profile={profile} showUpgrade={showUpgrade} onlineIds={onlineIds}/>}
-        {page==='perfil'&&<MeuPerfilPage profile={profile} onUpdate={(c:any)=>setProfile((pr:any)=>pr?{...pr,...c}:pr)}/>}
+        {page==='perfil'&&<MeuPerfilPage profile={profile} onXp={handleXp} onUpdate={(c:any)=>setProfile((pr:any)=>pr?{...pr,...c}:pr)}/>}
         </div>
       </div>
       <style>{`
