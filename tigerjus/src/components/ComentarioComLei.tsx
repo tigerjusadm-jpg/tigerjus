@@ -5,7 +5,7 @@ import { supabase } from '@/lib/supabase'
 
 // ---- leis reconhecidas (slug + nome + padrões de citação) ----
 const LEIS: { slug: string; nome: string; pat: string }[] = [
-  { slug: 'cf',    nome: 'Constituição Federal',                 pat: 'CF\\/?(?:88|1988)?|CRFB\\/?(?:88|1988)?|Constitui[çc][ãa]o Federal|Constitui[çc][ãa]o da Rep[úu]blica|Constitui[çc][ãa]o' },
+  { slug: 'cf',    nome: 'Constituição Federal',                 pat: '(?:CF|CRFB)(?:\\/?(?:88|1988))?(?![A-Za-zÀ-ú])|Constitui[çc][ãa]o Federal|Constitui[çc][ãa]o da Rep[úu]blica|Constitui[çc][ãa]o' },
   { slug: 'cc',    nome: 'Código Civil',                         pat: 'C[óo]digo Civil|CC\\b|Lei\\s*n?[º°.\\s]*10\\.?406' },
   { slug: 'cp',    nome: 'Código Penal',                         pat: 'C[óo]digo Penal|CP\\b' },
   { slug: 'cpc',   nome: 'Código de Processo Civil',             pat: 'C[óo]digo de Processo Civil|CPC\\b|Lei\\s*n?[º°.\\s]*13\\.?105' },
@@ -107,6 +107,9 @@ function parse(texto: string, slugs: Set<string>, leiPadrao?: string): Node[] {
     const corte = win.search(/;|\.(?=\s)/)
     if (corte >= 0) win = win.slice(0, corte)
     const lei = acharLei(win)
+    // Fonte externa citada, mas fora do acervo (Provimento/Resolução/Súmula/Decreto/EC/Lei numerada não mapeada):
+    // não transforma em link, para não abrir popup errado (nem para a CF, nem para a lei padrão da disciplina).
+    const fonteExterna = /\b(?:Provimento|Resolu[çc][ãa]o|S[úu]mula(?:\s+Vinculante)?|Decreto(?:-Lei)?|Portaria|Instru[çc][ãa]o\s+Normativa|Emenda\s+Constitucional|Lei\s*(?:Complementar\s*)?n?[º°.\s]*\d)/i.test(win)
     if (lei && slugs.has(lei.slug)) {
       const leiStart = numEnd + lei.idx
       const citeEnd = leiStart + lei.len
@@ -115,7 +118,7 @@ function parse(texto: string, slugs: Set<string>, leiPadrao?: string): Node[] {
       nodes.push({ t: 'cite', v: t.slice(artStart, citeEnd), slug: lei.slug, leiNome: lei.nome, artigo: rotuloArtigo(num, bis), num, paras, incisos })
       last = citeEnd
       anchor.lastIndex = citeEnd
-    } else if (leiPadrao && slugs.has(leiPadrao)) {
+    } else if (!fonteExterna && leiPadrao && slugs.has(leiPadrao)) {
       // Nenhuma lei nomeada por perto: usa a lei padrão da disciplina (ex.: resumo de Constitucional → CF).
       const Lp = LEIS.find(L => L.slug === leiPadrao)
       const { paras, incisos } = refsDoMeio(win)
