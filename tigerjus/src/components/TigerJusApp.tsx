@@ -104,6 +104,7 @@ let _discCountsCache: Record<string, number> | null = null
 let _discCountsPromise: Promise<Record<string, number>> | null = null
 // Alvo de navegação vindo do Radar: disciplina escolhida pra estudar.
 let _radarTarget: any = null
+let _radarTargetTab: 'resumo'|'quiz'|'flash'|'pdf'|'leiseca' = 'quiz'
 async function _loadDiscCounts(): Promise<Record<string, number>> {
   if (_discCountsCache) return _discCountsCache
   const rev: Record<string, string> = {}
@@ -169,7 +170,7 @@ const RESUMOS: Record<string, string> = {
   civil:`DIREITO CIVIL — RESUMO ESSENCIAL\n\nCAPACIDADE\n- Plena: maiores de 18 anos não incapazes\n- Absolutamente incapaz: menores de 16 anos (art. 3º CC)\n- Relativamente incapaz: 16-18 anos, ébrios habituais, pródigos\n\nRESPONSABILIDADE CIVIL\n- Subjetiva: necessita de culpa\n- Objetiva: independe de culpa (risco da atividade)`,
 }
 
-function RadarModal({ onClose, onEstudar, podePDF }: { onClose: () => void; onEstudar: (d:any)=>void; podePDF?: boolean }) {
+function RadarModal({ onClose, onEstudar, podePDF, freeQ, setFreeQ, showUpgrade, onXp }: { onClose: () => void; onEstudar: (d:any)=>void; podePDF?: boolean; freeQ?: any; setFreeQ?: any; showUpgrade?: () => void; onXp?: (a:string)=>void }) {
   const discCounts = useDisciplineCounts()
   const [gerando,setGerando] = useState<string|null>(null)
   const [modo,setModo] = useState<'lista'|'top20'>('lista')
@@ -207,7 +208,7 @@ function RadarModal({ onClose, onEstudar, podePDF }: { onClose: () => void; onEs
           </div>
         </div>
         {modo==='top20' ? (
-          <RadarTop20 onBack={()=>setModo('lista')} podePDF={podePDF}/>
+          <RadarTop20 onBack={()=>setModo('lista')} podePDF={podePDF} freeQ={freeQ} setFreeQ={setFreeQ} showUpgrade={showUpgrade} onXp={onXp}/>
         ) : (
         <>
         <div style={{background:'rgba(212,168,67,0.06)',border:'1px solid rgba(212,168,67,0.15)',borderRadius:12,padding:'10px 14px',marginBottom:16,fontSize:12,color:'var(--text-muted)'}}>
@@ -1226,13 +1227,13 @@ async function gerarPDF(disciplina: any, resumo: string, questoes: any[]) {
   setTimeout(() => URL.revokeObjectURL(url), 10000)
 }
 
-function DisciplinesPage({ showUpgrade, profile, isPago, canAccessPremium, podePDF }: any) {
+function DisciplinesPage({ showUpgrade, profile, isPago, canAccessPremium, podePDF, freeQ, setFreeQ, onXp }: any) {
   const discCounts = useDisciplineCounts()
   const [selected,setSelected]=useState<any>(null)
   const [subTab,setSubTab]=useState<'resumo'|'quiz'|'flash'|'pdf'|'leiseca'>('resumo')
   const [gerandoPDF,setGerandoPDF]=useState(false)
   // Se veio do Radar com uma disciplina alvo, abre direto nas questões dela.
-  useEffect(()=>{ if(_radarTarget){ const alvo=_radarTarget; _radarTarget=null; setSelected(alvo); setSubTab('quiz') } },[])
+  useEffect(()=>{ if(_radarTarget){ const alvo=_radarTarget; const aba=_radarTargetTab||'quiz'; _radarTarget=null; _radarTargetTab='quiz'; setSelected(alvo); setSubTab(aba) } },[])
   const resumoTier=getResumoTier(profile?.plano,profile?.role)
   const canMemorizacao=resumoTier==='memorizacao'
 
@@ -1268,7 +1269,7 @@ function DisciplinesPage({ showUpgrade, profile, isPago, canAccessPremium, podeP
       </div>
       {subTab==='leiseca'&&<LeisecaSection disc={selected} onNav={navTab} canMemorizacao={canMemorizacao} showUpgrade={showUpgrade}/>}
       {subTab==='resumo'&&<ResumoSection disc={selected} onNav={navTab} resumoTier={resumoTier} showUpgrade={showUpgrade}/>}
-      {subTab==='quiz'&&<QuizDisciplina disciplina={selected.name}/>}
+      {subTab==='quiz'&&<QuizDisciplina disciplina={selected.name} freeQ={freeQ} setFreeQ={setFreeQ} showUpgrade={showUpgrade} onXp={onXp}/>}
       {subTab==='flash'&&(isPago?<FlashCards disciplina={selected.name}/>:(
         <div style={{background:'var(--gray)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:20,padding:40,textAlign:'center'}}>
           <div style={{fontSize:44,marginBottom:14}}>🔒</div>
@@ -1376,7 +1377,7 @@ function FlashCardsPage({ isPago, showUpgrade }: any){
   )
 }
 
-function QuizDisciplina({disciplina}:{disciplina:string}){
+function QuizDisciplina({disciplina,freeQ,setFreeQ,showUpgrade,onXp}:{disciplina:string;freeQ?:any;setFreeQ?:any;showUpgrade?:()=>void;onXp?:(a:string)=>void}){
   const [questions,setQuestions]=useState<any[]>([])
   const [loading,setLoading]=useState(true)
   const [erro,setErro]=useState(false)
@@ -1420,18 +1421,22 @@ function QuizDisciplina({disciplina}:{disciplina:string}){
 
   const responder=async(i:number|null)=>{
     if(answered||checking)return
+    // Cota diária vale aqui também (antes este quiz burlava o limite do plano).
+    if(i!==null&&Number.isFinite(freeQ)&&freeQ<=0){showUpgrade&&showUpgrade();return}
     if(i!==null)setSel(i)
     setChecking(true)
     try{
       const{data:{session}}=await supabase.auth.getSession()
-      const res=await fetch('/api/questao/validar',{method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${session?.access_token||''}`},body:JSON.stringify({questaoId:questions[cur].id,...(i!==null?{escolha:i}:{})})})
+      const res=await fetch('/api/questao/validar',{method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${session?.access_token||''}`},body:JSON.stringify({questaoId:questions[cur].id,contexto:'quiz',...(i!==null?{escolha:i}:{})})})
+      if(res.status===403){setFreeQ&&setFreeQ(0);setSel(null);setChecking(false);showUpgrade&&showUpgrade();return}
       const data=await res.json()
       if(res.ok){
         const correctIdx=['A','B','C','D'].indexOf(data.letra_correta)
         setQuestions(prev=>prev.map((qq,idx)=>idx===cur?{...qq,correct:correctIdx,exp:data.comentario||''}:qq))
         setAnswered(true)
         if(i!==null){
-          if(data.correto)setScore(p=>p+1)
+          setFreeQ&&setFreeQ((p:number)=>p-1)
+          if(data.correto){setScore(p=>p+1);onXp&&onXp('question_correct')}else onXp&&onXp('question_wrong')
           // Trilhas: grava CADA resposta na hora (não bloqueia o quiz)
           ;(async()=>{
             try{
@@ -1448,7 +1453,7 @@ function QuizDisciplina({disciplina}:{disciplina:string}){
     }finally{setChecking(false)}
   }
   const pick=(i:number)=>{ responder(i) }
-  const next=()=>{if(cur+1>=questions.length){setDone(true);return}setCur(p=>p+1);setSel(null);setAnswered(false);setTime(90)}
+  const next=()=>{if(cur+1>=questions.length){setDone(true);onXp&&onXp('quiz_complete');return}setCur(p=>p+1);setSel(null);setAnswered(false);setTime(90)}
 
   if(loading) return(<div style={{padding:'40px 0',textAlign:'center'}}><div style={{fontSize:36,marginBottom:12}}>⏳</div><div style={{fontSize:13,color:'var(--text-muted)'}}>Carregando questões de <strong style={{color:'var(--gold)'}}>{disciplina}</strong>...</div></div>)
   if(erro) return(<div style={{padding:'40px 0',textAlign:'center'}}><div style={{fontSize:36,marginBottom:12}}>⚠️</div><div style={{fontSize:14,fontWeight:700,marginBottom:8}}>Não foi possível carregar.</div><button className="btn-secondary" style={{fontSize:12}} onClick={()=>{cacheRef.current.delete(disciplina);fetchingRef.current=false;setErro(false);setLoading(true)}}>🔄 Tentar novamente</button></div>)
@@ -1460,6 +1465,7 @@ function QuizDisciplina({disciplina}:{disciplina:string}){
         <div style={{fontSize:10,fontWeight:700,letterSpacing:'2px',textTransform:'uppercase',color:'var(--gold)',marginBottom:12}}>📝 QUIZ — {disciplina.toUpperCase()}</div>
         <div style={{fontSize:28,fontWeight:900,fontFamily:'var(--font-display)',marginBottom:8}}>{questions.length} questões</div>
         <div style={{fontSize:13,color:'var(--text-muted)',marginBottom:24,lineHeight:1.6}}>Questões reais da OAB de <strong style={{color:'var(--gold)'}}>{disciplina}</strong>. 90 segundos por questão.</div>
+        {Number.isFinite(freeQ)&&<div style={{background:'rgba(212,168,67,0.06)',border:'1px solid rgba(212,168,67,0.15)',borderRadius:10,padding:'10px 14px',marginBottom:16,fontSize:12,color:'var(--gold)'}}>⚡ <strong>{freeQ} questões restantes hoje</strong></div>}
         <button className="btn-primary" style={{width:'100%',fontSize:14,padding:14}} onClick={()=>{setStarted(true);setTime(90)}}>INICIAR QUIZ →</button>
       </div>
     </div>
@@ -1493,7 +1499,7 @@ function QuizDisciplina({disciplina}:{disciplina:string}){
   )
 }
 
-function RadarTop20({ onBack, podePDF }: { onBack: () => void; podePDF?: boolean }) {
+function RadarTop20({ onBack, podePDF, freeQ, setFreeQ, showUpgrade, onXp }: { onBack: () => void; podePDF?: boolean; freeQ?: any; setFreeQ?: any; showUpgrade?: () => void; onXp?: (a:string)=>void }) {
   const discCounts = useDisciplineCounts()
   const [questions,setQuestions]=useState<any[]>([])
   const [loading,setLoading]=useState(true)
@@ -1550,18 +1556,21 @@ function RadarTop20({ onBack, podePDF }: { onBack: () => void; podePDF?: boolean
 
   const responder=async(i:number|null)=>{
     if(answered||checking)return
+    if(i!==null&&Number.isFinite(freeQ)&&freeQ<=0){showUpgrade&&showUpgrade();return}
     if(i!==null)setSel(i)
     setChecking(true)
     try{
       const{data:{session}}=await supabase.auth.getSession()
-      const res=await fetch('/api/questao/validar',{method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${session?.access_token||''}`},body:JSON.stringify({questaoId:questions[cur].id,...(i!==null?{escolha:i}:{})})})
+      const res=await fetch('/api/questao/validar',{method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${session?.access_token||''}`},body:JSON.stringify({questaoId:questions[cur].id,contexto:'quiz',...(i!==null?{escolha:i}:{})})})
+      if(res.status===403){setFreeQ&&setFreeQ(0);setSel(null);setChecking(false);showUpgrade&&showUpgrade();return}
       const data=await res.json()
       if(res.ok){
         const correctIdx=['A','B','C','D'].indexOf(data.letra_correta)
         setQuestions(prev=>prev.map((qq,idx)=>idx===cur?{...qq,correct:correctIdx,exp:data.comentario||''}:qq))
         setAnswered(true)
         if(i!==null){
-          if(data.correto)setScore(p=>p+1)
+          setFreeQ&&setFreeQ((p:number)=>p-1)
+          if(data.correto){setScore(p=>p+1);onXp&&onXp('question_correct')}else onXp&&onXp('question_wrong')
           ;(async()=>{try{const{data:{user}}=await supabase.auth.getUser();if(user)await supabase.from('quiz_resultados').insert({user_id:user.id,disciplina:questions[cur].disc,acertos:data.correto?1:0,total:1})}catch{/* silencioso */}})()
         }
       }else if(i!==null){setSel(null)}
@@ -1572,7 +1581,7 @@ function RadarTop20({ onBack, podePDF }: { onBack: () => void; podePDF?: boolean
     }finally{setChecking(false)}
   }
   const pick=(i:number)=>{responder(i)}
-  const next=()=>{if(cur+1>=questions.length){setDone(true);return}setCur(p=>p+1);setSel(null);setAnswered(false);setTime(90)}
+  const next=()=>{if(cur+1>=questions.length){setDone(true);onXp&&onXp('quiz_complete');return}setCur(p=>p+1);setSel(null);setAnswered(false);setTime(90)}
 
   const baixarPDFTop=async()=>{
     if(pdfLoad||questions.length===0)return
@@ -2152,15 +2161,32 @@ function TrilhasPage({ canAccessPremium, showUpgrade, onNav }: any){
   const naoAval=lista.filter(x=>x.taxa===null)
   const cor=(t:number)=>t<50?'#dc5050':t<70?'#e8a33a':'#6bbf59'
 
-  const Metodo=()=>(
-    <div style={{display:'flex',alignItems:'center',gap:8,flexWrap:'wrap',background:'rgba(255,255,255,0.03)',border:'1px solid rgba(255,255,255,0.07)',borderRadius:14,padding:'14px 16px',marginBottom:24}}>
-      <span style={{fontSize:12,fontWeight:700,color:'var(--text-muted)',marginRight:4}}>Método:</span>
-      {['📄 Resumo','🃏 Flashcards','📝 Quiz','⚖️ Questões'].map((e,i)=>(
-        <span key={e} style={{display:'flex',alignItems:'center',gap:8}}>
-          <span style={{fontSize:13,fontWeight:700}}>{e}</span>
-          {i<3&&<span style={{color:'var(--gold)'}}>→</span>}
+  // Roteiro de estudo: cada etapa abre a disciplina já na aba certa.
+  const ETAPAS:{k:'leiseca'|'resumo'|'flash'|'quiz';icon:string;label:string}[]=[
+    {k:'resumo',icon:'📄',label:'Resumo'},
+    {k:'flash',icon:'🃏',label:'Flashcards'},
+    {k:'leiseca',icon:'⚡',label:'Lei Seca'},
+    {k:'quiz',icon:'📝',label:'Refazer quiz'},
+  ]
+  const irPara=(nomeDisc:string,aba:'leiseca'|'resumo'|'flash'|'quiz')=>{
+    const alvo=DISCIPLINES.find(d=>d.name===nomeDisc)
+    if(alvo){_radarTarget=alvo;_radarTargetTab=aba}
+    onNav('disciplines')
+  }
+  const Roteiro=({nome}:{nome:string})=>(
+    <div style={{display:'flex',gap:6,flexWrap:'wrap',marginTop:12}}>
+      {ETAPAS.map((e,i)=>(
+        <span key={e.k} style={{display:'flex',alignItems:'center',gap:6}}>
+          <button onClick={()=>irPara(nome,e.k)} style={{background:'rgba(212,168,67,0.08)',border:'1px solid rgba(212,168,67,0.25)',borderRadius:100,padding:'6px 12px',fontSize:11,fontWeight:700,color:'var(--gold)',cursor:'pointer',fontFamily:'var(--font-body)',whiteSpace:'nowrap'}}>{e.icon} {e.label}</button>
+          {i<ETAPAS.length-1&&<span style={{color:'rgba(212,168,67,0.4)',fontSize:11}}>→</span>}
         </span>
       ))}
+    </div>
+  )
+  const Metodo=()=>(
+    <div style={{background:'rgba(255,255,255,0.03)',border:'1px solid rgba(255,255,255,0.07)',borderRadius:14,padding:'14px 16px',marginBottom:24}}>
+      <div style={{fontSize:12,fontWeight:700,color:'var(--text-muted)',marginBottom:6}}>Como usar sua trilha</div>
+      <div style={{fontSize:12,color:'var(--text-muted)',lineHeight:1.6}}>Em cada disciplina abaixo, siga a ordem: <strong style={{color:'var(--gold)'}}>Resumo → Flashcards → Lei Seca → Refazer quiz</strong>. Os botões levam direto para a etapa.</div>
     </div>
   )
 
@@ -2182,7 +2208,7 @@ function TrilhasPage({ canAccessPremium, showUpgrade, onNav }: any){
         <div style={{textAlign:'center',padding:'40px 20px',background:'rgba(255,255,255,0.02)',border:'1px dashed rgba(255,255,255,0.1)',borderRadius:16}}>
           <div style={{fontSize:44,marginBottom:12}}>🧭</div>
           <p style={{fontSize:15,color:'var(--text-muted)',lineHeight:1.6,marginBottom:18}}>Faça alguns quizzes nas disciplinas e sua trilha vai se montar sozinha,<br/>destacando onde você precisa focar.</p>
-          <button className="btn-primary" onClick={()=>onNav('disciplines')}>Ir para Disciplinas →</button>
+          <button className="btn-primary" onClick={()=>irPara(DISCIPLINES[0].name,'quiz')}>Começar pelo primeiro quiz →</button>
         </div>
       ):(
         <>
@@ -2197,10 +2223,7 @@ function TrilhasPage({ canAccessPremium, showUpgrade, onNav }: any){
                       <div style={{fontSize:15,fontWeight:900,color:cor(d.taxa as number)}}>{d.taxa}%</div>
                     </div>
                     <Bar t={d.taxa as number}/>
-                    <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:12,marginTop:12}}>
-                      <span style={{fontSize:12,color:'var(--text-muted)'}}>Comece pelo resumo, depois refaça o quiz.</span>
-                      <button className="btn-secondary" style={{fontSize:12,whiteSpace:'nowrap'}} onClick={()=>onNav('disciplines')}>Estudar →</button>
-                    </div>
+                    <Roteiro nome={d.name}/>
                   </div>
                 ))}
               </div>
@@ -2212,9 +2235,9 @@ function TrilhasPage({ canAccessPremium, showUpgrade, onNav }: any){
               <h2 style={{fontFamily:'var(--font-display)',fontSize:18,fontWeight:800,marginBottom:12}}>📊 Ainda não avaliadas</h2>
               <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(190px,1fr))',gap:10}}>
                 {naoAval.map(d=>(
-                  <div key={d.id} onClick={()=>onNav('disciplines')} style={{cursor:'pointer',background:'rgba(255,255,255,0.03)',border:'1px solid rgba(255,255,255,0.07)',borderRadius:12,padding:'12px 14px'}}>
+                  <div key={d.id} onClick={()=>irPara(d.name,'quiz')} style={{cursor:'pointer',background:'rgba(255,255,255,0.03)',border:'1px solid rgba(255,255,255,0.07)',borderRadius:12,padding:'12px 14px'}}>
                     <div style={{fontSize:14,fontWeight:700}}>{d.icon} {d.name}</div>
-                    <div style={{fontSize:11,color:'var(--text-muted)',marginTop:3}}>Faça um quiz pra avaliar</div>
+                    <div style={{fontSize:11,color:'var(--gold)',marginTop:3}}>▶ Fazer quiz pra avaliar</div>
                   </div>
                 ))}
               </div>
@@ -2232,6 +2255,7 @@ function TrilhasPage({ canAccessPremium, showUpgrade, onNav }: any){
                       <span style={{fontSize:13,fontWeight:900,color:cor(d.taxa as number)}}>{d.taxa}%</span>
                     </div>
                     <Bar t={d.taxa as number}/>
+                    <button onClick={()=>irPara(d.name,'flash')} style={{marginTop:10,width:'100%',background:'transparent',border:'1px solid rgba(107,191,89,0.3)',borderRadius:8,padding:'6px',fontSize:11,fontWeight:700,color:'#6bbf59',cursor:'pointer',fontFamily:'var(--font-body)'}}>🃏 Revisar com flashcards</button>
                   </div>
                 ))}
               </div>
@@ -3122,7 +3146,7 @@ export default function TigerJusApp() {
       {notif&&<Notification msg={notif} onClose={()=>setNotif(null)}/>}
       {showPremiumGate&&<PremiumGate onClose={()=>setShowPremiumGate(false)} onUpgrade={showUpgrade}/>}
       {showUpgradeModal&&<UpgradeModal onClose={()=>setShowUpgradeModal(false)} onSelect={handleUpgradeSelect} planoAtual={profile?.plano} ehAdmin={isAdmin(profile?.role)}/>}
-      {showRadar&&<RadarModal onClose={()=>setShowRadar(false)} podePDF={podePDF} onEstudar={(d)=>{_radarTarget=d;setShowRadar(false);setPage('disciplines')}}/>}
+      {showRadar&&<RadarModal onClose={()=>setShowRadar(false)} podePDF={podePDF} freeQ={freeQ} setFreeQ={setFreeQ} showUpgrade={showUpgrade} onXp={handleXp} onEstudar={(d)=>{_radarTarget=d;_radarTargetTab='quiz';setShowRadar(false);setPage('disciplines')}}/>}
       {settings.whatsapp_url&&!settings.maintenance_mode&&(
         <a href={settings.whatsapp_url} target="_blank" rel="noopener noreferrer" title="Falar com suporte" style={{position:'fixed',bottom:24,right:24,zIndex:150,width:52,height:52,borderRadius:'50%',background:'#25D366',display:'flex',alignItems:'center',justifyContent:'center',boxShadow:'0 4px 20px rgba(37,211,102,0.4)',textDecoration:'none',fontSize:24,transition:'transform 0.2s'}} onMouseEnter={e=>(e.currentTarget.style.transform='scale(1.1)')} onMouseLeave={e=>(e.currentTarget.style.transform='scale(1)')}>💬</a>
       )}
@@ -3222,7 +3246,7 @@ export default function TigerJusApp() {
         <div style={{flex:1,minWidth:0,display:'flex',flexDirection:'column'}}>
           <div style={{padding:'0 20px'}}><DashTicker/></div>
         {page==='dashboard'&&<DashHome profile={profile} onNav={navTo} onMini={()=>{setSimIntentMini(true);navTo('simulados')}} showUpgrade={showUpgrade} isPago={userIsPago} canAccessPremium={canAccessPremium} canAccessElite={canAccessElite} onOpenRadar={()=>setShowRadar(true)} freeQ={freeQ} freeIA={freeIA} limites={limites} onXp={handleXp}/>}
-        {page==='disciplines'&&<DisciplinesPage showUpgrade={showUpgrade} profile={profile} isPago={userIsPago} canAccessPremium={canAccessPremium} podePDF={podePDF}/>}
+        {page==='disciplines'&&<DisciplinesPage showUpgrade={showUpgrade} profile={profile} isPago={userIsPago} canAccessPremium={canAccessPremium} podePDF={podePDF} freeQ={freeQ} setFreeQ={setFreeQ} onXp={handleXp}/>}
         {page==='quiz'&&<QuizPage freeQ={freeQ} setFreeQ={setFreeQ} showUpgrade={showUpgrade} onXp={handleXp} profile={profile} isPago={userIsPago}/>}
         {page==='flashcards'&&<FlashCardsPage isPago={userIsPago} showUpgrade={showUpgrade}/>}
         {page==='simulados'&&<SimuladosPage showUpgrade={showUpgrade} freeQ={freeQ} setFreeQ={setFreeQ} onXp={handleXp} profile={profile} isPago={userIsPago} canAccessElite={canAccessElite} intentMini={simIntentMini} onConsumeIntent={()=>setSimIntentMini(false)}/>}
