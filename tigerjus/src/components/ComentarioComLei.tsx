@@ -4,7 +4,7 @@ import { createPortal } from 'react-dom'
 import { supabase } from '@/lib/supabase'
 
 // ---- leis reconhecidas (slug + nome + padrões de citação) ----
-const LEIS: { slug: string; nome: string; pat: string }[] = [
+const LEIS: { slug: string; nome: string; pat: string; url?: string }[] = [
   { slug: 'cf',    nome: 'Constituição Federal',                 pat: '(?:CF|CRFB)(?:\\/?(?:88|1988))?(?![A-Za-zÀ-ú])|Constitui[çc][ãa]o Federal|Constitui[çc][ãa]o da Rep[úu]blica|Constitui[çc][ãa]o' },
   { slug: 'cc',    nome: 'Código Civil',                         pat: 'C[óo]digo Civil|CC\\b|Lei\\s*n?[º°.\\s]*10\\.?406' },
   { slug: 'cp',    nome: 'Código Penal',                         pat: 'C[óo]digo Penal|CP\\b' },
@@ -16,14 +16,51 @@ const LEIS: { slug: string; nome: string; pat: string }[] = [
   { slug: 'eca',   nome: 'Estatuto da Criança e do Adolescente', pat: 'ECA\\b|Estatuto da Crian[çc]a(?:\\s+e do Adolescente)?|Lei\\s*n?[º°.\\s]*8\\.?069' },
   { slug: 'ctn',   nome: 'Código Tributário Nacional',           pat: 'CTN\\b|C[óo]digo Tribut[áa]rio Nacional|Lei\\s*n?[º°.\\s]*5\\.?172' },
   { slug: 'ced',   nome: 'Código de Ética da OAB',               pat: 'CED\\/?OAB|CED\\b|C[óo]digo de [ÉEée]tica(?:\\s+e Disciplina)?(?:\\s+d[ao]\\s+OAB)?' },
+  // ---- fora do acervo: abrem no Planalto (se um dia forem importadas com este slug, viram popup interno) ----
+  { slug: 'l8213',  nome: 'Lei nº 8.213/91 — Benefícios da Previdência',  pat: 'Lei\\s*n?[º°.\\s]*8\\.?213',  url: 'https://www.planalto.gov.br/ccivil_03/leis/l8213cons.htm' },
+  { slug: 'l8212',  nome: 'Lei nº 8.212/91 — Custeio da Seguridade',      pat: 'Lei\\s*n?[º°.\\s]*8\\.?212',  url: 'https://www.planalto.gov.br/ccivil_03/leis/l8212cons.htm' },
+  { slug: 'l14133', nome: 'Lei nº 14.133/21 — Licitações e Contratos',    pat: 'Lei\\s*n?[º°.\\s]*14\\.?133', url: 'https://www.planalto.gov.br/ccivil_03/_ato2019-2022/2021/lei/L14133.htm' },
+  { slug: 'l11101', nome: 'Lei nº 11.101/05 — Recuperação e Falência',    pat: 'Lei\\s*n?[º°.\\s]*11\\.?101', url: 'https://www.planalto.gov.br/ccivil_03/_ato2004-2006/2005/lei/l11101.htm' },
+  { slug: 'l8429',  nome: 'Lei nº 8.429/92 — Improbidade Administrativa', pat: 'Lei\\s*n?[º°.\\s]*8\\.?429',  url: 'https://www.planalto.gov.br/ccivil_03/leis/L8429.htm' },
+  { slug: 'l9784',  nome: 'Lei nº 9.784/99 — Processo Administrativo',    pat: 'Lei\\s*n?[º°.\\s]*9\\.?784',  url: 'https://www.planalto.gov.br/ccivil_03/leis/L9784.htm' },
+  { slug: 'l8112',  nome: 'Lei nº 8.112/90 — Servidores Públicos',        pat: 'Lei\\s*n?[º°.\\s]*8\\.?112',  url: 'https://www.planalto.gov.br/ccivil_03/leis/L8112cons.htm' },
+  { slug: 'l9279',  nome: 'Lei nº 9.279/96 — Propriedade Industrial',     pat: 'Lei\\s*n?[º°.\\s]*9\\.?279',  url: 'https://www.planalto.gov.br/ccivil_03/leis/L9279.htm' },
+  { slug: 'l6830',  nome: 'Lei nº 6.830/80 — Execução Fiscal',            pat: 'Lei\\s*n?[º°.\\s]*6\\.?830',  url: 'https://www.planalto.gov.br/ccivil_03/leis/L6830.htm' },
+  { slug: 'l9605',  nome: 'Lei nº 9.605/98 — Crimes Ambientais',          pat: 'Lei\\s*n?[º°.\\s]*9\\.?605',  url: 'https://www.planalto.gov.br/ccivil_03/leis/L9605.htm' },
+  { slug: 'l6938',  nome: 'Lei nº 6.938/81 — Política Nac. Meio Ambiente',pat: 'Lei\\s*n?[º°.\\s]*6\\.?938',  url: 'https://www.planalto.gov.br/ccivil_03/leis/L6938.htm' },
+  { slug: 'l9985',  nome: 'Lei nº 9.985/00 — SNUC',                       pat: 'Lei\\s*n?[º°.\\s]*9\\.?985',  url: 'https://www.planalto.gov.br/ccivil_03/leis/L9985.htm' },
+  { slug: 'l9433',  nome: 'Lei nº 9.433/97 — Recursos Hídricos',          pat: 'Lei\\s*n?[º°.\\s]*9\\.?433',  url: 'https://www.planalto.gov.br/ccivil_03/leis/L9433.htm' },
+  { slug: 'l12305', nome: 'Lei nº 12.305/10 — Resíduos Sólidos',          pat: 'Lei\\s*n?[º°.\\s]*12\\.?305', url: 'https://www.planalto.gov.br/ccivil_03/_ato2007-2010/2010/lei/l12305.htm' },
+  { slug: 'l12651', nome: 'Lei nº 12.651/12 — Código Florestal',          pat: 'Lei\\s*n?[º°.\\s]*12\\.?651', url: 'https://www.planalto.gov.br/ccivil_03/_ato2011-2014/2012/lei/l12651.htm' },
+  { slug: 'l10257', nome: 'Lei nº 10.257/01 — Estatuto da Cidade',        pat: 'Lei\\s*n?[º°.\\s]*10\\.?257', url: 'https://www.planalto.gov.br/ccivil_03/leis/LEIS_2001/L10257.htm' },
+  { slug: 'lc140',  nome: 'LC nº 140/2011 — Competências Ambientais',     pat: 'LC\\s*n?[º°.\\s]*140|Lei\\s*Complementar\\s*n?[º°.\\s]*140', url: 'https://www.planalto.gov.br/ccivil_03/leis/LCP/Lcp140.htm' },
+  { slug: 'lc101',  nome: 'LC nº 101/2000 — Lei de Responsabilidade Fiscal', pat: 'LC\\s*n?[º°.\\s]*101|Lei\\s*Complementar\\s*n?[º°.\\s]*101|Lei de Responsabilidade Fiscal|LRF\\b', url: 'https://www.planalto.gov.br/ccivil_03/leis/LCP/Lcp101.htm' },
+  { slug: 'lc123',  nome: 'LC nº 123/2006 — Simples Nacional',            pat: 'LC\\s*n?[º°.\\s]*123|Lei\\s*Complementar\\s*n?[º°.\\s]*123', url: 'https://www.planalto.gov.br/ccivil_03/leis/LCP/Lcp123.htm' },
+  { slug: 'l13146', nome: 'Lei nº 13.146/15 — Estatuto da Pessoa com Deficiência', pat: 'Lei\\s*n?[º°.\\s]*13\\.?146|Estatuto da Pessoa com Defici[êe]ncia', url: 'https://www.planalto.gov.br/ccivil_03/_ato2015-2018/2015/lei/l13146.htm' },
+  { slug: 'l13445', nome: 'Lei nº 13.445/17 — Lei de Migração',           pat: 'Lei\\s*n?[º°.\\s]*13\\.?445|Lei de Migra[çc][ãa]o', url: 'https://www.planalto.gov.br/ccivil_03/_ato2015-2018/2017/lei/L13445.htm' },
+  { slug: 'l9474',  nome: 'Lei nº 9.474/97 — Refugiados',                 pat: 'Lei\\s*n?[º°.\\s]*9\\.?474',  url: 'https://www.planalto.gov.br/ccivil_03/leis/L9474.htm' },
+  { slug: 'l13709', nome: 'Lei nº 13.709/18 — LGPD',                      pat: 'Lei\\s*n?[º°.\\s]*13\\.?709|LGPD\\b', url: 'https://www.planalto.gov.br/ccivil_03/_ato2015-2018/2018/lei/L13709compilado.htm' },
+  { slug: 'l8036',  nome: 'Lei nº 8.036/90 — FGTS',                       pat: 'Lei\\s*n?[º°.\\s]*8\\.?036',  url: 'https://www.planalto.gov.br/ccivil_03/leis/L8036consol.htm' },
+  { slug: 'l6019',  nome: 'Lei nº 6.019/74 — Trabalho Temporário',        pat: 'Lei\\s*n?[º°.\\s]*6\\.?019',  url: 'https://www.planalto.gov.br/ccivil_03/leis/L6019.htm' },
+  { slug: 'l6404',  nome: 'Lei nº 6.404/76 — Sociedades por Ações',       pat: 'Lei\\s*n?[º°.\\s]*6\\.?404',  url: 'https://www.planalto.gov.br/ccivil_03/leis/L6404consol.htm' },
+  { slug: 'l5474',  nome: 'Lei nº 5.474/68 — Duplicatas',                 pat: 'Lei\\s*n?[º°.\\s]*5\\.?474',  url: 'https://www.planalto.gov.br/ccivil_03/leis/L5474.htm' },
+  { slug: 'l8934',  nome: 'Lei nº 8.934/94 — Registro de Empresas',       pat: 'Lei\\s*n?[º°.\\s]*8\\.?934',  url: 'https://www.planalto.gov.br/ccivil_03/leis/L8934.htm' },
+  { slug: 'l8245',  nome: 'Lei nº 8.245/91 — Locações',                   pat: 'Lei\\s*n?[º°.\\s]*8\\.?245',  url: 'https://www.planalto.gov.br/ccivil_03/leis/L8245.htm' },
+  { slug: 'l9099',  nome: 'Lei nº 9.099/95 — Juizados Especiais',         pat: 'Lei\\s*n?[º°.\\s]*9\\.?099',  url: 'https://www.planalto.gov.br/ccivil_03/leis/L9099.htm' },
+  { slug: 'l8987',  nome: 'Lei nº 8.987/95 — Concessões',                 pat: 'Lei\\s*n?[º°.\\s]*8\\.?987',  url: 'https://www.planalto.gov.br/ccivil_03/leis/L8987cons.htm' },
+  { slug: 'l11079', nome: 'Lei nº 11.079/04 — PPP',                       pat: 'Lei\\s*n?[º°.\\s]*11\\.?079', url: 'https://www.planalto.gov.br/ccivil_03/_ato2004-2006/2004/lei/l11079.htm' },
+  { slug: 'l12846', nome: 'Lei nº 12.846/13 — Anticorrupção',             pat: 'Lei\\s*n?[º°.\\s]*12\\.?846', url: 'https://www.planalto.gov.br/ccivil_03/_ato2011-2014/2013/lei/l12846.htm' },
+  { slug: 'l12527', nome: 'Lei nº 12.527/11 — Acesso à Informação',       pat: 'Lei\\s*n?[º°.\\s]*12\\.?527', url: 'https://www.planalto.gov.br/ccivil_03/_ato2011-2014/2011/lei/l12527.htm' },
+  { slug: 'lindb',  nome: 'LINDB — Decreto-Lei nº 4.657/42',              pat: 'LINDB\\b|Decreto-Lei\\s*n?[º°.\\s]*4\\.?657|Lei\\s*n?[º°.\\s]*4\\.?657', url: 'https://www.planalto.gov.br/ccivil_03/decreto-lei/Del4657compilado.htm' },
+  { slug: 'dl3365', nome: 'DL nº 3.365/41 — Desapropriações',             pat: 'Decreto-Lei\\s*n?[º°.\\s]*3\\.?365|DL\\s*n?[º°.\\s]*3\\.?365', url: 'https://www.planalto.gov.br/ccivil_03/decreto-lei/Del3365.htm' },
 ]
 
-function acharLei(win: string): { slug: string; nome: string; idx: number; len: number } | null {
-  let best: { slug: string; nome: string; idx: number; len: number } | null = null
+function acharLei(win: string): { slug: string; nome: string; idx: number; len: number; url?: string } | null {
+  let best: { slug: string; nome: string; idx: number; len: number; url?: string } | null = null
   for (const L of LEIS) {
     const m = win.match(new RegExp('\\b(?:' + L.pat + ')', 'i'))
     if (m && typeof m.index === 'number' && (!best || m.index < best.idx)) {
-      best = { slug: L.slug, nome: L.nome, idx: m.index, len: m[0].length }
+      best = { slug: L.slug, nome: L.nome, idx: m.index, len: m[0].length, url: L.url }
     }
   }
   return best
@@ -72,8 +109,14 @@ function getSlugs(): Promise<Set<string>> {
   if (!_promise) {
     _promise = (async () => {
       try {
-        const { data } = await supabase
-          .from('leis_secas').select('lei_slug').eq('status', 'publicado').limit(10000)
+        // View com os slugs distintos (11 linhas em vez de milhares).
+        // Fallback para a tabela caso a view ainda não exista no banco.
+        let { data, error } = await supabase.from('leis_disponiveis').select('lei_slug')
+        if (error || !data) {
+          const r = await supabase
+            .from('leis_secas').select('lei_slug').eq('status', 'publicado').limit(10000)
+          data = r.data
+        }
         _slugs = new Set((data || []).map((r: any) => r.lei_slug))
       } catch {
         _slugs = new Set<string>()
@@ -87,6 +130,7 @@ function getSlugs(): Promise<Set<string>> {
 type Node =
   | { t: 'txt'; v: string }
   | { t: 'cite'; v: string; slug: string; leiNome: string; artigo: string; num: number; paras: number[]; incisos: string[] }
+  | { t: 'ext'; v: string; url: string; leiNome: string }
 
 function parse(texto: string, slugs: Set<string>, leiPadrao?: string): Node[] {
   const nodes: Node[] = []
@@ -110,7 +154,15 @@ function parse(texto: string, slugs: Set<string>, leiPadrao?: string): Node[] {
     // Fonte externa citada, mas fora do acervo (Provimento/Resolução/Súmula/Decreto/EC/Lei numerada não mapeada):
     // não transforma em link, para não abrir popup errado (nem para a CF, nem para a lei padrão da disciplina).
     const fonteExterna = /\b(?:Provimento|Resolu[çc][ãa]o|S[úu]mula(?:\s+Vinculante)?|Decreto(?:-Lei)?|Portaria|Instru[çc][ãa]o\s+Normativa|Emenda\s+Constitucional|Lei\s*(?:Complementar\s*)?n?[º°.\s]*\d)/i.test(win)
-    if (lei && slugs.has(lei.slug)) {
+    if (lei && !slugs.has(lei.slug) && lei.url) {
+      // Lei reconhecida, porém fora do acervo local: link direto para o Planalto.
+      const leiStart = numEnd + lei.idx
+      const citeEnd = leiStart + lei.len
+      if (artStart > last) nodes.push({ t: 'txt', v: t.slice(last, artStart) })
+      nodes.push({ t: 'ext', v: t.slice(artStart, citeEnd), url: lei.url, leiNome: lei.nome })
+      last = citeEnd
+      anchor.lastIndex = citeEnd
+    } else if (lei && slugs.has(lei.slug)) {
       const leiStart = numEnd + lei.idx
       const citeEnd = leiStart + lei.len
       const { paras, incisos } = refsDoMeio(t.slice(numEnd, leiStart))
@@ -191,6 +243,18 @@ export default function ComentarioComLei({ texto, leiPadrao }: { texto: string; 
         {nodes.map((n, i) =>
           n.t === 'txt' ? (
             <span key={i}>{n.v}</span>
+          ) : n.t === 'ext' ? (
+            <a
+              key={i}
+              href={n.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={(e) => e.stopPropagation()}
+              title={`Abrir no Planalto — ${n.leiNome}`}
+              style={{ color: 'var(--gold)', textDecoration: 'underline', textUnderlineOffset: 2, textDecorationStyle: 'dotted', cursor: 'pointer' }}
+            >
+              {n.v}<span style={{ fontSize: '0.75em', opacity: 0.7, marginLeft: 2 }}>↗</span>
+            </a>
           ) : (
             <button
               key={i}
