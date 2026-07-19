@@ -17,8 +17,10 @@ const LEIS: { slug: string; nome: string; pat: string; url?: string }[] = [
   { slug: 'ctn',   nome: 'Código Tributário Nacional',           pat: 'CTN\\b|C[óo]digo Tribut[áa]rio Nacional|Lei\\s*n?[º°.\\s]*5\\.?172' },
   { slug: 'ced',   nome: 'Código de Ética da OAB',               pat: 'CED\\/?OAB|CED\\b|C[óo]digo de [ÉEée]tica(?:\\s+e Disciplina)?(?:\\s+d[ao]\\s+OAB)?' },
   // ---- fora do acervo: abrem no Planalto (se um dia forem importadas com este slug, viram popup interno) ----
-  { slug: 'l8213',  nome: 'Lei nº 8.213/91 — Benefícios da Previdência',  pat: 'Lei\\s*n?[º°.\\s]*8\\.?213',  url: 'https://www.planalto.gov.br/ccivil_03/leis/l8213cons.htm' },
+  { slug: 'l8213',  nome: 'Lei nº 8.213/91 — Benefícios da Previdência',  pat: 'Lei\\s*n?[º°.\\s]*8\\.?213',  url: 'https://www.planalto.gov.br/ccivil_03/leis/l8213compilado.htm' },
   { slug: 'l8212',  nome: 'Lei nº 8.212/91 — Custeio da Seguridade',      pat: 'Lei\\s*n?[º°.\\s]*8\\.?212',  url: 'https://www.planalto.gov.br/ccivil_03/leis/l8212cons.htm' },
+  { slug: 'd3048',  nome: 'Decreto nº 3.048/99 — Regulamento da Previdência', pat: 'Decreto\\s*n?[º°.\\s]*3\\.?048|Regulamento da Previd[êe]ncia Social', url: 'https://www.planalto.gov.br/ccivil_03/decreto/d3048compilado.htm' },
+  { slug: 'ec103',  nome: 'EC nº 103/2019 — Reforma da Previdência',      pat: '(?:EC|Emenda\\s+Constitucional)\\s*n?[º°.\\s]*103', url: 'https://www.planalto.gov.br/ccivil_03/constituicao/emendas/emc/emc103.htm' },
   { slug: 'l14133', nome: 'Lei nº 14.133/21 — Licitações e Contratos',    pat: 'Lei\\s*n?[º°.\\s]*14\\.?133', url: 'https://www.planalto.gov.br/ccivil_03/_ato2019-2022/2021/lei/L14133.htm' },
   { slug: 'l11101', nome: 'Lei nº 11.101/05 — Recuperação e Falência',    pat: 'Lei\\s*n?[º°.\\s]*11\\.?101', url: 'https://www.planalto.gov.br/ccivil_03/_ato2004-2006/2005/lei/l11101.htm' },
   { slug: 'l8429',  nome: 'Lei nº 8.429/92 — Improbidade Administrativa', pat: 'Lei\\s*n?[º°.\\s]*8\\.?429',  url: 'https://www.planalto.gov.br/ccivil_03/leis/L8429.htm' },
