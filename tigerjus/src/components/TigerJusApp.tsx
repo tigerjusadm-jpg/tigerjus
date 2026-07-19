@@ -931,7 +931,7 @@ function QuizPage({ freeQ, setFreeQ, showUpgrade, onXp, profile, isPago }: any) 
 
   if(done){
     const rate=Math.round((score/questions.length)*100)
-    const aprovado=score>=Math.ceil(questions.length*0.625)
+    const aprovado=score>=Math.ceil(questions.length*0.5)
     return(
       <div style={{padding:'24px 20px',flex:1}}>
         <div style={{maxWidth:600,margin:'0 auto',textAlign:'center'}}>
@@ -940,7 +940,7 @@ function QuizPage({ freeQ, setFreeQ, showUpgrade, onXp, profile, isPago }: any) 
           <p style={{fontSize:14,color:'var(--text-muted)',marginBottom:24}}>{score} de {questions.length} corretas · Modo {modo}</p>
           <div style={{background:aprovado?'rgba(76,175,125,0.1)':'rgba(232,98,26,0.1)',border:`1px solid ${aprovado?'var(--success)':'var(--orange)'}`,borderRadius:16,padding:18,marginBottom:20}}>
             <div style={{fontSize:18,fontWeight:900,color:aprovado?'var(--success)':'var(--orange)',marginBottom:6}}>{aprovado?'✅ Na média OAB!':'❌ Abaixo da média OAB'}</div>
-            <div style={{fontSize:13,color:'var(--text-muted)'}}>{aprovado?`${rate}% — acima dos 62,5% exigidos.`:`Precisa de ${Math.ceil(questions.length*0.625)} acertos.`}</div>
+            <div style={{fontSize:13,color:'var(--text-muted)'}}>{aprovado?`${rate}% — acima dos 50% exigidos.`:`Precisa de ${Math.ceil(questions.length*0.5)} acertos.`}</div>
           </div>
           <div style={{display:'flex',gap:12,justifyContent:'center'}}><button className="btn-primary" onClick={restart}>NOVO QUIZ</button><button className="btn-secondary" onClick={restart}>MUDAR MODO</button></div>
         </div>
@@ -1466,8 +1466,8 @@ function QuizDisciplina({disciplina}:{disciplina:string}){
   )
 
   if(done){
-    const rate=Math.round((score/questions.length)*100);const aprovado=score>=Math.ceil(questions.length*0.625)
-    return(<div style={{maxWidth:560,textAlign:'center'}}><div style={{fontSize:54,marginBottom:16}}>{aprovado?'🏆':rate>=50?'📝':'💪'}</div><h2 style={{fontFamily:'var(--font-display)',fontSize:26,fontWeight:900,marginBottom:8}}>Quiz Concluído!</h2><p style={{fontSize:13,color:'var(--text-muted)',marginBottom:20}}>{score} de {questions.length} corretas · {disciplina}</p><div style={{background:aprovado?'rgba(76,175,125,0.1)':'rgba(232,98,26,0.1)',border:`1px solid ${aprovado?'var(--success)':'var(--orange)'}`,borderRadius:14,padding:16,marginBottom:20}}><div style={{fontSize:16,fontWeight:900,color:aprovado?'var(--success)':'var(--orange)',marginBottom:4}}>{aprovado?'✅ Na média OAB!':'❌ Abaixo da média OAB'}</div><div style={{fontSize:12,color:'var(--text-muted)'}}>{aprovado?`${rate}% de acerto.`:`Precisava de ${Math.ceil(questions.length*0.625)} acertos.`}</div></div><button className="btn-primary" style={{width:'100%'}} onClick={()=>{cacheRef.current.delete(disciplina);fetchingRef.current=false;setStarted(false);setDone(false);setScore(0);setCur(0);setSel(null);setAnswered(false);setLoading(true)}}>🔄 NOVO QUIZ</button></div>)
+    const rate=Math.round((score/questions.length)*100);const aprovado=score>=Math.ceil(questions.length*0.5)
+    return(<div style={{maxWidth:560,textAlign:'center'}}><div style={{fontSize:54,marginBottom:16}}>{aprovado?'🏆':rate>=50?'📝':'💪'}</div><h2 style={{fontFamily:'var(--font-display)',fontSize:26,fontWeight:900,marginBottom:8}}>Quiz Concluído!</h2><p style={{fontSize:13,color:'var(--text-muted)',marginBottom:20}}>{score} de {questions.length} corretas · {disciplina}</p><div style={{background:aprovado?'rgba(76,175,125,0.1)':'rgba(232,98,26,0.1)',border:`1px solid ${aprovado?'var(--success)':'var(--orange)'}`,borderRadius:14,padding:16,marginBottom:20}}><div style={{fontSize:16,fontWeight:900,color:aprovado?'var(--success)':'var(--orange)',marginBottom:4}}>{aprovado?'✅ Na média OAB!':'❌ Abaixo da média OAB'}</div><div style={{fontSize:12,color:'var(--text-muted)'}}>{aprovado?`${rate}% de acerto.`:`Precisava de ${Math.ceil(questions.length*0.5)} acertos.`}</div></div><button className="btn-primary" style={{width:'100%'}} onClick={()=>{cacheRef.current.delete(disciplina);fetchingRef.current=false;setStarted(false);setDone(false);setScore(0);setCur(0);setSel(null);setAnswered(false);setLoading(true)}}>🔄 NOVO QUIZ</button></div>)
   }
 
   const q=questions[cur];const pct=Math.round(((cur+(answered?1:0))/questions.length)*100)
@@ -1607,8 +1607,8 @@ function RadarTop20({ onBack, podePDF }: { onBack: () => void; podePDF?: boolean
   )
 
   if(done){
-    const rate=Math.round((score/questions.length)*100);const aprovado=score>=Math.ceil(questions.length*0.625)
-    return(<div style={{maxWidth:560,textAlign:'center'}}><Voltar/><div style={{fontSize:54,marginBottom:16}}>{aprovado?'🏆':rate>=50?'📝':'💪'}</div><h2 style={{fontFamily:'var(--font-display)',fontSize:26,fontWeight:900,marginBottom:8}}>Treino Concluído!</h2><p style={{fontSize:13,color:'var(--text-muted)',marginBottom:20}}>{score} de {questions.length} corretas · Top 40 do Radar</p><div style={{background:aprovado?'rgba(76,175,125,0.1)':'rgba(232,98,26,0.1)',border:`1px solid ${aprovado?'var(--success)':'var(--orange)'}`,borderRadius:14,padding:16,marginBottom:20}}><div style={{fontSize:16,fontWeight:900,color:aprovado?'var(--success)':'var(--orange)',marginBottom:4}}>{aprovado?'✅ Na média OAB!':'❌ Abaixo da média OAB'}</div><div style={{fontSize:12,color:'var(--text-muted)'}}>{aprovado?`${rate}% de acerto.`:`Precisava de ${Math.ceil(questions.length*0.625)} acertos.`}</div></div><button className="btn-primary" style={{width:'100%'}} onClick={()=>{fetchingRef.current=false;setStarted(false);setDone(false);setScore(0);setCur(0);setSel(null);setAnswered(false);setLoading(true)}}>🔄 NOVO TREINO</button>{podePDF && <button onClick={baixarPDFTop} disabled={pdfLoad} style={{width:'100%',marginTop:10,padding:12,borderRadius:12,border:'1px solid rgba(212,168,67,0.4)',background:'transparent',color:'var(--gold)',fontSize:13,fontWeight:700,cursor:pdfLoad?'wait':'pointer',fontFamily:'var(--font-body)'}}>{pdfLoad?'⏳ Gerando PDF…':'📄 Baixar as 40 em PDF'}</button>}</div>)
+    const rate=Math.round((score/questions.length)*100);const aprovado=score>=Math.ceil(questions.length*0.5)
+    return(<div style={{maxWidth:560,textAlign:'center'}}><Voltar/><div style={{fontSize:54,marginBottom:16}}>{aprovado?'🏆':rate>=50?'📝':'💪'}</div><h2 style={{fontFamily:'var(--font-display)',fontSize:26,fontWeight:900,marginBottom:8}}>Treino Concluído!</h2><p style={{fontSize:13,color:'var(--text-muted)',marginBottom:20}}>{score} de {questions.length} corretas · Top 40 do Radar</p><div style={{background:aprovado?'rgba(76,175,125,0.1)':'rgba(232,98,26,0.1)',border:`1px solid ${aprovado?'var(--success)':'var(--orange)'}`,borderRadius:14,padding:16,marginBottom:20}}><div style={{fontSize:16,fontWeight:900,color:aprovado?'var(--success)':'var(--orange)',marginBottom:4}}>{aprovado?'✅ Na média OAB!':'❌ Abaixo da média OAB'}</div><div style={{fontSize:12,color:'var(--text-muted)'}}>{aprovado?`${rate}% de acerto.`:`Precisava de ${Math.ceil(questions.length*0.5)} acertos.`}</div></div><button className="btn-primary" style={{width:'100%'}} onClick={()=>{fetchingRef.current=false;setStarted(false);setDone(false);setScore(0);setCur(0);setSel(null);setAnswered(false);setLoading(true)}}>🔄 NOVO TREINO</button>{podePDF && <button onClick={baixarPDFTop} disabled={pdfLoad} style={{width:'100%',marginTop:10,padding:12,borderRadius:12,border:'1px solid rgba(212,168,67,0.4)',background:'transparent',color:'var(--gold)',fontSize:13,fontWeight:700,cursor:pdfLoad?'wait':'pointer',fontFamily:'var(--font-body)'}}>{pdfLoad?'⏳ Gerando PDF…':'📄 Baixar as 40 em PDF'}</button>}</div>)
   }
 
   const q=questions[cur];const pct=Math.round(((cur+(answered?1:0))/questions.length)*100)
@@ -1753,7 +1753,7 @@ function SimuladosPage({ showUpgrade, freeQ, setFreeQ, onXp, profile, isPago, ca
       const{data,error}=await supabase.rpc('montar_simuladao')
       if(error||!data||(data as any[]).length===0){alert('Não foi possível montar o Simuladão agora. Verifique se a classificação de temas (coluna tema) já foi aplicada no banco.');return}
       const formatted=(data as any[]).map((q:any)=>({id:q.id,disc:q.disciplina,dificuldade:'OAB Oficial',q:q.enunciado,opts:[q.opcao_a,q.opcao_b,q.opcao_c,q.opcao_d],correct:null,exp:''}))
-      setSelectedSimulado({t:'Simuladão Tiger',edicao:'Simuladão Tiger',questions:formatted,simuladao:true})
+      setSelectedSimulado({t:'Simuladão Tiger',edicao:'Simuladão Tiger',questions:formatted,simuladao:true,mins:300})
       setRunning(true);setCur(0);setSel(null);setAnswered(false);setScore(0);setDone(false);setTime(18000)
     }finally{setLoadingProva(false)}
   }
@@ -1882,7 +1882,7 @@ function SimuladosPage({ showUpgrade, freeQ, setFreeQ, onXp, profile, isPago, ca
   if(running&&!done&&selectedSimulado){
     const q=selectedSimulado.questions[cur];const pct=Math.round(((cur+(answered?1:0))/selectedSimulado.questions.length)*100)
     const respondidas=cur+(answered?1:0);const taxaAcerto=respondidas>0?Math.round((score/respondidas)*100):0
-    const duracaoTotal=(selectedSimulado?.t&&selectedSimulado.t.includes('Mini'))?900:18000
+    const duracaoTotal=(typeof selectedSimulado?.mins==='number'&&selectedSimulado.mins>0)?selectedSimulado.mins*60:18000
     return(
       <div style={{padding:'24px 20px',flex:1}}>
         <div style={{maxWidth:680,margin:'0 auto'}}>
@@ -1950,7 +1950,17 @@ function SimuladosPage({ showUpgrade, freeQ, setFreeQ, onXp, profile, isPago, ca
                 <div style={{marginTop:9,fontSize:14,fontWeight:800,letterSpacing:0.5,color:'#ffe4b0'}}>AS 80 QUESTÕES QUE MAIS CAEM NA OAB 🔥</div>
                 <div style={{marginTop:5,fontSize:12,color:'rgba(255,255,255,0.72)',lineHeight:1.5}}>Prova inédita com os temas de maior incidência de todas as provas — nos moldes da OAB.</div>
               </div>
-              <button onClick={iniciarSimuladao} disabled={loadingProva} style={{flexShrink:0,fontSize:15,fontWeight:900,letterSpacing:1,padding:'16px 30px',borderRadius:14,border:'none',cursor:liberadoSimuladao?'pointer':'not-allowed',color:liberadoSimuladao?'#241701':'#fff',background:liberadoSimuladao?'linear-gradient(135deg,#ffd76a,#e8621a)':'rgba(0,0,0,0.4)',animation:liberadoSimuladao?'tjGlow 2s ease-in-out infinite':'none'}}>{loadingProva?'⏳ MONTANDO...':liberadoSimuladao?'▶ INICIAR AGORA':'🔒 ELITE'}</button>
+              {(()=>{const skSim='pratica:Simuladão Tiger';const progSim=savedMap[skSim];const respSim=progSim?((progSim.cur||0)+(progSim.answered?1:0)):0;const totSim=progSim?.selectedSimulado?.questions?.length||80;
+                if(progSim&&liberadoSimuladao) return(
+                <div style={{flexShrink:0,display:'flex',flexDirection:'column',gap:8,alignItems:'stretch'}}>
+                  <div style={{fontSize:11,fontWeight:800,color:'#ffe4b0',textAlign:'center'}}>▶ {respSim}/{totSim} respondidas</div>
+                  <div style={{display:'flex',gap:8}}>
+                    <button onClick={()=>continuarSimulado(skSim)} style={{fontSize:14,fontWeight:900,letterSpacing:1,padding:'14px 22px',borderRadius:14,border:'none',cursor:'pointer',color:'#241701',background:'linear-gradient(135deg,#ffd76a,#e8621a)',animation:'tjGlow 2s ease-in-out infinite'}}>▶ CONTINUAR</button>
+                    <button onClick={()=>{if(confirm('Recomeçar o Simuladão do zero? O progresso atual será perdido.'))descartarProgresso(skSim)}} style={{fontSize:13,fontWeight:800,padding:'14px 16px',borderRadius:14,border:'1px solid rgba(255,255,255,0.3)',cursor:'pointer',color:'#fff',background:'rgba(0,0,0,0.35)'}}>↺</button>
+                  </div>
+                </div>)
+                return(<button onClick={iniciarSimuladao} disabled={loadingProva} style={{flexShrink:0,fontSize:15,fontWeight:900,letterSpacing:1,padding:'16px 30px',borderRadius:14,border:'none',cursor:liberadoSimuladao?'pointer':'not-allowed',color:liberadoSimuladao?'#241701':'#fff',background:liberadoSimuladao?'linear-gradient(135deg,#ffd76a,#e8621a)':'rgba(0,0,0,0.4)',animation:liberadoSimuladao?'tjGlow 2s ease-in-out infinite':'none'}}>{loadingProva?'⏳ MONTANDO...':liberadoSimuladao?'▶ INICIAR AGORA':'🔒 ELITE'}</button>)
+              })()}
             </div>
           </div>
           )})()}
