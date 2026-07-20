@@ -170,6 +170,24 @@ const RESUMOS: Record<string, string> = {
   civil:`DIREITO CIVIL — RESUMO ESSENCIAL\n\nCAPACIDADE\n- Plena: maiores de 18 anos não incapazes\n- Absolutamente incapaz: menores de 16 anos (art. 3º CC)\n- Relativamente incapaz: 16-18 anos, ébrios habituais, pródigos\n\nRESPONSABILIDADE CIVIL\n- Subjetiva: necessita de culpa\n- Objetiva: independe de culpa (risco da atividade)`,
 }
 
+// Resumo usado na geração de PDF.
+// A tela de Resumos já lia de discipline_summaries, mas o PDF lia só o RESUMOS
+// hardcoded acima (3 slugs) — as outras 17 disciplinas saíam com a seção vazia.
+// Aqui o banco vira a fonte primária e o RESUMOS local fica como fallback,
+// mesmo critério aplicado na tela.
+async function carregarResumoParaPDF(slug: string): Promise<string> {
+  try {
+    const { data } = await supabase
+      .from('discipline_summaries')
+      .select('resumo')
+      .eq('disciplina_slug', slug)
+      .eq('ativo', true)
+      .maybeSingle()
+    if (data?.resumo) return data.resumo
+  } catch { /* rede/RLS: cai no fallback local em vez de quebrar o download */ }
+  return RESUMOS[slug] || ''
+}
+
 function RadarModal({ onClose, onEstudar, podePDF, freeQ, setFreeQ, showUpgrade, onXp }: { onClose: () => void; onEstudar: (d:any)=>void; podePDF?: boolean; freeQ?: any; setFreeQ?: any; showUpgrade?: () => void; onXp?: (a:string)=>void }) {
   const discCounts = useDisciplineCounts()
   const [gerando,setGerando] = useState<string|null>(null)
@@ -189,7 +207,7 @@ function RadarModal({ onClose, onEstudar, podePDF, freeQ, setFreeQ, showUpgrade,
     try {
       const discs = PDF_DISC_MAP[d.name] || [d.name]
       const { data } = await supabase.rpc('buscar_questoes_disciplina_pdf', { discs })
-      await gerarPDF(d, RESUMOS[d.slug] || '', data || [])
+      await gerarPDF(d, await carregarResumoParaPDF(d.slug), data || [])
     } finally { setGerando(null) }
   }
 
@@ -1218,7 +1236,7 @@ function LeisecaSection({ disc, onNav, canMemorizacao = false, showUpgrade }: { 
 
 async function gerarPDF(disciplina: any, resumo: string, questoes: any[]) {
   const data = new Date().toLocaleDateString('pt-BR')
-  const html = `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><title>TigerJus — ${disciplina.name}</title><style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:sans-serif;background:#fff;color:#1a1a1a;font-size:12px;line-height:1.6}.header{background:linear-gradient(135deg,#D4A843,#E8621A);padding:28px 40px;color:#000;display:flex;align-items:center;justify-content:space-between}.logo{font-size:28px;font-weight:900;letter-spacing:3px}.container{padding:32px 40px}.section-title{font-size:15px;font-weight:900;text-transform:uppercase;letter-spacing:2px;color:#D4A843;border-bottom:2px solid #D4A843;padding-bottom:8px;margin:28px 0 16px}.resumo-box{background:#fafafa;border:1px solid #eee;border-left:4px solid #D4A843;border-radius:8px;padding:20px 24px;white-space:pre-wrap;font-size:12px;line-height:1.8}.questao{border:1px solid #e0e0e0;border-radius:10px;padding:18px 20px;margin-bottom:16px}.opcao{display:flex;gap:10px;padding:8px 10px;border-radius:6px;margin-bottom:4px;font-size:12px}.opcao.correta{background:#e8f5e9;border:1px solid #4caf50;color:#1b5e20;font-weight:600}.opcao.normal{background:#fafafa;border:1px solid #eee}.footer{margin-top:40px;padding:20px 40px;background:#f5f5f5;border-top:2px solid #D4A843;display:flex;justify-content:space-between;font-size:10px;color:#888}@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}</style></head><body><div class="header"><div><div class="logo">🐯 TIGERJUS</div><div>${disciplina.icon} ${disciplina.name.toUpperCase()}</div></div><div><div>Material Premium</div><div>${data}</div></div></div><div class="container">${questoes.length>0?`<div class="section-title">📝 Questões OAB — ${questoes.length} no total</div>${questoes.map((q:any,i:number)=>`<div class="questao"><div style="font-size:10px;color:#888;margin-bottom:6px">Questão ${i+1} · ${q.disciplina||disciplina.name}</div><div style="font-size:13px;font-weight:600;margin-bottom:12px">${q.enunciado}</div>${['A','B','C','D'].map((l,li)=>`<div class="opcao ${q.resposta_correta===l?'correta':'normal'}"><span>${l})</span><span>${[q.opcao_a,q.opcao_b,q.opcao_c,q.opcao_d][li]}</span>${q.resposta_correta===l?'<span style="margin-left:auto">✅</span>':''}</div>`).join('')}${q.comentario?`<div style="margin-top:10px;padding:10px;background:#fff8e1;border-radius:6px;font-size:11px">📖 ${q.comentario}</div>`:''}</div>`).join('')}`:''}
+  const html = `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><title>TigerJus — ${disciplina.name}</title><style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:sans-serif;background:#fff;color:#1a1a1a;font-size:12px;line-height:1.6}.header{background:linear-gradient(135deg,#D4A843,#E8621A);padding:28px 40px;color:#000;display:flex;align-items:center;justify-content:space-between}.logo{font-size:28px;font-weight:900;letter-spacing:3px}.container{padding:32px 40px}.section-title{font-size:15px;font-weight:900;text-transform:uppercase;letter-spacing:2px;color:#D4A843;border-bottom:2px solid #D4A843;padding-bottom:8px;margin:28px 0 16px}.resumo-box{background:#fafafa;border:1px solid #eee;border-left:4px solid #D4A843;border-radius:8px;padding:20px 24px;white-space:pre-wrap;font-size:12px;line-height:1.8}.questao{border:1px solid #e0e0e0;border-radius:10px;padding:18px 20px;margin-bottom:16px}.opcao{display:flex;gap:10px;padding:8px 10px;border-radius:6px;margin-bottom:4px;font-size:12px}.opcao.correta{background:#e8f5e9;border:1px solid #4caf50;color:#1b5e20;font-weight:600}.opcao.normal{background:#fafafa;border:1px solid #eee}.footer{margin-top:40px;padding:20px 40px;background:#f5f5f5;border-top:2px solid #D4A843;display:flex;justify-content:space-between;font-size:10px;color:#888}@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}</style></head><body><div class="header"><div><div class="logo">🐯 TIGERJUS</div><div>${disciplina.icon} ${disciplina.name.toUpperCase()}</div></div><div><div>Material Premium</div><div>${data}</div></div></div><div class="container">${resumo?`<div class="section-title">📚 Resumo Essencial</div><div class="resumo-box">${resumo}</div>`:''}${questoes.length>0?`<div class="section-title">📝 Questões OAB — ${questoes.length} no total</div>${questoes.map((q:any,i:number)=>`<div class="questao"><div style="font-size:10px;color:#888;margin-bottom:6px">Questão ${i+1} · ${q.disciplina||disciplina.name}</div><div style="font-size:13px;font-weight:600;margin-bottom:12px">${q.enunciado}</div>${['A','B','C','D'].map((l,li)=>`<div class="opcao ${q.resposta_correta===l?'correta':'normal'}"><span>${l})</span><span>${[q.opcao_a,q.opcao_b,q.opcao_c,q.opcao_d][li]}</span>${q.resposta_correta===l?'<span style="margin-left:auto">✅</span>':''}</div>`).join('')}${q.comentario?`<div style="margin-top:10px;padding:10px;background:#fff8e1;border-radius:6px;font-size:11px">📖 ${q.comentario}</div>`:''}</div>`).join('')}`:''}
 </div><div class="footer"><div>🐯 TIGERJUS</div><div>"Não basta estudar Direito. É preciso pensar como um Tigre."</div><div>${data}</div></div><script>window.onload=()=>{window.print();window.onafterprint=()=>window.close()}</script></body></html>`
   const blob = new Blob([html], { type: 'text/html;charset=utf-8' })
   const url = URL.createObjectURL(blob)
@@ -1241,7 +1259,7 @@ function DisciplinesPage({ showUpgrade, profile, isPago, canAccessPremium, podeP
     if(!podePDF){showUpgrade();return}
     setGerandoPDF(true)
     try{
-      const resumo=RESUMOS[disc.slug]||''
+      const resumo=await carregarResumoParaPDF(disc.slug)
       const discs=PDF_DISC_MAP[disc.name]||[disc.name]
       const{data}=await supabase.rpc('buscar_questoes_disciplina_pdf',{discs})
       await gerarPDF(disc,resumo,data||[])
