@@ -53,6 +53,7 @@ const LEIS: { slug: string; nome: string; pat: string; url?: string }[] = [
   { slug: 'l8934',  nome: 'Lei nº 8.934/94 — Registro de Empresas',       pat: 'Lei\\s*n?[º°.\\s]*8\\.?934',  url: 'https://www.planalto.gov.br/ccivil_03/leis/L8934.htm' },
   { slug: 'l8245',  nome: 'Lei nº 8.245/91 — Locações',                   pat: 'Lei\\s*n?[º°.\\s]*8\\.?245',  url: 'https://www.planalto.gov.br/ccivil_03/leis/L8245.htm' },
   { slug: 'l9099',  nome: 'Lei nº 9.099/95 — Juizados Especiais',         pat: 'Lei\\s*n?[º°.\\s]*9\\.?099',  url: 'https://www.planalto.gov.br/ccivil_03/leis/L9099.htm' },
+  { slug: 'l9503',  nome: 'CTB — Código de Trânsito Brasileiro (Lei nº 9.503/97)', pat: 'C[óo]digo de Tr[âa]nsito(?:\\s+Brasileiro)?|CTB\\b|Lei\\s*n?[º°.\\s]*9\\.?503', url: 'https://www.planalto.gov.br/ccivil_03/leis/l9503compilado.htm' },
   { slug: 'l8987',  nome: 'Lei nº 8.987/95 — Concessões',                 pat: 'Lei\\s*n?[º°.\\s]*8\\.?987',  url: 'https://www.planalto.gov.br/ccivil_03/leis/L8987cons.htm' },
   { slug: 'l11079', nome: 'Lei nº 11.079/04 — PPP',                       pat: 'Lei\\s*n?[º°.\\s]*11\\.?079', url: 'https://www.planalto.gov.br/ccivil_03/_ato2004-2006/2004/lei/l11079.htm' },
   { slug: 'l12846', nome: 'Lei nº 12.846/13 — Anticorrupção',             pat: 'Lei\\s*n?[º°.\\s]*12\\.?846', url: 'https://www.planalto.gov.br/ccivil_03/_ato2011-2014/2013/lei/l12846.htm' },
