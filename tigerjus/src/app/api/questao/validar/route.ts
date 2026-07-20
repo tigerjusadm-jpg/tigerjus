@@ -87,10 +87,15 @@ export async function POST(req: NextRequest) {
     }
 
     const letra_correta = q.resposta_correta
-    const correto = escolha !== null ? escolha === letra_correta : false
+    // Questão anulada pela banca: o acervo grava resposta_correta = '*'.
+    // Nesse caso nenhuma letra pode "bater", e sem este tratamento o aluno
+    // erraria sempre. Segue-se o critério das bancas: todos pontuam.
+    const anulada = letra_correta === '*'
+    const correto = anulada ? true : (escolha !== null ? escolha === letra_correta : false)
 
     return NextResponse.json({
       correto,
+      anulada,
       letra_correta,
       comentario: q.comentario || '',
     })
