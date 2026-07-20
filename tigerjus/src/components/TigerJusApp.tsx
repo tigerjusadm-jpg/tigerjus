@@ -1749,7 +1749,6 @@ function SimuladosPage({ showUpgrade, freeQ, setFreeQ, onXp, profile, isPago, ca
 
   const SIMULADOS_PRATICA=[
     {icon:'⚡',t:'Mini Simulado Rápido',info:'questões aleatórias · 15min · aquecimento',tags:['Grátis'],dif:'Fácil',mins:15,lock:false},
-    {icon:'🏛️',t:'Simulado Geral',info:'80 questões · 5h · igual ao dia da prova',tags:['Start'],dif:'Difícil',mins:300,lock:true},
   ]
 
   function podeLiberarPratica(s:any):boolean{
@@ -1952,10 +1951,10 @@ function SimuladosPage({ showUpgrade, freeQ, setFreeQ, onXp, profile, isPago, ca
   return(
     <div style={{padding:'24px 20px',flex:1}}>
       <h1 style={{fontFamily:'var(--font-display)',fontSize:'clamp(22px,5vw,32px)',fontWeight:900,marginBottom:6}}>Simulados 📋</h1>
-      <p style={{fontSize:14,color:'var(--text-muted)',marginBottom:20}}>Treine com provas reais da OAB e simulados temáticos.</p>
+      <p style={{fontSize:14,color:'var(--text-muted)',marginBottom:20}}>Treine com provas reais da OAB, com o Simuladão Tiger ou com um treino rápido de aquecimento.</p>
       {!isPago&&<div style={{background:'rgba(212,168,67,0.06)',border:'1px solid rgba(212,168,67,0.15)',borderRadius:12,padding:'12px 16px',marginBottom:20,fontSize:13,color:'var(--gold)'}}>🔒 Plano gratuito: apenas Mini Simulados disponíveis. <button onClick={showUpgrade} style={{color:'var(--gold)',background:'none',border:'none',cursor:'pointer',fontSize:13,fontFamily:'var(--font-body)',fontWeight:700}}>Fazer upgrade →</button></div>}
       <div style={{display:'flex',gap:8,marginBottom:24,flexWrap:'wrap'}}>
-        {([['oficiais','🏛️ Provas OAB'],['pratica','⚡ Temáticos']] as const).map(([key,label])=>(
+        {([['oficiais','🏛️ Provas OAB'],['pratica','⚡ Treino Rápido']] as const).map(([key,label])=>(
           <button key={key} onClick={()=>setTab(key)} style={{padding:'10px 18px',borderRadius:10,border:tab===key?'1px solid rgba(212,168,67,0.4)':'1px solid rgba(255,255,255,0.08)',background:tab===key?'rgba(212,168,67,0.1)':'transparent',color:tab===key?'var(--gold)':'var(--text-muted)',fontSize:13,fontWeight:700,cursor:'pointer',fontFamily:'var(--font-body)'}}>{label}</button>
         ))}
       </div>
