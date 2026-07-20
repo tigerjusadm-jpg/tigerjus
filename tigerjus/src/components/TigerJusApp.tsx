@@ -1744,7 +1744,7 @@ function SimuladosPage({ showUpgrade, freeQ, setFreeQ, onXp, profile, isPago, ca
   const writeMap=(m:any)=>{try{if(typeof window!=='undefined')localStorage.setItem(PROG_KEY,JSON.stringify(m))}catch{}}
 
   function planoMinimoParaSimulado(numeroExame:number):Plano{return planoMinimoExame(numeroExame)} // graduais: Start 35-40 · Pro 35-44 · Elite 35-46
-  const BADGE_COR:Record<string,{bg:string;color:string;label:string}>={start:{bg:'rgba(59,130,246,0.15)',color:'#60a5fa',label:'START'},plus:{bg:'rgba(139,92,246,0.15)',color:'#a78bfa',label:'START'},pro:{bg:'rgba(236,72,153,0.15)',color:'#f472b6',label:'PRO'},elite:{bg:'rgba(212,168,67,0.12)',color:'var(--gold)',label:'ELITE'}}
+  const BADGE_COR:Record<string,{bg:string;color:string;label:string}>={start:{bg:'rgba(59,130,246,0.15)',color:'#60a5fa',label:'START'},pro:{bg:'rgba(236,72,153,0.15)',color:'#f472b6',label:'PRO'},elite:{bg:'rgba(212,168,67,0.12)',color:'var(--gold)',label:'ELITE'}}
   function podeLiberarProva(prova:any):boolean{if(profile?.role==='admin')return true;return canAccess(profile?.plano,planoMinimoParaSimulado(prova.numero_exame))}
 
   const SIMULADOS_PRATICA=[
@@ -2004,7 +2004,7 @@ function SimuladosPage({ showUpgrade, freeQ, setFreeQ, onXp, profile, isPago, ca
                   <div style={{width:44,height:44,borderRadius:12,background:i===0?'linear-gradient(135deg,var(--gold),var(--orange))':'rgba(255,255,255,0.06)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:i===0?18:13,fontWeight:900,color:i===0?'#000':'var(--text-muted)',fontFamily:'var(--font-display)',flexShrink:0}}>{i===0?'🆕':`${prova.numero_exame}º`}</div>
                   <div>
                     <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:4,flexWrap:'wrap'}}><span style={{fontSize:14,fontWeight:700}}>{prova.edicao}</span>{i===0&&<span style={{fontSize:9,fontWeight:900,background:'linear-gradient(135deg,var(--gold),var(--orange))',color:'#000',padding:'2px 8px',borderRadius:100}}>RECENTE</span>}<span style={{fontSize:9,fontWeight:800,background:badge.bg,color:badge.color,padding:'2px 8px',borderRadius:100,border:`1px solid ${badge.color}44`}}>{liberado?'✓ ':''}{badge.label}</span></div>
-                    <div style={{display:'flex',gap:12,fontSize:11,color:'var(--text-muted)',flexWrap:'wrap'}}><span>📝 {prova.total_questoes}q</span>{spOf?<span style={{color:'var(--gold)',fontWeight:700}}>▶ {respOf}/{prova.total_questoes} respondidas{respOf>0?` · ${txOf}% acerto`:' · iniciado'}</span>:<span>📊 {prova.taxa_aprovacao_oficial}% aprovação</span>}{!liberado&&<span style={{color:'var(--text-dim)'}}>🔒 Requer {badge.label}</span>}</div>
+                    <div style={{display:'flex',gap:12,fontSize:11,color:'var(--text-muted)',flexWrap:'wrap'}}><span>📝 {prova.total_questoes}q</span>{spOf&&<span style={{color:'var(--gold)',fontWeight:700}}>▶ {respOf}/{prova.total_questoes} respondidas{respOf>0?` · ${txOf}% acerto`:' · iniciado'}</span>}{!liberado&&<span style={{color:'var(--text-dim)'}}>🔒 Requer {badge.label}</span>}</div>
                   </div>
                 </div>
                 {savedMap['oficial:'+prova.id]?(
@@ -2072,7 +2072,6 @@ function formatRankName(nome:string|null):string{
 function PlanoBadgeSmall({plano}:{plano:string}){
   const cfg:Record<string,{label:string;cor:string;bg:string}> = {
     start:    {label:'START', cor:'#60a5fa', bg:'rgba(96,165,250,0.12)'},
-    plus:     {label:'PLUS',  cor:'#a78bfa', bg:'rgba(167,139,250,0.12)'},
     pro:      {label:'PRO',   cor:'#f472b6', bg:'rgba(244,114,182,0.12)'},
     elite:    {label:'ELITE', cor:'#D4A843', bg:'rgba(212,168,67,0.15)'},
   }
