@@ -1,17 +1,31 @@
-import { createClient } from '@supabase/supabase-js'
+import { createClient, type SupabaseClient } from '@supabase/supabase-js'
+import { createBrowserClient } from '@supabase/ssr'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 
-// Client principal — com auth completo para área logada
-export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-  auth: {
-    flowType: 'pkce',
-    autoRefreshToken: true,
-    persistSession: true,
-    detectSessionInUrl: true,
-  }
-})
+// Client principal — com auth completo para área logada.
+//
+// No NAVEGADOR usamos createBrowserClient (@supabase/ssr), que grava a sessão
+// e o code_verifier do PKCE em COOKIES. Isso é obrigatório: o /auth/callback e o
+// middleware.ts rodam no servidor com createServerClient e só enxergam cookies.
+// Com o createClient antigo (localStorage) o code_verifier ficava preso no
+// navegador, o exchangeCodeForSession falhava e o middleware nunca via sessão.
+//
+// No SERVIDOR este módulo também é importado (supabaseAdmin, rotas de API).
+// createBrowserClient depende de document.cookie, então a guarda
+// typeof window === 'undefined' devolve um client sem persistência —
+// suficiente para leitura e para não quebrar o import no build/SSR.
+export const supabase: SupabaseClient =
+  typeof window === 'undefined'
+    ? createClient(supabaseUrl, supabaseAnonKey, {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false,
+          detectSessionInUrl: false,
+        },
+      })
+    : createBrowserClient(supabaseUrl, supabaseAnonKey)
 
 // Client público — sem auth, para leitura de dados públicos (app_settings, landing)
 // Evita delay/falha silenciosa no mobile causada pela inicialização do auth
