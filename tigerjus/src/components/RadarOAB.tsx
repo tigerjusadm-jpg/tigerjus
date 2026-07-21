@@ -1,12 +1,12 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { createClient } from '@supabase/supabase-js';
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+// Reaproveita o client publico do lib em vez de instanciar outro aqui.
+// Cada instancia extra abre um GoTrueClient com a mesma storage key
+// (sb-<ref>-auth-token) e o Supabase alerta no console sobre risco de
+// comportamento indefinido. calendario_oab e dado publico, entao
+// supabasePublic (sem auth) atende.
+import { supabasePublic } from '@/lib/supabase';
 
 interface CalendarioOAB {
   id: number;
@@ -200,7 +200,7 @@ export default function RadarOAB() {
 
   useEffect(() => {
     async function fetchCalendario() {
-      const { data, error } = await supabase
+      const { data, error } = await supabasePublic
         .from('calendario_oab')
         .select('*')
         .eq('status', 'ativo')
