@@ -28,9 +28,15 @@ export const supabase: SupabaseClient =
     : createBrowserClient(supabaseUrl, supabaseAnonKey)
 
 // Client público — sem auth, para leitura de dados públicos (app_settings, landing)
-// Evita delay/falha silenciosa no mobile causada pela inicialização do auth
+// Evita delay/falha silenciosa no mobile causada pela inicialização do auth.
+//
+// storageKey próprio é obrigatório: sem ele este client herda a chave padrão
+// sb-<ref>-auth-token, a mesma do client principal, e o Supabase emite o aviso
+// "Multiple GoTrueClient instances detected ... under the same storage key".
+// Com chave separada as duas instâncias deixam de disputar o mesmo espaço.
 export const supabasePublic = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
+    storageKey: 'tj-public-noauth',
     autoRefreshToken: false,
     persistSession: false,
     detectSessionInUrl: false,
