@@ -7,6 +7,24 @@ import RadarOAB from '@/components/RadarOAB'
 import ComunidadeChat from '@/components/ComunidadeChat'
 import MeuPerfilPage from '@/components/MeuPerfilPage'
 import { TigerAvatar, isTigerId } from '@/components/TigerAvatars'
+
+// ── Hook compartilhado: detecta quando o usuário sai da aba ────────────────────
+// Regra única para TODOS os cronômetros do app (Quiz, QuizDisciplina, Radar,
+// Simulado): quando a aba perde a visibilidade (troca de aba, minimiza, atende
+// o celular), o cronômetro deve pausar; ao voltar, retoma de onde parou.
+// Centralizado aqui para que a regra seja idêntica em todos os lugares — mudar
+// o comportamento no futuro é mexer só nesta função.
+function useAbaOculta(): boolean {
+  const [oculta, setOculta] = useState(false)
+  useEffect(() => {
+    if (typeof document === 'undefined') return
+    const onVis = () => setOculta(document.visibilityState === 'hidden')
+    document.addEventListener('visibilitychange', onVis)
+    setOculta(document.visibilityState === 'hidden')
+    return () => document.removeEventListener('visibilitychange', onVis)
+  }, [])
+  return oculta
+}
 import DashboardTopBanner from '@/components/DashboardTopBanner'
 import LandingTopBanner from '@/components/LandingTopBanner'
 import LeiSecaPage from '@/components/LeiSecaPage'
@@ -867,11 +885,12 @@ function QuizPage({ freeQ, setFreeQ, showUpgrade, onXp, profile, isPago }: any) 
   const modosLib=getQuizModes(profile?.plano,profile?.role)
   const temCota=Number.isFinite(freeQ)
 
+  const abaOculta=useAbaOculta()
   useEffect(()=>{
-    if(!started||done)return
+    if(!started||done||abaOculta)return
     const t=setInterval(()=>setTime(p=>{if(p<=1){clearInterval(t);setDone(true);return 0}return p-1}),1000)
     return()=>clearInterval(t)
-  },[started,done])
+  },[started,done,abaOculta])
 
   const startQuiz=async()=>{
     setLoadingQ(true)
@@ -1038,8 +1057,9 @@ function IAPage({ freeIA, setFreeIA, showUpgrade, profile, isPago, iaIlimitada }
     <div style={{padding:'24px 20px',flex:1,display:'flex',flexDirection:'column'}}>
       <h1 style={{fontFamily:'var(--font-display)',fontSize:'clamp(22px,5vw,32px)',fontWeight:900,marginBottom:6}}>IA Jurídica 🤖</h1>
       <p style={{fontSize:14,color:'var(--text-muted)',marginBottom:12}}>Tutor inteligente 24/7. {freeIA>0?<span style={{color:'var(--gold)',fontWeight:700}}>{freeIA} pergunta{freeIA!==1?'s':''} restante{freeIA!==1?'s':''} hoje</span>:<span style={{color:'var(--danger)'}}>🔒 Limite atingido</span>}</p>
-      {!iaIlimitada&&freeIA<=0&&(<div style={{background:'rgba(232,66,26,0.08)',border:'1px solid rgba(232,66,26,0.2)',borderRadius:12,padding:'14px 16px',marginBottom:16,fontSize:13}}>🔒 Limite atingido.<button onClick={showUpgrade} style={{color:'var(--gold)',background:'none',border:'none',cursor:'pointer',fontSize:13,fontFamily:'var(--font-body)',marginLeft:8,fontWeight:700}}>Fazer upgrade →</button></div>)}
+      {!iaIlimitada&&freeIA<=0&&(<div style={{background:'rgba(232,66,26,0.08)',border:'1px solid rgba(232,66,26,0.25)',borderRadius:12,padding:'14px 16px',marginBottom:16,fontSize:13,lineHeight:1.6}}><div style={{fontWeight:800,color:'var(--danger)',letterSpacing:'0.3px',marginBottom:profile?.plano==='elite'?0:4}}>🔒 SEU LIMITE DIÁRIO EXCEDEU. RETORNE AMANHÃ.</div>{profile?.plano!=='elite'&&<button onClick={showUpgrade} style={{color:'var(--gold)',background:'none',border:'none',cursor:'pointer',fontSize:13,fontFamily:'var(--font-body)',fontWeight:700,padding:0}}>ou vire Pro pra mais perguntas hoje →</button>}</div>)}
       <div style={{display:'flex',gap:6,flexWrap:'wrap',marginBottom:14}}>{chips.map(c=><button key={c} onClick={()=>send(c)} style={{background:'rgba(212,168,67,0.06)',border:'1px solid rgba(212,168,67,0.14)',borderRadius:100,padding:'5px 12px',fontSize:11,color:'var(--text-muted)',cursor:'pointer',fontFamily:'var(--font-body)'}}>{c}</button>)}</div>
+      {!iaIlimitada&&<div style={{display:'flex',justifyContent:'flex-end',alignItems:'center',gap:6,marginBottom:8,fontSize:12,fontWeight:700}}><span style={{opacity:0.6}}>🐯 IA Tiger:</span>{freeIA>0?<span style={{color:'var(--gold)'}}>{freeIA} pergunta{freeIA!==1?'s':''} restante{freeIA!==1?'s':''} hoje</span>:<span style={{color:'var(--danger)'}}>limite diário atingido</span>}</div>}
       <div style={{flex:1,background:'var(--gray)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:20,overflow:'hidden',display:'flex',flexDirection:'column',minHeight:350}}>
         <div style={{flex:1,overflowY:'auto',display:'flex',flexDirection:'column',gap:14,padding:20}}>
           {msgs.map((m,i)=>(
@@ -1431,11 +1451,12 @@ function QuizDisciplina({disciplina,freeQ,setFreeQ,showUpgrade,onXp}:{disciplina
     carregar()
   },[disciplina])
 
+  const abaOculta=useAbaOculta()
   useEffect(()=>{
-    if(!started||answered||done)return
+    if(!started||answered||done||abaOculta)return
     const t=setInterval(()=>setTime(p=>{if(p<=1){clearInterval(t);responder(null);return 0}return p-1}),1000)
     return()=>clearInterval(t)
-  },[started,answered,done,cur])
+  },[started,answered,done,cur,abaOculta])
 
   const responder=async(i:number|null)=>{
     if(answered||checking)return
@@ -1566,11 +1587,12 @@ function RadarTop20({ onBack, podePDF, freeQ, setFreeQ, showUpgrade, onXp }: { o
     carregar()
   },[discCounts])
 
+  const abaOculta=useAbaOculta()
   useEffect(()=>{
-    if(!started||answered||done)return
+    if(!started||answered||done||abaOculta)return
     const t=setInterval(()=>setTime(p=>{if(p<=1){clearInterval(t);responder(null);return 0}return p-1}),1000)
     return()=>clearInterval(t)
-  },[started,answered,done,cur])
+  },[started,answered,done,cur,abaOculta])
 
   const responder=async(i:number|null)=>{
     if(answered||checking)return
@@ -1737,6 +1759,7 @@ function SimuladosPage({ showUpgrade, freeQ, setFreeQ, onXp, profile, isPago, ca
   const [savedMap,setSavedMap]=useState<any>({})
   const [tematicaDisc,setTematicaDisc]=useState('')
   const [bestMap,setBestMap]=useState<any>({})
+  const abaOculta=useAbaOculta()
   const BEST_KEY='tj_simulado_best:'+(profile?.id||'anon')
   const PROG_KEY='tj_simulados_progresso:'+(profile?.id||'anon')
   const progKey=(sim:any)=>sim?.oficial?`oficial:${sim.id}`:`pratica:${sim.t}`
@@ -1837,11 +1860,12 @@ function SimuladosPage({ showUpgrade, freeQ, setFreeQ, onXp, profile, isPago, ca
     // eslint-disable-next-line react-hooks/exhaustive-deps
   },[])
 
+  // Pausa o cronômetro quando o usuário sai da aba (hook compartilhado — mesma regra em todos os cronômetros)
   useEffect(()=>{
-    if(!running||done)return
+    if(!running||done||abaOculta)return
     const t=setInterval(()=>setTime(p=>{if(p<=1){clearInterval(t);setDone(true);return 0}return p-1}),1000)
     return()=>clearInterval(t)
-  },[running,done])
+  },[running,done,abaOculta])
 
   const responder=async(i:number)=>{
     if(answered||checking)return
@@ -1913,7 +1937,7 @@ function SimuladosPage({ showUpgrade, freeQ, setFreeQ, onXp, profile, isPago, ca
       <div style={{padding:'24px 20px',flex:1}}>
         <div style={{maxWidth:680,margin:'0 auto'}}>
           <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:12}}><div style={{fontSize:12,color:'var(--text-muted)'}}>{selectedSimulado.edicao||selectedSimulado.t} · Q{cur+1}/{selectedSimulado.questions.length}</div></div>
-          <div style={{marginBottom:16}}><CronometroSimulado segundosRestantes={time} duracaoTotalSegundos={duracaoTotal} /></div>
+          <div style={{marginBottom:16}}><CronometroSimulado segundosRestantes={time} duracaoTotalSegundos={duracaoTotal} />{abaOculta&&<div style={{marginTop:8,textAlign:'center',fontSize:12,fontWeight:700,color:'var(--gold)',letterSpacing:'0.3px'}}>⏸ Cronômetro pausado — você saiu da aba. Volte para continuar.</div>}</div>
           <div style={{display:'flex',gap:12,marginBottom:16}}>
             <div style={{flex:1,background:'rgba(58,143,232,0.1)',border:'1px solid rgba(58,143,232,0.3)',borderRadius:14,padding:'14px 12px',textAlign:'center'}}>
               <div style={{fontSize:11,fontWeight:800,letterSpacing:'1px',textTransform:'uppercase',color:'var(--text-muted)',marginBottom:5}}>Respondidas</div>
