@@ -61,6 +61,9 @@ const LEIS: { slug: string; nome: string; pat: string; url?: string }[] = [
   { slug: 'l12527', nome: 'Lei nº 12.527/11 — Acesso à Informação',       pat: 'Lei\\s*n?[º°.\\s]*12\\.?527', url: 'https://www.planalto.gov.br/ccivil_03/_ato2011-2014/2011/lei/l12527.htm' },
   { slug: 'lindb',  nome: 'LINDB — Decreto-Lei nº 4.657/42',              pat: 'LINDB\\b|Decreto-Lei\\s*n?[º°.\\s]*4\\.?657|Lei\\s*n?[º°.\\s]*4\\.?657', url: 'https://www.planalto.gov.br/ccivil_03/decreto-lei/Del4657compilado.htm' },
   { slug: 'dl3365', nome: 'DL nº 3.365/41 — Desapropriações',             pat: 'Decreto-Lei\\s*n?[º°.\\s]*3\\.?365|DL\\s*n?[º°.\\s]*3\\.?365', url: 'https://www.planalto.gov.br/ccivil_03/decreto-lei/Del3365.htm' },
+  // ---- Tratados internacionais (fora do acervo — sempre link para o Planalto) ----
+  { slug: 'd7030',  nome: 'Convenção de Viena s/ Direito dos Tratados (Decreto nº 7.030/09)', pat: 'Conven[çc][ãa]o de Viena(?:\\s+sobre\\s+o\\s+Direito\\s+dos\\s+Tratados)?|Decreto\\s*n?[º°.\\s]*7\\.?030', url: 'https://www.planalto.gov.br/ccivil_03/_ato2007-2010/2009/decreto/d7030.htm' },
+  { slug: 'd9039',  nome: 'Convenção da Haia sobre Provas (Decreto nº 9.039/17)', pat: 'Conven[çc][ãa]o da Haia(?:\\s+sobre\\s+Provas)?|Conven[çc][ãa]o sobre a Obten[çc][ãa]o de Provas|Decreto\\s*n?[º°.\\s]*9\\.?039', url: 'https://www.planalto.gov.br/ccivil_03/_ato2015-2018/2017/decreto/d9039.htm' },
 ]
 
 function acharLei(win: string): { slug: string; nome: string; idx: number; len: number; url?: string } | null {
