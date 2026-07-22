@@ -1,11 +1,11 @@
 // ═══════════════════════════════════════════════════════════════════
 // CAMADA OFICIAL DE PLANOS — TigerJus
-// Planos oficiais: gratuito | start | plus | pro | elite
+// Planos oficiais: gratuito | start | pro | elite
 // ═══════════════════════════════════════════════════════════════════
 
 import type { SupabaseClient } from '@supabase/supabase-js'
 
-export type Plano = 'gratuito' | 'start' | 'plus' | 'pro' | 'elite'
+export type Plano = 'gratuito' | 'start' | 'pro' | 'elite'
 export type PlanName = Plano
 
 export type PlanFeature =
@@ -59,13 +59,12 @@ export interface Nivel {
 }
 
 // ───────────────────────────────────────────────────────────────────
-// HIERARQUIA DOS 5 PLANOS OFICIAIS
+// HIERARQUIA DOS 4 PLANOS OFICIAIS
 // ───────────────────────────────────────────────────────────────────
 
 const PLANO_LEVEL: Record<Plano, number> = {
   gratuito: 0,
   start:    1,
-  plus:     3, // legado — tratado como Pro (migrado no banco; mantido só como apelido seguro)
   pro:      3,
   elite:    4,
 }
@@ -134,24 +133,19 @@ export function canAccess(
 // ───────────────────────────────────────────────────────────────────
 // LIMITES POR PLANO (fallback local)
 // Fonte definitiva: tabela plan_settings no banco
-// Elite: IA limitada a 80/dia no backend (plan_settings) — não Infinity
+// Elite: IA limitada a 80/dia (fonte: LIMITES_FALLBACK, alinhado com plan_settings e /api/ia)
 // GRATUITO: SEM IA (0) — IA é benefício a partir do Start.
 // mini_simulado = nº de questões do mini-simulado (curto p/ grátis, moderado p/ start)
 // ───────────────────────────────────────────────────────────────────
 
 const LIMITES_FALLBACK: Record<Plano, Limites> = {
   gratuito: {
-    questoes: 15,        ia: 0,   flashcards: 0,        mini_simulado: 5,
+    questoes: 15,        ia: 5,   flashcards: 0,        mini_simulado: 5,
     permite_pdf: false,  permite_simulado_completo: false, permite_radar: false,
   },
   start: {
     questoes: 50,        ia: 20,  flashcards: 20,       mini_simulado: 10,
     permite_pdf: false,  permite_simulado_completo: true,  permite_radar: false,
-  },
-  plus: {
-    // Legado: espelha o Pro (nenhum usuário ativo neste plano após migração)
-    questoes: Infinity,  ia: 40,  flashcards: 40,       mini_simulado: 15,
-    permite_pdf: true,   permite_simulado_completo: true,  permite_radar: false,
   },
   pro: {
     questoes: Infinity,  ia: 40,  flashcards: 40,       mini_simulado: 15,
@@ -196,7 +190,7 @@ export function getQuizModes(
   const p = normalizePlano(plano)
   if (p === 'gratuito') return ['Fácil']
   if (p === 'start') return ['Fácil', 'Médio']
-  return ['Fácil', 'Médio', 'Difícil'] // plus/pro/elite
+  return ['Fácil', 'Médio', 'Difícil'] // pro/elite
 }
 
 // ───────────────────────────────────────────────────────────────────
@@ -214,7 +208,7 @@ export function getResumoTier(
   if (p === 'gratuito') return 'none'
   if (p === 'start') return 'curto'
   if (p === 'elite') return 'memorizacao'
-  return 'completo' // plus/pro
+  return 'completo' // pro
 }
 
 export function getUserPlanSettings(
