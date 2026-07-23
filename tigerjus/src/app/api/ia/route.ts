@@ -115,7 +115,8 @@ async function execConsultarAcervo(tema: string, prof: { questoes: number }): Pr
     const termo = String(tema || '').slice(0, 120).trim()
     if (!termo) return 'Nenhum tema informado.'
 
-    // Busca DIRETA na view questoes_publicas (sem resposta_correta — gabarito não vaza).
+    // Busca direta no acervo. O gabarito não vaza porque o SELECT abaixo nunca
+    // seleciona resposta_correta nem comentario — só id, disciplina e enunciado.
     // Tolerante a acento e plural: tenta variantes do termo antes de desistir.
     // ATENÇÃO: ilike do Postgres NÃO ignora acento. Por isso reduzimos ao radical
     // ANTES da parte acentuada: "licitações"/"licitação" -> "licita" (casa com ambos).
@@ -138,23 +139,26 @@ async function execConsultarAcervo(tema: string, prof: { questoes: number }): Pr
       radical(maiorPalavra(termo)), // palavra mais forte, radical
     ].map(t => t.trim()).filter(t => t.length >= 4)))
 
-    // Busca em enunciado E comentário (o tema costuma aparecer mais no comentário),
-    // mas o SELECT devolve apenas enunciado — o comentário nunca chega ao modelo,
-    // porque explicaria a resposta correta.
-    const buscar = async (v: string, incluirComentario: boolean) => {
-      let q = supabase.from('questoes_publicas').select('id, disciplina, enunciado').limit(200)
-      q = incluirComentario
-        ? q.or(`enunciado.ilike.%${v}%,comentario.ilike.%${v}%`)
-        : q.ilike('enunciado', `%${v}%`)
+    // Busca em enunciado E comentário.
+    // Consultamos questoes_oab porque a view questoes_publicas NÃO expõe a coluna
+    // 'comentario'. O SELECT traz APENAS id/disciplina/enunciado — resposta_correta
+    // e comentario nunca são selecionados, então não chegam ao modelo.
+    const buscar = async (v: string, filtrarAnulada: boolean) => {
+      let q = supabase
+        .from('questoes_oab')
+        .select('id, disciplina, enunciado')
+        .or(`enunciado.ilike.%${v}%,comentario.ilike.%${v}%`)
+        .limit(300)
+      if (filtrarAnulada) q = q.not('anulada', 'is', true)
       return q
     }
 
     let achadas: any[] = []
     let usado = ''
     for (const v of variantes) {
-      // 1ª tentativa: enunciado + comentário
+      // 1ª tentativa: já excluindo questões anuladas
       let { data, error } = await buscar(v, true)
-      // Se a view não expuser 'comentario', cai para enunciado apenas (não quebra)
+      // Se a coluna 'anulada' não existir nesta tabela, repete sem o filtro
       if (error) { const r = await buscar(v, false); data = r.data; error = r.error }
       if (!error && data && data.length > 0) { achadas = data; usado = v; break }
     }
