@@ -232,6 +232,7 @@ VOCÊ VIVE DENTRO DO TIGERJUS. Isto muda tudo:
 - NUNCA mande o aluno para fora da plataforma (não cite qoab.oab.org.br, portal FGV, TEC Concursos, sites de questões, Google Docs, conversores de PDF ou similares). O que ele precisa está aqui dentro. Se ele pedir algo que existe no TigerJus, diga ONDE está.
 - Se ele pedir PDF: o TigerJus exporta PDF comentado por disciplina (menu Disciplinas). Você não gera arquivos, mas a plataforma gera — oriente para lá.
 - Se ele pedir simulado: existem simulados prontos no menu Simulados. Ofereça-os antes de inventar questões próprias.
+- EFICIÊNCIA: se precisar de mais de uma consulta, chame TODAS as ferramentas necessárias DE UMA VEZ (na mesma rodada). Depois de receber os resultados, escreva a resposta final — não fique consultando em sequência, isso deixa o aluno esperando.
 
 REGRAS INEGOCIÁVEIS (valem em TODOS os planos, inclusive Elite):
 1. NUNCA revele a alternativa correta de uma questão do acervo. Você comenta o TEMA e o PADRÃO de cobrança; o aluno resolve a questão na plataforma. Se pedirem o gabarito, recuse com bom humor e mande resolver no Quiz.
@@ -310,11 +311,13 @@ export async function POST(req: NextRequest) {
       content: String(m.content || m.text || ''),
     }))
 
-    // 7. LOOP DE FERRAMENTAS (limitado a 3 rodadas para conter custo e latência)
+    // 7. LOOP DE FERRAMENTAS
+    //    Máximo de 2 rodadas de consulta (o modelo pode chamar várias ferramentas
+    //    na MESMA rodada, então 2 bastam) — mais que isso só aumenta latência.
     const conversa: Anthropic.MessageParam[] = [...historico]
     let textoFinal = ''
 
-    for (let rodada = 0; rodada < 3; rodada++) {
+    for (let rodada = 0; rodada < 2; rodada++) {
       const resp: Anthropic.Message = await anthropic.messages.create({
         model,
         max_tokens: maxTokens,
@@ -327,7 +330,9 @@ export async function POST(req: NextRequest) {
         .filter((b: any) => b.type === 'text')
         .map((b: any) => b.text)
         .join('\n')
+        .trim()
 
+      // Terminou de responder (com ou sem ter usado ferramentas antes)
       if (resp.stop_reason !== 'tool_use') {
         textoFinal = blocosTexto
         break
@@ -343,9 +348,24 @@ export async function POST(req: NextRequest) {
 
       conversa.push({ role: 'assistant', content: resp.content })
       conversa.push({ role: 'user', content: resultados })
+    }
 
-      // Se estourar as rodadas, aproveita o último texto produzido
-      if (rodada === 2) textoFinal = blocosTexto
+    // 8. REDE DE SEGURANÇA — nunca devolver resposta vazia.
+    //    Se o modelo gastou as rodadas consultando e não chegou a escrever,
+    //    fazemos UMA última chamada SEM ferramentas: agora ele é obrigado a
+    //    responder em texto, usando tudo o que já coletou nas consultas.
+    if (!textoFinal.trim()) {
+      const fechamento: Anthropic.Message = await anthropic.messages.create({
+        model,
+        max_tokens: maxTokens,
+        system: systemPrompt + '\n\nIMPORTANTE: responda AGORA em texto corrido, usando o que já foi consultado. Não peça mais consultas.',
+        messages: conversa,
+      })
+      textoFinal = fechamento.content
+        .filter((b: any) => b.type === 'text')
+        .map((b: any) => b.text)
+        .join('\n')
+        .trim()
     }
 
     if (!textoFinal.trim()) {
