@@ -138,14 +138,24 @@ async function execConsultarAcervo(tema: string, prof: { questoes: number }): Pr
       radical(maiorPalavra(termo)), // palavra mais forte, radical
     ].map(t => t.trim()).filter(t => t.length >= 4)))
 
+    // Busca em enunciado E comentário (o tema costuma aparecer mais no comentário),
+    // mas o SELECT devolve apenas enunciado — o comentário nunca chega ao modelo,
+    // porque explicaria a resposta correta.
+    const buscar = async (v: string, incluirComentario: boolean) => {
+      let q = supabase.from('questoes_publicas').select('id, disciplina, enunciado').limit(200)
+      q = incluirComentario
+        ? q.or(`enunciado.ilike.%${v}%,comentario.ilike.%${v}%`)
+        : q.ilike('enunciado', `%${v}%`)
+      return q
+    }
+
     let achadas: any[] = []
     let usado = ''
     for (const v of variantes) {
-      const { data, error } = await supabase
-        .from('questoes_publicas')
-        .select('id, disciplina, enunciado')
-        .ilike('enunciado', `%${v}%`)
-        .limit(200)
+      // 1ª tentativa: enunciado + comentário
+      let { data, error } = await buscar(v, true)
+      // Se a view não expuser 'comentario', cai para enunciado apenas (não quebra)
+      if (error) { const r = await buscar(v, false); data = r.data; error = r.error }
       if (!error && data && data.length > 0) { achadas = data; usado = v; break }
     }
 
