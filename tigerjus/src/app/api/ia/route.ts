@@ -132,12 +132,17 @@ async function execConsultarAcervo(tema: string, prof: { questoes: number }): Pr
       return ws.sort((a, b) => b.length - a.length)[0] || ''
     }
 
+    // ORDEM IMPORTA: da variante MAIS ABRANGENTE para a mais restrita.
+    // "licita" casa com licitação, licitações, licitante e licitatório;
+    // "licitação" casa só com a forma exata. Testando a curta primeiro,
+    // pegamos o universo completo do tema (55 em vez de 7).
     const variantes = Array.from(new Set([
-      termo,                        // frase inteira
-      radical(termo),               // frase com radical
-      maiorPalavra(termo),          // palavra mais forte
-      radical(maiorPalavra(termo)), // palavra mais forte, radical
+      radical(maiorPalavra(termo)), // mais abrangente
+      maiorPalavra(termo),
+      radical(termo),
+      termo,                        // mais restrita
     ].map(t => t.trim()).filter(t => t.length >= 4)))
+      .sort((a, b) => a.length - b.length)
 
     // Busca em enunciado E comentário.
     // Consultamos questoes_oab porque a view questoes_publicas NÃO expõe a coluna
