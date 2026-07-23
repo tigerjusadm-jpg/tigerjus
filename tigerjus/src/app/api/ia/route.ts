@@ -318,68 +318,87 @@ export async function POST(req: NextRequest) {
       content: String(m.content || m.text || ''),
     }))
 
-    // 7. LOOP DE FERRAMENTAS
-    //    Máximo de 2 rodadas de consulta (o modelo pode chamar várias ferramentas
-    //    na MESMA rodada, então 2 bastam) — mais que isso só aumenta latência.
-    const conversa: Anthropic.MessageParam[] = [...historico]
-    let textoFinal = ''
+    // 7. RESPOSTA EM STREAMING
+    //    O texto é enviado ao navegador conforme é gerado, em vez de esperar a
+    //    resposta inteira ficar pronta. O tempo total é o mesmo, mas o aluno vê
+    //    a resposta nascendo em menos de 1s em vez de encarar "Analisando...".
+    //    As rodadas de ferramenta acontecem dentro do mesmo stream.
+    const encoder = new TextEncoder()
 
-    for (let rodada = 0; rodada < 2; rodada++) {
-      const resp: Anthropic.Message = await anthropic.messages.create({
-        model,
-        max_tokens: maxTokens,
-        system: systemPrompt,
-        tools: TOOLS,
-        messages: conversa,
-      })
+    const readable = new ReadableStream({
+      async start(controller) {
+        const enviar = (t: string) => {
+          try { controller.enqueue(encoder.encode(t)) } catch { /* cliente desconectou */ }
+        }
 
-      const blocosTexto = resp.content
-        .filter((b: any) => b.type === 'text')
-        .map((b: any) => b.text)
-        .join('\n')
-        .trim()
+        try {
+          const conversa: Anthropic.MessageParam[] = [...historico]
+          let escreveuAlgo = false
 
-      // Terminou de responder (com ou sem ter usado ferramentas antes)
-      if (resp.stop_reason !== 'tool_use') {
-        textoFinal = blocosTexto
-        break
-      }
+          for (let rodada = 0; rodada < 2; rodada++) {
+            const st = anthropic.messages.stream({
+              model,
+              max_tokens: maxTokens,
+              system: systemPrompt,
+              tools: TOOLS,
+              messages: conversa,
+            })
 
-      // Executa cada ferramenta pedida e devolve os resultados ao modelo
-      const pedidos = resp.content.filter((b: any) => b.type === 'tool_use') as any[]
-      const resultados: any[] = []
-      for (const p of pedidos) {
-        const saida = await executarTool(p.name, p.input, plano, prof)
-        resultados.push({ type: 'tool_result', tool_use_id: p.id, content: saida })
-      }
+            st.on('text', (delta: string) => {
+              if (delta) { escreveuAlgo = true; enviar(delta) }
+            })
 
-      conversa.push({ role: 'assistant', content: resp.content })
-      conversa.push({ role: 'user', content: resultados })
-    }
+            const final = await st.finalMessage()
 
-    // 8. REDE DE SEGURANÇA — nunca devolver resposta vazia.
-    //    Se o modelo gastou as rodadas consultando e não chegou a escrever,
-    //    fazemos UMA última chamada SEM ferramentas: agora ele é obrigado a
-    //    responder em texto, usando tudo o que já coletou nas consultas.
-    if (!textoFinal.trim()) {
-      const fechamento: Anthropic.Message = await anthropic.messages.create({
-        model,
-        max_tokens: maxTokens,
-        system: systemPrompt + '\n\nIMPORTANTE: responda AGORA em texto corrido, usando o que já foi consultado. Não peça mais consultas.',
-        messages: conversa,
-      })
-      textoFinal = fechamento.content
-        .filter((b: any) => b.type === 'text')
-        .map((b: any) => b.text)
-        .join('\n')
-        .trim()
-    }
+            // Terminou de responder
+            if (final.stop_reason !== 'tool_use') break
 
-    if (!textoFinal.trim()) {
-      textoFinal = 'Não consegui montar a resposta agora. Refaça a pergunta de forma um pouco mais específica.'
-    }
+            // Executa as ferramentas pedidas e devolve os resultados ao modelo
+            const pedidos = final.content.filter((b: any) => b.type === 'tool_use') as any[]
+            const resultados: any[] = []
+            for (const pd of pedidos) {
+              const saida = await executarTool(pd.name, pd.input, plano, prof)
+              resultados.push({ type: 'tool_result', tool_use_id: pd.id, content: saida })
+            }
 
-    return NextResponse.json({ text: textoFinal })
+            conversa.push({ role: 'assistant', content: final.content })
+            conversa.push({ role: 'user', content: resultados })
+          }
+
+          // REDE DE SEGURANÇA: se gastou as rodadas consultando e não escreveu nada,
+          // faz uma última passada SEM ferramentas — agora é obrigado a responder.
+          if (!escreveuAlgo) {
+            const stFinal = anthropic.messages.stream({
+              model,
+              max_tokens: maxTokens,
+              system: systemPrompt + '\n\nIMPORTANTE: responda AGORA em texto, usando o que já foi consultado. Não peça mais consultas.',
+              messages: conversa,
+            })
+            stFinal.on('text', (delta: string) => {
+              if (delta) { escreveuAlgo = true; enviar(delta) }
+            })
+            await stFinal.finalMessage()
+          }
+
+          if (!escreveuAlgo) {
+            enviar('Não consegui montar a resposta agora. Refaça a pergunta de forma um pouco mais específica.')
+          }
+        } catch (e) {
+          console.error('IA stream error:', e)
+          enviar('\n\n[Ocorreu um erro ao gerar o restante da resposta. Tente novamente.]')
+        } finally {
+          try { controller.close() } catch { /* já fechado */ }
+        }
+      },
+    })
+
+    return new Response(readable, {
+      headers: {
+        'Content-Type': 'text/plain; charset=utf-8',
+        'Cache-Control': 'no-cache, no-transform',
+        'X-Accel-Buffering': 'no',
+      },
+    })
 
   } catch (error: any) {
     console.error('IA Error:', error)
