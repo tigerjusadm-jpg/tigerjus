@@ -1045,9 +1045,37 @@ function IAPage({ freeIA, setFreeIA, showUpgrade, profile, isPago, iaIlimitada }
     try{
       const{data:{session}}=await supabase.auth.getSession()
       const res=await fetch('/api/ia',{method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${session?.access_token||''}`},body:JSON.stringify({messages:newMsgs.slice(1).map(m=>({role:m.role,content:m.text}))})})
-      const data=await res.json()
-      if(data.error==='LIMIT_REACHED'){showUpgrade();return}
-      setMsgs(p=>[...p,{role:'assistant',text:data.text||'Erro ao conectar.'}])
+
+      // Erros (ex.: cota diária) chegam como JSON antes de qualquer streaming
+      if(!res.ok||!res.body){
+        let payload:any={}
+        try{payload=await res.json()}catch{}
+        if(payload?.error==='LIMIT_REACHED'){showUpgrade();return}
+        setMsgs(p=>[...p,{role:'assistant',text:payload?.text||'Erro ao conectar com a IA.'}])
+        return
+      }
+
+      // Resposta em streaming: o texto aparece conforme a IA escreve.
+      const reader=res.body.getReader()
+      const decoder=new TextDecoder()
+      let acumulado=''
+      let iniciou=false
+      while(true){
+        const{done,value}=await reader.read()
+        if(done)break
+        acumulado+=decoder.decode(value,{stream:true})
+        if(!iniciou){
+          // primeiro pedaço: tira o "Analisando..." e cria a bolha da resposta
+          iniciou=true
+          setLoading(false)
+          setMsgs(p=>[...p,{role:'assistant',text:acumulado}])
+        }else{
+          setMsgs(p=>{const c=[...p];c[c.length-1]={role:'assistant',text:acumulado};return c})
+        }
+      }
+      if(!iniciou){
+        setMsgs(p=>[...p,{role:'assistant',text:'Não recebi resposta da IA. Tente novamente.'}])
+      }
     }catch{setMsgs(p=>[...p,{role:'assistant',text:'Erro ao conectar com a IA.'}])}
     finally{setLoading(false)}
   }
