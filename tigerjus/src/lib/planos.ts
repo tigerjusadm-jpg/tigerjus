@@ -140,7 +140,7 @@ export function canAccess(
 
 const LIMITES_FALLBACK: Record<Plano, Limites> = {
   gratuito: {
-    questoes: 15,        ia: 5,   flashcards: 0,        mini_simulado: 5,
+    questoes: 15,        ia: 0,   flashcards: 0,        mini_simulado: 5,
     permite_pdf: false,  permite_simulado_completo: false, permite_radar: false,
   },
   start: {
