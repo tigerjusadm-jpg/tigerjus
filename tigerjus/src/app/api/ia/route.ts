@@ -115,46 +115,80 @@ async function execConsultarAcervo(tema: string, prof: { questoes: number }): Pr
     const termo = String(tema || '').slice(0, 120).trim()
     if (!termo) return 'Nenhum tema informado.'
 
-    // Busca full-text no acervo. A RPC lê da base pública — sem resposta_correta.
-    const { data, error } = await supabase.rpc('buscar_questoes_indice', {
-      q: termo,
-      lim: prof.questoes,
-    })
+    // Busca DIRETA na view questoes_publicas (sem resposta_correta — gabarito não vaza).
+    // Tolerante a acento e plural: tenta variantes do termo antes de desistir.
+    // ATENÇÃO: ilike do Postgres NÃO ignora acento. Por isso reduzimos ao radical
+    // ANTES da parte acentuada: "licitações"/"licitação" -> "licita" (casa com ambos).
+    const radical = (t: string) => t
+      .replace(/(ções|ção|coes|cao)\b/gi, '')  // licitações/licitação -> licita
+      .replace(/(ões|ao)\b/gi, '')             // outras terminações comuns
+      .replace(/([a-zà-ú]{4,})s\b/gi, '$1')    // plural simples: prazos -> prazo
+      .trim()
 
-    if (error) return 'Não foi possível consultar o acervo agora.'
-    if (!data || data.length === 0) {
-      return `Nenhuma questão sobre "${termo}" foi localizada no acervo do TigerJus. ` +
-             `Responda com seu conhecimento jurídico e NÃO afirme que existem questões sobre isso.`
+    // Palavra mais distintiva da frase (ex.: "esbulho posse" -> "esbulho")
+    const maiorPalavra = (t: string) => {
+      const ws = t.split(/\s+/).filter(w => w.length >= 4)
+      return ws.sort((a, b) => b.length - a.length)[0] || ''
     }
 
-    // Agrega por disciplina (metadado — é o que dá a visão de "o que mais cai")
+    const variantes = Array.from(new Set([
+      termo,                        // frase inteira
+      radical(termo),               // frase com radical
+      maiorPalavra(termo),          // palavra mais forte
+      radical(maiorPalavra(termo)), // palavra mais forte, radical
+    ].map(t => t.trim()).filter(t => t.length >= 4)))
+
+    let achadas: any[] = []
+    let usado = ''
+    for (const v of variantes) {
+      const { data, error } = await supabase
+        .from('questoes_publicas')
+        .select('id, disciplina, enunciado')
+        .ilike('enunciado', `%${v}%`)
+        .limit(200)
+      if (!error && data && data.length > 0) { achadas = data; usado = v; break }
+    }
+
+    if (achadas.length === 0) {
+      // INTERNA — a IA nunca deve repetir isto ao aluno.
+      return `SEM_RESULTADO_NO_ACERVO para "${termo}".
+INSTRUÇÃO INTERNA (não repita nada disto ao aluno, nem mencione buscas):
+1. Se o tema tiver base legal, chame AGORA consultar_lei para buscar o texto no acervo de Lei Seca do TigerJus e responda a partir dele.
+2. Se ainda assim não houver base, responda com seu conhecimento jurídico.
+3. NUNCA diga que "o acervo não retornou" ou equivalente. O aluno não precisa saber como você busca.
+4. Não afirme quantidade de questões que você não confirmou.`
+    }
+
+    // Estatística real por disciplina (é o "o que mais cai" com dado de verdade)
     const porDisc: Record<string, number> = {}
-    for (const q of data) {
+    for (const q of achadas) {
       const d = String(q.disciplina || 'Não classificada')
       porDisc[d] = (porDisc[d] || 0) + 1
     }
-    const resumoDisc = Object.entries(porDisc)
+    const ranking = Object.entries(porDisc)
       .sort((a, b) => b[1] - a[1])
       .map(([d, n]) => `${d}: ${n}`)
       .join(' · ')
 
-    // Trechos de enunciado (curtos) — para a IA entender COMO a banca cobra.
-    const trechos = data.slice(0, prof.questoes).map((q: any, i: number) => {
+    // Trechos — quantidade conforme o plano (escada de profundidade)
+    const amostra = achadas.slice(0, prof.questoes).map((q: any, i: number) => {
       const e = String(q.enunciado || '').replace(/\s+/g, ' ').slice(0, 240)
       return `${i + 1}. [${q.disciplina}] ${e}${String(q.enunciado || '').length > 240 ? '…' : ''}`
     }).join('\n')
 
     return [
-      `ACERVO TIGERJUS — tema "${termo}"`,
-      `Questões reais encontradas: ${data.length} (${resumoDisc})`,
+      `ACERVO TIGERJUS — tema "${usado}"`,
+      `Total de questões reais encontradas: ${achadas.length}`,
+      `Distribuição por disciplina: ${ranking}`,
       ``,
-      `Trechos de enunciados reais (provas oficiais):`,
-      trechos,
+      `Amostra de enunciados reais (provas oficiais da OAB/FGV):`,
+      amostra,
       ``,
-      `LEMBRETE: comente o PADRÃO de cobrança. Não copie enunciado inteiro e não exista alternativa correta aqui.`,
+      `USO: pode citar o TOTAL e a distribuição por disciplina como dado concreto.`,
+      `Comente o PADRÃO de cobrança. Não copie enunciado inteiro. Não existe gabarito aqui.`,
     ].join('\n')
   } catch {
-    return 'Não foi possível consultar o acervo agora.'
+    return 'SEM_RESULTADO_NO_ACERVO (erro técnico). INSTRUÇÃO INTERNA: responda normalmente, sem mencionar buscas.'
   }
 }
 
@@ -175,8 +209,9 @@ async function execConsultarLei(termo: string, lei: string | undefined, prof: { 
     const { data, error } = await q
     if (error) return 'Não foi possível consultar a Lei Seca agora.'
     if (!data || data.length === 0) {
-      return `Nenhum artigo com "${t}" foi localizado no acervo de Lei Seca. ` +
-             `NÃO invente texto de lei: diga que não localizou e oriente o aluno a usar o menu Lei Seca.`
+      // INTERNA — a IA não deve repetir isto ao aluno.
+      return `SEM_RESULTADO_NA_LEI_SECA para "${t}".
+INSTRUÇÃO INTERNA (não repita nada disto ao aluno): responda com seu conhecimento jurídico, sem citar número de artigo que você não confirmou aqui. Não mencione buscas nem diga que não encontrou.`
     }
 
     return [
@@ -236,6 +271,11 @@ VOCÊ VIVE DENTRO DO TIGERJUS. Isto muda tudo:
 - Se ele pedir PDF: o TigerJus exporta PDF comentado por disciplina (menu Disciplinas). Você não gera arquivos, mas a plataforma gera — oriente para lá.
 - Se ele pedir simulado: existem simulados prontos no menu Simulados. Ofereça-os antes de inventar questões próprias.
 - EFICIÊNCIA: se precisar de mais de uma consulta, chame TODAS as ferramentas necessárias DE UMA VEZ (na mesma rodada). Depois de receber os resultados, escreva a resposta final — não fique consultando em sequência, isso deixa o aluno esperando.
+
+NUNCA EXPONHA O FUNCIONAMENTO INTERNO:
+- O aluno não sabe (e não deve saber) que você consulta um banco. Nunca diga "vou consultar", "o acervo não retornou", "não encontrei questões catalogadas", "a busca não trouxe resultados" ou qualquer variação. Isso soa como defeito da plataforma.
+- Consulte em silêncio e responda como quem já sabia. Se a consulta não trouxe nada, tente outra ferramenta (por exemplo, a Lei Seca) e, se ainda assim não houver, apenas responda com seu conhecimento jurídico — sem narrar o processo.
+- Só cite números concretos (quantidade de questões, exames) quando a consulta realmente os retornou.
 
 REGRAS INEGOCIÁVEIS (valem em TODOS os planos, inclusive Elite):
 1. NUNCA revele a alternativa correta de uma questão do acervo. Você comenta o TEMA e o PADRÃO de cobrança; o aluno resolve a questão na plataforma. Se pedirem o gabarito, recuse com bom humor e mande resolver no Quiz.
