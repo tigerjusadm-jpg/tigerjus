@@ -131,9 +131,16 @@ async function _loadDiscCounts(): Promise<Record<string, number>> {
   const counts: Record<string, number> = {}
   if (error || !data) {
     // Fallback de segurança: se a RPC não existir ainda (migration não aplicada),
-    // volta pro comportamento anterior em vez de quebrar a tela.
-    const { data: rows } = await supabase.from('questoes_publicas').select('disciplina')
-    for (const row of (rows || []) as { disciplina: string }[]) {
+    // volta pro comportamento anterior em vez de quebrar a tela. Pagina pra não
+    // subcontar caso o banco passe de 1.000 questões.
+    const rows:{disciplina:string}[]=[]
+    for(let inicio=0;;inicio+=1000){
+      const { data: bloco, error: e2 } = await supabase.from('questoes_publicas').select('disciplina').range(inicio,inicio+999)
+      if(e2||!bloco||bloco.length===0)break
+      rows.push(...(bloco as {disciplina:string}[]))
+      if(bloco.length<1000)break
+    }
+    for (const row of rows) {
       const card = rev[row.disciplina]
       if (card) counts[card] = (counts[card] || 0) + 1
     }
@@ -891,6 +898,24 @@ async function fetchIdsQuestoes(discs:string[]|null):Promise<string[]>{
     if(data.length<passo)break
   }
   return ids
+}
+
+// Busca as LINHAS COMPLETAS de questoes_publicas driblando o teto de 1.000 do
+// PostgREST. discs=null => banco inteiro. Usado por Radar e Simulados, que antes
+// cortavam em 1.000 (ex.: o simulado Geral puxava o banco todo e perdia 26 questões).
+async function fetchQuestoesCompletas(discs:string[]|null):Promise<any[]>{
+  const cols='id,disciplina,enunciado,opcao_a,opcao_b,opcao_c,opcao_d'
+  const todas:any[]=[]
+  const passo=1000
+  for(let inicio=0;;inicio+=passo){
+    let q=supabase.from('questoes_publicas').select(cols).range(inicio,inicio+passo-1)
+    if(discs&&discs.length)q=q.in('disciplina',discs)
+    const{data,error}=await q
+    if(error||!data||data.length===0)break
+    todas.push(...(data as any[]))
+    if(data.length<passo)break
+  }
+  return todas
 }
 
 // Sorteia `qtd` questões priorizando as que o usuário AINDA NÃO VIU.
@@ -1698,15 +1723,15 @@ function RadarTop20({ onBack, podePDF, freeQ, setFreeQ, showUpgrade, onXp }: { o
         for(let i=0;i<alloc.length&&rem>0;i++){alloc[i].base++;rem--}
         const allDiscs:string[]=[]
         for(const a of alloc){if(a.base>0)for(const v of (PDF_DISC_MAP[a.d.name]||[a.d.name]))allDiscs.push(v)}
-        const res=await supabase.from('questoes_publicas').select('id,disciplina,enunciado,opcao_a,opcao_b,opcao_c,opcao_d').in('disciplina',allDiscs)
-        if(res.error){setErro(true);return}
+        const questoesRadar=await fetchQuestoesCompletas(allDiscs)
+        if(questoesRadar.length===0){setErro(true);return}
         const rev:Record<string,string>={}
         for(const [card,vals] of Object.entries(PDF_DISC_MAP))for(const v of vals)rev[v]=card
         const buckets:Record<string,any[]>={}
-        for(const q of (res.data||[]) as any[]){const card=rev[q.disciplina]||q.disciplina;(buckets[card]=buckets[card]||[]).push(q)}
+        for(const q of questoesRadar){const card=rev[q.disciplina]||q.disciplina;(buckets[card]=buckets[card]||[]).push(q)}
         const picked:any[]=[]
-        for(const a of alloc){if(a.base<=0)continue;const pool=[...(buckets[a.d.name]||[])].sort(()=>Math.random()-0.5).slice(0,a.base);const dom=Math.round(1000*a.n/total)/10;for(const q of pool)picked.push({...q,_card:a.d.name,_icon:a.d.icon,_dom:dom})}
-        const mix=picked.sort(()=>Math.random()-0.5)
+        for(const a of alloc){if(a.base<=0)continue;const pool=embaralhar(buckets[a.d.name]||[]).slice(0,a.base);const dom=Math.round(1000*a.n/total)/10;for(const q of pool)picked.push({...q,_card:a.d.name,_icon:a.d.icon,_dom:dom})}
+        const mix=embaralhar(picked)
         const formatted=mix.map((q:any)=>({id:q.id,disc:q._card,icon:q._icon,dom:q._dom,q:q.enunciado,opts:[q.opcao_a,q.opcao_b,q.opcao_c,q.opcao_d],correct:null,exp:''}))
         setQuestions(formatted)
       }catch{setErro(true)}
@@ -1830,10 +1855,20 @@ function FlashCards({disciplina}:{disciplina:string}){
     const carregar=async()=>{
       try{
         const discs=PDF_DISC_MAP[disciplina]||[disciplina]
-        const res=await supabase.from('flashcards').select('id,frente,verso').in('disciplina',discs).eq('ativo',true).order('created_at',{ascending:true}).limit(50)
-        let data:any[]=res.data||[];let error:any=res.error
-        if(error){setErro(true);return}
-        const resultado=data.map((c:any)=>({id:c.id,frente:c.frente,verso:c.verso}))
+        // Carrega TODOS os flashcards da disciplina (pagina pra driblar o teto
+        // de 1.000 do PostgREST). Nada de .limit(50) — antes ficava sempre nos
+        // 50 primeiros e o resto do baralho nunca aparecia.
+        const todos:any[]=[]
+        const passo=1000
+        for(let inicio=0;;inicio+=passo){
+          const res=await supabase.from('flashcards').select('id,frente,verso').in('disciplina',discs).eq('ativo',true).order('created_at',{ascending:true}).range(inicio,inicio+passo-1)
+          if(res.error){setErro(true);return}
+          const bloco:any[]=res.data||[]
+          todos.push(...bloco)
+          if(bloco.length<passo)break
+        }
+        // Embaralha (Fisher-Yates): cada sessão vem numa ordem, cobrindo o baralho inteiro.
+        const resultado=embaralhar(todos).map((c:any)=>({id:c.id,frente:c.frente,verso:c.verso}))
         cacheRef.current.set(disciplina,resultado);setCards(resultado)
       }catch{setErro(true)}
       finally{setLoading(false);fetchingRef.current=false}
@@ -1941,7 +1976,7 @@ function SimuladosPage({ showUpgrade, freeQ, setFreeQ, onXp, profile, isPago, ca
     const miniQtd=getLimites(profile?.plano).mini_simulado
     const qtd = s.t.includes('Mini') ? miniQtd : (s.t.includes('Geral') ? 80 : 20)
     const mins = s.mins || 30
-    const{data}=await supabase.from('questoes_publicas').select('id,disciplina,enunciado,opcao_a,opcao_b,opcao_c,opcao_d')
+    const data=await fetchQuestoesCompletas(null)
     if(!data||data.length===0){setLoadingProva(false);alert('Ainda não há questões suficientes para este simulado. Experimente o Mini Simulado Rápido!');return}
     let shuffled:any[]
     if(s.t.includes('Geral')){
@@ -1954,11 +1989,11 @@ function SimuladosPage({ showUpgrade, freeQ, setFreeQ, onXp, profile, isPago, ca
       alloc.sort((a,b)=>b.resto-a.resto)
       for(let i=0;soma<qtd&&i<alloc.length;i++){alloc[i].base++;soma++}
       let escolhidas:any[]=[]
-      for(const a of alloc){escolhidas=escolhidas.concat([...porDisc[a.d]].sort(()=>Math.random()-0.5).slice(0,a.base))}
-      if(escolhidas.length<qtd){const ids=new Set(escolhidas.map(x=>x.id));escolhidas=escolhidas.concat(data.filter((q:any)=>!ids.has(q.id)).sort(()=>Math.random()-0.5).slice(0,qtd-escolhidas.length))}
-      shuffled=escolhidas.sort(()=>Math.random()-0.5)
+      for(const a of alloc){escolhidas=escolhidas.concat(embaralhar(porDisc[a.d]).slice(0,a.base))}
+      if(escolhidas.length<qtd){const ids=new Set(escolhidas.map(x=>x.id));escolhidas=escolhidas.concat(embaralhar(data.filter((q:any)=>!ids.has(q.id))).slice(0,qtd-escolhidas.length))}
+      shuffled=embaralhar(escolhidas)
     }else{
-      shuffled=[...data].sort(()=>Math.random()-0.5).slice(0,qtd)
+      shuffled=embaralhar(data).slice(0,qtd)
     }
     const formatted=shuffled.map((q:any)=>({id:q.id,disc:q.disciplina,dificuldade:'OAB Oficial',q:q.enunciado,opts:[q.opcao_a,q.opcao_b,q.opcao_c,q.opcao_d],correct:null,exp:''}))
     setSelectedSimulado({...s,questions:formatted});setRunning(true);setCur(0);setSel(null);setAnswered(false);setScore(0);setDone(false);setTime(mins*60)
@@ -1969,9 +2004,9 @@ function SimuladosPage({ showUpgrade, freeQ, setFreeQ, onXp, profile, isPago, ca
     if(!disc)return
     if(!isPago&&profile?.role!=='admin'){showUpgrade();return}
     setLoadingProva(true)
-    const{data}=await supabase.from('questoes_publicas').select('id,disciplina,enunciado,opcao_a,opcao_b,opcao_c,opcao_d').in('disciplina',PDF_DISC_MAP[disc]||[disc])
+    const data=await fetchQuestoesCompletas(PDF_DISC_MAP[disc]||[disc])
     if(!data||data.length===0){setLoadingProva(false);alert('Ainda não há questões suficientes de '+disc+' para um temático. Tente outra disciplina.');return}
-    const shuffled=[...data].sort(()=>Math.random()-0.5).slice(0,20)
+    const shuffled=embaralhar(data).slice(0,20)
     const formatted=shuffled.map((q:any)=>({id:q.id,disc:q.disciplina,dificuldade:'OAB Oficial',q:q.enunciado,opts:[q.opcao_a,q.opcao_b,q.opcao_c,q.opcao_d],correct:null,exp:''}))
     const sim={icon:'🎯',t:'Temático — '+disc,info:'20 questões · 30min',tags:['Start'],dif:'Médio',mins:30}
     setSelectedSimulado({...sim,questions:formatted});setRunning(true);setCur(0);setSel(null);setAnswered(false);setScore(0);setDone(false);setTime(1800)
@@ -2719,9 +2754,16 @@ function IndiceJuridico({ showUpgrade, isPago }: any) {
         setFlashBusca(resFlash.data || [])
       } else if (letra) {
         // Filtro A-Z: só no índice
-        const { data } = await supabase.from('indice_remissivo').select('*')
-          .eq('ativo', true).eq('letra', letra).order('termo').limit(100)
-        setTermos(data || [])
+        // Browse A-Z: carrega TODOS os termos da letra (pagina; antes cortava em 100)
+        const termosLetra:any[]=[]
+        for(let inicio=0;;inicio+=1000){
+          const { data, error } = await supabase.from('indice_remissivo').select('*')
+            .eq('ativo', true).eq('letra', letra).order('termo').range(inicio,inicio+999)
+          if(error||!data||data.length===0)break
+          termosLetra.push(...data)
+          if(data.length<1000)break
+        }
+        setTermos(termosLetra)
         setQuestoesBusca([])
         setFlashBusca([])
       } else {
