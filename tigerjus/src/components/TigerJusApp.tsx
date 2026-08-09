@@ -866,6 +866,89 @@ function DashHome({ profile, onNav, onMini, showUpgrade, isPago, canAccessPremiu
   )
 }
 
+// ────────────────────────────────────────────────────────────────────
+// QUIZ — embaralhamento correto + cobertura do banco sem repetir
+// ────────────────────────────────────────────────────────────────────
+// Embaralhamento REAL (Fisher-Yates). O antigo `.sort(()=>Math.random()-0.5)`
+// é viciado no V8/Chrome e fazia cair quase sempre as mesmas questões.
+function embaralhar<T>(arr:T[]):T[]{
+  const a=[...arr]
+  for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}
+  return a
+}
+
+// Busca TODOS os ids do escopo driblando o teto de 1000 linhas do PostgREST
+// (com 1.026+ questões, "Todas as disciplinas" nunca via 26 delas).
+async function fetchIdsQuestoes(discs:string[]|null):Promise<string[]>{
+  const ids:string[]=[]
+  const passo=1000
+  for(let inicio=0;;inicio+=passo){
+    let q=supabase.from('questoes_publicas').select('id').range(inicio,inicio+passo-1)
+    if(discs&&discs.length)q=q.in('disciplina',discs)
+    const{data,error}=await q
+    if(error||!data||data.length===0)break
+    for(const r of data as any[])ids.push(r.id)
+    if(data.length<passo)break
+  }
+  return ids
+}
+
+// Sorteia `qtd` questões priorizando as que o usuário AINDA NÃO VIU.
+// Quando o escopo esgota (viu tudo daquela disciplina), o ciclo reseta
+// sozinho e recomeça. Marca as escolhidas como vistas (não bloqueia).
+// Retorna os ids escolhidos, já embaralhados.
+async function sortearNaoVistas(discs:string[]|null,qtd:number):Promise<string[]>{
+  const pool=await fetchIdsQuestoes(discs)
+  if(pool.length===0)return []
+  const poolSet=new Set(pool)
+
+  let userId:string|null=null
+  try{ const{data:{user}}=await supabase.auth.getUser(); userId=user?.id||null }catch{ userId=null }
+
+  // vistas do usuário que pertencem a este escopo
+  const vistas=new Set<string>()
+  if(userId){
+    try{
+      for(let inicio=0;;inicio+=1000){
+        const{data,error}=await supabase.from('quiz_questoes_vistas').select('questao_id').eq('user_id',userId).range(inicio,inicio+999)
+        if(error||!data||data.length===0)break
+        for(const r of data as any[]){ if(poolSet.has(r.questao_id))vistas.add(r.questao_id) }
+        if(data.length<1000)break
+      }
+    }catch{/* sem memória de vistas: cai no fluxo aleatório normal */}
+  }
+
+  let naoVistas=pool.filter(id=>!vistas.has(id))
+
+  // ciclo esgotado → reseta as vistas DESTE escopo e recomeça do zero
+  if(naoVistas.length===0){
+    if(userId&&vistas.size){
+      try{
+        const ids=[...vistas]
+        for(let i=0;i<ids.length;i+=500){
+          await supabase.from('quiz_questoes_vistas').delete().eq('user_id',userId).in('questao_id',ids.slice(i,i+500))
+        }
+      }catch{/* silencioso */}
+    }
+    naoVistas=pool
+  }
+
+  const escolhidas=embaralhar(naoVistas).slice(0,qtd)
+
+  // marca como vistas em segundo plano (se falhar, o quiz roda igual)
+  if(userId&&escolhidas.length){
+    const uid=userId
+    ;(async()=>{
+      try{
+        const rows=escolhidas.map(qid=>({user_id:uid,questao_id:qid}))
+        await supabase.from('quiz_questoes_vistas').upsert(rows,{onConflict:'user_id,questao_id',ignoreDuplicates:true})
+      }catch{/* silencioso */}
+    })()
+  }
+
+  return escolhidas
+}
+
 function QuizPage({ freeQ, setFreeQ, showUpgrade, onXp, profile, isPago }: any) {
   const totalQuestoes = useTotalQuestoes()
   const [disciplina,setDisciplina]=useState('')
@@ -880,7 +963,7 @@ function QuizPage({ freeQ, setFreeQ, showUpgrade, onXp, profile, isPago }: any) 
   const [done,setDone]=useState(false)
   const [time,setTime]=useState(60)
   const [checking,setChecking]=useState(false)
-  const MODO_QTD:Record<string,number>={'Fácil':20,'Médio':40,'Difícil':60}
+  const MODO_QTD:Record<string,number>={'Fácil':30,'Médio':60,'Difícil':80}
   const MODO_TEMPO:Record<string,number>={'Fácil':60,'Médio':90,'Difícil':120}
   const modosLib=getQuizModes(profile?.plano,profile?.role)
   const temCota=Number.isFinite(freeQ)
@@ -894,13 +977,22 @@ function QuizPage({ freeQ, setFreeQ, showUpgrade, onXp, profile, isPago }: any) 
 
   const startQuiz=async()=>{
     setLoadingQ(true)
-    let query=supabase.from('questoes_publicas').select('id,disciplina,enunciado,opcao_a,opcao_b,opcao_c,opcao_d')
-    if(disciplina){const card=DISC_MAP[disciplina]||disciplina;query=query.in('disciplina',PDF_DISC_MAP[card]||[card])}
-    const{data,error}=await query
-    if(error||!data||data.length===0){setLoadingQ(false);alert('Nenhuma questão encontrada.');return}
-    const shuffled=[...data].sort(()=>Math.random()-0.5).slice(0,MODO_QTD[modo])
-    setQuestions(shuffled.map((q:any)=>({id:q.id,disc:q.disciplina,q:q.enunciado,opts:[q.opcao_a,q.opcao_b,q.opcao_c,q.opcao_d],correct:null,exp:''})))
-    setLoadingQ(false);setStarted(true);setCur(0);setSel(null);setAnswered(false);setScore(0);setDone(false);setTime(shuffled.length*MODO_TEMPO[modo])
+    try{
+      let discs:string[]|null=null
+      if(disciplina){const card=DISC_MAP[disciplina]||disciplina;discs=PDF_DISC_MAP[card]||[card]}
+      // sorteia priorizando questões ainda NÃO VISTAS (percorre o banco todo)
+      const ids=await sortearNaoVistas(discs,MODO_QTD[modo])
+      if(ids.length===0){setLoadingQ(false);alert('Nenhuma questão encontrada.');return}
+      const{data,error}=await supabase.from('questoes_publicas').select('id,disciplina,enunciado,opcao_a,opcao_b,opcao_c,opcao_d').in('id',ids)
+      if(error||!data||data.length===0){setLoadingQ(false);alert('Nenhuma questão encontrada.');return}
+      // o .in devolve na ordem do banco → reordena conforme o sorteio
+      const byId=new Map((data as any[]).map(q=>[q.id,q]))
+      const ordenadas=ids.map(id=>byId.get(id)).filter(Boolean)
+      setQuestions(ordenadas.map((q:any)=>({id:q.id,disc:q.disciplina,q:q.enunciado,opts:[q.opcao_a,q.opcao_b,q.opcao_c,q.opcao_d],correct:null,exp:''})))
+      setLoadingQ(false);setStarted(true);setCur(0);setSel(null);setAnswered(false);setScore(0);setDone(false);setTime(ordenadas.length*MODO_TEMPO[modo])
+    }catch{
+      setLoadingQ(false);alert('Nenhuma questão encontrada.')
+    }
   }
 
   // Valida a resposta no servidor. i=null => tempo esgotou (revela sem pontuar).
@@ -1457,6 +1549,7 @@ function QuizDisciplina({disciplina,freeQ,setFreeQ,showUpgrade,onXp}:{disciplina
   const [checking,setChecking]=useState(false)
   const fetchingRef=useRef(false)
   const cacheRef=useRef<Map<string,any[]>>(new Map())
+  const [reloadKey,setReloadKey]=useState(0)
 
   useEffect(()=>{
     setStarted(false);setDone(false);setScore(0);setCur(0);setSel(null);setAnswered(false);setErro(false)
@@ -1467,17 +1560,24 @@ function QuizDisciplina({disciplina,freeQ,setFreeQ,showUpgrade,onXp}:{disciplina
     const carregar=async()=>{
       try{
         const discs=PDF_DISC_MAP[disciplina]||[disciplina]
-        const res=await supabase.from('questoes_publicas').select('id,disciplina,enunciado,opcao_a,opcao_b,opcao_c,opcao_d').in('disciplina',discs)
-        let data:any[]=res.data||[];let error:any=res.error
-        if(error){setErro(true);return}
-        const shuffled=[...data].sort(()=>Math.random()-0.5).slice(0,20)
-        const formatted=shuffled.map((q:any)=>({id:q.id,disc:q.disciplina,q:q.enunciado,opts:[q.opcao_a,q.opcao_b,q.opcao_c,q.opcao_d],correct:null,exp:''}))
+        // sorteia 20 priorizando questões ainda NÃO VISTAS desta disciplina
+        const ids=await sortearNaoVistas(discs,20)
+        if(ids.length===0){setQuestions([]);return}
+        const res=await supabase.from('questoes_publicas').select('id,disciplina,enunciado,opcao_a,opcao_b,opcao_c,opcao_d').in('id',ids)
+        if(res.error){setErro(true);return}
+        const data:any[]=res.data||[]
+        const byId=new Map(data.map((q:any)=>[q.id,q]))
+        const ordenadas=ids.map(id=>byId.get(id)).filter(Boolean)
+        const formatted=ordenadas.map((q:any)=>({id:q.id,disc:q.disciplina,q:q.enunciado,opts:[q.opcao_a,q.opcao_b,q.opcao_c,q.opcao_d],correct:null,exp:''}))
         cacheRef.current.set(disciplina,formatted);setQuestions(formatted)
       }catch{setErro(true)}
       finally{setLoading(false);fetchingRef.current=false}
     }
     carregar()
-  },[disciplina])
+  },[disciplina,reloadKey])
+
+  // Força um novo lote de questões NÃO VISTAS (usado no "NOVO QUIZ" e no retry)
+  const recarregar=()=>{cacheRef.current.delete(disciplina);fetchingRef.current=false;setReloadKey(k=>k+1)}
 
   const abaOculta=useAbaOculta()
   useEffect(()=>{
@@ -1523,7 +1623,7 @@ function QuizDisciplina({disciplina,freeQ,setFreeQ,showUpgrade,onXp}:{disciplina
   const next=()=>{if(cur+1>=questions.length){setDone(true);onXp&&onXp('quiz_complete');return}setCur(p=>p+1);setSel(null);setAnswered(false);setTime(90)}
 
   if(loading) return(<div style={{padding:'40px 0',textAlign:'center'}}><div style={{fontSize:36,marginBottom:12}}>⏳</div><div style={{fontSize:13,color:'var(--text-muted)'}}>Carregando questões de <strong style={{color:'var(--gold)'}}>{disciplina}</strong>...</div></div>)
-  if(erro) return(<div style={{padding:'40px 0',textAlign:'center'}}><div style={{fontSize:36,marginBottom:12}}>⚠️</div><div style={{fontSize:14,fontWeight:700,marginBottom:8}}>Não foi possível carregar.</div><button className="btn-secondary" style={{fontSize:12}} onClick={()=>{cacheRef.current.delete(disciplina);fetchingRef.current=false;setErro(false);setLoading(true)}}>🔄 Tentar novamente</button></div>)
+  if(erro) return(<div style={{padding:'40px 0',textAlign:'center'}}><div style={{fontSize:36,marginBottom:12}}>⚠️</div><div style={{fontSize:14,fontWeight:700,marginBottom:8}}>Não foi possível carregar.</div><button className="btn-secondary" style={{fontSize:12}} onClick={recarregar}>🔄 Tentar novamente</button></div>)
   if(questions.length===0) return(<div style={{padding:'40px 0',textAlign:'center'}}><div style={{fontSize:40,marginBottom:12}}>📝</div><div style={{fontSize:14,fontWeight:700,marginBottom:8}}>Nenhuma questão disponível</div><div style={{fontSize:12,color:'var(--text-muted)'}}>As questões de <strong style={{color:'var(--gold)'}}>{disciplina}</strong> estão sendo preparadas.</div></div>)
 
   if(!started) return(
@@ -1540,7 +1640,7 @@ function QuizDisciplina({disciplina,freeQ,setFreeQ,showUpgrade,onXp}:{disciplina
 
   if(done){
     const rate=Math.round((score/questions.length)*100);const aprovado=score>=Math.ceil(questions.length*0.5)
-    return(<div style={{maxWidth:560,textAlign:'center'}}><div style={{fontSize:54,marginBottom:16}}>{aprovado?'🏆':rate>=50?'📝':'💪'}</div><h2 style={{fontFamily:'var(--font-display)',fontSize:26,fontWeight:900,marginBottom:8}}>Quiz Concluído!</h2><p style={{fontSize:13,color:'var(--text-muted)',marginBottom:20}}>{score} de {questions.length} corretas · {disciplina}</p><div style={{background:aprovado?'rgba(76,175,125,0.1)':'rgba(232,98,26,0.1)',border:`1px solid ${aprovado?'var(--success)':'var(--orange)'}`,borderRadius:14,padding:16,marginBottom:20}}><div style={{fontSize:16,fontWeight:900,color:aprovado?'var(--success)':'var(--orange)',marginBottom:4}}>{aprovado?'✅ Na média OAB!':'❌ Abaixo da média OAB'}</div><div style={{fontSize:12,color:'var(--text-muted)'}}>{aprovado?`${rate}% de acerto.`:`Precisava de ${Math.ceil(questions.length*0.5)} acertos.`}</div></div><button className="btn-primary" style={{width:'100%'}} onClick={()=>{cacheRef.current.delete(disciplina);fetchingRef.current=false;setStarted(false);setDone(false);setScore(0);setCur(0);setSel(null);setAnswered(false);setLoading(true)}}>🔄 NOVO QUIZ</button></div>)
+    return(<div style={{maxWidth:560,textAlign:'center'}}><div style={{fontSize:54,marginBottom:16}}>{aprovado?'🏆':rate>=50?'📝':'💪'}</div><h2 style={{fontFamily:'var(--font-display)',fontSize:26,fontWeight:900,marginBottom:8}}>Quiz Concluído!</h2><p style={{fontSize:13,color:'var(--text-muted)',marginBottom:20}}>{score} de {questions.length} corretas · {disciplina}</p><div style={{background:aprovado?'rgba(76,175,125,0.1)':'rgba(232,98,26,0.1)',border:`1px solid ${aprovado?'var(--success)':'var(--orange)'}`,borderRadius:14,padding:16,marginBottom:20}}><div style={{fontSize:16,fontWeight:900,color:aprovado?'var(--success)':'var(--orange)',marginBottom:4}}>{aprovado?'✅ Na média OAB!':'❌ Abaixo da média OAB'}</div><div style={{fontSize:12,color:'var(--text-muted)'}}>{aprovado?`${rate}% de acerto.`:`Precisava de ${Math.ceil(questions.length*0.5)} acertos.`}</div></div><button className="btn-primary" style={{width:'100%'}} onClick={recarregar}>🔄 NOVO QUIZ</button></div>)
   }
 
   const q=questions[cur];const pct=Math.round(((cur+(answered?1:0))/questions.length)*100)
