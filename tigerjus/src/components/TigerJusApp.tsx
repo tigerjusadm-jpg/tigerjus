@@ -876,6 +876,28 @@ function DashHome({ profile, onNav, onMini, showUpgrade, isPago, canAccessPremiu
 // ────────────────────────────────────────────────────────────────────
 // QUIZ — embaralhamento correto + cobertura do banco sem repetir
 // ────────────────────────────────────────────────────────────────────
+// ────────────────────────────────────────────────────────────────────
+// Persistência de quiz em andamento (sobrevive a queda de energia/conexão,
+// fechar o app ou dar reload). Guarda no localStorage do próprio aparelho —
+// não depende de internet pra restaurar. Uma chave por tipo de quiz.
+// ────────────────────────────────────────────────────────────────────
+function salvarProgresso(chave:string,estado:any){
+  try{ if(typeof window!=='undefined')window.localStorage.setItem(chave,JSON.stringify({...estado,_ts:Date.now()})) }catch{}
+}
+function lerProgresso(chave:string,maxAgeMs=24*60*60*1000):any{
+  try{
+    if(typeof window==='undefined')return null
+    const s=window.localStorage.getItem(chave); if(!s)return null
+    const obj=JSON.parse(s)
+    // expira sozinho (padrão 24h) pra não ressuscitar quiz de dias atrás
+    if(obj&&obj._ts&&Date.now()-obj._ts>maxAgeMs){window.localStorage.removeItem(chave);return null}
+    return obj
+  }catch{ return null }
+}
+function limparProgresso(chave:string){
+  try{ if(typeof window!=='undefined')window.localStorage.removeItem(chave) }catch{}
+}
+
 // Embaralhamento REAL (Fisher-Yates). O antigo `.sort(()=>Math.random()-0.5)`
 // é viciado no V8/Chrome e fazia cair quase sempre as mesmas questões.
 function embaralhar<T>(arr:T[]):T[]{
@@ -988,10 +1010,33 @@ function QuizPage({ freeQ, setFreeQ, showUpgrade, onXp, profile, isPago }: any) 
   const [done,setDone]=useState(false)
   const [time,setTime]=useState(60)
   const [checking,setChecking]=useState(false)
+  const [emAndamento,setEmAndamento]=useState<any>(null)
+  const CHAVE_QUIZ='tj-quiz-progress:'+(profile?.id||'anon')
   const MODO_QTD:Record<string,number>={'Fácil':30,'Médio':60,'Difícil':80}
   const MODO_TEMPO:Record<string,number>={'Fácil':60,'Médio':90,'Difícil':120}
   const modosLib=getQuizModes(profile?.plano,profile?.role)
   const temCota=Number.isFinite(freeQ)
+
+  // Ao abrir a tela: existe um quiz salvo pra retomar?
+  useEffect(()=>{
+    const s=lerProgresso(CHAVE_QUIZ)
+    if(s&&Array.isArray(s.questions)&&s.questions.length&&!s.done&&s.cur<s.questions.length)setEmAndamento(s)
+  },[])
+
+  // Salva o progresso a cada mudança (inclui o cronômetro, 1x/seg). Limpa ao concluir.
+  useEffect(()=>{
+    if(!started)return
+    if(done||questions.length===0){limparProgresso(CHAVE_QUIZ);return}
+    salvarProgresso(CHAVE_QUIZ,{disciplina,modo,questions,cur,sel:answered?sel:null,answered,score,time,done:false})
+  },[started,done,questions,cur,sel,answered,score,time,disciplina,modo])
+
+  const retomar=()=>{
+    const s=emAndamento;if(!s)return
+    setDisciplina(s.disciplina||'');setModo(s.modo||'Fácil')
+    setQuestions(s.questions);setCur(s.cur||0);setSel(s.answered?(s.sel??null):null);setAnswered(!!s.answered);setScore(s.score||0);setTime(s.time||0)
+    setDone(false);setStarted(true);setEmAndamento(null)
+  }
+  const descartar=()=>{limparProgresso(CHAVE_QUIZ);setEmAndamento(null)}
 
   const abaOculta=useAbaOculta()
   useEffect(()=>{
@@ -1002,6 +1047,7 @@ function QuizPage({ freeQ, setFreeQ, showUpgrade, onXp, profile, isPago }: any) 
 
   const startQuiz=async()=>{
     setLoadingQ(true)
+    setEmAndamento(null)
     try{
       let discs:string[]|null=null
       if(disciplina){const card=DISC_MAP[disciplina]||disciplina;discs=PDF_DISC_MAP[card]||[card]}
@@ -1054,6 +1100,14 @@ function QuizPage({ freeQ, setFreeQ, showUpgrade, onXp, profile, isPago }: any) 
       <p style={{fontSize:14,color:'var(--text-muted)',marginBottom:6}}>Questões reais das provas oficiais da OAB/FGV.</p>
       <div style={{display:'inline-flex',alignItems:'center',gap:6,background:'rgba(212,168,67,0.08)',border:'1px solid rgba(212,168,67,0.2)',borderRadius:100,padding:'5px 12px',fontSize:11,color:'var(--gold)',marginBottom:24}}>📋 {totalQuestoes !== null ? totalQuestoes.toLocaleString('pt-BR') : '…'} questões reais no banco</div>
       {temCota&&<div style={{background:'rgba(212,168,67,0.06)',border:'1px solid rgba(212,168,67,0.15)',borderRadius:12,padding:'12px 16px',marginBottom:20,fontSize:13,color:'var(--gold)'}}>⚡ <strong>{freeQ} questões restantes hoje</strong>. {isPago?'Suba para o Pro e tenha questões ilimitadas.':'Faça upgrade para mais questões por dia.'}</div>}
+      {emAndamento&&<div style={{maxWidth:560,background:'rgba(212,168,67,0.1)',border:'1px solid rgba(212,168,67,0.4)',borderRadius:16,padding:'16px 18px',marginBottom:20}}>
+        <div style={{fontSize:14,fontWeight:800,color:'var(--gold)',marginBottom:4}}>⏸️ Quiz em andamento</div>
+        <div style={{fontSize:13,color:'var(--text-muted)',marginBottom:12}}>Modo {emAndamento.modo}{emAndamento.disciplina?` · ${emAndamento.disciplina}`:''} · você parou na questão {(emAndamento.cur||0)+1} de {emAndamento.questions.length}.</div>
+        <div style={{display:'flex',gap:10}}>
+          <button className="btn-primary" style={{flex:1}} onClick={retomar}>▶️ Continuar de onde parei</button>
+          <button className="btn-secondary" style={{flex:1}} onClick={descartar}>Descartar</button>
+        </div>
+      </div>}
       <div style={{maxWidth:560,background:'var(--gray)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:20,padding:'24px'}}>
         <div style={{marginBottom:20}}>
           <label style={{fontSize:11,fontWeight:700,letterSpacing:'1.5px',textTransform:'uppercase',color:'var(--text-muted)',display:'block',marginBottom:10}}>Disciplina (opcional)</label>
@@ -1452,7 +1506,7 @@ function DisciplinesPage({ showUpgrade, profile, isPago, canAccessPremium, podeP
       </div>
       {subTab==='leiseca'&&<LeisecaSection disc={selected} onNav={navTab} canMemorizacao={canMemorizacao} showUpgrade={showUpgrade}/>}
       {subTab==='resumo'&&<ResumoSection disc={selected} onNav={navTab} resumoTier={resumoTier} showUpgrade={showUpgrade}/>}
-      {subTab==='quiz'&&<QuizDisciplina disciplina={selected.name} freeQ={freeQ} setFreeQ={setFreeQ} showUpgrade={showUpgrade} onXp={onXp}/>}
+      {subTab==='quiz'&&<QuizDisciplina disciplina={selected.name} freeQ={freeQ} setFreeQ={setFreeQ} showUpgrade={showUpgrade} onXp={onXp} profile={profile}/>}
       {subTab==='flash'&&(isPago?<FlashCards disciplina={selected.name}/>:(
         <div style={{background:'var(--gray)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:20,padding:40,textAlign:'center'}}>
           <div style={{fontSize:44,marginBottom:14}}>🔒</div>
@@ -1560,7 +1614,7 @@ function FlashCardsPage({ isPago, showUpgrade }: any){
   )
 }
 
-function QuizDisciplina({disciplina,freeQ,setFreeQ,showUpgrade,onXp}:{disciplina:string;freeQ?:any;setFreeQ?:any;showUpgrade?:()=>void;onXp?:(a:string)=>void}){
+function QuizDisciplina({disciplina,freeQ,setFreeQ,showUpgrade,onXp,profile}:{disciplina:string;freeQ?:any;setFreeQ?:any;showUpgrade?:()=>void;onXp?:(a:string)=>void;profile?:any}){
   const [questions,setQuestions]=useState<any[]>([])
   const [loading,setLoading]=useState(true)
   const [erro,setErro]=useState(false)
@@ -1575,6 +1629,15 @@ function QuizDisciplina({disciplina,freeQ,setFreeQ,showUpgrade,onXp}:{disciplina
   const fetchingRef=useRef(false)
   const cacheRef=useRef<Map<string,any[]>>(new Map())
   const [reloadKey,setReloadKey]=useState(0)
+  const [emAndamento,setEmAndamento]=useState<any>(null)
+  const CHAVE_DISC='tj-quizdisc-'+(profile?.id||'anon')+'-'+disciplina
+
+  // Existe um quiz salvo desta disciplina pra retomar?
+  useEffect(()=>{
+    const s=lerProgresso(CHAVE_DISC)
+    if(s&&Array.isArray(s.questions)&&s.questions.length&&!s.done&&s.cur<s.questions.length)setEmAndamento(s);else setEmAndamento(null)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[disciplina])
 
   useEffect(()=>{
     setStarted(false);setDone(false);setScore(0);setCur(0);setSel(null);setAnswered(false);setErro(false)
@@ -1602,7 +1665,22 @@ function QuizDisciplina({disciplina,freeQ,setFreeQ,showUpgrade,onXp}:{disciplina
   },[disciplina,reloadKey])
 
   // Força um novo lote de questões NÃO VISTAS (usado no "NOVO QUIZ" e no retry)
-  const recarregar=()=>{cacheRef.current.delete(disciplina);fetchingRef.current=false;setReloadKey(k=>k+1)}
+  const recarregar=()=>{limparProgresso(CHAVE_DISC);setEmAndamento(null);cacheRef.current.delete(disciplina);fetchingRef.current=false;setReloadKey(k=>k+1)}
+
+  // Salva o progresso deste quiz (por disciplina). Limpa ao concluir.
+  useEffect(()=>{
+    if(!started)return
+    if(done||questions.length===0){limparProgresso(CHAVE_DISC);return}
+    salvarProgresso(CHAVE_DISC,{disciplina,questions,cur,sel:answered?sel:null,answered,score,time,done:false})
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[started,done,questions,cur,sel,answered,score,time])
+
+  const retomar=()=>{
+    const s=emAndamento;if(!s)return
+    setQuestions(s.questions);setCur(s.cur||0);setSel(s.answered?(s.sel??null):null);setAnswered(!!s.answered);setScore(s.score||0);setTime(typeof s.time==='number'?s.time:90)
+    setDone(false);setStarted(true);setEmAndamento(null)
+  }
+  const descartarProg=()=>{limparProgresso(CHAVE_DISC);setEmAndamento(null)}
 
   const abaOculta=useAbaOculta()
   useEffect(()=>{
@@ -1658,6 +1736,14 @@ function QuizDisciplina({disciplina,freeQ,setFreeQ,showUpgrade,onXp}:{disciplina
         <div style={{fontSize:28,fontWeight:900,fontFamily:'var(--font-display)',marginBottom:8}}>{questions.length} questões</div>
         <div style={{fontSize:13,color:'var(--text-muted)',marginBottom:24,lineHeight:1.6}}>Questões reais da OAB de <strong style={{color:'var(--gold)'}}>{disciplina}</strong>. 90 segundos por questão.</div>
         {Number.isFinite(freeQ)&&<div style={{background:'rgba(212,168,67,0.06)',border:'1px solid rgba(212,168,67,0.15)',borderRadius:10,padding:'10px 14px',marginBottom:16,fontSize:12,color:'var(--gold)'}}>⚡ <strong>{freeQ} questões restantes hoje</strong></div>}
+        {emAndamento&&<div style={{background:'rgba(212,168,67,0.1)',border:'1px solid rgba(212,168,67,0.4)',borderRadius:12,padding:'14px 16px',marginBottom:16}}>
+          <div style={{fontSize:13,fontWeight:800,color:'var(--gold)',marginBottom:4}}>⏸️ Quiz em andamento</div>
+          <div style={{fontSize:12,color:'var(--text-muted)',marginBottom:10}}>Você parou na questão {(emAndamento.cur||0)+1} de {emAndamento.questions.length}.</div>
+          <div style={{display:'flex',gap:8}}>
+            <button className="btn-primary" style={{flex:1,fontSize:13,padding:12}} onClick={retomar}>▶️ Continuar</button>
+            <button className="btn-secondary" style={{flex:1,fontSize:13,padding:12}} onClick={descartarProg}>Descartar</button>
+          </div>
+        </div>}
         <button className="btn-primary" style={{width:'100%',fontSize:14,padding:14}} onClick={()=>{setStarted(true);setTime(90)}}>INICIAR QUIZ →</button>
       </div>
     </div>
@@ -1706,6 +1792,12 @@ function RadarTop20({ onBack, podePDF, freeQ, setFreeQ, showUpgrade, onXp }: { o
   const [checking,setChecking]=useState(false)
   const [pdfLoad,setPdfLoad]=useState(false)
   const fetchingRef=useRef(false)
+  const [emAndamento,setEmAndamento]=useState<any>(null)
+  const CHAVE_RADAR='tj-radar-progress'
+  useEffect(()=>{
+    const s=lerProgresso(CHAVE_RADAR)
+    if(s&&Array.isArray(s.questions)&&s.questions.length&&!s.done&&s.cur<s.questions.length)setEmAndamento(s)
+  },[])
 
   useEffect(()=>{
     if(Object.keys(discCounts).length===0)return
@@ -1776,6 +1868,20 @@ function RadarTop20({ onBack, podePDF, freeQ, setFreeQ, showUpgrade, onXp }: { o
   const pick=(i:number)=>{responder(i)}
   const next=()=>{if(cur+1>=questions.length){setDone(true);onXp&&onXp('quiz_complete');return}setCur(p=>p+1);setSel(null);setAnswered(false);setTime(90)}
 
+  // Salva o progresso do treino do Radar. Limpa ao concluir.
+  useEffect(()=>{
+    if(!started)return
+    if(done||questions.length===0){limparProgresso(CHAVE_RADAR);return}
+    salvarProgresso(CHAVE_RADAR,{questions,cur,sel:answered?sel:null,answered,score,time,done:false})
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[started,done,questions,cur,sel,answered,score,time])
+  const retomarRadar=()=>{
+    const s=emAndamento;if(!s)return
+    setQuestions(s.questions);setCur(s.cur||0);setSel(s.answered?(s.sel??null):null);setAnswered(!!s.answered);setScore(s.score||0);setTime(typeof s.time==='number'?s.time:90)
+    setDone(false);setStarted(true);setEmAndamento(null)
+  }
+  const descartarRadar=()=>{limparProgresso(CHAVE_RADAR);setEmAndamento(null)}
+
   const baixarPDFTop=async()=>{
     if(pdfLoad||questions.length===0)return
     setPdfLoad(true)
@@ -1802,6 +1908,14 @@ function RadarTop20({ onBack, podePDF, freeQ, setFreeQ, showUpgrade, onXp }: { o
         <div style={{fontSize:10,fontWeight:700,letterSpacing:'2px',textTransform:'uppercase',color:'var(--gold)',marginBottom:12}}>🎯 TOP 40 DO RADAR</div>
         <div style={{fontSize:'clamp(22px,5vw,28px)',fontWeight:900,fontFamily:'var(--font-display)',marginBottom:8}}>{questions.length} questões de maior rendimento</div>
         <div style={{fontSize:13,color:'var(--text-muted)',marginBottom:24,lineHeight:1.6}}>Questões reais da OAB, concentradas nas matérias que mais <strong style={{color:'var(--gold)'}}>dominam</strong> o exame. 90 segundos por questão.</div>
+        {emAndamento&&<div style={{background:'rgba(212,168,67,0.1)',border:'1px solid rgba(212,168,67,0.4)',borderRadius:12,padding:'14px 16px',marginBottom:16}}>
+          <div style={{fontSize:13,fontWeight:800,color:'var(--gold)',marginBottom:4}}>⏸️ Treino em andamento</div>
+          <div style={{fontSize:12,color:'var(--text-muted)',marginBottom:10}}>Você parou na questão {(emAndamento.cur||0)+1} de {emAndamento.questions.length}.</div>
+          <div style={{display:'flex',gap:8}}>
+            <button className="btn-primary" style={{flex:1,fontSize:13,padding:12}} onClick={retomarRadar}>▶️ Continuar</button>
+            <button className="btn-secondary" style={{flex:1,fontSize:13,padding:12}} onClick={descartarRadar}>Descartar</button>
+          </div>
+        </div>}
         <button className="btn-primary" style={{width:'100%',fontSize:14,padding:14}} onClick={()=>{setStarted(true);setTime(90)}}>INICIAR TREINO →</button>
         {podePDF && <button onClick={baixarPDFTop} disabled={pdfLoad} style={{width:'100%',marginTop:10,padding:12,borderRadius:12,border:'1px solid rgba(212,168,67,0.4)',background:'transparent',color:'var(--gold)',fontSize:13,fontWeight:700,cursor:pdfLoad?'wait':'pointer',fontFamily:'var(--font-body)'}}>{pdfLoad?'⏳ Gerando PDF…':'📄 Baixar as 40 em PDF'}</button>}
       </div>
