@@ -1013,7 +1013,7 @@ function QuizPage({ freeQ, setFreeQ, showUpgrade, onXp, profile, isPago }: any) 
   const [emAndamento,setEmAndamento]=useState<any>(null)
   const CHAVE_QUIZ='tj-quiz-progress:'+(profile?.id||'anon')
   const MODO_QTD:Record<string,number>={'Fácil':30,'Médio':60,'Difícil':80}
-  const MODO_TEMPO:Record<string,number>={'Fácil':60,'Médio':90,'Difícil':120}
+  const MODO_TEMPO:Record<string,number>={'Fácil':180,'Médio':180,'Difícil':180}
   const modosLib=getQuizModes(profile?.plano,profile?.role)
   const temCota=Number.isFinite(freeQ)
 
@@ -1117,14 +1117,14 @@ function QuizPage({ freeQ, setFreeQ, showUpgrade, onXp, profile, isPago }: any) 
           </select>
         </div>
         <div style={{marginBottom:28}}>
-          <label style={{fontSize:11,fontWeight:700,letterSpacing:'1.5px',textTransform:'uppercase',color:'var(--text-muted)',display:'block',marginBottom:10}}>Modo — <span style={{color:'var(--gold)'}}>{modo} ({MODO_QTD[modo]} questões · {MODO_TEMPO[modo]}s/questão)</span></label>
+          <label style={{fontSize:11,fontWeight:700,letterSpacing:'1.5px',textTransform:'uppercase',color:'var(--text-muted)',display:'block',marginBottom:10}}>Modo — <span style={{color:'var(--gold)'}}>{modo} ({MODO_QTD[modo]} questões · {Math.round(MODO_QTD[modo]*MODO_TEMPO[modo]/60)} min · {Math.round(MODO_TEMPO[modo]/60)} min/questão)</span></label>
           <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:8}}>
             {(['Fácil','Médio','Difícil'] as const).map(m=>{
               const bloqueado=!modosLib.includes(m)
               return(
               <button key={m} onClick={()=>{if(bloqueado){showUpgrade();return}setModo(m)}} style={{padding:'12px 8px',borderRadius:10,border:modo===m?'1px solid rgba(212,168,67,0.5)':'1px solid rgba(255,255,255,0.08)',background:modo===m?'rgba(212,168,67,0.1)':'transparent',color:modo===m?'var(--gold)':bloqueado?'var(--text-dim)':'var(--text-muted)',fontSize:12,fontWeight:700,cursor:'pointer',fontFamily:'var(--font-body)',textAlign:'center'}}>
                 <div>{m} {bloqueado&&'🔒'}</div>
-                <div style={{fontSize:10,marginTop:3,opacity:0.7}}>{MODO_QTD[m]}q · {MODO_TEMPO[m]}s/q</div>
+                <div style={{fontSize:10,marginTop:3,opacity:0.7}}>{MODO_QTD[m]}q · {Math.round(MODO_QTD[m]*MODO_TEMPO[m]/60)}min</div>
               </button>
             )})}
           </div>
