@@ -1039,9 +1039,21 @@ function QuizPage({ freeQ, setFreeQ, showUpgrade, onXp, profile, isPago }: any) 
   const descartar=()=>{limparProgresso(CHAVE_QUIZ);setEmAndamento(null)}
 
   const abaOculta=useAbaOculta()
+  const prazoRef=useRef<number>(0)
+  const tempoRef=useRef<number>(time)
+  tempoRef.current=time
   useEffect(()=>{
     if(!started||done||abaOculta)return
-    const t=setInterval(()=>setTime(p=>{if(p<=1){clearInterval(t);setDone(true);return 0}return p-1}),1000)
+    // Relógio de parede: o tempo restante vem da diferença de horário REAL (Date.now),
+    // não da soma de "tiques". Travadas de render/scroll não "comem" segundos; ao voltar
+    // de uma pausa (aba oculta) o prazo é reancorado a partir do tempo que restava.
+    prazoRef.current=Date.now()+tempoRef.current*1000
+    const t=setInterval(()=>{
+      const restante=Math.max(0,Math.ceil((prazoRef.current-Date.now())/1000))
+      setTime(restante)
+      if(restante<=0){clearInterval(t);setDone(true)}
+    },250)
+    setTime(Math.max(0,Math.ceil((prazoRef.current-Date.now())/1000)))
     return()=>clearInterval(t)
   },[started,done,abaOculta])
 
@@ -1683,9 +1695,21 @@ function QuizDisciplina({disciplina,freeQ,setFreeQ,showUpgrade,onXp,profile}:{di
   const descartarProg=()=>{limparProgresso(CHAVE_DISC);setEmAndamento(null)}
 
   const abaOculta=useAbaOculta()
+  const prazoRef=useRef<number>(0)
+  const tempoRef=useRef<number>(time)
+  tempoRef.current=time
   useEffect(()=>{
     if(!started||answered||done||abaOculta)return
-    const t=setInterval(()=>setTime(p=>{if(p<=1){clearInterval(t);responder(null);return 0}return p-1}),1000)
+    // Relógio de parede: o tempo restante vem da diferença de horário REAL (Date.now),
+    // não da soma de "tiques". Travadas de render/scroll não "comem" segundos; ao voltar
+    // de uma pausa (aba oculta) o prazo é reancorado a partir do tempo que restava.
+    prazoRef.current=Date.now()+tempoRef.current*1000
+    const t=setInterval(()=>{
+      const restante=Math.max(0,Math.ceil((prazoRef.current-Date.now())/1000))
+      setTime(restante)
+      if(restante<=0){clearInterval(t);responder(null)}
+    },250)
+    setTime(Math.max(0,Math.ceil((prazoRef.current-Date.now())/1000)))
     return()=>clearInterval(t)
   },[started,answered,done,cur,abaOculta])
 
@@ -1833,9 +1857,21 @@ function RadarTop20({ onBack, podePDF, freeQ, setFreeQ, showUpgrade, onXp }: { o
   },[discCounts])
 
   const abaOculta=useAbaOculta()
+  const prazoRef=useRef<number>(0)
+  const tempoRef=useRef<number>(time)
+  tempoRef.current=time
   useEffect(()=>{
     if(!started||answered||done||abaOculta)return
-    const t=setInterval(()=>setTime(p=>{if(p<=1){clearInterval(t);responder(null);return 0}return p-1}),1000)
+    // Relógio de parede: o tempo restante vem da diferença de horário REAL (Date.now),
+    // não da soma de "tiques". Travadas de render/scroll não "comem" segundos; ao voltar
+    // de uma pausa (aba oculta) o prazo é reancorado a partir do tempo que restava.
+    prazoRef.current=Date.now()+tempoRef.current*1000
+    const t=setInterval(()=>{
+      const restante=Math.max(0,Math.ceil((prazoRef.current-Date.now())/1000))
+      setTime(restante)
+      if(restante<=0){clearInterval(t);responder(null)}
+    },250)
+    setTime(Math.max(0,Math.ceil((prazoRef.current-Date.now())/1000)))
     return()=>clearInterval(t)
   },[started,answered,done,cur,abaOculta])
 
@@ -2138,9 +2174,21 @@ function SimuladosPage({ showUpgrade, freeQ, setFreeQ, onXp, profile, isPago, ca
   },[])
 
   // Pausa o cronômetro quando o usuário sai da aba (hook compartilhado — mesma regra em todos os cronômetros)
+  const prazoRef=useRef<number>(0)
+  const tempoRef=useRef<number>(time)
+  tempoRef.current=time
   useEffect(()=>{
     if(!running||done||abaOculta)return
-    const t=setInterval(()=>setTime(p=>{if(p<=1){clearInterval(t);setDone(true);return 0}return p-1}),1000)
+    // Relógio de parede: o tempo restante vem da diferença de horário REAL (Date.now),
+    // não da soma de "tiques". Travadas de render/scroll não "comem" segundos; ao voltar
+    // de uma pausa (aba oculta) o prazo é reancorado a partir do tempo que restava.
+    prazoRef.current=Date.now()+tempoRef.current*1000
+    const t=setInterval(()=>{
+      const restante=Math.max(0,Math.ceil((prazoRef.current-Date.now())/1000))
+      setTime(restante)
+      if(restante<=0){clearInterval(t);setDone(true)}
+    },250)
+    setTime(Math.max(0,Math.ceil((prazoRef.current-Date.now())/1000)))
     return()=>clearInterval(t)
   },[running,done,abaOculta])
 
