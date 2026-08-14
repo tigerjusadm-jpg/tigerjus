@@ -113,6 +113,11 @@ const DISC_MAP: Record<string, string> = {
   'Eleitoral':'Eleitoral','Financeiro':'Financeiro','Previdenciário':'Previdenciário',
 }
 
+// Reverse: valor cru de questoes_publicas.disciplina (ex.: "Direito Civil") -> nome do card (ex.: "Civil").
+// Usado ao gravar quiz_resultados a partir do Quiz principal e do Simulado, pra bater com os cards da Trilha.
+const _RAW_TO_CARD: Record<string,string> = (()=>{const m:Record<string,string>={};for(const [card,vals] of Object.entries(PDF_DISC_MAP))for(const v of vals)m[v]=card;return m})()
+function cardDaDisciplina(raw:string):string{return _RAW_TO_CARD[raw]||DISC_MAP[raw]||raw}
+
 // ── Contagem REAL de questões por disciplina (1 RPC leve, cacheada) ────────────
 // Usa a RPC contar_questoes_por_disciplina (group by feito no banco), em vez
 // de trazer todas as linhas pro cliente — evita o limite padrão de 1.000
@@ -724,6 +729,21 @@ function DashHome({ profile, onNav, onMini, showUpgrade, isPago, canAccessPremiu
   const discCounts = useDisciplineCounts()
   const { settings: dashSettings } = useAppSettings()
   const [depoOpen, setDepoOpen] = useState(false)
+  // Aproveitamento recente (7 dias): "momento atual", calculado no servidor a partir do xp_historico.
+  const [recente7, setRecente7] = useState<{corretas:number,total:number,taxa:number|null}|null>(null)
+  useEffect(()=>{
+    if(!profile?.id)return
+    let vivo=true
+    ;(async()=>{
+      try{
+        const{data:{session}}=await supabase.auth.getSession()
+        const res=await fetch('/api/stats/me',{headers:{Authorization:`Bearer ${session?.access_token||''}`}})
+        const j=await res.json().catch(()=>null)
+        if(vivo&&res.ok&&j?.recent7)setRecente7(j.recent7)
+      }catch{/* silencioso */}
+    })()
+    return()=>{vivo=false}
+  },[profile?.id,profile?.questoes_respondidas])
   const xp=profile?.xp||0; const _niv=getNivelByXp(xp); const levelName=_niv.nome
   const streak=profile?.streak||0; const xpNext=_niv.xp_max??999999; const xpPrev=_niv.xp_min
   const proxNivel=getNextNivel(xp); const xpFalta=Math.max(0,xpNext-xp)
@@ -787,6 +807,16 @@ function DashHome({ profile, onNav, onMini, showUpgrade, isPago, canAccessPremiu
           </div>
         ))}
       </div>
+      {recente7&&recente7.total>0&&(()=>{const t=recente7.taxa??0;const cor=t>=70?'var(--success)':t>=50?'var(--gold)':'var(--orange)';return(
+        <div style={{display:'flex',alignItems:'center',gap:12,flexWrap:'wrap',background:'var(--gray)',border:'1px solid rgba(255,255,255,0.05)',borderRadius:14,padding:'14px 16px',marginBottom:20}}>
+          <div style={{fontSize:22}}>📈</div>
+          <div style={{flex:1,minWidth:170}}>
+            <div style={{fontSize:10,fontWeight:600,letterSpacing:'1.5px',textTransform:'uppercase',color:'var(--text-muted)',marginBottom:3}}>Aproveitamento recente · 7 dias</div>
+            <div style={{fontSize:13,color:'var(--text-muted)'}}>Seu momento atual — <strong style={{color:cor}}>{recente7.corretas} de {recente7.total}</strong> questões</div>
+          </div>
+          <div style={{fontFamily:'var(--font-display)',fontSize:'clamp(22px,6vw,30px)',fontWeight:900,color:cor}}>{t}%</div>
+        </div>
+      )})()}
       <div style={{marginBottom:20}}><RadarOAB/></div>
       <EvolucaoChart profile={profile}/>
       {(()=>{const pf=profile;const faltando=!(pf?.nome&&pf?.telefone&&pf?.faculdade&&pf?.cidade&&pf?.uf&&pf?.periodo);if(!faltando||pf?.perfil_xp_dado)return null;return(
@@ -1092,7 +1122,12 @@ function QuizPage({ freeQ, setFreeQ, showUpgrade, onXp, profile, isPago }: any) 
       if(res.ok){
         const correctIdx=['A','B','C','D'].indexOf(data.letra_correta)
         setQuestions(prev=>prev.map((qq,idx)=>idx===cur?{...qq,correct:correctIdx,exp:data.comentario||''}:qq))
-        if(i!==null){setFreeQ((p:number)=>p-1);if(data.correto){setScore(p=>p+1);onXp('question_correct')}else onXp('question_wrong')}
+        if(i!==null){
+          setFreeQ((p:number)=>p-1)
+          if(data.correto){setScore(p=>p+1);onXp('question_correct')}else onXp('question_wrong')
+          // Trilhas: grava cada resposta real na hora (por disciplina da questão), sem bloquear o quiz
+          ;(async()=>{try{const{data:{user}}=await supabase.auth.getUser();if(user)await supabase.from('quiz_resultados').insert({user_id:user.id,disciplina:cardDaDisciplina(questions[cur].disc),acertos:data.correto?1:0,total:1})}catch{/* silencioso */}})()
+        }
         setAnswered(true)
       }else if(i!==null){setSel(null)}
       else setAnswered(true)
@@ -2206,6 +2241,8 @@ function SimuladosPage({ showUpgrade, freeQ, setFreeQ, onXp, profile, isPago, ca
         setAnswered(true)
         if(!isPago)setFreeQ((p:number)=>p-1)
         if(data.correto){setScore(p=>p+1);onXp('question_correct')}else onXp('question_wrong')
+        // Trilhas: grava a resposta do simulado por disciplina, sem bloquear
+        ;(async()=>{try{const{data:{user}}=await supabase.auth.getUser();if(user)await supabase.from('quiz_resultados').insert({user_id:user.id,disciplina:cardDaDisciplina(selectedSimulado.questions[cur].disc),acertos:data.correto?1:0,total:1})}catch{/* silencioso */}})()
       }else setSel(null)
     }catch{setSel(null)}
     finally{setChecking(false)}
