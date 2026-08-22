@@ -3574,7 +3574,7 @@ export default function TigerJusApp() {
       {settings.whatsapp_url&&!settings.maintenance_mode&&(
         <a href={settings.whatsapp_url} target="_blank" rel="noopener noreferrer" title="Falar com suporte" style={{position:'fixed',bottom:24,right:24,zIndex:150,width:52,height:52,borderRadius:'50%',background:'#25D366',display:'flex',alignItems:'center',justifyContent:'center',boxShadow:'0 4px 20px rgba(37,211,102,0.4)',textDecoration:'none',fontSize:24,transition:'transform 0.2s'}} onMouseEnter={e=>(e.currentTarget.style.transform='scale(1.1)')} onMouseLeave={e=>(e.currentTarget.style.transform='scale(1)')}>💬</a>
       )}
-      <nav style={{position:'fixed',top:0,left:0,right:0,zIndex:100,display:'flex',alignItems:'center',justifyContent:'space-between',padding:'0 16px',height:60,background:'rgba(8,8,8,0.95)',backdropFilter:'blur(12px)',borderBottom:'1px solid rgba(255,255,255,0.06)'}}>
+      <nav style={{position:'fixed',top:0,left:0,right:0,zIndex:100,display:'flex',alignItems:'center',justifyContent:'space-between',padding:'0 16px',height:60,background:'var(--tj-nav-bg)',backdropFilter:'blur(12px)',borderBottom:'1px solid var(--tj-border)'}}>
         <div style={{display:'flex',alignItems:'center',gap:8}}>
           {page!=='dashboard'&&(
             <button onClick={goBack} title="Voltar" aria-label="Voltar"
@@ -3609,7 +3609,7 @@ export default function TigerJusApp() {
         </div>
       </nav>
       {menuOpen&&(
-        <div style={{position:'fixed',top:60,left:0,right:0,zIndex:99,background:'rgba(10,10,10,0.98)',backdropFilter:'blur(12px)',borderBottom:'1px solid rgba(255,255,255,0.08)',padding:'12px 0',display:'flex',flexDirection:'column'}}>
+        <div style={{position:'fixed',top:60,left:0,right:0,zIndex:99,background:'var(--tj-nav-bg)',backdropFilter:'blur(12px)',borderBottom:'1px solid var(--tj-border)',padding:'12px 0',display:'flex',flexDirection:'column'}}>
           {SIDEBAR_GROUPS.map(g=>(
             <div key={g.title||'inicio'}>
               {g.title&&<div style={{fontSize:9,fontWeight:700,letterSpacing:2,textTransform:'uppercase',color:'var(--text-dim)',padding:'12px 20px 4px'}}>{g.title}</div>}
