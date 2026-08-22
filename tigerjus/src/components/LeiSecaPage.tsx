@@ -133,7 +133,7 @@ export default function LeiSecaPage() {
   const inputStyle: React.CSSProperties = {
     width: '100%', boxSizing: 'border-box', padding: '12px 14px', borderRadius: 10,
     border: '1px solid var(--tj-card-border,rgba(99,130,200,0.18))', background: 'rgba(255,255,255,0.04)',
-    color: '#fff', fontSize: 14, outline: 'none', marginBottom: 14,
+    color: 'var(--white)', fontSize: 14, outline: 'none', marginBottom: 14,
   }
 
   const ArtigoCard = ({ a, comLei }: { a: Artigo; comLei?: boolean }) => {
@@ -154,7 +154,7 @@ export default function LeiSecaPage() {
             {copiado === chave ? '✓ copiado' : '⧉ copiar'}
           </button>
         </div>
-        <div style={{ fontSize: 14.5, color: 'rgba(255,255,255,0.9)', lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>
+        <div style={{ fontSize: 14.5, color: 'var(--white)', lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>
           {limparCorpo(a.texto)}
         </div>
       </div>
@@ -228,7 +228,7 @@ export default function LeiSecaPage() {
                   >
                     <div style={{ fontSize: 34, lineHeight: 1 }}>{meta.icone}</div>
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: 16, fontWeight: 800, color: '#fff' }}>{meta.curto}</div>
+                      <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--white)' }}>{meta.curto}</div>
                       <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>{l.lei_nome}</div>
                       <div style={{ fontSize: 11, color: 'var(--gold)', marginTop: 6, fontWeight: 700 }}>{l.total_artigos} artigos</div>
                     </div>
@@ -259,7 +259,7 @@ export default function LeiSecaPage() {
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
         <div style={{ fontSize: 30 }}>{meta.icone}</div>
         <div>
-          <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 20, fontWeight: 900, color: '#fff', margin: 0, lineHeight: 1.2 }}>{meta.curto}</h1>
+          <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 20, fontWeight: 900, color: 'var(--white)', margin: 0, lineHeight: 1.2 }}>{meta.curto}</h1>
           <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{nomeAberta}{totalLei ? ` · ${totalLei} artigos` : ''}</div>
         </div>
       </div>
