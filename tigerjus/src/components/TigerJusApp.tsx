@@ -3382,6 +3382,21 @@ export default function TigerJusApp() {
   const [loading,setLoading]=useState(true)
   const [menuOpen,setMenuOpen]=useState(false)
 
+  // ── Botão de tema claro (liga/desliga, por usuário, sem reload) ──────────────
+  // Guarda a escolha em localStorage; o ThemeProvider lê essa chave e aplica.
+  // O evento 'tj-theme-toggle' faz o tema virar na hora, sem recarregar a página.
+  const [claroOn,setClaroOn]=useState(false)
+  useEffect(()=>{ if(typeof window!=='undefined') setClaroOn(window.localStorage.getItem('tj-user-theme')==='claro') },[])
+  const toggleClaro=()=>{
+    const next=!claroOn
+    setClaroOn(next)
+    try{
+      if(next) window.localStorage.setItem('tj-user-theme','claro')
+      else window.localStorage.removeItem('tj-user-theme')
+      window.dispatchEvent(new Event('tj-theme-toggle'))
+    }catch(e){}
+  }
+
   const plano=profile?.plano
   const [onlineIds,setOnlineIds]=useState<string[]>([])
   const [mencoes,setMencoes]=useState(0)
@@ -3579,6 +3594,10 @@ export default function TigerJusApp() {
           {SIDEBAR.map(i=>(<button key={i.key} onClick={()=>navLocked(i.key)?showUpgrade():navOrRadar(i.key)} style={{color:page===i.key?'var(--gold)':'var(--text-muted)',fontSize:'clamp(9px,0.85vw,11px)',fontWeight:600,letterSpacing:'clamp(0.5px,0.1vw,1px)',textTransform:'uppercase',border:'none',background:'none',cursor:'pointer',fontFamily:'var(--font-body)',borderBottom:page===i.key?'2px solid var(--gold)':'2px solid transparent',paddingBottom:2,whiteSpace:'nowrap'}}>{i.label}{navLocked(i.key)?' 🔒':''}</button>))}
         </div>
         <div style={{display:'flex',gap:8,alignItems:'center'}}>
+          <button onClick={toggleClaro} title={claroOn?'Voltar ao tema escuro':'Ativar tema claro'} aria-label="Alternar tema claro"
+            style={{background:claroOn?'linear-gradient(135deg,var(--gold),var(--orange))':'none',border:'1px solid rgba(212,168,67,0.35)',borderRadius:8,width:36,height:36,display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',fontSize:16,flexShrink:0,transition:'all 0.2s',lineHeight:1}}>
+            {claroOn?'🌙':'☀️'}
+          </button>
           <span className="nav-desktop" style={{fontSize:12,color:'var(--text-muted)'}}>{profile?.nome?.split(' ')[0]||'Usuário'}</span>
           <button className="btn-gold-sm nav-desktop" onClick={()=>setShowUpgradeModal(true)} style={{fontSize:11}}>🚀 {planoDisplay.toUpperCase()}</button>
           <button onClick={handleLogout} className="nav-desktop" style={{color:'var(--text-muted)',fontSize:11,border:'none',background:'none',cursor:'pointer',fontFamily:'var(--font-body)'}}>Sair</button>
