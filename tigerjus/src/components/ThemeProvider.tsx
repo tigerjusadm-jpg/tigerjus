@@ -35,9 +35,23 @@ export default function ThemeProvider({ children }: { children: React.ReactNode 
       root.style.setProperty(key, value)
     })
 
-    // ── 2) Aplica cores dinâmicas do admin (sobrescrevem o padrão do tema) ──
-    if (settings.primary_color)   root.style.setProperty('--gold',   settings.primary_color)
+    // ── 2) Cores-base sincronizadas com o tema (claro vs escuro) ─────────────
+    // Deterministas: sempre setadas nos dois modos. No claro, os tokens que
+    // eram "cinza-quase-preto" viram superfícies claras, e o dourado escurece
+    // o suficiente para ler sobre fundo branco. Isso dá sinergia automática a
+    // TODOS os elementos que usam esses tokens (cards, textos, barra de topo).
+    const baseGold = settings.primary_color || '#D4A843'
+    root.style.setProperty('--gold',       claroAtivo ? '#B8860B' : baseGold)
+    root.style.setProperty('--gold-light', claroAtivo ? '#D9A93E' : '#F0C96A')
     if (settings.secondary_color) root.style.setProperty('--orange', settings.secondary_color)
+
+    // Superfícies (usadas como fundo de cards e da barra de topo)
+    root.style.setProperty('--gray',       claroAtivo ? '#FFFFFF'          : '#141414')
+    root.style.setProperty('--gray-mid',   claroAtivo ? '#F4F3EF'          : '#1E1E1E')
+    root.style.setProperty('--gray-light', claroAtivo ? '#EDEBE5'          : '#2A2A2A')
+    root.style.setProperty('--black',      claroAtivo ? '#F4F3EF'          : '#0A0A0A')
+    root.style.setProperty('--tj-nav-bg',  claroAtivo ? 'rgba(255,255,255,0.9)' : 'rgba(8,8,8,0.95)')
+    root.setAttribute('data-user-theme', claroAtivo ? 'claro' : 'escuro')
 
     // ── 3) Aplica card glow ──
     if (!settings.card_glow_enabled) {
