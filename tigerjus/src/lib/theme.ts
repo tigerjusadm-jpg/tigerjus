@@ -25,9 +25,12 @@ export interface ThemeTokens {
   '--tj-radial-glow':     string
   // Blur
   '--tj-blur':            string
+  // Texto — temável (dark = creme, claro = escuro)
+  '--tj-text':            string
+  '--tj-text-secondary':  string
 }
 
-export type ThemeName = 'classic' | 'tech' | 'neon' | 'gold' | 'cyber' | 'minimal'
+export type ThemeName = 'classic' | 'tech' | 'neon' | 'gold' | 'cyber' | 'minimal' | 'claro'
 
 // ─── TEMAS ────────────────────────────────────────────────────────────────────
 
@@ -53,6 +56,8 @@ export const THEMES: Record<ThemeName, ThemeTokens> = {
     '--tj-grid-color':        'rgba(99,130,200,0.055)',
     '--tj-radial-glow':       'radial-gradient(ellipse 80% 60% at 50% 0%, rgba(99,130,200,0.14) 0%, rgba(212,168,67,0.04) 60%, transparent 100%)',
     '--tj-blur':              'blur(1px)',
+    '--tj-text':              '#F5F0E8',
+    '--tj-text-secondary':    '#8A8A82',
   },
 
   // ── CLASSIC — jurídico premium ────────────────────────────────────────────
@@ -74,6 +79,8 @@ export const THEMES: Record<ThemeName, ThemeTokens> = {
     '--tj-grid-color':        'rgba(212,168,67,0.02)',
     '--tj-radial-glow':       'radial-gradient(ellipse 60% 40% at 50% 0%, rgba(212,168,67,0.05) 0%, transparent 70%)',
     '--tj-blur':              'none',
+    '--tj-text':              '#F5F0E8',
+    '--tj-text-secondary':    '#8A8A82',
   },
 
   // ── GOLD — executivo premium ──────────────────────────────────────────────
@@ -95,6 +102,8 @@ export const THEMES: Record<ThemeName, ThemeTokens> = {
     '--tj-grid-color':        'rgba(212,168,67,0.03)',
     '--tj-radial-glow':       'radial-gradient(ellipse 80% 60% at 50% 0%, rgba(212,168,67,0.1) 0%, transparent 70%)',
     '--tj-blur':              'none',
+    '--tj-text':              '#F5F0E8',
+    '--tj-text-secondary':    '#8A8A82',
   },
 
   // ── NEON — jovem e gamer controlado ──────────────────────────────────────
@@ -116,6 +125,8 @@ export const THEMES: Record<ThemeName, ThemeTokens> = {
     '--tj-grid-color':        'rgba(139,92,246,0.04)',
     '--tj-radial-glow':       'radial-gradient(ellipse 70% 50% at 50% 0%, rgba(139,92,246,0.1) 0%, transparent 70%)',
     '--tj-blur':              'none',
+    '--tj-text':              '#F5F0E8',
+    '--tj-text-secondary':    '#8A8A82',
   },
 
   // ── CYBER — IA + tecnologia ───────────────────────────────────────────────
@@ -137,6 +148,8 @@ export const THEMES: Record<ThemeName, ThemeTokens> = {
     '--tj-grid-color':        'rgba(52,211,153,0.035)',
     '--tj-radial-glow':       'radial-gradient(ellipse 70% 50% at 50% 0%, rgba(52,211,153,0.07) 0%, transparent 70%)',
     '--tj-blur':              'none',
+    '--tj-text':              '#F5F0E8',
+    '--tj-text-secondary':    '#8A8A82',
   },
 
   // ── MINIMAL — máxima legibilidade ─────────────────────────────────────────
@@ -158,6 +171,32 @@ export const THEMES: Record<ThemeName, ThemeTokens> = {
     '--tj-grid-color':        'transparent',
     '--tj-radial-glow':       'none',
     '--tj-blur':              'none',
+    '--tj-text':              '#F5F0E8',
+    '--tj-text-secondary':    '#8A8A82',
+  },
+
+  // ── CLARO — fundo claro premium ───────────────────────────────────────────
+  // Atmosfera: leveza, foco, EdTech moderno — a marca continua no dourado.
+  // Único tema de fundo claro: bg off-white, cards brancos, texto escuro.
+  claro: {
+    '--tj-bg':                '#F4F3EF',
+    '--tj-bg-secondary':      '#FBFAF7',
+    '--tj-bg-tertiary':       '#FFFFFF',
+    '--tj-card-bg':           '#FFFFFF',
+    '--tj-card-border':       'rgba(0,0,0,0.08)',
+    '--tj-card-hover-border': 'rgba(212,168,67,0.5)',
+    '--tj-card-glow':         'rgba(212,168,67,0.05)',
+    '--tj-border':            'rgba(0,0,0,0.08)',
+    '--tj-sidebar-bg':        '#FFFFFF',
+    '--tj-sidebar-border':    'rgba(0,0,0,0.07)',
+    '--tj-glow-color':        'rgba(212,168,67,0.12)',
+    '--tj-glow-strength':     '10px',
+    '--tj-grid-opacity':      '0',
+    '--tj-grid-color':        'transparent',
+    '--tj-radial-glow':       'radial-gradient(ellipse 60% 40% at 50% 0%, rgba(212,168,67,0.06) 0%, transparent 70%)',
+    '--tj-blur':              'none',
+    '--tj-text':              '#1C1C1A',
+    '--tj-text-secondary':    '#6A6A62',
   },
 }
 
@@ -174,4 +213,5 @@ export const THEME_OPTIONS: { value: ThemeName; label: string; desc: string }[] 
   { value: 'neon',     label: '🎮 Neon',     desc: 'Jovem e gamificado' },
   { value: 'cyber',    label: '🤖 Cyber',    desc: 'IA e tecnologia' },
   { value: 'minimal',  label: '🔲 Minimal',  desc: 'Máxima legibilidade' },
+  { value: 'claro',    label: '☀️ Claro',    desc: 'Fundo claro premium' },
 ]
