@@ -49,6 +49,11 @@
     /* ── Fundo da barra de topo/menu mobile (fallback = escuro) ── */
     --tj-nav-bg:         rgba(8,8,8,0.95);
 
+    /* ── Campos de formulário (select/input) — fallback = escuro ── */
+    --field-bg:          #1c1c1c;
+    --field-fg:          #F5F0E8;
+    --field-scheme:      dark;
+
     /* ── NOVO: Background customizável (fallbacks) ──────────── */
     /* ThemeProvider injeta estes valores em runtime quando     */
     /* background_type === 'image'                              */
