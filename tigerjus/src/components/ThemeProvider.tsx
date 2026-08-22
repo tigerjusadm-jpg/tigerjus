@@ -54,6 +54,10 @@ export default function ThemeProvider({ children }: { children: React.ReactNode 
     // --white é a cor de texto creme herdada por vários componentes; no claro
     // vira escuro para não sumir no fundo branco (nunca é usado como fundo).
     root.style.setProperty('--white',      claroAtivo ? '#1C1C1A'          : '#F5F0E8')
+    // Campos de formulário (select/input) — fundo escuro no dark, claro no claro
+    root.style.setProperty('--field-bg',     claroAtivo ? '#FFFFFF'  : '#1c1c1c')
+    root.style.setProperty('--field-fg',     claroAtivo ? '#1C1C1A'  : '#F5F0E8')
+    root.style.setProperty('--field-scheme', claroAtivo ? 'light'    : 'dark')
     root.setAttribute('data-user-theme', claroAtivo ? 'claro' : 'escuro')
 
     // ── 3) Aplica card glow ──
