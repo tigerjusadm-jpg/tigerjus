@@ -42,6 +42,10 @@
     --tj-radius:            16px;
     --tj-sidebar-width:     260px;
 
+    /* ── Texto temável (fallback = creme p/ temas escuros) ── */
+    --tj-text:           #F5F0E8;
+    --tj-text-secondary: #8A8A82;
+
     /* ── NOVO: Background customizável (fallbacks) ──────────── */
     /* ThemeProvider injeta estes valores em runtime quando     */
     /* background_type === 'image'                              */
@@ -56,7 +60,7 @@
 
   body {
     background: var(--tj-bg);
-    color: var(--white);
+    color: var(--tj-text);
     font-family: var(--font-body), system-ui, sans-serif;
     overflow-x: hidden;
     position: relative;
@@ -134,7 +138,7 @@
   .btn-secondary {
     @apply inline-flex items-center justify-center px-8 py-4 rounded-lg font-semibold text-sm tracking-wider uppercase transition-all duration-300;
     background: transparent;
-    color: var(--white);
+    color: var(--tj-text);
     border: 1px solid rgba(255,255,255,0.12);
   }
   .btn-secondary:hover { border-color: var(--gold); color: var(--gold); }
@@ -285,7 +289,7 @@
     @apply w-full rounded-lg px-4 py-3 text-sm outline-none transition-all duration-200;
     background: rgba(255,255,255,0.04);
     border: 1px solid var(--tj-card-border);
-    color: var(--white);
+    color: var(--tj-text);
     font-family: var(--font-body);
   }
   .form-input:focus {
@@ -298,7 +302,7 @@
     @apply w-full rounded-lg px-4 py-3 text-sm outline-none;
     background: rgba(255,255,255,0.04);
     border: 1px solid var(--tj-card-border);
-    color: var(--white);
+    color: var(--tj-text);
     font-family: var(--font-body);
   }
 
@@ -382,7 +386,7 @@
   }
   .sidebar-item:hover {
     background: rgba(255,255,255,0.04);
-    color: var(--white);
+    color: var(--tj-text);
   }
   .sidebar-item.active {
     background: rgba(212,168,67,0.08);
