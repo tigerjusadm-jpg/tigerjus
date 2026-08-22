@@ -1,17 +1,36 @@
 'use client'
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useAppSettings } from '@/contexts/AppSettingsContext'
 import { getTheme } from '@/lib/theme'
 
 export default function ThemeProvider({ children }: { children: React.ReactNode }) {
   const { settings, loaded } = useAppSettings()
 
+  // ── Tema claro por usuário (botão ☀️/🌙 no topo do app) ───────────────────
+  // O botão grava 'tj-user-theme' no localStorage e dispara 'tj-theme-toggle'.
+  // Este tick força o efeito a re-aplicar o tema na hora, sem recarregar a página.
+  const [themeTick, setThemeTick] = useState(0)
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const onToggle = () => setThemeTick(t => t + 1)
+    window.addEventListener('tj-theme-toggle', onToggle)
+    return () => window.removeEventListener('tj-theme-toggle', onToggle)
+  }, [])
+
   useEffect(() => {
     if (!loaded) return
     const root = document.documentElement
 
+    // ── 0) Escolha do usuário (opt-in) tem prioridade sobre o tema do admin ──
+    const userOverride = (typeof window !== 'undefined')
+      ? (window.localStorage.getItem('tj-user-theme') || '').trim()
+      : ''
+    const claroAtivo = userOverride === 'claro'
+
     // ── 1) Aplica tokens do tema preset (comportamento atual preservado) ──
-    const theme = getTheme(settings.background_style || 'tech')
+    // Se o usuário ativou o Claro, usa 'claro'; senão, usa o tema do admin.
+    const themeName = claroAtivo ? 'claro' : (settings.background_style || 'tech')
+    const theme = getTheme(themeName)
     Object.entries(theme).forEach(([key, value]) => {
       root.style.setProperty(key, value)
     })
@@ -28,7 +47,11 @@ export default function ThemeProvider({ children }: { children: React.ReactNode 
 
     // ── 4) NOVO: Background customizável ────────────────────────────────────
     // Tipo de fundo escolhido pelo admin: 'preset' | 'color' | 'image' | 'gradient'
-    const bgType = (settings.background_type || 'preset').toLowerCase().trim()
+    // Quando o usuário ativou o Claro, forçamos 'preset' para o fundo claro
+    // realmente aparecer (ignora imagem/cor/gradiente do admin nesse modo).
+    const bgType = claroAtivo
+      ? 'preset'
+      : (settings.background_type || 'preset').toLowerCase().trim()
 
     // Reset prévio das variáveis de background customizado (evita estado residual)
     root.style.removeProperty('--tj-bg-custom-image')
@@ -80,6 +103,7 @@ export default function ThemeProvider({ children }: { children: React.ReactNode 
     // ── FIM: Background customizável ────────────────────────────────────────
   }, [
     loaded,
+    themeTick,
     settings.background_style,
     settings.primary_color,
     settings.secondary_color,
