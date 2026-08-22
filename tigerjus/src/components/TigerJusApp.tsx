@@ -1158,7 +1158,7 @@ function QuizPage({ freeQ, setFreeQ, showUpgrade, onXp, profile, isPago }: any) 
       <div style={{maxWidth:560,background:'var(--gray)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:20,padding:'24px'}}>
         <div style={{marginBottom:20}}>
           <label style={{fontSize:11,fontWeight:700,letterSpacing:'1.5px',textTransform:'uppercase',color:'var(--text-muted)',display:'block',marginBottom:10}}>Disciplina (opcional)</label>
-          <select value={disciplina} onChange={e=>setDisciplina(e.target.value)} style={{width:'100%',background:'#1c1c1c',border:'1px solid rgba(255,255,255,0.08)',borderRadius:10,padding:'12px 16px',color:'#fff',fontSize:14,fontFamily:'var(--font-body)',colorScheme:'dark'}}>
+          <select value={disciplina} onChange={e=>setDisciplina(e.target.value)} style={{width:'100%',background:'var(--field-bg)',border:'1px solid var(--tj-border)',borderRadius:10,padding:'12px 16px',color:'var(--field-fg)',fontSize:14,fontFamily:'var(--font-body)',colorScheme:'var(--field-scheme)'}}>
             <option value="">Todas as disciplinas</option>
             {Object.keys(DISC_MAP).map(d=><option key={d} value={d}>{d}</option>)}
           </select>
@@ -2413,7 +2413,7 @@ function SimuladosPage({ showUpgrade, freeQ, setFreeQ, onXp, profile, isPago, ca
             <div style={{fontSize:12,color:'var(--text-muted)',marginBottom:12}}>Escolha a matéria e treine 20 questões (30min) só dela. Ideal pra reforçar seu ponto fraco.</div>
             {(()=>{const bk='pratica:Temático — '+tematicaDisc;const best=bestMap[bk];const prog=savedMap[bk];return(
             <div style={{display:'flex',gap:8,flexWrap:'wrap',alignItems:'center'}}>
-              <select value={tematicaDisc} onChange={e=>setTematicaDisc(e.target.value)} style={{flex:'1 1 180px',background:'#1c1c1c',border:'1px solid rgba(255,255,255,0.1)',borderRadius:10,padding:'11px 14px',color:'#fff',fontSize:13,fontFamily:'var(--font-body)',colorScheme:'dark'}}>
+              <select value={tematicaDisc} onChange={e=>setTematicaDisc(e.target.value)} style={{flex:'1 1 180px',background:'var(--field-bg)',border:'1px solid var(--tj-border)',borderRadius:10,padding:'11px 14px',color:'var(--field-fg)',fontSize:13,fontFamily:'var(--font-body)',colorScheme:'var(--field-scheme)'}}>
                 <option value="">Escolha a disciplina…</option>
                 {Object.keys(PDF_DISC_MAP).map(d=><option key={d} value={d}>{d}</option>)}
               </select>
@@ -3284,7 +3284,7 @@ function ReferralPage({profile,showUpgrade,isPago}:any){
   }
   const fmt=(v:number)=>`R$ ${(Math.round(v*100)/100).toFixed(2).replace('.',',')}`
   const LBL:React.CSSProperties={fontSize:10,fontWeight:800,letterSpacing:'2px',textTransform:'uppercase',color:'var(--text-muted)',marginBottom:12}
-  const inp:React.CSSProperties={flex:'1 1 120px',background:'#1c1c1c',border:'1px solid rgba(255,255,255,0.1)',borderRadius:10,padding:'11px 14px',color:'#fff',fontSize:13,colorScheme:'dark' as any}
+  const inp:React.CSSProperties={flex:'1 1 120px',background:'var(--field-bg)',border:'1px solid var(--tj-border)',borderRadius:10,padding:'11px 14px',color:'var(--field-fg)',fontSize:13,colorScheme:'var(--field-scheme)' as any}
 
   return(
     <div style={{padding:'24px 20px',flex:1,overflowY:'auto'}}>
