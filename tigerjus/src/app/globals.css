@@ -46,6 +46,9 @@
     --tj-text:           #F5F0E8;
     --tj-text-secondary: #8A8A82;
 
+    /* ── Fundo da barra de topo/menu mobile (fallback = escuro) ── */
+    --tj-nav-bg:         rgba(8,8,8,0.95);
+
     /* ── NOVO: Background customizável (fallbacks) ──────────── */
     /* ThemeProvider injeta estes valores em runtime quando     */
     /* background_type === 'image'                              */
