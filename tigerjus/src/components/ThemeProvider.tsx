@@ -51,6 +51,9 @@ export default function ThemeProvider({ children }: { children: React.ReactNode 
     root.style.setProperty('--gray-light', claroAtivo ? '#EDEBE5'          : '#2A2A2A')
     root.style.setProperty('--black',      claroAtivo ? '#F4F3EF'          : '#0A0A0A')
     root.style.setProperty('--tj-nav-bg',  claroAtivo ? 'rgba(255,255,255,0.9)' : 'rgba(8,8,8,0.95)')
+    // --white é a cor de texto creme herdada por vários componentes; no claro
+    // vira escuro para não sumir no fundo branco (nunca é usado como fundo).
+    root.style.setProperty('--white',      claroAtivo ? '#1C1C1A'          : '#F5F0E8')
     root.setAttribute('data-user-theme', claroAtivo ? 'claro' : 'escuro')
 
     // ── 3) Aplica card glow ──
