@@ -503,7 +503,7 @@ function DashTicker(){
         <span style={{width:9,height:9,borderRadius:'50%',background:'var(--gold)',boxShadow:'0 0 10px var(--gold)',animation:'tjDot 1.4s ease-in-out infinite'}}/>
         <span style={{fontSize:12,fontWeight:900,letterSpacing:2,textTransform:'uppercase',color:'var(--gold)',whiteSpace:'nowrap'}}>TIGER</span>
       </span>
-      <span key={i} style={{position:'relative',fontSize:'clamp(15px,2.4vw,18px)',fontWeight:800,color:'#fff',lineHeight:1.3,letterSpacing:0.2,animation:'tjFade 0.5s ease'}}>{frases[i]}</span>
+      <span key={i} style={{position:'relative',fontSize:'clamp(15px,2.4vw,18px)',fontWeight:800,color:'var(--white)',lineHeight:1.3,letterSpacing:0.2,animation:'tjFade 0.5s ease'}}>{frases[i]}</span>
     </div>
   )
 }
@@ -3303,8 +3303,8 @@ function ReferralPage({profile,showUpgrade,isPago}:any){
       <div style={{background:'var(--gray)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:16,padding:20,marginBottom:20}}>
         <div style={LBL}>💳 Usar meu crédito</div>
         <div style={{display:'flex',gap:8,marginBottom:14}}>
-          <button onClick={()=>{setUPresente(false);setUMsg(null)}} style={{flex:1,padding:'10px',borderRadius:10,border:`1px solid ${!uPresente?'var(--gold)':'rgba(255,255,255,0.1)'}`,background:!uPresente?'rgba(212,168,67,0.1)':'transparent',color:'#fff',fontSize:13,fontWeight:700,cursor:'pointer'}}>Minha assinatura</button>
-          <button onClick={()=>{setUPresente(true);setUMsg(null)}} style={{flex:1,padding:'10px',borderRadius:10,border:`1px solid ${uPresente?'var(--gold)':'rgba(255,255,255,0.1)'}`,background:uPresente?'rgba(212,168,67,0.1)':'transparent',color:'#fff',fontSize:13,fontWeight:700,cursor:'pointer'}}>🎁 Presentear</button>
+          <button onClick={()=>{setUPresente(false);setUMsg(null)}} style={{flex:1,padding:'10px',borderRadius:10,border:`1px solid ${!uPresente?'var(--gold)':'rgba(255,255,255,0.1)'}`,background:!uPresente?'rgba(212,168,67,0.1)':'transparent',color:'var(--white)',fontSize:13,fontWeight:700,cursor:'pointer'}}>Minha assinatura</button>
+          <button onClick={()=>{setUPresente(true);setUMsg(null)}} style={{flex:1,padding:'10px',borderRadius:10,border:`1px solid ${uPresente?'var(--gold)':'rgba(255,255,255,0.1)'}`,background:uPresente?'rgba(212,168,67,0.1)':'transparent',color:'var(--white)',fontSize:13,fontWeight:700,cursor:'pointer'}}>🎁 Presentear</button>
         </div>
         {uPresente&&(
           <input value={uEmail} onChange={e=>setUEmail(e.target.value)} placeholder="E-mail de quem vai receber (conta já existente)" style={{width:'100%',boxSizing:'border-box',background:'rgba(255,255,255,0.03)',border:'1px solid rgba(255,255,255,0.1)',borderRadius:10,padding:'11px 14px',color:'#fff',fontSize:13,marginBottom:12}}/>
