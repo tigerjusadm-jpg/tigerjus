@@ -800,7 +800,7 @@ function DashHome({ profile, onNav, onMini, showUpgrade, isPago, canAccessPremiu
       </div>
       <div style={{display:'grid',gridTemplateColumns:'repeat(2,1fr)',gap:12,marginBottom:20}}>
         {[{label:'Questões',value:questoes.toLocaleString(),cls:'var(--gold)',sub:'respondidas'},{label:'Taxa Acerto',value:`${taxa}%`,cls:'var(--success)',sub:'aproveitamento'},{label:'Streak',value:`${streak} 🔥`,cls:'var(--orange)',sub:'dias seguidos'},{label:'XP Total',value:xp.toLocaleString(),cls:'var(--gold)',sub:'pontos ganhos'}].map(s=>(
-          <div key={s.label} style={{background:'var(--gray)',border:'1px solid rgba(255,255,255,0.05)',borderRadius:14,padding:16}}>
+          <div key={s.label} style={{border:'1.5px solid transparent',background:'linear-gradient(var(--gray),var(--gray)) padding-box,linear-gradient(135deg,var(--gold-light),var(--gold),var(--gold-dark)) border-box',borderRadius:14,padding:16}}>
             <div style={{fontSize:10,fontWeight:600,letterSpacing:'1.5px',textTransform:'uppercase',color:'var(--text-muted)',marginBottom:8}}>{s.label}</div>
             <div style={{fontFamily:'var(--font-display)',fontSize:'clamp(20px,5vw,28px)',fontWeight:900,color:s.cls}}>{s.value}</div>
             <div style={{fontSize:11,color:'var(--text-muted)',marginTop:4}}>{s.sub}</div>
@@ -808,7 +808,7 @@ function DashHome({ profile, onNav, onMini, showUpgrade, isPago, canAccessPremiu
         ))}
       </div>
       {recente7&&recente7.total>0&&(()=>{const t=recente7.taxa??0;const cor=t>=70?'var(--success)':t>=50?'var(--gold)':'var(--orange)';return(
-        <div style={{display:'flex',alignItems:'center',gap:12,flexWrap:'wrap',background:'var(--gray)',border:'1px solid rgba(255,255,255,0.05)',borderRadius:14,padding:'14px 16px',marginBottom:20}}>
+        <div style={{display:'flex',alignItems:'center',gap:12,flexWrap:'wrap',border:'1.5px solid transparent',background:'linear-gradient(var(--gray),var(--gray)) padding-box,linear-gradient(135deg,var(--gold-light),var(--gold),var(--gold-dark)) border-box',borderRadius:14,padding:'14px 16px',marginBottom:20}}>
           <div style={{fontSize:22}}>📈</div>
           <div style={{flex:1,minWidth:170}}>
             <div style={{fontSize:10,fontWeight:600,letterSpacing:'1.5px',textTransform:'uppercase',color:'var(--text-muted)',marginBottom:3}}>Aproveitamento recente · 7 dias</div>
@@ -876,7 +876,7 @@ function DashHome({ profile, onNav, onMini, showUpgrade, isPago, canAccessPremiu
       </div>
       <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(160px,1fr))',gap:12}}>
         {DISCIPLINES.slice(0,6).map(d=>(
-          <div key={d.id} style={{background:'var(--gray)',border:'1px solid rgba(255,255,255,0.05)',borderRadius:14,padding:16,cursor:'pointer',transition:'all 0.2s'}}
+          <div key={d.id} style={{border:'1.5px solid transparent',background:'linear-gradient(var(--gray),var(--gray)) padding-box,linear-gradient(135deg,var(--gold-light),var(--gold),var(--gold-dark)) border-box',borderRadius:14,padding:16,cursor:'pointer',transition:'all 0.2s'}}
             onClick={()=>onNav('disciplines')}
             onMouseEnter={e=>{e.currentTarget.style.borderColor='rgba(212,168,67,0.2)';e.currentTarget.style.transform='translateY(-2px)'}}
             onMouseLeave={e=>{e.currentTarget.style.borderColor='rgba(255,255,255,0.05)';e.currentTarget.style.transform='translateY(0)'}}>
@@ -1155,7 +1155,7 @@ function QuizPage({ freeQ, setFreeQ, showUpgrade, onXp, profile, isPago }: any) 
           <button className="btn-secondary" style={{flex:1}} onClick={descartar}>Descartar</button>
         </div>
       </div>}
-      <div style={{maxWidth:560,background:'var(--gray)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:20,padding:'24px'}}>
+      <div style={{maxWidth:560,border:'1.5px solid transparent',background:'linear-gradient(var(--gray),var(--gray)) padding-box,linear-gradient(135deg,var(--gold-light),var(--gold),var(--gold-dark)) border-box',borderRadius:20,padding:'24px'}}>
         <div style={{marginBottom:20}}>
           <label style={{fontSize:11,fontWeight:700,letterSpacing:'1.5px',textTransform:'uppercase',color:'var(--text-muted)',display:'block',marginBottom:10}}>Disciplina (opcional)</label>
           <select value={disciplina} onChange={e=>setDisciplina(e.target.value)} style={{width:'100%',background:'var(--field-bg)',border:'1px solid var(--tj-border)',borderRadius:10,padding:'12px 16px',color:'var(--field-fg)',fontSize:14,fontFamily:'var(--font-body)',colorScheme:'var(--field-scheme)'}}>
@@ -1222,7 +1222,7 @@ function QuizPage({ freeQ, setFreeQ, showUpgrade, onXp, profile, isPago }: any) 
             </div>
           </div>
         ) })()}
-        <div style={{background:'var(--gray)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:20,padding:'24px'}}>
+        <div style={{border:'1.5px solid transparent',background:'linear-gradient(var(--gray),var(--gray)) padding-box,linear-gradient(135deg,var(--gold-light),var(--gold),var(--gold-dark)) border-box',borderRadius:20,padding:'24px'}}>
           <div style={{display:'flex',gap:8,marginBottom:14}}><span style={{fontSize:10,fontWeight:700,letterSpacing:2,textTransform:'uppercase',color:'var(--gold)'}}>{q.disc}</span><span style={{fontSize:10,color:'var(--text-muted)'}}>· OAB Oficial</span></div>
           <div style={{fontSize:'clamp(14px,3vw,18px)',fontWeight:600,lineHeight:1.6,marginBottom:24}}>{q.q}</div>
           <div style={{display:'flex',flexDirection:'column',gap:10}}>
@@ -1306,7 +1306,7 @@ function IAPage({ freeIA, setFreeIA, showUpgrade, profile, isPago, iaIlimitada }
       {!iaIlimitada&&freeIA<=0&&(<div style={{background:'rgba(232,66,26,0.08)',border:'1px solid rgba(232,66,26,0.25)',borderRadius:12,padding:'14px 16px',marginBottom:16,fontSize:13,lineHeight:1.6}}><div style={{fontWeight:800,color:'var(--danger)',letterSpacing:'0.3px',marginBottom:profile?.plano==='elite'?0:4}}>🔒 SEU LIMITE DIÁRIO EXCEDEU. RETORNE AMANHÃ.</div>{profile?.plano!=='elite'&&<button onClick={showUpgrade} style={{color:'var(--gold)',background:'none',border:'none',cursor:'pointer',fontSize:13,fontFamily:'var(--font-body)',fontWeight:700,padding:0}}>ou vire Pro pra mais perguntas hoje →</button>}</div>)}
       <div style={{display:'flex',gap:6,flexWrap:'wrap',marginBottom:14}}>{chips.map(c=><button key={c} onClick={()=>send(c)} style={{background:'rgba(212,168,67,0.06)',border:'1px solid rgba(212,168,67,0.14)',borderRadius:100,padding:'5px 12px',fontSize:11,color:'var(--text-muted)',cursor:'pointer',fontFamily:'var(--font-body)'}}>{c}</button>)}</div>
       {!iaIlimitada&&<div style={{display:'flex',justifyContent:'flex-end',alignItems:'center',gap:6,marginBottom:8,fontSize:12,fontWeight:700}}><span style={{opacity:0.6}}>🐯 IA Tiger:</span>{freeIA>0?<span style={{color:'var(--gold)'}}>{freeIA} pergunta{freeIA!==1?'s':''} restante{freeIA!==1?'s':''} hoje</span>:<span style={{color:'var(--danger)'}}>limite diário atingido</span>}</div>}
-      <div style={{flex:1,background:'var(--gray)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:20,overflow:'hidden',display:'flex',flexDirection:'column',minHeight:350}}>
+      <div style={{flex:1,border:'1.5px solid transparent',background:'linear-gradient(var(--gray),var(--gray)) padding-box,linear-gradient(135deg,var(--gold-light),var(--gold),var(--gold-dark)) border-box',borderRadius:20,overflow:'hidden',display:'flex',flexDirection:'column',minHeight:350}}>
         <div style={{flex:1,overflowY:'auto',display:'flex',flexDirection:'column',gap:14,padding:20}}>
           {msgs.map((m,i)=>(
             <div key={i} style={{display:'flex',gap:10,maxWidth:'85%',alignSelf:m.role==='user'?'flex-end':'flex-start',flexDirection:m.role==='user'?'row-reverse':'row'}}>
@@ -1378,14 +1378,14 @@ function ResumoSection({ disc, onNav, resumoTier = 'none', showUpgrade }: { disc
   },[disc.slug])
 
   if(estado==='loading') return(
-    <div style={{background:'var(--gray)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:20,padding:24}}>
+    <div style={{border:'1.5px solid transparent',background:'linear-gradient(var(--gray),var(--gray)) padding-box,linear-gradient(135deg,var(--gold-light),var(--gold),var(--gold-dark)) border-box',borderRadius:20,padding:24}}>
       {[90,70,80,60,75].map((w,i)=><div key={i} style={{height:14,borderRadius:6,marginBottom:12,background:'rgba(255,255,255,0.06)',width:`${w}%`,animation:'pulse 1.5s infinite'}}/>)}
       <style>{`@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}`}</style>
     </div>
   )
 
   if(estado==='vazio') return(
-    <div style={{background:'var(--gray)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:20,padding:32,textAlign:'center'}}>
+    <div style={{border:'1.5px solid transparent',background:'linear-gradient(var(--gray),var(--gray)) padding-box,linear-gradient(135deg,var(--gold-light),var(--gold),var(--gold-dark)) border-box',borderRadius:20,padding:32,textAlign:'center'}}>
       <div style={{fontSize:40,marginBottom:14}}>📖</div>
       <h3 style={{fontFamily:'var(--font-display)',fontSize:18,fontWeight:900,marginBottom:8,color:'var(--tj-text)'}}>Resumo em preparação</h3>
       <p style={{fontSize:13,color:'var(--text-muted)',lineHeight:1.7,marginBottom:24,maxWidth:380,margin:'0 auto 24px'}}>O resumo de <strong style={{color:'var(--gold)'}}>{disc.name}</strong> ainda está sendo elaborado.</p>
@@ -1401,7 +1401,7 @@ function ResumoSection({ disc, onNav, resumoTier = 'none', showUpgrade }: { disc
   const leiPadrao=LEI_PADRAO_DISC[disc.slug]
 
   if(resumoTier==='none') return(
-    <div style={{background:'var(--gray)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:20,padding:32,textAlign:'center'}}>
+    <div style={{border:'1.5px solid transparent',background:'linear-gradient(var(--gray),var(--gray)) padding-box,linear-gradient(135deg,var(--gold-light),var(--gold),var(--gold-dark)) border-box',borderRadius:20,padding:32,textAlign:'center'}}>
       <div style={{fontSize:44,marginBottom:14}}>🔒</div>
       <h3 style={{fontFamily:'var(--font-display)',fontSize:20,fontWeight:900,marginBottom:8}}>Resumos a partir do Tiger Start</h3>
       <p style={{fontSize:13,color:'var(--text-muted)',lineHeight:1.7,maxWidth:400,margin:'0 auto 22px'}}>No <strong style={{color:'var(--gold)'}}>Start</strong> você já leva os resumos rápidos. No <strong style={{color:'var(--gold)'}}>Pro</strong>, os resumos completos por disciplina. No <strong style={{color:'var(--orange)'}}>Elite</strong>, ainda a Lei Seca de memorização.</p>
@@ -1412,7 +1412,7 @@ function ResumoSection({ disc, onNav, resumoTier = 'none', showUpgrade }: { disc
   return(
     <div>
       {resumoCurto&&<div style={{background:'rgba(212,168,67,0.06)',border:'1px solid rgba(212,168,67,0.15)',borderRadius:12,padding:'12px 16px',marginBottom:16,fontSize:13,color:'var(--gold)',lineHeight:1.6}}><ComentarioComLei texto={resumoCurto} leiPadrao={leiPadrao}/></div>}
-      <div style={{background:'var(--gray)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:20,padding:'24px'}}>
+      <div style={{border:'1.5px solid transparent',background:'linear-gradient(var(--gray),var(--gray)) padding-box,linear-gradient(135deg,var(--gold-light),var(--gold),var(--gold-dark)) border-box',borderRadius:20,padding:'24px'}}>
         {verCompleto?(
           <ResumoRenderer texto={texto} leiPadrao={leiPadrao}/>
         ):(
@@ -1455,7 +1455,7 @@ function LeisecaSection({ disc, onNav, canMemorizacao = false, showUpgrade }: { 
   },[disc.slug])
 
   if(estado==='loading') return(
-    <div style={{background:'var(--gray)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:20,padding:24}}>
+    <div style={{border:'1.5px solid transparent',background:'linear-gradient(var(--gray),var(--gray)) padding-box,linear-gradient(135deg,var(--gold-light),var(--gold),var(--gold-dark)) border-box',borderRadius:20,padding:24}}>
       {[90,70,80,60,75].map((w,i)=><div key={i} style={{height:14,borderRadius:6,marginBottom:12,background:'rgba(255,255,255,0.06)',width:`${w}%`,animation:'pulse 1.5s infinite'}}/>)}
     </div>
   )
@@ -1470,7 +1470,7 @@ function LeisecaSection({ disc, onNav, canMemorizacao = false, showUpgrade }: { 
   )
 
   if(estado==='vazio') return(
-    <div style={{background:'var(--gray)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:20,padding:32,textAlign:'center'}}>
+    <div style={{border:'1.5px solid transparent',background:'linear-gradient(var(--gray),var(--gray)) padding-box,linear-gradient(135deg,var(--gold-light),var(--gold),var(--gold-dark)) border-box',borderRadius:20,padding:32,textAlign:'center'}}>
       <div style={{fontSize:40,marginBottom:14}}>📌</div>
       <h3 style={{fontFamily:'var(--font-display)',fontSize:18,fontWeight:900,marginBottom:8,color:'var(--tj-text)'}}>Lei Seca em preparação</h3>
       <p style={{fontSize:13,color:'var(--text-muted)',lineHeight:1.7,maxWidth:360,margin:'0 auto 24px'}}>O resumo de memorização de <strong style={{color:'var(--gold)'}}>{disc.name}</strong> está sendo elaborado. Em breve disponível.</p>
@@ -1493,7 +1493,7 @@ function LeisecaSection({ disc, onNav, canMemorizacao = false, showUpgrade }: { 
         </div>
         <div style={{fontSize:9,fontWeight:900,letterSpacing:'1.5px',background:'rgba(232,98,26,0.12)',border:'1px solid rgba(232,98,26,0.3)',color:'var(--orange)',padding:'4px 10px',borderRadius:100}}>✓ ELITE</div>
       </div>
-      <div style={{background:'var(--gray)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:20,padding:'24px'}}>
+      <div style={{border:'1.5px solid transparent',background:'linear-gradient(var(--gray),var(--gray)) padding-box,linear-gradient(135deg,var(--gold-light),var(--gold),var(--gold-dark)) border-box',borderRadius:20,padding:'24px'}}>
         <ResumoRenderer texto={texto} leiPadrao={leiPadrao}/>
       </div>
     </div>
@@ -1555,7 +1555,7 @@ function DisciplinesPage({ showUpgrade, profile, isPago, canAccessPremium, podeP
       {subTab==='resumo'&&<ResumoSection disc={selected} onNav={navTab} resumoTier={resumoTier} showUpgrade={showUpgrade}/>}
       {subTab==='quiz'&&<QuizDisciplina disciplina={selected.name} freeQ={freeQ} setFreeQ={setFreeQ} showUpgrade={showUpgrade} onXp={onXp} profile={profile}/>}
       {subTab==='flash'&&(isPago?<FlashCards disciplina={selected.name}/>:(
-        <div style={{background:'var(--gray)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:20,padding:40,textAlign:'center'}}>
+        <div style={{border:'1.5px solid transparent',background:'linear-gradient(var(--gray),var(--gray)) padding-box,linear-gradient(135deg,var(--gold-light),var(--gold),var(--gold-dark)) border-box',borderRadius:20,padding:40,textAlign:'center'}}>
           <div style={{fontSize:44,marginBottom:14}}>🔒</div>
           <h3 style={{fontFamily:'var(--font-display)',fontSize:20,fontWeight:900,marginBottom:8}}>Flashcards — Recurso Pago</h3>
           <p style={{color:'var(--text-muted)',marginBottom:24,fontSize:14}}>Os flashcards de revisão fazem parte do Tiger Start em diante.</p>
@@ -1563,7 +1563,7 @@ function DisciplinesPage({ showUpgrade, profile, isPago, canAccessPremium, podeP
         </div>
       ))}
       {subTab==='pdf'&&(
-        <div style={{background:'var(--gray)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:20,padding:40,textAlign:'center'}}>
+        <div style={{border:'1.5px solid transparent',background:'linear-gradient(var(--gray),var(--gray)) padding-box,linear-gradient(135deg,var(--gold-light),var(--gold),var(--gold-dark)) border-box',borderRadius:20,padding:40,textAlign:'center'}}>
           {podePDF?(
             <><div style={{fontSize:44,marginBottom:14}}>📄</div><h3 style={{fontFamily:'var(--font-display)',fontSize:20,fontWeight:900,marginBottom:8}}>PDF — {selected.name}</h3><p style={{color:'var(--text-muted)',marginBottom:24,fontSize:14}}>Resumo essencial + questões OAB reais com gabarito comentado.</p><button className="btn-primary" onClick={()=>handlePDF(selected)} disabled={gerandoPDF} style={{minWidth:220,fontSize:14}}>{gerandoPDF?'⏳ Gerando PDF...':'📄 GERAR E BAIXAR PDF'}</button></>
           ):(
@@ -1580,7 +1580,7 @@ function DisciplinesPage({ showUpgrade, profile, isPago, canAccessPremium, podeP
       <p style={{fontSize:14,color:'var(--text-muted)',marginBottom:24}}>20 disciplinas com resumos, quizzes, flashcards e PDFs.</p>
       <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(160px,1fr))',gap:12}}>
         {DISCIPLINES.map(d=>(
-          <div key={d.id} style={{background:'var(--gray)',border:'1px solid rgba(255,255,255,0.05)',borderRadius:14,padding:16,cursor:'pointer',transition:'all 0.2s'}}
+          <div key={d.id} style={{border:'1.5px solid transparent',background:'linear-gradient(var(--gray),var(--gray)) padding-box,linear-gradient(135deg,var(--gold-light),var(--gold),var(--gold-dark)) border-box',borderRadius:14,padding:16,cursor:'pointer',transition:'all 0.2s'}}
             onClick={()=>setSelected(d)}
             onMouseEnter={e=>{e.currentTarget.style.borderColor='rgba(212,168,67,0.2)';e.currentTarget.style.transform='translateY(-2px)'}}
             onMouseLeave={e=>{e.currentTarget.style.borderColor='rgba(255,255,255,0.05)';e.currentTarget.style.transform='translateY(0)'}}>
@@ -1636,7 +1636,7 @@ function FlashCardsPage({ isPago, showUpgrade }: any){
       <p style={{fontSize:14,color:'var(--text-muted)',marginBottom:24}}>Escolha uma disciplina para revisar com flashcards gerados das questões reais da OAB.</p>
       <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(160px,1fr))',gap:12}}>
         {DISCIPLINES.map(d=>(
-          <div key={d.id} style={{background:'var(--gray)',border:'1px solid rgba(255,255,255,0.05)',borderRadius:14,padding:16,cursor:'pointer',transition:'all 0.2s'}}
+          <div key={d.id} style={{border:'1.5px solid transparent',background:'linear-gradient(var(--gray),var(--gray)) padding-box,linear-gradient(135deg,var(--gold-light),var(--gold),var(--gold-dark)) border-box',borderRadius:14,padding:16,cursor:'pointer',transition:'all 0.2s'}}
             onClick={()=>setDisciplinaAtiva(d.name)}
             onMouseEnter={e=>{e.currentTarget.style.borderColor='rgba(212,168,67,0.2)';e.currentTarget.style.transform='translateY(-2px)'}}
             onMouseLeave={e=>{e.currentTarget.style.borderColor='rgba(255,255,255,0.05)';e.currentTarget.style.transform='translateY(0)'}}>
@@ -1790,7 +1790,7 @@ function QuizDisciplina({disciplina,freeQ,setFreeQ,showUpgrade,onXp,profile}:{di
 
   if(!started) return(
     <div style={{maxWidth:560}}>
-      <div style={{background:'var(--gray)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:20,padding:24}}>
+      <div style={{border:'1.5px solid transparent',background:'linear-gradient(var(--gray),var(--gray)) padding-box,linear-gradient(135deg,var(--gold-light),var(--gold),var(--gold-dark)) border-box',borderRadius:20,padding:24}}>
         <div style={{fontSize:10,fontWeight:700,letterSpacing:'2px',textTransform:'uppercase',color:'var(--gold)',marginBottom:12}}>📝 QUIZ — {disciplina.toUpperCase()}</div>
         <div style={{fontSize:28,fontWeight:900,fontFamily:'var(--font-display)',marginBottom:8}}>{questions.length} questões</div>
         <div style={{fontSize:13,color:'var(--text-muted)',marginBottom:24,lineHeight:1.6}}>Questões reais da OAB de <strong style={{color:'var(--gold)'}}>{disciplina}</strong>. 90 segundos por questão.</div>
@@ -1818,7 +1818,7 @@ function QuizDisciplina({disciplina,freeQ,setFreeQ,showUpgrade,onXp,profile}:{di
     <div style={{maxWidth:680}}>
       <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:12}}><div style={{fontSize:12,color:'var(--text-muted)'}}>Q{cur+1}/{questions.length} · {disciplina}</div><div style={{fontFamily:'var(--font-mono)',fontSize:16,fontWeight:700,color:time<20?'var(--danger)':'var(--gold)'}}>{String(Math.floor(time/60)).padStart(2,'0')}:{String(time%60).padStart(2,'0')}</div></div>
       <div style={{background:'rgba(255,255,255,0.06)',borderRadius:100,height:4,marginBottom:20,overflow:'hidden'}}><div style={{width:`${pct}%`,height:'100%',background:'linear-gradient(90deg,var(--gold),var(--orange))',borderRadius:100,transition:'width 0.4s'}}/></div>
-      <div style={{background:'var(--gray)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:20,padding:'22px'}}>
+      <div style={{border:'1.5px solid transparent',background:'linear-gradient(var(--gray),var(--gray)) padding-box,linear-gradient(135deg,var(--gold-light),var(--gold),var(--gold-dark)) border-box',borderRadius:20,padding:'22px'}}>
         <div style={{display:'flex',gap:8,marginBottom:14}}><span style={{fontSize:10,fontWeight:700,letterSpacing:2,textTransform:'uppercase',color:'var(--gold)'}}>{q.disc}</span><span style={{fontSize:10,color:'var(--text-muted)'}}>· OAB Oficial</span></div>
         <div style={{fontSize:'clamp(14px,3vw,17px)',fontWeight:600,lineHeight:1.7,marginBottom:20}}>{q.q}</div>
         <div style={{display:'flex',flexDirection:'column',gap:10}}>
@@ -2004,7 +2004,7 @@ function RadarTop20({ onBack, podePDF, freeQ, setFreeQ, showUpgrade, onXp }: { o
       <Voltar/>
       <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:12}}><div style={{fontSize:12,color:'var(--text-muted)'}}>Q{cur+1}/{questions.length} · Top 40 do Radar</div><div style={{fontFamily:'var(--font-mono)',fontSize:16,fontWeight:700,color:time<20?'var(--danger)':'var(--gold)'}}>{String(Math.floor(time/60)).padStart(2,'0')}:{String(time%60).padStart(2,'0')}</div></div>
       <div style={{background:'rgba(255,255,255,0.06)',borderRadius:100,height:4,marginBottom:20,overflow:'hidden'}}><div style={{width:`${pct}%`,height:'100%',background:'linear-gradient(90deg,var(--gold),var(--orange))',borderRadius:100,transition:'width 0.4s'}}/></div>
-      <div style={{background:'var(--gray)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:20,padding:'22px'}}>
+      <div style={{border:'1.5px solid transparent',background:'linear-gradient(var(--gray),var(--gray)) padding-box,linear-gradient(135deg,var(--gold-light),var(--gold),var(--gold-dark)) border-box',borderRadius:20,padding:'22px'}}>
         <div style={{display:'flex',gap:8,marginBottom:14,alignItems:'center',flexWrap:'wrap'}}><span style={{fontSize:10,fontWeight:700,letterSpacing:2,textTransform:'uppercase',color:'var(--gold)'}}>{q.icon} {q.disc}</span><span style={{fontSize:10,padding:'2px 8px',background:'rgba(212,168,67,0.1)',border:'1px solid rgba(212,168,67,0.2)',borderRadius:100,color:'var(--gold)',fontWeight:700}}>{q.dom}% dominância</span></div>
         <div style={{fontSize:'clamp(14px,3vw,17px)',fontWeight:600,lineHeight:1.7,marginBottom:20}}>{q.q}</div>
         <div style={{display:'flex',flexDirection:'column',gap:10}}>
@@ -2311,7 +2311,7 @@ function SimuladosPage({ showUpgrade, freeQ, setFreeQ, onXp, profile, isPago, ca
             </div>
           </div>
           <div style={{background:'rgba(255,255,255,0.06)',borderRadius:100,height:4,marginBottom:22,overflow:'hidden'}}><div style={{width:`${pct}%`,height:'100%',background:'linear-gradient(90deg,var(--gold),var(--orange))',borderRadius:100,transition:'width 0.4s'}}/></div>
-          <div style={{background:'var(--gray)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:20,padding:'22px'}}>
+          <div style={{border:'1.5px solid transparent',background:'linear-gradient(var(--gray),var(--gray)) padding-box,linear-gradient(135deg,var(--gold-light),var(--gold),var(--gold-dark)) border-box',borderRadius:20,padding:'22px'}}>
             <div style={{display:'flex',gap:8,marginBottom:14}}><span style={{fontSize:10,fontWeight:700,letterSpacing:2,textTransform:'uppercase',color:'var(--gold)'}}>{q.disc}</span><span style={{fontSize:10,color:'var(--text-muted)'}}>· OAB Oficial</span></div>
             <div style={{fontSize:'clamp(14px,3vw,17px)',fontWeight:600,lineHeight:1.7,marginBottom:22}}>{q.q}</div>
             <div style={{display:'flex',flexDirection:'column',gap:10}}>
@@ -2428,7 +2428,7 @@ function SimuladosPage({ showUpgrade, freeQ, setFreeQ, onXp, profile, isPago, ca
             )})()}
           </div>
           {SIMULADOS_PRATICA.map(s=>{const bk='pratica:'+s.t;const best=bestMap[bk];return(
-            <div key={s.t} style={{background:'var(--gray)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:16,padding:20,transition:'all 0.2s'}} onMouseEnter={e=>{e.currentTarget.style.borderColor='rgba(212,168,67,0.18)';e.currentTarget.style.transform='translateY(-2px)'}} onMouseLeave={e=>{e.currentTarget.style.borderColor='rgba(255,255,255,0.06)';e.currentTarget.style.transform='translateY(0)'}}>
+            <div key={s.t} style={{border:'1.5px solid transparent',background:'linear-gradient(var(--gray),var(--gray)) padding-box,linear-gradient(135deg,var(--gold-light),var(--gold),var(--gold-dark)) border-box',borderRadius:16,padding:20,transition:'all 0.2s'}} onMouseEnter={e=>{e.currentTarget.style.borderColor='rgba(212,168,67,0.18)';e.currentTarget.style.transform='translateY(-2px)'}} onMouseLeave={e=>{e.currentTarget.style.borderColor='rgba(255,255,255,0.06)';e.currentTarget.style.transform='translateY(0)'}}>
               <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:12}}><span style={{fontSize:26}}>{s.icon}</span><span style={{fontSize:10,padding:'2px 9px',borderRadius:100,fontWeight:700,background:'rgba(255,255,255,0.06)',color:'var(--text-muted)'}}>{s.dif}</span></div>
               <div style={{fontSize:14,fontWeight:700,marginBottom:5}}>{s.t}</div>
               <div style={{fontSize:12,color:'var(--text-muted)',marginBottom:10}}>{s.info}</div>
@@ -2494,7 +2494,7 @@ function ResumosPage({ profile, showUpgrade, onNav }: any){
       <p style={{fontSize:14,color:'var(--text-muted)',marginBottom:24}}>Resumos inteligentes de cada disciplina, baseados em todas as provas oficiais da OAB/FGV cadastradas na plataforma.</p>
       <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(160px,1fr))',gap:12}}>
         {DISCIPLINES.map(d=>(
-          <div key={d.id} style={{background:'var(--gray)',border:'1px solid rgba(255,255,255,0.05)',borderRadius:14,padding:16,cursor:'pointer',transition:'all 0.2s'}}
+          <div key={d.id} style={{border:'1.5px solid transparent',background:'linear-gradient(var(--gray),var(--gray)) padding-box,linear-gradient(135deg,var(--gold-light),var(--gold),var(--gold-dark)) border-box',borderRadius:14,padding:16,cursor:'pointer',transition:'all 0.2s'}}
             onClick={()=>setSelected(d)}
             onMouseEnter={e=>{e.currentTarget.style.borderColor='rgba(212,168,67,0.2)';e.currentTarget.style.transform='translateY(-2px)'}}
             onMouseLeave={e=>{e.currentTarget.style.borderColor='rgba(255,255,255,0.05)';e.currentTarget.style.transform='translateY(0)'}}>
@@ -3139,7 +3139,7 @@ function IndiceJuridico({ showUpgrade, isPago }: any) {
               <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(280px,1fr))',gap:12}}>
                 {termos.map(t=>(
                   <div key={t.id} onClick={()=>abrirTermo(t)}
-                    style={{background:'var(--gray)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:14,padding:'16px',cursor:'pointer',transition:'all 0.2s'}}
+                    style={{border:'1.5px solid transparent',background:'linear-gradient(var(--gray),var(--gray)) padding-box,linear-gradient(135deg,var(--gold-light),var(--gold),var(--gold-dark)) border-box',borderRadius:14,padding:'16px',cursor:'pointer',transition:'all 0.2s'}}
                     onMouseEnter={e=>{e.currentTarget.style.borderColor='rgba(212,168,67,0.3)';e.currentTarget.style.transform='translateY(-2px)'}}
                     onMouseLeave={e=>{e.currentTarget.style.borderColor='rgba(255,255,255,0.06)';e.currentTarget.style.transform='translateY(0)'}}>
                     <div style={{display:'flex',alignItems:'flex-start',justifyContent:'space-between',gap:8,marginBottom:8}}>
@@ -3300,7 +3300,7 @@ function ReferralPage({profile,showUpgrade,isPago}:any){
         </div>
       </div>
 
-      <div style={{background:'var(--gray)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:16,padding:20,marginBottom:20}}>
+      <div style={{border:'1.5px solid transparent',background:'linear-gradient(var(--gray),var(--gray)) padding-box,linear-gradient(135deg,var(--gold-light),var(--gold),var(--gold-dark)) border-box',borderRadius:16,padding:20,marginBottom:20}}>
         <div style={LBL}>💳 Usar meu crédito</div>
         <div style={{display:'flex',gap:8,marginBottom:14}}>
           <button onClick={()=>{setUPresente(false);setUMsg(null)}} style={{flex:1,padding:'10px',borderRadius:10,border:`1px solid ${!uPresente?'var(--gold)':'rgba(255,255,255,0.1)'}`,background:!uPresente?'rgba(212,168,67,0.1)':'transparent',color:'var(--white)',fontSize:13,fontWeight:700,cursor:'pointer'}}>Minha assinatura</button>
@@ -3323,7 +3323,7 @@ function ReferralPage({profile,showUpgrade,isPago}:any){
         <div style={{fontSize:11,color:'var(--text-muted)',marginTop:10,lineHeight:1.5}}>Sem tirar dinheiro: o crédito vira assinatura na plataforma — sua ou de quem você quiser presentear. Se a pessoa já for assinante, os dias somam ao vencimento.</div>
       </div>
 
-      <div style={{background:'var(--gray)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:16,padding:20,marginBottom:24}}>
+      <div style={{border:'1.5px solid transparent',background:'linear-gradient(var(--gray),var(--gray)) padding-box,linear-gradient(135deg,var(--gold-light),var(--gold),var(--gold-dark)) border-box',borderRadius:16,padding:20,marginBottom:24}}>
         <div style={LBL}>Seu link de indicação</div>
         <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
           <input readOnly value={refLink} style={{flex:'1 1 220px',background:'rgba(255,255,255,0.03)',border:'1px solid rgba(255,255,255,0.1)',borderRadius:10,padding:'11px 14px',color:'#fff',fontSize:13}}/>
@@ -3349,11 +3349,11 @@ function ReferralPage({profile,showUpgrade,isPago}:any){
         <div style={LBL}>Extrato da carteira</div>
         {loading&&<div style={{fontSize:13,color:'var(--text-muted)'}}>Carregando…</div>}
         {!loading&&extrato.length===0&&(
-          <div style={{background:'var(--gray)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:14,padding:20,textAlign:'center',fontSize:13,color:'var(--text-muted)'}}>Ainda sem movimentações. Quando um indicado pagar, a comissão aparece aqui. 💸</div>
+          <div style={{border:'1.5px solid transparent',background:'linear-gradient(var(--gray),var(--gray)) padding-box,linear-gradient(135deg,var(--gold-light),var(--gold),var(--gold-dark)) border-box',borderRadius:14,padding:20,textAlign:'center',fontSize:13,color:'var(--text-muted)'}}>Ainda sem movimentações. Quando um indicado pagar, a comissão aparece aqui. 💸</div>
         )}
         <div style={{display:'flex',flexDirection:'column',gap:8}}>
           {extrato.map(t=>(
-            <div key={t.id} style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:12,background:'var(--gray)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:12,padding:'12px 16px'}}>
+            <div key={t.id} style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:12,border:'1.5px solid transparent',background:'linear-gradient(var(--gray),var(--gray)) padding-box,linear-gradient(135deg,var(--gold-light),var(--gold),var(--gold-dark)) border-box',borderRadius:12,padding:'12px 16px'}}>
               <div style={{minWidth:0}}>
                 <div style={{fontSize:13,fontWeight:700}}>{t.tipo==='comissao'?`Comissão ${t.percentual_aplicado}%`:(t.descricao||t.tipo)}</div>
                 <div style={{fontSize:11,color:'var(--text-muted)'}}>{new Date(t.criado_em).toLocaleDateString('pt-BR')}{t.valor_bruto?` · indicado pagou ${fmt(Number(t.valor_bruto))}`:''}</div>
